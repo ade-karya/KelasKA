@@ -46,6 +46,8 @@ import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
 import { SpeechButton } from '@/components/audio/speech-button';
+import { useAuthStore } from '@/lib/store/auth';
+import { LogOut } from 'lucide-react';
 
 const log = createLogger('Home');
 
@@ -85,6 +87,9 @@ function HomePage() {
   const currentModelId = useSettingsStore((s) => s.modelId);
   const [storeHydrated, setStoreHydrated] = useState(false);
   const [recentOpen, setRecentOpen] = useState(true);
+
+  // Auth Protection
+  const isLoggedIn = useAuthStore((s) => s.isLoggedIn);
 
   // Hydrate client-only state after mount (avoids SSR mismatch)
   /* eslint-disable react-hooks/set-state-in-effect -- Hydration from localStorage must happen in effect */
@@ -721,6 +726,9 @@ function GreetingBar() {
   const setNickname = useUserProfileStore((s) => s.setNickname);
   const setBio = useUserProfileStore((s) => s.setBio);
 
+  const authNisn = useAuthStore((s) => s.nisn);
+  const logout = useAuthStore((s) => s.logout);
+
   const [open, setOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -919,6 +927,9 @@ function GreetingBar() {
                       <Pencil className="size-2.5 text-muted-foreground/30 opacity-0 group-hover/name:opacity-100 transition-opacity" />
                     </span>
                   )}
+                  {authNisn && (
+                    <div className="text-[11px] text-muted-foreground/50 mt-0.5">NISN: {authNisn}</div>
+                  )}
                 </div>
 
                 {/* Collapse arrow */}
@@ -986,6 +997,20 @@ function GreetingBar() {
                   rows={2}
                   className="resize-none border-border/40 bg-transparent min-h-[72px] !text-[13px] !leading-relaxed placeholder:!text-[11px] placeholder:!leading-relaxed focus-visible:ring-1 focus-visible:ring-border/60"
                 />
+
+                {/* Logout Button */}
+                <div className="mt-3 pt-2 border-t border-border/50">
+                  <button
+                    onClick={() => {
+                      logout();
+                      window.location.reload();
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-1.5 text-xs font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                  >
+                    <LogOut className="size-3.5" />
+                    <span>Keluar</span>
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
