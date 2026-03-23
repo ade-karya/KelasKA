@@ -1,10 +1,10 @@
 import { defaultLocale, type Locale } from './types';
 export { type Locale, defaultLocale } from './types';
-import { commonZhCN, commonEnUS, commonIdID, commonArSA } from './common';
-import { stageZhCN, stageEnUS, stageIdID, stageArSA } from './stage';
-import { chatZhCN, chatEnUS, chatIdID, chatArSA } from './chat';
-import { generationZhCN, generationEnUS, generationIdID, generationArSA } from './generation';
-import { settingsZhCN, settingsEnUS, settingsIdID, settingsArSA } from './settings';
+import { commonEnUS, commonIdID, commonArSA } from './common';
+import { stageEnUS, stageIdID, stageArSA } from './stage';
+import { chatEnUS, chatIdID, chatArSA } from './chat';
+import { generationEnUS, generationIdID, generationArSA } from './generation';
+import { settingsEnUS, settingsIdID, settingsArSA } from './settings';
 
 export const translations = {
   'id-ID': {

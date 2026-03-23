@@ -634,7 +634,7 @@ export class PlaybackEngine {
       // auto-selects an appropriate voice.
       const cjkRatio =
         (chunkText.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length / chunkText.length;
-      utterance.lang = cjkRatio > CJK_LANG_THRESHOLD ? 'zh-CN' : 'en-US';
+      utterance.lang = cjkRatio > CJK_LANG_THRESHOLD ? 'zh-CN' : 'id-ID';
     }
 
     utterance.onend = () => {

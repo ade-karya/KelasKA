@@ -20,7 +20,7 @@ function createAbortError(): Error {
 function inferPreviewLang(text: string): string {
   const cjkCount = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length;
   const ratio = text.length > 0 ? cjkCount / text.length : 0;
-  return ratio > CJK_LANG_THRESHOLD ? 'zh-CN' : 'en-US';
+  return ratio > CJK_LANG_THRESHOLD ? 'zh-CN' : 'id-ID';
 }
 
 export function isBrowserTTSAbortError(error: unknown): boolean {
