@@ -316,26 +316,69 @@ export const getChartOption = ({
       formatedData.push([x, y]);
     }
 
+    // Heuristic fallback: if the AI called it a scatter but coordinates match the world map coordinates,
+    // inject the world map in the background silently so old artifacts work.
+    const isMapData =
+      formatedData.length > 0 &&
+      formatedData.every(
+        (point) => point[0] >= -180 && point[0] <= 180 && point[1] >= -90 && point[1] <= 90
+      );
+
     return {
       color: themeColors,
       textStyle,
-      xAxis: {
-        axisLine,
-        axisLabel,
-        splitLine,
-      },
-      yAxis: {
-        axisLine,
-        axisLabel,
-        splitLine,
-      },
+      ...(isMapData ? { geo: { map: 'world', roam: true } } : {}),
+      ...(isMapData ? {} : {
+        xAxis: {
+          axisLine,
+          axisLabel,
+          splitLine,
+        },
+        yAxis: {
+          axisLine,
+          axisLabel,
+          splitLine,
+        }
+      }),
       series: [
         {
           symbolSize: 12,
           data: formatedData,
           type: 'scatter',
+          ...(isMapData ? { coordinateSystem: 'geo' } : {}),
         },
       ],
+    };
+  }
+
+  if (type === 'map') {
+    const formatedData = [];
+    for (let i = 0; i < data.series[0].length; i++) {
+        const x = data.series[0][i];
+        const y = data.series[1] ? data.series[1][i] : x;
+        formatedData.push({ name: data.labels[i] || '', value: [x, y] });
+    }
+
+    return {
+      color: themeColors,
+      textStyle,
+      geo: {
+        map: 'world',
+        roam: true,
+        label: { show: false }
+      },
+      series: [
+        {
+          name: data.legends[0] || 'Map Data',
+          type: 'scatter',
+          coordinateSystem: 'geo',
+          data: formatedData,
+          symbolSize: 12,
+          emphasis: {
+            label: { show: true, formatter: '{b}' }
+          }
+        }
+      ]
     };
   }
 

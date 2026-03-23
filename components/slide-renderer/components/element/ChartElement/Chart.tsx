@@ -6,8 +6,8 @@ import type { ChartData, ChartOptions, ChartType } from '@/lib/types/slides';
 import { getChartOption } from './chartOption';
 
 import * as echarts from 'echarts/core';
-import { BarChart, LineChart, PieChart, ScatterChart, RadarChart } from 'echarts/charts';
-import { LegendComponent } from 'echarts/components';
+import { BarChart, LineChart, PieChart, ScatterChart, RadarChart, MapChart } from 'echarts/charts';
+import { LegendComponent, GeoComponent } from 'echarts/components';
 import { SVGRenderer } from 'echarts/renderers';
 
 echarts.use([
@@ -17,6 +17,8 @@ echarts.use([
   ScatterChart,
   RadarChart,
   LegendComponent,
+  GeoComponent,
+  MapChart,
   SVGRenderer,
 ]);
 
@@ -97,6 +99,17 @@ export function Chart({
       chartInstance.current?.resize();
     });
     resizeObserver.observe(chartRef.current);
+
+    // Fetch and register world map if it's not registered
+    if (!echarts.getMap('world')) {
+      fetch('/world.json')
+        .then((res) => res.json())
+        .then((mapData) => {
+          echarts.registerMap('world', mapData);
+          updateOption();
+        })
+        .catch(console.error);
+    }
 
     return () => {
       resizeObserver.disconnect();

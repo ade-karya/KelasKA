@@ -387,7 +387,7 @@ Minimum recommended gap between elements for connector arrows: **60-80px**. If t
 
 **Required Fields**: `id`, `type`, `left`, `top`, `width`, `height`, `chartType`, `data`, `themeColors`
 
-**Chart Types**: "bar" (vertical), "column" (horizontal), "line", "pie", "ring", "area", "radar", "scatter"
+**Chart Types**: "bar" (vertical), "column" (horizontal), "line", "pie", "ring", "area", "radar", "scatter", "map" (geographical)
 
 **Data Structure**:
 
