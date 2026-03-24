@@ -1,0 +1,5 @@
+tests/server/provider-config.test.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+tests/server/provider-config.test.ts(8,22): error TS7006: Parameter 'importOriginal' implicitly has an 'any' type.
+tests/server/provider-config.test.ts(9,24): error TS2347: Untyped function calls may not accept type arguments.
+tests/store/settings-server-sync.test.ts(9,65): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
+vitest.config.ts(2,30): error TS2307: Cannot find module 'vitest/config' or its corresponding type declarations.
