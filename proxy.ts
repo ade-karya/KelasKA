@@ -1,5 +1,5 @@
 /**
- * Next.js Middleware — PIN-based auth guard
+ * Next.js Proxy — PIN-based auth guard
  *
  * Protects API routes: without a valid PIN session cookie,
  * API calls (except /api/auth/pin) return 401.
@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const PUBLIC_API_PATHS = ['/api/auth/pin', '/api/health'];
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Only guard /api routes (except public ones)

@@ -40,6 +40,7 @@ export interface GenerateClassroomInput {
   enableVideoGeneration?: boolean;
   enableTTS?: boolean;
   agentMode?: 'default' | 'generate';
+  pinToken?: string;
 }
 
 export type ClassroomGenerationStep =
@@ -177,12 +178,12 @@ export async function generateClassroom(
     scenesGenerated: 0,
   });
 
-  const { model: languageModel, modelInfo, modelString } = resolveModel({});
+  const { model: languageModel, modelInfo, modelString } = resolveModel({ pinToken: input.pinToken });
   log.info(`Using server-configured model: ${modelString}`);
 
   // Fail fast if the resolved provider has no API key configured
   const { providerId } = parseModelString(modelString);
-  const apiKey = resolveApiKey(providerId);
+  const apiKey = resolveApiKey(providerId, undefined, input.pinToken);
   if (!apiKey) {
     throw new Error(
       `No API key configured for provider "${providerId}". ` +
@@ -239,7 +240,7 @@ export async function generateClassroom(
   // Web search (optional, graceful degradation)
   let researchContext: string | undefined;
   if (input.enableWebSearch) {
-    const tavilyKey = resolveWebSearchApiKey();
+    const tavilyKey = resolveWebSearchApiKey(undefined, input.pinToken);
     if (tavilyKey) {
       try {
         log.info('Running web search for requirement context...');

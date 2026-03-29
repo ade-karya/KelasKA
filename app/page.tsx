@@ -694,8 +694,16 @@ function HomePage() {
       )}
 
       {/* Footer — flows with content, at the very end */}
-      <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40">
-        {t('home.appTitle')}
+      <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40 space-y-1">
+        <div>{t('home.appTitle')}</div>
+        <a 
+          href="https://rumah.pendidikan.go.id/ruang/murid" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="hover:text-muted-foreground/70 transition-colors hover:underline block"
+        >
+          {t('home.inspiredBy')}
+        </a>
       </div>
     </div>
   );

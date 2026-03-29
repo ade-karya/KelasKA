@@ -5,6 +5,7 @@ import { type GenerateClassroomInput } from '@/lib/server/classroom-generation';
 import { runClassroomGenerationJob } from '@/lib/server/classroom-job-runner';
 import { createClassroomGenerationJob } from '@/lib/server/classroom-job-store';
 import { buildRequestOrigin } from '@/lib/server/classroom-storage';
+import { getPinTokenFromRequest } from '@/lib/server/pin-auth';
 
 export const maxDuration = 30;
 
@@ -24,6 +25,7 @@ export async function POST(req: NextRequest) {
         : {}),
       ...(rawBody.enableTTS != null ? { enableTTS: rawBody.enableTTS } : {}),
       ...(rawBody.agentMode ? { agentMode: rawBody.agentMode } : {}),
+      ...(rawBody.pinToken || getPinTokenFromRequest(req) ? { pinToken: rawBody.pinToken || getPinTokenFromRequest(req)! } : {}),
     };
     const { requirement } = body;
 

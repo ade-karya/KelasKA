@@ -9,6 +9,7 @@ export const commonZhCN = {
     appTitle: '人工智能课堂',
     slogan: 'Generative Learning in Multi-Agent Interactive Classroom',
     greeting: '嗨，',
+    inspiredBy: '受 Rumah Pendidikan 启发',
   },
   toolbar: {
     languageHint: '课程将以此语言生成',
@@ -51,6 +52,7 @@ export const commonEnUS = {
     appTitle: 'Artificial Intelligence Class',
     slogan: 'Generative Learning in Multi-Agent Interactive Classroom',
     greeting: 'Hi, ',
+    inspiredBy: 'Inspired by Rumah Pendidikan',
   },
   toolbar: {
     languageHint: 'Course will be generated in this language',
@@ -93,6 +95,7 @@ export const commonIdID = {
     appTitle: 'Kelas Kecerdasan Artifisial',
     slogan: 'Pembelajaran Generatif di Kelas Interaktif Multi-Agen',
     greeting: 'Hai, ',
+    inspiredBy: 'Terinspirasi Rumah Pendidikan',
   },
   toolbar: {
     languageHint: 'Kursus akan dibuat dalam bahasa ini',
@@ -135,6 +138,7 @@ export const commonArSA = {
     appTitle: 'فصل الذكاء الاصطناعي',
     slogan: 'التعلم التوليدي في الفصول التفاعلية متعددة الوكلاء',
     greeting: 'مرحباً، ',
+    inspiredBy: 'مستوحى من Rumah Pendidikan',
   },
   toolbar: {
     languageHint: 'سيتم إنشاء الدورة بهذه اللغة',

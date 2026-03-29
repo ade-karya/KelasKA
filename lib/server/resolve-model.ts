@@ -6,16 +6,45 @@
  */
 
 import type { NextRequest } from 'next/server';
-import { getModel, parseModelString, type ModelWithInfo } from '@/lib/ai/providers';
+import { getModel, parseModelString, PROVIDERS, type ModelWithInfo } from '@/lib/ai/providers';
 import { resolveApiKey, resolveBaseUrl, resolveProxy } from '@/lib/server/provider-config';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
-import { getPinTokenFromRequest } from '@/lib/server/pin-auth';
+import { getPinTokenFromRequest, getPinServiceConfig } from '@/lib/server/pin-auth';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ResolveModel');
 
 export interface ResolvedModel extends ModelWithInfo {
   /** Original model string (e.g. "openai/gpt-4o-mini") */
   modelString: string;
   /** Effective API key after server-side fallback resolution */
   apiKey: string;
+}
+
+/**
+ * Derive a default model string from a PIN user's LLM provider config.
+ * Returns e.g. "google/gemini-2.5-flash" if the PIN user has provider "google".
+ */
+function getDefaultModelForPinUser(pinToken: string): string | null {
+  const pinCfg = getPinServiceConfig(pinToken, 'llm');
+  if (!pinCfg?.provider) return null;
+
+  const providerId = pinCfg.provider;
+
+  // If PIN config has a model explicitly set, use it
+  if (pinCfg.model) {
+    return `${providerId}:${pinCfg.model}`;
+  }
+
+  // Otherwise pick the first model from the provider registry
+  const providerDef = PROVIDERS[providerId as keyof typeof PROVIDERS];
+  if (providerDef && providerDef.models.length > 0) {
+    const firstModel = providerDef.models[0].id;
+    log.info(`PIN user default model resolved: ${providerId}:${firstModel}`);
+    return `${providerId}:${firstModel}`;
+  }
+
+  return null;
 }
 
 /**
@@ -31,7 +60,14 @@ export function resolveModel(params: {
   requiresApiKey?: boolean;
   pinToken?: string;
 }): ResolvedModel {
-  const modelString = params.modelString || process.env.DEFAULT_MODEL || 'gpt-4o-mini';
+  // Priority: explicit modelString > DEFAULT_MODEL env > PIN user's provider > gpt-4o-mini
+  let modelString = params.modelString || process.env.DEFAULT_MODEL || '';
+  if (!modelString && params.pinToken) {
+    modelString = getDefaultModelForPinUser(params.pinToken) || '';
+  }
+  if (!modelString) {
+    modelString = 'gpt-4o-mini';
+  }
   const { providerId, modelId } = parseModelString(modelString);
 
   const clientBaseUrl = params.baseUrl || undefined;

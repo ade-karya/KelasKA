@@ -965,11 +965,11 @@ export const useSettingsStore = create<SettingsState>()(
                   }
                 }
                 // Web Search
-                if (data.pinUser.webSearch?.provider && data.pinUser.webSearch.hasApiKey) {
-                  const pid = data.pinUser.webSearch.provider as WebSearchProviderId;
+                if (data.pinUser.web_search?.provider && data.pinUser.web_search.hasApiKey) {
+                  const pid = data.pinUser.web_search.provider as WebSearchProviderId;
                   if (newWebSearchConfig[pid]) {
                     newWebSearchConfig[pid].isServerConfigured = true;
-                    if (data.pinUser.webSearch.baseUrl) newWebSearchConfig[pid].serverBaseUrl = data.pinUser.webSearch.baseUrl;
+                    if (data.pinUser.web_search.baseUrl) newWebSearchConfig[pid].serverBaseUrl = data.pinUser.web_search.baseUrl;
                     pinWebSearchProvider = pid;
                   }
                 }
