@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const audioFile = formData.get('audio') as File;
     const providerId = formData.get('providerId') as ASRProviderId | null;
+    const modelId = formData.get('modelId') as string | null;
     const language = formData.get('language') as string | null;
     const apiKey = formData.get('apiKey') as string | null;
     const baseUrl = formData.get('baseUrl') as string | null;
@@ -38,6 +39,7 @@ export async function POST(req: NextRequest) {
 
     const config = {
       providerId: effectiveProviderId,
+      modelId: modelId || undefined,
       language: language || 'auto',
       apiKey: clientBaseUrl
         ? apiKey || ''
