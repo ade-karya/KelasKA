@@ -11,16 +11,13 @@ import { searchWithTavily, formatSearchResultsAsContext } from '@/lib/web-search
 import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-<<<<<<< HEAD
 import { getPinTokenFromRequest } from '@/lib/server/pin-auth';
-=======
 import {
   buildSearchQuery,
   SEARCH_QUERY_REWRITE_EXCERPT_LENGTH,
 } from '@/lib/server/search-query-builder';
 import { resolveModelFromHeaders } from '@/lib/server/resolve-model';
 import type { AICallFn } from '@/lib/generation/pipeline-types';
->>>>>>> 531b3c101fc34f9ffd67770c17a8d3df477382b2
 
 const log = createLogger('WebSearch');
 
