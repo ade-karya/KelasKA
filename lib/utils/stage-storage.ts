@@ -11,6 +11,7 @@ import { db } from './database';
 import { saveChatSessions, loadChatSessions, deleteChatSessions } from './chat-storage';
 import { clearPlaybackState } from './playback-storage';
 import { createLogger } from '@/lib/logger';
+import { getClientTranslation } from '@/lib/i18n';
 
 const log = createLogger('StageStorage');
 
@@ -40,7 +41,7 @@ export async function saveStageData(stageId: string, data: StageStoreData): Prom
     // Save to stages table
     await db.stages.put({
       id: stageId,
-      name: data.stage.name || 'Untitled Stage',
+      name: data.stage.name || getClientTranslation('classroom.untitledStage'),
       description: data.stage.description,
       createdAt: data.stage.createdAt || now,
       updatedAt: now,

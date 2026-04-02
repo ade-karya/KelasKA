@@ -11,6 +11,8 @@ export const generationZhCN = {
     rename: '重命名',
     renamePlaceholder: '输入课堂名称',
     renameFailed: '重命名失败',
+    deleteFailed: '删除课堂失败',
+    untitledStage: '未命名课堂',
   },
   upload: {
     pdfSizeLimit: '支持最大50MB的PDF文件',
@@ -81,6 +83,8 @@ export const generationEnUS = {
     rename: 'Rename',
     renamePlaceholder: 'Enter classroom name',
     renameFailed: 'Failed to rename classroom',
+    deleteFailed: 'Failed to delete classroom',
+    untitledStage: 'Untitled Classroom',
   },
   upload: {
     pdfSizeLimit: 'Supports PDF files up to 50MB',
@@ -150,6 +154,11 @@ export const generationIdID = {
     nameCopied: 'Nama disalin',
     deleteConfirmTitle: 'Hapus',
     delete: 'Hapus',
+    rename: 'Ubah nama',
+    renamePlaceholder: 'Masukkan nama kelas',
+    renameFailed: 'Gagal mengubah nama kelas',
+    deleteFailed: 'Gagal menghapus kelas',
+    untitledStage: 'Kelas Tanpa Judul',
   },
   upload: {
     pdfSizeLimit: 'Mendukung file PDF hingga 50MB',
@@ -162,6 +171,9 @@ export const generationIdID = {
   generation: {
     analyzingPdf: 'Menganalisis Dokumen PDF',
     analyzingPdfDesc: 'Mengekstrak struktur dan konten dokumen...',
+    pdfLoadFailed: 'Gagal memuat file PDF, silakan coba lagi',
+    pdfParseFailed: 'Parsing PDF gagal',
+    streamNotReadable: 'Tidak dapat membaca aliran data pembuatan',
     generatingOutlines: 'Menyusun Garis Besar Kursus',
     generatingOutlinesDesc: 'Menyusun jalur pembelajaran...',
     generatingSlideContent: 'Membuat Konten Halaman',
@@ -212,6 +224,11 @@ export const generationArSA = {
     nameCopied: 'تم نسخ الاسم',
     deleteConfirmTitle: 'حذف',
     delete: 'حذف',
+    rename: 'إعادة تسمية',
+    renamePlaceholder: 'أدخل اسم الفصل',
+    renameFailed: 'فشل في إعادة تسمية الفصل',
+    deleteFailed: 'فشل في حذف الفصل',
+    untitledStage: 'فصل بدون عنوان',
   },
   upload: {
     pdfSizeLimit: 'يدعم ملفات PDF حتى 50 ميجابايت',
@@ -224,6 +241,9 @@ export const generationArSA = {
   generation: {
     analyzingPdf: 'تحليل مستند PDF',
     analyzingPdfDesc: 'استخراج هيكل ومحتوى المستند...',
+    pdfLoadFailed: 'فشل تحميل ملف PDF، يرجى المحاولة مرة أخرى',
+    pdfParseFailed: 'فشل تحليل ملف PDF',
+    streamNotReadable: 'تعذر قراءة تدفق بيانات الإنشاء',
     generatingOutlines: 'إنشاء مخطط الدورة',
     generatingOutlinesDesc: 'تصميم مسار التعلم...',
     generatingSlideContent: 'إنشاء محتوى الصفحات',

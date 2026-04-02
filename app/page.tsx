@@ -187,7 +187,7 @@ function HomePage() {
       await loadClassrooms();
     } catch (err) {
       log.error('Failed to delete classroom:', err);
-      toast.error('Failed to delete classroom');
+      toast.error(t('classroom.deleteFailed'));
     }
   };
 
