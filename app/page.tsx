@@ -20,6 +20,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { createLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Textarea as UITextarea } from '@/components/ui/textarea';
@@ -70,7 +71,7 @@ const initialFormState: FormState = {
 };
 
 function HomePage() {
-  const { t, locale, setLocale } = useI18n();
+  const { t } = useI18n();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [form, setForm] = useState<FormState>(initialFormState);
@@ -128,7 +129,6 @@ function HomePage() {
     }
   }
 
-  const [languageOpen, setLanguageOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [classrooms, setClassrooms] = useState<StageListItem[]>([]);
@@ -139,16 +139,15 @@ function HomePage() {
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    if (!languageOpen && !themeOpen) return;
+    if (!themeOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
       if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
-        setLanguageOpen(false);
         setThemeOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [languageOpen, themeOpen]);
+  }, [themeOpen]);
 
   const loadClassrooms = async () => {
     try {
@@ -404,7 +403,6 @@ function HomePage() {
           <button
             onClick={() => {
               setThemeOpen(!themeOpen);
-              setLanguageOpen(false);
             }}
             className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all"
           >
@@ -831,13 +829,8 @@ function GreetingBar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="leading-none select-none flex items-center gap-1">
-                  <span>
-                    <span className="text-xs text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
-                      {t('home.greeting')}
-                    </span>
-                    <span className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
-                      {displayName}
-                    </span>
+                  <span className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
+                    {t('home.greetingWithName', { name: displayName })}
                   </span>
                   <ChevronDown className="size-3 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors shrink-0" />
                 </span>
