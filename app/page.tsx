@@ -27,6 +27,8 @@ import { Textarea as UITextarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { SettingsDialog } from '@/components/settings';
 import { GenerationToolbar } from '@/components/generation/generation-toolbar';
+import { CurriculumPicker, type CurriculumSelection } from '@/components/generation/curriculum-picker';
+import { buildCPContext } from '@/lib/data/capaian-pembelajaran';
 import { AgentBar } from '@/components/agent/agent-bar';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { nanoid } from 'nanoid';
@@ -61,6 +63,7 @@ interface FormState {
   requirement: string;
   language: 'en-US' | 'id-ID' | 'ar-SA';
   webSearch: boolean;
+  curriculum: CurriculumSelection;
 }
 
 const initialFormState: FormState = {
@@ -68,6 +71,7 @@ const initialFormState: FormState = {
   requirement: '',
   language: 'id-ID',
   webSearch: false,
+  curriculum: { jenjang: null, kelas: null, mataPelajaran: null },
 };
 
 function HomePage() {
@@ -264,8 +268,30 @@ function HomePage() {
 
     try {
       const userProfile = useUserProfileStore.getState();
+
+      // Build curriculum context prefix with Capaian Pembelajaran
+      let requirementText = form.requirement;
+      const { jenjang, kelas, mataPelajaran } = form.curriculum;
+      if (jenjang || kelas || mataPelajaran) {
+        const parts: string[] = [];
+        if (jenjang) parts.push(`Jenjang: ${jenjang}`);
+        if (kelas) parts.push(`Kelas: ${kelas}`);
+        if (mataPelajaran) parts.push(`Mata Pelajaran: ${mataPelajaran}`);
+        let ctx = `[Kurikulum Merdeka — Permendikdasmen No. 13/2025]\n${parts.join(' | ')}\n\n`;
+
+        // Inject Capaian Pembelajaran if mapel + kelas are selected
+        if (mataPelajaran && kelas) {
+          const cpText = buildCPContext(mataPelajaran, kelas);
+          if (cpText) {
+            ctx += cpText + '\n\n';
+          }
+        }
+
+        requirementText = ctx + requirementText;
+      }
+
       const requirements: UserRequirements = {
-        requirement: form.requirement,
+        requirement: requirementText,
         language: form.language,
         userNickname: userProfile.nickname || undefined,
         userBio: userProfile.bio || undefined,
@@ -566,7 +592,11 @@ function HomePage() {
 
             {/* Toolbar row */}
             <div className="px-3 pb-3 flex items-end gap-2">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 flex items-center gap-1 flex-wrap">
+                <CurriculumPicker
+                  value={form.curriculum}
+                  onChange={(v) => updateForm('curriculum', v)}
+                />
                 <GenerationToolbar
                   language={form.language}
                   onLanguageChange={(lang) => updateForm('language', lang)}
