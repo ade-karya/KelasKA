@@ -765,6 +765,9 @@ export const useSettingsStore = create<SettingsState>()(
               pinDefaultLanguage?: string;
             };
 
+            // Capture first-run flag BEFORE set() marks it as applied
+            const wasFirstRun = !get().autoConfigApplied;
+
             set((state) => {
               // Merge LLM providers
               const newProvidersConfig = { ...state.providersConfig };
@@ -1261,14 +1264,16 @@ export const useSettingsStore = create<SettingsState>()(
               };
             });
 
-            // Apply PIN user's default language (outside of set() since it uses i18n/localStorage)
+            // Apply PIN user's default language
+            // Track applied language to apply only once per PIN change, preserving manual selections
             if (data.pinDefaultLanguage && typeof window !== 'undefined') {
               try {
-                const currentLocale = localStorage.getItem('locale');
-                // Only apply if no locale is stored yet (first-time user)
-                if (!currentLocale) {
+                const applied = localStorage.getItem('appliedPinLanguage');
+                if (applied !== data.pinDefaultLanguage) {
                   localStorage.setItem('locale', data.pinDefaultLanguage);
-                  // Trigger i18n language change if available
+                  localStorage.setItem('appliedPinLanguage', data.pinDefaultLanguage);
+                  
+                  // Trigger i18n language change
                   const i18nModule = await import('@/lib/i18n/config');
                   i18nModule.default.changeLanguage(data.pinDefaultLanguage);
                   log.info(`Applied PIN user default language: ${data.pinDefaultLanguage}`);
