@@ -28,6 +28,8 @@ export interface PinUser {
   index: number;
   code: string;
   name: string;
+  /** Default UI language (locale code, e.g. 'id-ID', 'en-US', 'ar-SA') */
+  defaultLanguage?: string;
   services: Record<PinServiceType, PinServiceConfig>;
 }
 
@@ -55,6 +57,7 @@ function loadPinUser(index: number): PinUser | null {
   if (!code) return null;
 
   const name = process.env[`${prefix}_NAME`] || `User ${index}`;
+  const defaultLanguage = process.env[`${prefix}_DEFAULT_LANGUAGE`] || undefined;
 
   const services = {} as Record<PinServiceType, PinServiceConfig>;
   for (const { service, envKey } of SERVICE_KEYS) {
@@ -66,7 +69,7 @@ function loadPinUser(index: number): PinUser | null {
     };
   }
 
-  return { index, code, name, services };
+  return { index, code, name, defaultLanguage, services };
 }
 
 let _pinUsers: PinUser[] | null = null;
@@ -188,6 +191,12 @@ export function getPinUserServicesPublic(token: string): Record<string, {
     };
   }
   return result;
+}
+
+/** Get default language for a PIN user (if configured) */
+export function getPinUserDefaultLanguage(token: string): string | undefined {
+  const user = getPinUserFromToken(token);
+  return user?.defaultLanguage;
 }
 
 /** List all PIN users (public info only) */

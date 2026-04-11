@@ -762,6 +762,7 @@ export const useSettingsStore = create<SettingsState>()(
               video: Record<string, { baseUrl?: string }>;
               webSearch: Record<string, { baseUrl?: string }>;
               pinUser?: Record<string, { provider: string; model?: string; hasApiKey: boolean; baseUrl?: string }>;
+              pinDefaultLanguage?: string;
             };
 
             set((state) => {
@@ -939,6 +940,7 @@ export const useSettingsStore = create<SettingsState>()(
 
               // Merge PIN user configurations (if authenticated)
               let pinLlmProvider: ProviderId | undefined;
+              let pinLlmModel: string | undefined;
               let pinImageProvider: ImageProviderId | undefined;
               let pinVideoProvider: VideoProviderId | undefined;
               let pinTtsProvider: TTSProviderId | undefined;
@@ -953,6 +955,10 @@ export const useSettingsStore = create<SettingsState>()(
                     newProvidersConfig[pid].isServerConfigured = true;
                     if (data.pinUser.llm.baseUrl) newProvidersConfig[pid].serverBaseUrl = data.pinUser.llm.baseUrl;
                     pinLlmProvider = pid;
+                    // Use the PIN user's configured default model if available
+                    if (data.pinUser.llm.model) {
+                      pinLlmModel = data.pinUser.llm.model;
+                    }
                   }
                 }
                 // Image
@@ -1199,7 +1205,7 @@ export const useSettingsStore = create<SettingsState>()(
                 ...((pinLlmProvider || validLLMProvider) !== state.providerId && {
                   providerId: (pinLlmProvider || validLLMProvider) as ProviderId,
                 }),
-                ...(validLLMModel !== state.modelId && { modelId: validLLMModel }),
+                ...((pinLlmModel || validLLMModel) !== state.modelId && { modelId: pinLlmModel || validLLMModel }),
                 ...((pinTtsProvider || validTTSProvider) !== state.ttsProviderId && {
                   ttsProviderId: (pinTtsProvider || validTTSProvider) as TTSProviderId,
                   ttsVoice: validTTSVoice,
@@ -1254,6 +1260,23 @@ export const useSettingsStore = create<SettingsState>()(
                 ...(autoModelId && { modelId: autoModelId }),
               };
             });
+
+            // Apply PIN user's default language (outside of set() since it uses i18n/localStorage)
+            if (data.pinDefaultLanguage && typeof window !== 'undefined') {
+              try {
+                const currentLocale = localStorage.getItem('locale');
+                // Only apply if no locale is stored yet (first-time user)
+                if (!currentLocale) {
+                  localStorage.setItem('locale', data.pinDefaultLanguage);
+                  // Trigger i18n language change if available
+                  const i18nModule = await import('@/lib/i18n/config');
+                  i18nModule.default.changeLanguage(data.pinDefaultLanguage);
+                  log.info(`Applied PIN user default language: ${data.pinDefaultLanguage}`);
+                }
+              } catch (langErr) {
+                log.warn('Failed to apply PIN default language:', langErr);
+              }
+            }
           } catch (e) {
             // Silently fail — server providers are optional
             log.warn('Failed to fetch server providers:', e);
