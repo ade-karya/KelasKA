@@ -475,8 +475,8 @@ const migrateFromOldStorage = () => {
   if (!oldLlmModel && !oldProvidersConfig) return null; // No old data
 
   // Parse model selection
-  let providerId: ProviderId = 'openai';
-  let modelId = 'gpt-4o-mini';
+  let providerId: ProviderId = 'google';
+  let modelId = 'gemini-3.1-flash-lite-preview';
   if (oldLlmModel) {
     const [pid, mid] = oldLlmModel.split(':');
     if (pid && mid) {
@@ -538,8 +538,8 @@ export const useSettingsStore = create<SettingsState>()(
 
       return {
         // Initial state (use migrated data if available)
-        providerId: migratedData?.providerId || 'openai',
-        modelId: migratedData?.modelId || '',
+        providerId: migratedData?.providerId || 'google',
+        modelId: migratedData?.modelId || 'gemini-3.1-flash-lite-preview',
         providersConfig: migratedData?.providersConfig || getDefaultProvidersConfig(),
         ttsModel: migratedData?.ttsModel || 'openai-tts',
         selectedAgentIds: migratedData?.selectedAgentIds || ['default-1', 'default-2', 'default-3'],

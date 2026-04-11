@@ -44,9 +44,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         i18n.changeLanguage(stored as Locale);
         return;
       }
-      const detected = navigator.language?.startsWith('id') ? 'id-ID' : navigator.language?.startsWith('ar') ? 'ar-SA' : navigator.language?.startsWith('en') ? 'en-US' : 'id-ID';
-      localStorage.setItem(LOCALE_STORAGE_KEY, detected);
-      i18n.changeLanguage(detected);
+      // First load: use defaultLocale (id-ID) directly to avoid
+      // a flash of English when navigator.language is 'en-*'.
+      localStorage.setItem(LOCALE_STORAGE_KEY, defaultLocale);
+      i18n.changeLanguage(defaultLocale);
     } catch {
       // localStorage unavailable, keep default
     }
