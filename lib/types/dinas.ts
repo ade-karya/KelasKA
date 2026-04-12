@@ -1,8 +1,9 @@
 /**
  * Type definitions for Dinas Pendidikan APIs
  *
- * Aligned with Permendikdasmen No. 13 Tahun 2025
- * (Perubahan atas Permendikbudristek No. 12 Tahun 2024 — Kurikulum Merdeka)
+ * Aligned with:
+ * - Permendikdasmen No. 13 Tahun 2025 (Kurikulum Merdeka)
+ * - Permendikdasmen No. 1 Tahun 2026 (Standar Proses)
  */
 
 import type { Fase, Jenjang } from '@/lib/data/kurikulum-merdeka';
@@ -31,6 +32,8 @@ export interface CurriculumAlignmentResult {
   capaianPembelajaran: string[];
   /** Dimensi Profil Lulusan terkait (8 dimensi, Pasal 17) */
   dimensiProfilLulusan: string[];
+  /** Aspek Standar Proses yang tercakup (Permendikdasmen No. 1/2026) */
+  standarProses?: string[];
   /** Rekomendasi perbaikan */
   rekomendasi: string[];
   /** Kompetensi yang kurang */

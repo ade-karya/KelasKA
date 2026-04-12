@@ -9,6 +9,7 @@ import type { GenerateTextResult, StreamTextResult } from 'ai';
 import { createLogger } from '@/lib/logger';
 import { PROVIDERS } from './providers';
 import { thinkingContext } from './thinking-context';
+import { getMcpContextTools } from '@/lib/mcp/ai-adapter';
 import type { ProviderType, ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 const log = createLogger('LLM');
 
@@ -302,6 +303,15 @@ export async function callLLM<T extends GenerateTextParams>(
       const effectiveThinking = thinking ?? getGlobalThinkingConfig();
       const injectedParams = injectProviderOptions(params, effectiveThinking);
 
+      // Inject MCP Tools
+      const mcpTools = await getMcpContextTools();
+      if (Object.keys(mcpTools).length > 0) {
+        injectedParams.tools = {
+          ...mcpTools,
+          ...injectedParams.tools, // Local tools take precedence if names collide
+        };
+      }
+
       // Wrap in thinkingContext so the custom fetch wrapper in providers.ts
       // can read the config and inject vendor-specific body params for
       // OpenAI-compatible providers.
@@ -343,16 +353,26 @@ export async function callLLM<T extends GenerateTextParams>(
  * @param source - A short label for log grouping
  * @param thinking - Optional per-call thinking config (overrides global LLM_THINKING_DISABLED)
  */
-export function streamLLM<T extends StreamTextParams>(
+export async function streamLLM<T extends StreamTextParams>(
   params: T,
   source: string,
   thinking?: ThinkingConfig,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): StreamTextResult<any, any> {
+): Promise<StreamTextResult<any, any>> {
   // Resolve effective thinking config and wrap in thinkingContext
   const effectiveThinking = thinking ?? getGlobalThinkingConfig();
   const injectedParams = injectProviderOptions(params, effectiveThinking);
-  const result = thinkingContext.run(effectiveThinking, () => streamText(injectedParams));
+
+  // Inject MCP Tools
+  const mcpTools = await getMcpContextTools();
+  if (Object.keys(mcpTools).length > 0) {
+    injectedParams.tools = {
+      ...mcpTools,
+      ...injectedParams.tools, // Local tools take precedence if names collide
+    };
+  }
+
+  const result = await thinkingContext.run(effectiveThinking, () => streamText(injectedParams));
 
   return result;
 }

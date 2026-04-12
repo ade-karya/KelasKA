@@ -131,7 +131,7 @@ export class AISdkLangGraphAdapter extends BaseChatModel {
   ): AsyncGenerator<StreamChunk> {
     const aiMessages = this.convertMessages(messages);
 
-    const result = streamLLM(
+    const result = await streamLLM(
       {
         model: this.languageModel,
         messages: aiMessages,

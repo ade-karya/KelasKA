@@ -106,7 +106,7 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-zinc-100/90 backdrop-blur-sm dark:bg-black/70 dark:backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-start sm:justify-center overflow-y-auto p-4 sm:p-8 bg-zinc-100/90 backdrop-blur-sm dark:bg-black/70 dark:backdrop-blur-md"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -127,17 +127,17 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
 
           {/* Title */}
           <motion.h2
-            className="mb-8 text-2xl font-bold text-zinc-800 drop-shadow-sm dark:text-white dark:drop-shadow-lg md:text-3xl"
+            className="mb-6 md:mb-8 mt-12 sm:mt-0 text-xl font-bold text-zinc-800 drop-shadow-sm dark:text-white dark:drop-shadow-lg sm:text-2xl md:text-3xl shrink-0"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.4 }}
           >
-            <Sparkles className="mr-2 inline-block size-6 text-amber-500 dark:text-yellow-400" />
+            <Sparkles className="mr-2 inline-block size-5 sm:size-6 text-amber-500 dark:text-yellow-400" />
             {t('generation.agentRevealTitle')}
           </motion.h2>
 
           {/* Cards */}
-          <div className="flex flex-wrap items-stretch justify-center gap-4 px-4 md:gap-5">
+          <div className="flex flex-row flex-wrap items-stretch justify-center gap-3 md:gap-5 w-full max-w-5xl shrink-0">
             {agents.map((agent, index) => {
               const isRevealed = index < revealedCount;
               const roleIcon = ROLE_ICONS[agent.role] ?? '🎓';
@@ -145,8 +145,8 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
               return (
                 <motion.div
                   key={agent.id}
-                  className="group relative"
-                  style={{ width: 196, height: 290, perspective: 900 }}
+                  className="group relative w-[160px] sm:w-[176px] md:w-[196px] h-[240px] sm:h-[260px] md:h-[290px] shrink-0"
+                  style={{ perspective: 900 }}
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: index * 0.08, duration: 0.3 }}
@@ -174,7 +174,7 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
                         {/* Inner card body */}
                         <div className="relative flex size-full flex-col overflow-clip rounded-[14px] bg-white dark:bg-zinc-900">
                           {/* Top gradient band with texture */}
-                          <div className="relative shrink-0 overflow-hidden" style={{ height: 56 }}>
+                          <div className="relative shrink-0 overflow-hidden h-10 sm:h-12 md:h-14">
                             {/* Color gradient fill */}
                             <div
                               className="absolute inset-0"
@@ -222,9 +222,9 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
                           </div>
 
                           {/* Avatar — overlapping the band */}
-                          <div className="relative z-10 -mt-7 flex justify-center">
+                          <div className="relative z-10 -mt-5 md:-mt-7 flex justify-center">
                             <div
-                              className="flex size-[50px] items-center justify-center rounded-full border-[2.5px] shadow-lg shadow-black/40"
+                              className="flex size-[40px] md:size-[50px] items-center justify-center rounded-full border-[2px] md:border-[2.5px] shadow-lg shadow-black/40"
                               style={{
                                 borderColor: agent.color,
                                 backgroundColor: '#f8f8fc',
@@ -245,9 +245,9 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
                           </div>
 
                           {/* Name + role row */}
-                          <div className="mt-1.5 flex flex-col items-center gap-0.5 px-3">
+                          <div className="mt-1.5 flex flex-col items-center gap-0.5 px-2 md:px-3">
                             <h3
-                              className="max-w-full truncate text-center text-[13px] font-bold tracking-wide"
+                              className="max-w-full truncate text-center text-xs md:text-[13px] font-bold tracking-wide"
                               style={{ color: agent.color }}
                             >
                               {agent.name}
@@ -285,8 +285,8 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
                           </div>
 
                           {/* Persona text — fills remaining space */}
-                          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pt-1.5 pb-3">
-                            <p className="text-left text-[10.5px] leading-[1.65] text-zinc-600 dark:text-zinc-400">
+                          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 sm:px-3.5 pt-1.5 pb-2.5 md:pb-3">
+                            <p className="text-left text-[9.5px] sm:text-[10px] md:text-[10.5px] leading-relaxed md:leading-[1.65] text-zinc-600 dark:text-zinc-400">
                               {agent.persona}
                             </p>
                           </div>
@@ -365,7 +365,7 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
 
           {/* Progress dots + continue */}
           <motion.div
-            className="mt-6 flex flex-col items-center gap-4"
+            className="mt-6 mb-8 sm:mb-0 flex flex-col items-center gap-4 shrink-0"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}

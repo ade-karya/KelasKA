@@ -25,6 +25,15 @@ import { createLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Textarea as UITextarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+<<<<<<< Updated upstream
+=======
+import { SettingsDialog } from '@/components/settings';
+import { GenerationToolbar } from '@/components/generation/generation-toolbar';
+import { CurriculumPicker, type CurriculumSelection } from '@/components/generation/curriculum-picker';
+import { buildCPContext } from '@/lib/data/capaian-pembelajaran';
+import { buildStandarProsesContext } from '@/lib/data/standar-proses';
+import { AgentBar } from '@/components/agent/agent-bar';
+>>>>>>> Stashed changes
 import { useTheme } from '@/lib/hooks/use-theme';
 import { nanoid } from 'nanoid';
 import { storePdfBlob } from '@/lib/utils/image-storage';
@@ -290,6 +299,9 @@ function HomePage() {
           }
         }
 
+        // Inject Standar Proses (Permendikdasmen No. 1/2026)
+        ctx += buildStandarProsesContext() + '\n\n';
+
         requirementText = ctx + requirementText;
       }
 
@@ -365,7 +377,11 @@ function HomePage() {
   };
 
   return (
+<<<<<<< Updated upstream
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center px-3 pt-14 pb-4 sm:p-4 sm:pt-16 md:p-8 md:pt-16 overflow-x-hidden">
+=======
+    <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-3 pt-14 sm:p-4 sm:pt-16 md:p-8 md:pt-16 overflow-x-hidden">
+>>>>>>> Stashed changes
       {/* ═══ Top-right pill (unchanged) ═══ */}
       <div
         ref={toolbarRef}
@@ -522,12 +538,21 @@ function HomePage() {
       {/* ═══ Background Decor (GPU-accelerated) ═══ */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div
+<<<<<<< Updated upstream
           className="absolute top-0 left-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-blue-500 rounded-full blur-3xl will-change-transform"
           style={{ animation: 'float-slow 6s ease-in-out infinite', opacity: 0.08 }}
         />
         <div
           className="absolute bottom-0 right-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-purple-500 rounded-full blur-3xl will-change-transform"
           style={{ animation: 'float-slower 8s ease-in-out infinite', opacity: 0.07 }}
+=======
+          className="absolute top-0 left-1/4 w-48 h-48 sm:w-72 sm:h-72 md:w-96 md:h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: '4s' }}
+        />
+        <div
+          className="absolute bottom-0 right-1/4 w-48 h-48 sm:w-72 sm:h-72 md:w-96 md:h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: '6s' }}
+>>>>>>> Stashed changes
         />
       </div>
 
@@ -538,7 +563,11 @@ function HomePage() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className={cn(
           'relative z-20 w-full max-w-[800px] flex flex-col items-center',
+<<<<<<< Updated upstream
           classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-8rem)]' : 'mt-[6vh] sm:mt-[10vh]',
+=======
+          classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-8rem)]' : 'mt-[4vh] sm:mt-[6vh] md:mt-[10vh]',
+>>>>>>> Stashed changes
         )}
       >
         {/* ── Title ── */}
@@ -551,7 +580,11 @@ function HomePage() {
             stiffness: 200,
             damping: 20,
           }}
+<<<<<<< Updated upstream
           className="text-xl sm:text-2xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 dark:from-purple-400 dark:via-violet-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2 text-center"
+=======
+          className="text-xl sm:text-2xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 dark:from-purple-400 dark:via-violet-400 dark:to-indigo-400 bg-clip-text text-transparent mb-1 sm:mb-2 text-center"
+>>>>>>> Stashed changes
         >
           {t('home.appTitle')}
         </motion.h1>
@@ -561,7 +594,11 @@ function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.25 }}
+<<<<<<< Updated upstream
           className="text-xs sm:text-sm text-muted-foreground/60 mb-6 sm:mb-8 text-center"
+=======
+          className="text-xs sm:text-sm text-muted-foreground/60 mb-4 sm:mb-6 md:mb-8 text-center"
+>>>>>>> Stashed changes
         >
           {t('home.slogan')}
         </motion.p>
@@ -575,9 +612,9 @@ function HomePage() {
         >
           <div className="w-full rounded-2xl border border-border/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-xl shadow-black/[0.03] dark:shadow-black/20 transition-shadow focus-within:shadow-2xl focus-within:shadow-violet-500/[0.06]">
             {/* ── Greeting + Profile + Agents ── */}
-            <div className="relative z-20 flex items-start justify-between">
+            <div className="relative z-20 flex flex-col sm:flex-row items-start sm:justify-between gap-1 sm:gap-0">
               <GreetingBar />
-              <div className="pr-3 pt-3.5 shrink-0">
+              <div className="pr-3 pb-1 sm:pb-0 sm:pt-3.5 shrink-0 w-full sm:w-auto pl-3 sm:pl-0">
                 <AgentBar />
               </div>
             </div>
@@ -594,7 +631,11 @@ function HomePage() {
             />
 
             {/* Toolbar row */}
+<<<<<<< Updated upstream
             <div className="px-2 sm:px-3 pb-3 flex items-end gap-1.5 sm:gap-2">
+=======
+            <div className="px-2 sm:px-3 pb-2 sm:pb-3 flex items-end gap-1.5 sm:gap-2">
+>>>>>>> Stashed changes
               <div className="flex-1 min-w-0 flex items-center gap-1 flex-wrap">
                 <CurriculumPicker
                   value={form.curriculum}
@@ -666,7 +707,7 @@ function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="relative z-10 mt-10 w-full max-w-6xl flex flex-col items-center"
+          className="relative z-10 mt-6 sm:mt-8 md:mt-10 w-full max-w-6xl flex flex-col items-center"
         >
           {/* Trigger — divider-line with centered text */}
           <button
@@ -706,7 +747,11 @@ function HomePage() {
                 transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
                 className="w-full overflow-hidden"
               >
+<<<<<<< Updated upstream
                 <div className="pt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-5 gap-y-6 sm:gap-y-8">
+=======
+                <div className="pt-4 sm:pt-6 md:pt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-5 gap-y-5 sm:gap-y-6 md:gap-y-8">
+>>>>>>> Stashed changes
                   {classrooms.map((classroom, i) => (
                     <motion.div
                       key={classroom.id}
@@ -739,7 +784,7 @@ function HomePage() {
       )}
 
       {/* Footer — flows with content, at the very end */}
-      <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40 space-y-1">
+      <div className="mt-auto pt-8 sm:pt-12 pb-4 text-center text-xs text-muted-foreground/40 space-y-1">
         <div>{t('home.appTitle')}</div>
         <a 
           href="https://rumah.pendidikan.go.id/ruang/murid" 

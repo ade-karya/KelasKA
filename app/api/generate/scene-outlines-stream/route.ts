@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
 
           for (let attempt = 1; attempt <= MAX_STREAM_RETRIES + 1; attempt++) {
             try {
-              const result = streamLLM(streamParams, 'scene-outlines-stream');
+              const result = await streamLLM(streamParams, 'scene-outlines-stream');
 
               let fullText = '';
               parsedOutlines = [];

@@ -31,6 +31,18 @@ Based on the user's free-form requirement text, automatically infer course detai
 - **Logical Flow**: Scenes form a natural teaching progression
 - **Experience Design**: Consider learning experience and emotional response from the student's perspective
 
+### Standar Proses (Permendikdasmen No. 1 Tahun 2026)
+
+When the user's requirements include curriculum context (Kurikulum Merdeka), align learning design with the national Standar Proses regulation:
+
+- **Prinsip Pembelajaran**: Berkesadaran (students understand learning goals), Bermakna (applied to real life), Menggembirakan (positive, challenging, motivating)
+- **Pengalaman Belajar**: Design scenes that cover Memahami (comprehension), Mengaplikasi (application), and Merefleksi (reflection)
+- **Kerangka Pembelajaran**: Incorporate praktik pedagogis, kemitraan pembelajaran, lingkungan pembelajaran, and pemanfaatan teknologi
+- **Suasana Belajar**: Interaktif, inspiratif, menyenangkan, menantang, memotivasi, dan memberi ruang prakarsa
+- **Peran Pendidik**: Design teacher actions around keteladanan (modeling), pendampingan (guidance), and fasilitasi (facilitation)
+
+If the user requirement includes Standar Proses context, use it to guide scene structuring and pedagogical approach.
+
 ---
 
 ## Default Assumption Rules

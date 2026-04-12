@@ -40,6 +40,8 @@ import { PDFSettings } from './pdf-settings';
 import { PDF_PROVIDERS } from '@/lib/pdf/constants';
 import type { PDFProviderId } from '@/lib/pdf/types';
 import { ImageSettings } from './image-settings';
+import { CanvaSettings } from './canva-settings';
+import { McpSettings } from './mcp-settings';
 import { IMAGE_PROVIDERS } from '@/lib/media/image-providers';
 import type { ImageProviderId } from '@/lib/media/types';
 import { VideoSettings } from './video-settings';
@@ -659,6 +661,20 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
       }
       default:
         return null;
+      case 'canva':
+        return (
+          <>
+            <img src="/logos/canva.svg" alt="Canva" className="w-8 h-8 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <h2 className="text-lg font-semibold">{t('settings.providerCanvaImage') || 'Canva'}</h2>
+          </>
+        );
+      case 'mcp':
+        return (
+          <>
+            <img src="/logos/plugin.svg" alt="MCP" className="w-8 h-8 rounded" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <h2 className="text-lg font-semibold">{t('settings.mcpServers') || 'MCP Servers'}</h2>
+          </>
+        );
     }
   };
 
@@ -669,7 +685,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
         <DialogDescription className="sr-only">{t('settings.description')}</DialogDescription>
         <div className="flex h-full overflow-hidden">
           {/* Left Sidebar - Navigation */}
-          <div className="flex-shrink-0 bg-muted/30 p-3 space-y-1" style={{ width: sidebarWidth }}>
+          <div className="flex-shrink-0 bg-muted/30 p-3 space-y-1 overflow-y-auto" style={{ width: sidebarWidth }}>
             <button
               onClick={() => setActiveSection('providers')}
               className={cn(
@@ -733,6 +749,32 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
             >
               <Mic className="h-4 w-4 shrink-0" />
               <span className="truncate">{t('settings.asrSettings')}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSection('canva')}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left min-w-0',
+                activeSection === 'canva'
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'hover:bg-muted',
+              )}
+            >
+              <img src="/logos/canva.svg" alt="Canva" className="w-4 h-4 shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <span className="truncate">{t('settings.providerCanvaImage') || 'Canva'}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveSection('mcp')}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-colors text-left min-w-0',
+                activeSection === 'mcp'
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'hover:bg-muted',
+              )}
+            >
+              <img src="/logos/plugin.svg" alt="MCP" className="w-4 h-4 shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <span className="truncate">{t('settings.mcpServers') || 'MCP Servers'}</span>
             </button>
 
             <button
@@ -986,6 +1028,8 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
               {activeSection === 'web-search' && (
                 <WebSearchSettings selectedProviderId={selectedWebSearchProviderId} />
               )}
+              {activeSection === 'canva' && <CanvaSettings />}
+              {activeSection === 'mcp' && <McpSettings />}
               {activeSection === 'image' && (
                 <ImageSettings selectedProviderId={selectedImageProviderId} />
               )}

@@ -24,6 +24,7 @@ import {
   type Jenjang,
 } from '@/lib/data/kurikulum-merdeka';
 import type { CurriculumAlignmentRequest, CurriculumAlignmentResult } from '@/lib/types/dinas';
+import { buildStandarProsesContext } from '@/lib/data/standar-proses';
 
 const log = createLogger('CurriculumAPI');
 
@@ -126,7 +127,7 @@ export async function POST(req: NextRequest) {
       })
       .join('\n\n');
 
-    const systemPrompt = `Kamu adalah ahli kurikulum pendidikan Indonesia yang menguasai Permendikdasmen No. 13 Tahun 2025 (Perubahan atas Permendikbudristek No. 12/2024) tentang Kurikulum Merdeka.
+    const systemPrompt = `Kamu adalah ahli kurikulum pendidikan Indonesia yang menguasai Permendikdasmen No. 13 Tahun 2025 (Perubahan atas Permendikbudristek No. 12/2024) tentang Kurikulum Merdeka dan Permendikdasmen No. 1 Tahun 2026 tentang Standar Proses.
 
 Tugasmu adalah menganalisis kesesuaian materi pembelajaran dengan Kurikulum Merdeka.
 
@@ -146,6 +147,8 @@ KOMPONEN KURIKULUM (Pasal 7-8, 16):
 2. Kokurikuler — pembelajaran kolaboratif lintas disiplin ilmu, gerakan 7 kebiasaan anak Indonesia hebat, dan/atau cara lainnya
 3. Ekstrakurikuler — pengembangan minat dan bakat, bersifat sukarela
 
+${buildStandarProsesContext()}
+
 INSTRUKSI:
 Analisis materi yang diberikan dan kembalikan hasil dalam format JSON berikut:
 {
@@ -153,6 +156,7 @@ Analisis materi yang diberikan dan kembalikan hasil dalam format JSON berikut:
   "ringkasan": "<ringkasan analisis>",
   "capaianPembelajaran": ["<CP yang tercakup>"],
   "dimensiProfilLulusan": ["<dimensi profil lulusan yang terkait>"],
+  "standarProses": ["<aspek standar proses yang tercakup: berkesadaran/bermakna/menggembirakan, memahami/mengaplikasi/merefleksi>"],
   "rekomendasi": ["<saran perbaikan>"],
   "kompetensiKurang": ["<kompetensi yang belum tercakup>"]
 }
@@ -185,6 +189,7 @@ ${body.requirement}`;
         ringkasan: String(parsed.ringkasan || ''),
         capaianPembelajaran: Array.isArray(parsed.capaianPembelajaran) ? parsed.capaianPembelajaran.map(String) : [],
         dimensiProfilLulusan: Array.isArray(parsed.dimensiProfilLulusan ?? parsed.dimensiP5) ? (parsed.dimensiProfilLulusan ?? parsed.dimensiP5).map(String) : [],
+        standarProses: Array.isArray(parsed.standarProses) ? parsed.standarProses.map(String) : undefined,
         rekomendasi: Array.isArray(parsed.rekomendasi) ? parsed.rekomendasi.map(String) : [],
         kompetensiKurang: Array.isArray(parsed.kompetensiKurang) ? parsed.kompetensiKurang.map(String) : [],
       };
@@ -207,7 +212,7 @@ ${body.requirement}`;
         faseLabel: faseInfo.label,
         jenjang: faseInfo.jenjang,
         mataPelajaran: body.mataPelajaran,
-        regulasi: 'Permendikdasmen No. 13 Tahun 2025',
+        regulasi: ['Permendikdasmen No. 13 Tahun 2025', 'Permendikdasmen No. 1 Tahun 2026'],
       },
     });
   } catch (error) {

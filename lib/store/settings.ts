@@ -120,6 +120,15 @@ export interface SettingsState {
   imageGenerationEnabled: boolean;
   videoGenerationEnabled: boolean;
 
+  // Canva Settings
+  canvaEnabled: boolean;
+  canvaConfig: {
+    token: string;
+    baseUrl: string;
+    brandTemplateId: string;
+    exportFormat: 'png' | 'jpg';
+  };
+
   // Web Search settings
   webSearchProviderId: WebSearchProviderId;
   webSearchProvidersConfig: Record<
@@ -244,6 +253,10 @@ export interface SettingsState {
   setImageGenerationEnabled: (enabled: boolean) => void;
   setVideoGenerationEnabled: (enabled: boolean) => void;
 
+  // Canva actions
+  setCanvaEnabled: (enabled: boolean) => void;
+  setCanvaConfig: (config: Partial<SettingsState['canvaConfig']>) => void;
+
   // Web Search actions
   setWebSearchProvider: (providerId: WebSearchProviderId) => void;
   setWebSearchProviderConfig: (
@@ -322,6 +335,17 @@ const getDefaultImageConfig = () => ({
     'minimax-image': { apiKey: '', baseUrl: '', enabled: false },
     'grok-image': { apiKey: '', baseUrl: '', enabled: false },
   } as Record<ImageProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
+});
+
+// Initialize default Canva config
+const getDefaultCanvaConfig = () => ({
+  canvaEnabled: false,
+  canvaConfig: {
+    token: '',
+    baseUrl: 'https://api.canva.com/rest',
+    brandTemplateId: '',
+    exportFormat: 'png' as const,
+  },
 });
 
 // Initialize default Video config
@@ -535,6 +559,7 @@ export const useSettingsStore = create<SettingsState>()(
       const defaultImageConfig = getDefaultImageConfig();
       const defaultVideoConfig = getDefaultVideoConfig();
       const defaultWebSearchConfig = getDefaultWebSearchConfig();
+      const defaultCanvaConfig = getDefaultCanvaConfig();
 
       return {
         // Initial state (use migrated data if available)
@@ -569,6 +594,9 @@ export const useSettingsStore = create<SettingsState>()(
 
         // Video settings (use defaults)
         ...defaultVideoConfig,
+
+        // Canva settings
+        ...defaultCanvaConfig,
 
         // Media generation toggles (off by default)
         imageGenerationEnabled: false,
@@ -732,6 +760,16 @@ export const useSettingsStore = create<SettingsState>()(
           }
           set({ videoGenerationEnabled: enabled });
         },
+
+        setCanvaEnabled: (enabled) => set({ canvaEnabled: enabled }),
+        setCanvaConfig: (config) =>
+          set((state) => ({
+            canvaConfig: {
+              ...state.canvaConfig,
+              ...config,
+            },
+          })),
+
         setTTSEnabled: (enabled) => set({ ttsEnabled: enabled }),
         setASREnabled: (enabled) => set({ asrEnabled: enabled }),
 
