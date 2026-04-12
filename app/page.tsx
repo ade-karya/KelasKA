@@ -1073,6 +1073,9 @@ function ClassroomCard({
   const [nameDraft, setNameDraft] = useState('');
   const nameInputRef = useRef<HTMLInputElement>(null);
 
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isDragging = useRef(false);
+
   useEffect(() => {
     const el = thumbRef.current;
     if (!el) return;
@@ -1102,8 +1105,56 @@ function ClassroomCard({
     setEditing(false);
   };
 
+  const startLongPress = (e: React.TouchEvent) => {
+    if (confirmingDelete || editing) return;
+    longPressTimerRef.current = setTimeout(() => {
+      setNameDraft(classroom.name);
+      setEditing(true);
+      if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50);
+      }
+    }, 600);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+  };
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (confirmingDelete || isDragging.current) {
+      e.preventDefault();
+      return;
+    }
+    onClick();
+  };
+
   return (
-    <div className="group cursor-pointer" onClick={confirmingDelete ? undefined : onClick}>
+    <motion.div 
+      className="group cursor-pointer touch-pan-y" 
+      onClick={handleClick}
+      drag="x"
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.2}
+      onDragStart={() => {
+        cancelLongPress();
+        isDragging.current = true;
+      }}
+      onDragEnd={(e, info) => {
+        setTimeout(() => { isDragging.current = false; }, 100);
+        if (Math.abs(info.offset.x) > 80) {
+          if (e && typeof (e as Event).stopPropagation === 'function') {
+            (e as Event).stopPropagation();
+          }
+          onDelete(classroom.id, e as any);
+        }
+      }}
+      onTouchStart={startLongPress}
+      onTouchEnd={cancelLongPress}
+      onTouchMove={cancelLongPress}
+      onTouchCancel={cancelLongPress}
+    >
       {/* Thumbnail — large radius, no border, subtle bg */}
       <div
         ref={thumbRef}
@@ -1242,7 +1293,7 @@ function ClassroomCard({
           </Tooltip>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 

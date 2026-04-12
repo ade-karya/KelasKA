@@ -106,16 +106,17 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-start sm:justify-center overflow-y-auto p-4 sm:p-8 bg-zinc-100/90 backdrop-blur-sm dark:bg-black/70 dark:backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-zinc-100/90 backdrop-blur-sm dark:bg-black/70 dark:backdrop-blur-md"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
+          <div className="m-auto flex w-full flex-col items-center justify-center p-4 pb-12 sm:p-8 min-h-max">
           {/* Close button */}
           {allRevealed && (
             <motion.button
-              className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-black/5 text-zinc-500 backdrop-blur-sm transition-colors hover:bg-black/10 hover:text-zinc-700 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 dark:hover:text-white"
+              className="fixed right-4 top-4 z-[110] flex size-9 items-center justify-center rounded-full bg-black/5 text-zinc-500 backdrop-blur-sm transition-colors hover:bg-black/10 hover:text-zinc-700 dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/20 dark:hover:text-white"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2, duration: 0.2 }}
@@ -396,6 +397,7 @@ export function AgentRevealModal({ agents, open, onClose, onAllRevealed }: Agent
               </motion.button>
             )}
           </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
