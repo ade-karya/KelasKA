@@ -1,5 +1,7 @@
 'use client';
 
+import 'animate.css';
+
 import { Stage } from '@/components/stage';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { useStageStore } from '@/lib/store';

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ArrowUp,
@@ -20,16 +21,10 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { LanguageSwitcher } from '@/components/language-switcher';
 import { createLogger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Textarea as UITextarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { SettingsDialog } from '@/components/settings';
-import { GenerationToolbar } from '@/components/generation/generation-toolbar';
-import { CurriculumPicker, type CurriculumSelection } from '@/components/generation/curriculum-picker';
-import { buildCPContext } from '@/lib/data/capaian-pembelajaran';
-import { AgentBar } from '@/components/agent/agent-bar';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { nanoid } from 'nanoid';
 import { storePdfBlob } from '@/lib/utils/image-storage';
@@ -44,13 +39,20 @@ import {
   renameStage,
   getFirstSlideByStages,
 } from '@/lib/utils/stage-storage';
-import { ThumbnailSlide } from '@/components/slide-renderer/components/ThumbnailSlide';
 import type { Slide } from '@/lib/types/slides';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useDraftCache } from '@/lib/hooks/use-draft-cache';
-import { SpeechButton } from '@/components/audio/speech-button';
+import type { CurriculumSelection } from '@/components/generation/curriculum-picker';
+
+// ─── Dynamic imports for code splitting (reduces initial JS by ~120KB) ───
+const SettingsDialog = dynamic(() => import('@/components/settings').then((m) => ({ default: m.SettingsDialog })), { ssr: false });
+const GenerationToolbar = dynamic(() => import('@/components/generation/generation-toolbar').then((m) => ({ default: m.GenerationToolbar })), { ssr: false });
+const CurriculumPicker = dynamic(() => import('@/components/generation/curriculum-picker').then((m) => ({ default: m.CurriculumPicker })), { ssr: false });
+const AgentBar = dynamic(() => import('@/components/agent/agent-bar').then((m) => ({ default: m.AgentBar })), { ssr: false });
+const SpeechButton = dynamic(() => import('@/components/audio/speech-button').then((m) => ({ default: m.SpeechButton })), { ssr: false });
+const ThumbnailSlide = dynamic(() => import('@/components/slide-renderer/components/ThumbnailSlide').then((m) => ({ default: m.ThumbnailSlide })), { ssr: false });
 
 const log = createLogger('Home');
 
@@ -281,6 +283,7 @@ function HomePage() {
 
         // Inject Capaian Pembelajaran if mapel + kelas are selected
         if (mataPelajaran && kelas) {
+          const { buildCPContext } = await import('@/lib/data/capaian-pembelajaran');
           const cpText = buildCPContext(mataPelajaran, kelas);
           if (cpText) {
             ctx += cpText + '\n\n';
@@ -362,7 +365,7 @@ function HomePage() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-4 pt-16 md:p-8 md:pt-16 overflow-x-hidden">
+    <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center px-3 pt-14 pb-4 sm:p-4 sm:pt-16 md:p-8 md:pt-16 overflow-x-hidden">
       {/* ═══ Top-right pill (unchanged) ═══ */}
       <div
         ref={toolbarRef}
@@ -516,15 +519,15 @@ function HomePage() {
         initialSection={settingsSection}
       />
 
-      {/* ═══ Background Decor ═══ */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* ═══ Background Decor (GPU-accelerated) ═══ */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         <div
-          className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '4s' }}
+          className="absolute top-0 left-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-blue-500 rounded-full blur-3xl will-change-transform"
+          style={{ animation: 'float-slow 6s ease-in-out infinite', opacity: 0.08 }}
         />
         <div
-          className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: '6s' }}
+          className="absolute bottom-0 right-1/4 w-72 h-72 sm:w-96 sm:h-96 bg-purple-500 rounded-full blur-3xl will-change-transform"
+          style={{ animation: 'float-slower 8s ease-in-out infinite', opacity: 0.07 }}
         />
       </div>
 
@@ -535,7 +538,7 @@ function HomePage() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className={cn(
           'relative z-20 w-full max-w-[800px] flex flex-col items-center',
-          classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-8rem)]' : 'mt-[10vh]',
+          classrooms.length === 0 ? 'justify-center min-h-[calc(100dvh-8rem)]' : 'mt-[6vh] sm:mt-[10vh]',
         )}
       >
         {/* ── Title ── */}
@@ -548,7 +551,7 @@ function HomePage() {
             stiffness: 200,
             damping: 20,
           }}
-          className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 dark:from-purple-400 dark:via-violet-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2"
+          className="text-xl sm:text-2xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 dark:from-purple-400 dark:via-violet-400 dark:to-indigo-400 bg-clip-text text-transparent mb-2 text-center"
         >
           {t('home.appTitle')}
         </motion.h1>
@@ -558,7 +561,7 @@ function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.25 }}
-          className="text-sm text-muted-foreground/60 mb-8"
+          className="text-xs sm:text-sm text-muted-foreground/60 mb-6 sm:mb-8 text-center"
         >
           {t('home.slogan')}
         </motion.p>
@@ -583,7 +586,7 @@ function HomePage() {
             <textarea
               ref={textareaRef}
               placeholder={t('upload.requirementPlaceholder')}
-              className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none min-h-[140px] max-h-[300px]"
+              className="w-full resize-none border-0 bg-transparent px-3 sm:px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none min-h-[100px] sm:min-h-[140px] max-h-[300px]"
               value={form.requirement}
               onChange={(e) => updateForm('requirement', e.target.value)}
               onKeyDown={handleKeyDown}
@@ -591,7 +594,7 @@ function HomePage() {
             />
 
             {/* Toolbar row */}
-            <div className="px-3 pb-3 flex items-end gap-2">
+            <div className="px-2 sm:px-3 pb-3 flex items-end gap-1.5 sm:gap-2">
               <div className="flex-1 min-w-0 flex items-center gap-1 flex-wrap">
                 <CurriculumPicker
                   value={form.curriculum}
@@ -703,7 +706,7 @@ function HomePage() {
                 transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
                 className="w-full overflow-hidden"
               >
-                <div className="pt-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
+                <div className="pt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-5 gap-y-6 sm:gap-y-8">
                   {classrooms.map((classroom, i) => (
                     <motion.div
                       key={classroom.id}
