@@ -12,7 +12,7 @@ Thank you for your interest in contributing to KelasKA! This guide will help you
 | **Design / UI change** | Discuss in a GitHub Discussion or Discord first — include mockups or screenshots |
 | **Refactor-only PR** | Not accepted unless a maintainer explicitly requests it |
 | **Documentation** | Open a PR directly |
-| **Question** | Ask in [Discord](https://discord.gg/uJRzqXuC) |
+| **Question** | Ask in [Discord](https://discord.gg/p8Pf2r3SaG) |
 
 ## Claiming Issues
 

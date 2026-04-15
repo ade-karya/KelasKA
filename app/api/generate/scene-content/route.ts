@@ -33,9 +33,10 @@ export async function POST(req: NextRequest) {
       allOutlines,
       pdfImages,
       imageMapping,
-      stageInfo,
+      stageInfo: _stageInfo,
       stageId,
       agents,
+      languageDirective,
     } = body as {
       outline: SceneOutline;
       allOutlines: SceneOutline[];
@@ -44,11 +45,11 @@ export async function POST(req: NextRequest) {
       stageInfo: {
         name: string;
         description?: string;
-        language?: string;
         style?: string;
       };
       stageId: string;
       agents?: AgentInfo[];
+      languageDirective?: string;
     };
 
     // Validate required fields
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
     };
 
     // ── Model resolution from request headers ──
-    const { model: languageModel, modelInfo, modelString } = resolveModelFromHeaders(req);
+    const { model: languageModel, modelInfo, modelString } = await resolveModelFromHeaders(req);
     outlineTitle = rawOutline?.title;
     resolvedModelString = modelString;
 
@@ -140,16 +141,15 @@ export async function POST(req: NextRequest) {
       `Generating content: "${effectiveOutline.title}" (${effectiveOutline.type}) [model=${modelString}]`,
     );
 
-    const content = await generateSceneContent(
-      effectiveOutline,
-      aiCall,
+    const content = await generateSceneContent(effectiveOutline, aiCall, {
       assignedImages,
       imageMapping,
-      effectiveOutline.type === 'pbl' ? languageModel : undefined,
-      hasVision,
+      languageModel: effectiveOutline.type === 'pbl' ? languageModel : undefined,
+      visionEnabled: hasVision,
       generatedMediaMapping,
       agents,
-    );
+      languageDirective,
+    });
 
     if (!content) {
       log.error(`Failed to generate content for: "${effectiveOutline.title}"`);

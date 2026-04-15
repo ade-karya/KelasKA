@@ -26,7 +26,6 @@ export interface ClassroomGenerationJob {
   completedAt?: string;
   inputSummary: {
     requirementPreview: string;
-    language: string;
     hasPdf: boolean;
     pdfTextLength: number;
     pdfImageCount: number;

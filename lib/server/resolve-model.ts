@@ -17,6 +17,8 @@ const log = createLogger('ResolveModel');
 export interface ResolvedModel extends ModelWithInfo {
   /** Original model string (e.g. "openai/gpt-4o-mini") */
   modelString: string;
+  /** Resolved provider ID (e.g. "openai", "ollama") */
+  providerId: string;
   /** Effective API key after server-side fallback resolution */
   apiKey: string;
 }
@@ -52,7 +54,7 @@ function getDefaultModelForPinUser(pinToken: string): string | null {
  *
  * Use this when model config comes from the request body.
  */
-export function resolveModel(params: {
+export async function resolveModel(params: {
   modelString?: string;
   apiKey?: string;
   baseUrl?: string;
@@ -70,9 +72,12 @@ export function resolveModel(params: {
   }
   const { providerId, modelId } = parseModelString(modelString);
 
+  // SSRF validation applies only to client-supplied base URLs.
+  // Server-configured URLs (e.g. OLLAMA_BASE_URL from env/YAML) flow through
+  // resolveBaseUrl() and bypass this check — they're trusted by the operator.
   const clientBaseUrl = params.baseUrl || undefined;
   if (clientBaseUrl && process.env.NODE_ENV === 'production') {
-    const ssrfError = validateUrlForSSRF(clientBaseUrl);
+    const ssrfError = await validateUrlForSSRF(clientBaseUrl);
     if (ssrfError) {
       throw new Error(ssrfError);
     }
@@ -90,16 +95,17 @@ export function resolveModel(params: {
     baseUrl,
     proxy,
     providerType: params.providerType as 'openai' | 'anthropic' | 'google' | undefined,
-    requiresApiKey: params.requiresApiKey,
   });
 
-  return { model, modelInfo, modelString, apiKey };
+  return { model, modelInfo, modelString, providerId, apiKey };
 }
 
 /**
  * Resolve a language model from standard request headers.
  *
- * Reads: x-model, x-api-key, x-base-url, x-provider-type, x-requires-api-key
+ * Reads: x-model, x-api-key, x-base-url, x-provider-type
+ * Note: requiresApiKey is derived server-side from the provider registry,
+ * never from client headers, to prevent auth bypass.
  */
 export function resolveModelFromHeaders(req: NextRequest): ResolvedModel {
   const pinToken = getPinTokenFromRequest(req) || undefined;

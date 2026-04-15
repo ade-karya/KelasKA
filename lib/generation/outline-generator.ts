@@ -37,7 +37,7 @@ export async function generateSceneOutlinesFromRequirements(
     researchContext?: string;
     teacherContext?: string;
   },
-): Promise<GenerationResult<SceneOutline[]>> {
+): Promise<GenerationResult<{ languageDirective: string; outlines: SceneOutline[] }>> {
   // Build available images description for the prompt
   let availableImagesText =
     requirements.language === 'id-ID' ? 'Tidak ada gambar tersedia' : 'No images available';
@@ -51,11 +51,9 @@ export async function generateSceneOutlinesFromRequirements(
       const textOnlySlice = allWithSrc.slice(MAX_VISION_IMAGES);
       const noSrcImages = pdfImages.filter((img) => !options.imageMapping![img.id]);
 
-      const visionDescriptions = visionSlice.map((img) =>
-        formatImagePlaceholder(img, requirements.language),
-      );
+      const visionDescriptions = visionSlice.map((img) => formatImagePlaceholder(img));
       const textDescriptions = [...textOnlySlice, ...noSrcImages].map((img) =>
-        formatImageDescription(img, requirements.language),
+        formatImageDescription(img),
       );
       availableImagesText = [...visionDescriptions, ...textDescriptions].join('\n');
 
@@ -67,9 +65,7 @@ export async function generateSceneOutlinesFromRequirements(
       }));
     } else {
       // Text-only mode: full descriptions
-      availableImagesText = pdfImages
-        .map((img) => formatImageDescription(img, requirements.language))
-        .join('\n');
+      availableImagesText = pdfImages.map((img) => formatImageDescription(img)).join('\n');
     }
   }
 
@@ -128,20 +124,34 @@ export async function generateSceneOutlinesFromRequirements(
     });
 
     const response = await aiCall(prompts.system, prompts.user, visionImages);
-    const outlines = parseJsonResponse<SceneOutline[]>(response);
+    const parsed = parseJsonResponse<
+      { languageDirective: string; outlines: SceneOutline[] } | SceneOutline[]
+    >(response);
 
-    if (!outlines || !Array.isArray(outlines)) {
-      return {
-        success: false,
-        error: 'Failed to parse scene outlines response',
-      };
+    let languageDirective: string;
+    let rawOutlines: SceneOutline[];
+
+    if (Array.isArray(parsed)) {
+      // Fallback: LLM returned old flat array format
+      languageDirective = 'Teach in the language that matches the user requirement.';
+      rawOutlines = parsed;
+    } else if (parsed && parsed.outlines) {
+      languageDirective =
+        parsed.languageDirective || 'Teach in the language that matches the user requirement.';
+      rawOutlines = parsed.outlines;
+    } else {
+      return { success: false, error: 'Failed to parse scene outlines response' };
     }
-    // Ensure IDs, order, and language
-    const enriched = outlines.map((outline, index) => ({
+
+    if (!Array.isArray(rawOutlines)) {
+      return { success: false, error: 'Failed to parse scene outlines response' };
+    }
+
+    // Ensure IDs and order
+    const enriched = rawOutlines.map((outline, index) => ({
       ...outline,
       id: outline.id || nanoid(),
       order: index + 1,
-      language: requirements.language,
     }));
 
     // Replace sequential gen_img_N/gen_vid_N with globally unique IDs
@@ -156,7 +166,7 @@ export async function generateSceneOutlinesFromRequirements(
       totalScenes: result.length,
     });
 
-    return { success: true, data: result };
+    return { success: true, data: { languageDirective, outlines: result } };
   } catch (error) {
     return { success: false, error: String(error) };
   }

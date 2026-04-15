@@ -18,7 +18,7 @@
   <a href="#-openclaw-集成"><img src="https://img.shields.io/badge/OpenClaw-集成-F4511E?style=flat-square" alt="OpenClaw 集成"/></a>
   <a href="https://github.com/ade-karya/KelasKA/stargazers"><img src="https://img.shields.io/github/stars/ade-karya/KelasKA?style=flat-square" alt="Stars"/></a>
   <br/>
-  <a href="https://discord.gg/PtZaaTbH"><img src="https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"/></a>
+  <a href="https://discord.gg/p8Pf2r3SaG"><img src="https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"/></a>
   &nbsp;
   <a href="community/feishu.md"><img src="https://img.shields.io/badge/Feishu-飞书交流群-00D6B9?style=for-the-badge&logo=bytedance&logoColor=white" alt="飞书群"/></a>
   <br/>
@@ -114,7 +114,7 @@ providers:
     apiKey: sk-ant-...
 ```
 
-支持的服务商：**OpenAI**、**Anthropic**、**Google Gemini**、**DeepSeek**、**MiniMax**、**Grok (xAI)** 以及任何兼容 OpenAI API 的服务。
+支持的服务商：**OpenAI**、**Anthropic**、**Google Gemini**、**DeepSeek**、**MiniMax**、**Grok (xAI)**、**豆包**、**Ollama**（本地）以及任何兼容 OpenAI API 的服务。
 
 MiniMax 快速示例：
 
@@ -152,6 +152,16 @@ pnpm dev
 ```bash
 pnpm build && pnpm start
 ```
+
+### 可选：ACCESS_CODE（共享部署）
+
+为部署添加站点级密码保护，在 `.env.local` 中设置：
+
+```env
+ACCESS_CODE=your-secret-code
+```
+
+设置后，访客需要输入密码才能使用，所有 API 路由也会受到保护。不设置则无影响。
 
 ### Vercel 部署
 
@@ -339,13 +349,14 @@ cp -R /path/to/KelasKA/skills/KelasKA ~/.openclaw/skills/KelasKA
 |------|------|
 | **PowerPoint (.pptx)** | 可编辑的幻灯片，包含图片、图表和 LaTeX 公式 |
 | **交互式 HTML** | 自包含的网页，包含交互式模拟实验 |
+| **课堂 ZIP** | 完整课堂导出（课程结构 + 媒体文件），可备份或分享 |
 
 ### 更多功能
 
 - **语音合成（TTS）** — 多种语音服务商，支持自定义音色
 - **语音识别** — 通过麦克风与 AI 老师对话
 - **网络搜索** — 智能体在课堂中搜索网络获取最新信息
-- **国际化** — 界面支持中文和英文
+- **国际化** — 界面支持中文、英文、日文和俄文
 - **暗色模式** — 深夜学习更护眼
 
 ---
