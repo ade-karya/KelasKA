@@ -41,6 +41,7 @@ import {
   renameStage,
   getFirstSlideByStages,
 } from '@/lib/utils/stage-storage';
+import { useImportClassroom } from '@/lib/import/use-import-classroom';
 import type { Slide } from '@/lib/types/slides';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { toast } from 'sonner';
@@ -109,6 +110,7 @@ function HomePage() {
     }
     try {
       const savedWebSearch = localStorage.getItem(WEB_SEARCH_STORAGE_KEY);
+      const savedLanguage = localStorage.getItem('generationLanguage');
       const updates: Partial<FormState> = {};
       if (savedWebSearch === 'true') updates.webSearch = true;
       if (savedLanguage === 'en-US' || savedLanguage === 'id-ID' || savedLanguage === 'ar-SA') {
@@ -610,6 +612,8 @@ function HomePage() {
                   onChange={(v) => updateForm('curriculum', v)}
                 />
                 <GenerationToolbar
+                  language={form.language}
+                  onLanguageChange={(lang) => updateForm('language', lang)}
                   webSearch={form.webSearch}
                   onWebSearchChange={(v) => updateForm('webSearch', v)}
                   onSettingsOpen={(section) => {

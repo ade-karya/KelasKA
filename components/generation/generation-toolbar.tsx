@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useMemo } from 'react';
-import { Bot, Check, ChevronLeft, Paperclip, FileText, X, Globe2 } from 'lucide-react';
+import { Bot, Check, ChevronLeft, Paperclip, FileText, X, Globe2, Globe } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
@@ -42,6 +42,8 @@ export interface GenerationToolbarProps {
 
 // ─── Component ───────────────────────────────────────────────
 export function GenerationToolbar({
+  language,
+  onLanguageChange,
   webSearch,
   onWebSearchChange,
   onSettingsOpen,
