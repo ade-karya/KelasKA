@@ -17,6 +17,8 @@ import {
   testMiniMaxImageConnectivity,
 } from './adapters/minimax-image-adapter';
 import { generateWithGrokImage, testGrokImageConnectivity } from './adapters/grok-image-adapter';
+import { generateWithImagen, testImagenConnectivity } from './adapters/imagen-adapter';
+import { generateWithPollinations, testPollinationsConnectivity } from './adapters/pollinations-adapter';
 
 export const IMAGE_PROVIDERS: Record<ImageProviderId, ImageProviderConfig> = {
   seedream: {
@@ -93,6 +95,28 @@ export const IMAGE_PROVIDERS: Record<ImageProviderId, ImageProviderConfig> = {
     ],
     supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
   },
+  imagen: {
+    id: 'imagen',
+    name: 'Imagen (Google)',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://generativelanguage.googleapis.com',
+    models: [
+      { id: 'imagen-4.0-generate-001', name: 'Imagen 4 Standard' },
+      { id: 'imagen-4.0-fast-generate-001', name: 'Imagen 4 Fast' },
+      { id: 'imagen-4.0-ultra-generate-001', name: 'Imagen 4 Ultra' },
+    ],
+    supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
+  },
+  pollinations: {
+    id: 'pollinations',
+    name: 'Pollinations AI',
+    requiresApiKey: false,
+    defaultBaseUrl: 'https://image.pollinations.ai',
+    models: [
+      { id: 'pollinations-default', name: 'Pollinations Default' }
+    ],
+    supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
+  },
 };
 
 export async function testImageConnectivity(
@@ -109,6 +133,10 @@ export async function testImageConnectivity(
       return testMiniMaxImageConnectivity(config);
     case 'grok-image':
       return testGrokImageConnectivity(config);
+    case 'imagen':
+      return testImagenConnectivity(config);
+    case 'pollinations':
+      return testPollinationsConnectivity(config);
     default:
       return {
         success: false,
@@ -132,6 +160,10 @@ export async function generateImage(
       return generateWithMiniMaxImage(config, options);
     case 'grok-image':
       return generateWithGrokImage(config, options);
+    case 'imagen':
+      return generateWithImagen(config, options);
+    case 'pollinations':
+      return generateWithPollinations(config, options);
     default:
       throw new Error(`Unsupported image provider: ${config.providerId}`);
   }

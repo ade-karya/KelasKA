@@ -310,6 +310,22 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     icon: '/logos/gemini.svg',
     models: [
       {
+        id: 'gemma-4-31b-it',
+        name: 'Gemma 4 31B IT',
+        contextWindow: 262144,
+        outputWindow: 8192,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: true,
+            budgetAdjustable: true,
+            defaultEnabled: false,
+          },
+        },
+      },
+      {
         id: 'gemini-3.1-flash-lite-preview',
         name: 'Gemini 3.1 Flash-Lite Preview',
         contextWindow: 1048576,

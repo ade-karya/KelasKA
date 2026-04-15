@@ -334,6 +334,8 @@ const getDefaultImageConfig = () => ({
     'nano-banana': { apiKey: '', baseUrl: '', enabled: false },
     'minimax-image': { apiKey: '', baseUrl: '', enabled: false },
     'grok-image': { apiKey: '', baseUrl: '', enabled: false },
+    imagen: { apiKey: '', baseUrl: '', enabled: false },
+    pollinations: { apiKey: '', baseUrl: '', enabled: false },
   } as Record<ImageProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
 });
 
@@ -747,7 +749,12 @@ export const useSettingsStore = create<SettingsState>()(
         setImageGenerationEnabled: (enabled) => {
           if (enabled) {
             const cfg = get().imageProvidersConfig;
-            const hasUsable = Object.values(cfg).some((c) => c.isServerConfigured || c.apiKey);
+            const hasUsable = Object.entries(cfg).some(([pid, c]) => {
+              const providerDef = IMAGE_PROVIDERS[pid as ImageProviderId];
+              // Provider is usable if it doesn't require an API key (e.g. Pollinations),
+              // or has an API key, or is server-configured
+              return (providerDef && !providerDef.requiresApiKey) || c.isServerConfigured || c.apiKey;
+            });
             if (!hasUsable) return;
           }
           set({ imageGenerationEnabled: enabled });

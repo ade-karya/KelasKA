@@ -13,6 +13,69 @@ import { getMcpContextTools } from '@/lib/mcp/ai-adapter';
 import type { ProviderType, ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 const log = createLogger('LLM');
 
+// ---------------------------------------------------------------------------
+// Per-model RPM Rate Limiter
+//
+// Some models (e.g. Gemini 3 Flash preview) have very low RPM quotas on the
+// free tier. This sliding-window limiter ensures we never exceed the limit
+// by making callers wait until a slot opens up.
+// ---------------------------------------------------------------------------
+
+/** Model IDs that need RPM rate limiting, mapped to their max RPM. */
+const MODEL_RPM_LIMITS: Record<string, number> = {
+  'gemini-3-flash-preview': 5,
+};
+
+/** Sliding window of request timestamps per rate-limited model. */
+const rpmWindows: Map<string, number[]> = new Map();
+
+/**
+ * Acquire a rate-limit slot for a given model.
+ * If the model is not in MODEL_RPM_LIMITS, this returns immediately.
+ * Otherwise it waits (via sleep) until a slot is available in the 60-second window.
+ */
+async function acquireRateLimit(modelId: string): Promise<void> {
+  const maxRpm = MODEL_RPM_LIMITS[modelId];
+  if (!maxRpm) return; // no limit for this model
+
+  const now = Date.now();
+  const windowMs = 60_000; // 1 minute
+
+  // Initialise window array if needed
+  if (!rpmWindows.has(modelId)) {
+    rpmWindows.set(modelId, []);
+  }
+
+  const timestamps = rpmWindows.get(modelId)!;
+
+  // Purge entries older than the window
+  while (timestamps.length > 0 && timestamps[0] <= now - windowMs) {
+    timestamps.shift();
+  }
+
+  // If we still have capacity, record and proceed
+  if (timestamps.length < maxRpm) {
+    timestamps.push(Date.now());
+    return;
+  }
+
+  // Window is full — calculate how long to wait until the oldest entry expires
+  const waitMs = timestamps[0] + windowMs - now + 100; // +100ms safety margin
+  log.info(
+    `[rate-limit] Model ${modelId} hit ${maxRpm} RPM limit, waiting ${Math.ceil(waitMs / 1000)}s for next slot…`,
+  );
+
+  await new Promise((resolve) => setTimeout(resolve, waitMs));
+
+  // After sleeping, purge again and record the new request
+  const nowAfterWait = Date.now();
+  while (timestamps.length > 0 && timestamps[0] <= nowAfterWait - windowMs) {
+    timestamps.shift();
+  }
+  timestamps.push(Date.now());
+}
+
+
 // Re-export for external use
 export type { ThinkingConfig } from '@/lib/types/provider';
 
@@ -312,6 +375,9 @@ export async function callLLM<T extends GenerateTextParams>(
         };
       }
 
+      // Rate limit: wait for available slot if model has RPM restrictions
+      await acquireRateLimit(getModelId(params));
+
       // Wrap in thinkingContext so the custom fetch wrapper in providers.ts
       // can read the config and inject vendor-specific body params for
       // OpenAI-compatible providers.
@@ -371,6 +437,9 @@ export async function streamLLM<T extends StreamTextParams>(
       ...injectedParams.tools, // Local tools take precedence if names collide
     };
   }
+
+  // Rate limit: wait for available slot if model has RPM restrictions
+  await acquireRateLimit(getModelId(params));
 
   const result = await thinkingContext.run(effectiveThinking, () => streamText(injectedParams));
 

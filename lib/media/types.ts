@@ -74,7 +74,9 @@ export type ImageProviderId =
   | 'qwen-image'
   | 'nano-banana'
   | 'minimax-image'
-  | 'grok-image';
+  | 'grok-image'
+  | 'imagen'
+  | 'pollinations';
 // Add new image providers below (uncomment and modify):
 // | 'dall-e'
 // | 'midjourney'

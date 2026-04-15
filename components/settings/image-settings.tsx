@@ -148,7 +148,16 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
         </div>
       )}
 
-      {/* API Key + Test inline */}
+      {/* Free service notice (no API key required) */}
+      {currentProvider && !currentProvider.requiresApiKey && (
+        <div className="rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30 p-3 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {t('settings.noApiKeyRequired') || 'This provider is free and does not require an API key.'}
+        </div>
+      )}
+
+      {/* API Key + Test inline (only for providers that require API key) */}
+      {currentProvider?.requiresApiKey !== false && (
       <div className="space-y-2">
         <Label>API Key</Label>
         <div className="flex gap-2">
@@ -210,6 +219,48 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
           </div>
         )}
       </div>
+      )}
+
+      {/* Test connection for free providers (no API key) */}
+      {currentProvider && !currentProvider.requiresApiKey && (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleTest}
+              disabled={testLoading}
+              className="gap-1.5"
+            >
+              {testLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <>
+                  <Zap className="h-3.5 w-3.5" />
+                  {t('settings.testConnection')}
+                </>
+              )}
+            </Button>
+          </div>
+          {testMessage && (
+            <div
+              className={cn(
+                'rounded-lg p-3 text-sm overflow-hidden',
+                testStatus === 'success' &&
+                  'bg-green-50 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800',
+                testStatus === 'error' &&
+                  'bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800',
+              )}
+            >
+              <div className="flex items-start gap-2 min-w-0">
+                {testStatus === 'success' && <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />}
+                {testStatus === 'error' && <XCircle className="h-4 w-4 mt-0.5 shrink-0" />}
+                <p className="flex-1 min-w-0 break-all">{testMessage}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Base URL */}
       <div className="space-y-2">
