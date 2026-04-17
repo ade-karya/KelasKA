@@ -61,7 +61,7 @@ export async function resolveModel(params: {
   providerType?: string;
   requiresApiKey?: boolean;
   pinToken?: string;
-}): ResolvedModel {
+}): Promise<ResolvedModel> {
   // Priority: explicit modelString > DEFAULT_MODEL env > PIN user's provider > gpt-4o-mini
   let modelString = params.modelString || process.env.DEFAULT_MODEL || '';
   if (!modelString && params.pinToken) {
@@ -107,7 +107,7 @@ export async function resolveModel(params: {
  * Note: requiresApiKey is derived server-side from the provider registry,
  * never from client headers, to prevent auth bypass.
  */
-export function resolveModelFromHeaders(req: NextRequest): ResolvedModel {
+export async function resolveModelFromHeaders(req: NextRequest): Promise<ResolvedModel> {
   const pinToken = getPinTokenFromRequest(req) || undefined;
   return resolveModel({
     modelString: req.headers.get('x-model') || undefined,

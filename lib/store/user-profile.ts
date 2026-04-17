@@ -4,7 +4,8 @@
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { safeStorage } from '@/lib/store/safe-storage';
 
 /** Predefined avatar options */
 export const AVATAR_OPTIONS = [
@@ -39,6 +40,7 @@ export const useUserProfileStore = create<UserProfileState>()(
     }),
     {
       name: 'user-profile-storage',
+      storage: createJSONStorage(() => safeStorage),
     },
   ),
 );

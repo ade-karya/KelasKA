@@ -9,9 +9,7 @@ export type SettingsSection =
   | 'pdf'
   | 'image'
   | 'video'
-  | 'canva'
-  | 'web-search'
-  | 'mcp';
+  | 'web-search';
 
 /**
  * Unified provider configuration stored in JSON format

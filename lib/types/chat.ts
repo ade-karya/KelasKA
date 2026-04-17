@@ -280,6 +280,7 @@ export interface StatelessChatRequest {
   baseUrl?: string;
   model?: string;
   providerType?: string;
+  requiresApiKey?: boolean;
 }
 
 /**

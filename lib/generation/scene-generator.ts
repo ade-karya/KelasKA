@@ -765,7 +765,7 @@ function normalizeQuizAnswer(question: Record<string, unknown>): string[] | unde
 async function generateInteractiveContent(
   outline: SceneOutline,
   aiCall: AICallFn,
-  language: 'en-US' | 'id-ID' | 'ar-SA' = 'id-ID',
+  language?: string,
 ): Promise<GeneratedInteractiveContent | null> {
   const config = outline.interactiveConfig!;
 
@@ -822,7 +822,7 @@ async function generateInteractiveContent(
     keyPoints: (outline.keyPoints || []).map((p, i) => `${i + 1}. ${p}`).join('\n'),
     scientificConstraints,
     designIdea: config.designIdea,
-    languageDirective: buildLanguageText(languageDirective, outline.languageNote),
+    languageDirective: buildLanguageText(language, outline.languageNote),
   });
 
   if (!htmlPrompts) {

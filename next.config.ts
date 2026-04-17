@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  reactStrictMode: true,
+  poweredByHeader: false,
   transpilePackages: ['mathml2omml', 'pptxgenjs'],
   serverExternalPackages: [],
   experimental: {

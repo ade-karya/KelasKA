@@ -377,6 +377,14 @@ function HomePage() {
 
   return (
     <div className="min-h-[100dvh] w-full bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 flex flex-col items-center p-3 pt-14 pb-4 sm:p-4 sm:pt-16 md:p-8 md:pt-16 overflow-x-hidden">
+      {/* Hidden file input for classroom import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".zip"
+        className="hidden"
+        onChange={handleFileChange}
+      />
       {/* ═══ Top-right pill (unchanged) ═══ */}
       <div
         ref={toolbarRef}

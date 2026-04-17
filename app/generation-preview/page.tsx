@@ -355,7 +355,6 @@ function GenerationPreviewContent() {
         id: stageId,
         name: extractTopicFromRequirement(currentSession.requirements.requirement),
         description: '',
-        language: currentSession.requirements.language || 'id-ID',
         style: 'professional',
         createdAt: Date.now(),
         updatedAt: Date.now(),

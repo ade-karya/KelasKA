@@ -52,6 +52,8 @@ const LLM_ENV_MAP: Record<string, string> = {
   SILICONFLOW: 'siliconflow',
   DOUBAO: 'doubao',
   GROK: 'grok',
+  NVIDIA: 'nvidia',
+  OPENROUTER: 'openrouter',
   OLLAMA: 'ollama',
 };
 
@@ -265,7 +267,7 @@ export function getServerProviders(): Record<string, { models?: string[]; baseUr
 export function resolveApiKey(providerId: string, clientKey?: string, pinToken?: string): string {
   if (clientKey) return clientKey;
   if (pinToken) {
-    const pinCfg = getPinServiceConfig(pinToken, 'llm');
+    const pinCfg = getPinServiceConfig(pinToken, 'llm', providerId);
     if (pinCfg?.apiKey) return pinCfg.apiKey;
   }
   return getConfig().providers[providerId]?.apiKey || '';
@@ -275,7 +277,7 @@ export function resolveApiKey(providerId: string, clientKey?: string, pinToken?:
 export function resolveBaseUrl(providerId: string, clientBaseUrl?: string, pinToken?: string): string | undefined {
   if (clientBaseUrl) return clientBaseUrl;
   if (pinToken) {
-    const pinCfg = getPinServiceConfig(pinToken, 'llm');
+    const pinCfg = getPinServiceConfig(pinToken, 'llm', providerId);
     if (pinCfg?.baseUrl) return pinCfg.baseUrl;
   }
   return getConfig().providers[providerId]?.baseUrl;

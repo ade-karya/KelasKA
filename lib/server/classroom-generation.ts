@@ -15,8 +15,8 @@ import type { AICallFn } from '@/lib/generation/pipeline-types';
 import type { AgentInfo } from '@/lib/generation/pipeline-types';
 import { getDefaultAgents } from '@/lib/orchestration/registry/store';
 import { createLogger } from '@/lib/logger';
-import { isProviderKeyRequired } from '@/lib/ai/providers';
-import { resolveWebSearchApiKey } from '@/lib/server/provider-config';
+import { isProviderKeyRequired, parseModelString } from '@/lib/ai/providers';
+import { resolveApiKey, resolveWebSearchApiKey } from '@/lib/server/provider-config';
 import { resolveModel } from '@/lib/server/resolve-model';
 import { buildSearchQuery } from '@/lib/server/search-query-builder';
 import { searchWithTavily, formatSearchResultsAsContext } from '@/lib/web-search/tavily';
@@ -179,7 +179,7 @@ export async function generateClassroom(
     scenesGenerated: 0,
   });
 
-  const { model: languageModel, modelInfo, modelString } = resolveModel({ pinToken: input.pinToken });
+  const { model: languageModel, modelInfo, modelString } = await resolveModel({ pinToken: input.pinToken });
   log.info(`Using server-configured model: ${modelString}`);
 
   // Fail fast if the resolved provider has no API key configured
@@ -224,6 +224,7 @@ export async function generateClassroom(
 
   const requirements: UserRequirements = {
     requirement,
+    language: normalizeLanguage(),
   };
   const pdfText = pdfContent?.text || undefined;
 

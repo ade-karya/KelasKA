@@ -163,10 +163,10 @@ Personalize your teaching based on their background when relevant. Address them 
 
   const roleGuideline = ROLE_GUIDELINES[agentConfig.role] || ROLE_GUIDELINES.student;
 
-  // Build language constraint from stage language
-  const courseLanguage = storeState.stage?.language;
+  // Build language constraint from stage languageDirective
+  const courseLanguage = storeState.stage?.languageDirective;
   const languageConstraint = courseLanguage
-    ? `\n# Language (CRITICAL)\nYou MUST speak in ${courseLanguage === 'id-ID' ? 'Indonesian (Bahasa Indonesia)' : courseLanguage === 'zh-CN' ? 'Chinese (Simplified)' : courseLanguage === 'en-US' ? 'English' : courseLanguage}. ALL text content in your response MUST be in this language.\n`
+    ? `\n# Language (CRITICAL)\n${courseLanguage}\n`
     : '';
 
   return `# Role

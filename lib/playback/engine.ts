@@ -168,7 +168,7 @@ export class PlaybackEngine {
           // speechSynthesis.pause()/resume() is broken on Firefox, so we
           // cancel now and re-speak from current chunk onward on resume.
           this.browserTTSPausedChunks = this.browserTTSChunks.slice(this.browserTTSChunkIndex);
-          window.speechSynthesis?.cancel();
+          try { window.speechSynthesis?.cancel(); } catch { /* Edge safety */ }
           // Note: cancel fires onerror('canceled'), which we ignore (see playBrowserTTSChunk)
         } else if (this.audioPlayer.isPlaying()) {
           this.audioPlayer.pause();
@@ -630,6 +630,7 @@ export class PlaybackEngine {
       // All chunks done
       this.browserTTSActive = false;
       this.browserTTSChunks = [];
+      this.clearBrowserTTSSafetyTimer();
       this.callbacks.onSpeechEnd?.();
       if (this.mode === 'playing') this.processNext();
       return;
@@ -667,30 +668,45 @@ export class PlaybackEngine {
       utterance.lang = cjkRatio > CJK_LANG_THRESHOLD ? 'zh-CN' : 'id-ID';
     }
 
-    utterance.onend = () => {
+    const advanceToNext = () => {
+      this.clearBrowserTTSSafetyTimer();
       this.browserTTSChunkIndex++;
       if (this.mode === 'playing') {
         this.playBrowserTTSChunk(); // next chunk
       }
     };
 
+    utterance.onend = advanceToNext;
+
     utterance.onerror = (event) => {
       // 'canceled' is expected when stop/pause is called — not a real error
       if (event.error !== 'canceled') {
         log.warn('Browser TTS chunk error:', event.error);
         // Skip failed chunk, try next
-        this.browserTTSChunkIndex++;
-        if (this.mode === 'playing') {
-          this.playBrowserTTSChunk();
-        }
+        advanceToNext();
       }
       // On 'canceled': do nothing — pause handler already saved state
     };
 
     // Chrome bug workaround: cancel() before speak() to clear stale synthesis
     // state that can produce garbled/broken audio output.
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    try {
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      log.warn('Browser TTS speak failed:', err);
+      advanceToNext();
+      return;
+    }
+
+    // Safety timeout: Edge may never fire onend for some utterances.
+    // Auto-advance after 2x estimated duration to prevent engine hanging.
+    const estimatedMs = Math.max(3000, (chunkText.length * 80) / utterance.rate);
+    this.browserTTSSafetyTimer = setTimeout(() => {
+      this.browserTTSSafetyTimer = null;
+      log.warn('Browser TTS safety timeout — forcing advance');
+      advanceToNext();
+    }, estimatedMs * 2);
   }
 
   /**
@@ -728,6 +744,16 @@ export class PlaybackEngine {
     return voices;
   }
 
+  /** Safety timer for browser TTS — forces advance if onend never fires (Edge) */
+  private browserTTSSafetyTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private clearBrowserTTSSafetyTimer(): void {
+    if (this.browserTTSSafetyTimer) {
+      clearTimeout(this.browserTTSSafetyTimer);
+      this.browserTTSSafetyTimer = null;
+    }
+  }
+
   /** Cancel any active browser-native TTS */
   private cancelBrowserTTS(): void {
     if (this.browserTTSActive) {
@@ -735,7 +761,8 @@ export class PlaybackEngine {
       this.browserTTSChunks = [];
       this.browserTTSChunkIndex = 0;
       this.browserTTSPausedChunks = [];
-      window.speechSynthesis?.cancel();
+      this.clearBrowserTTSSafetyTimer();
+      try { window.speechSynthesis?.cancel(); } catch { /* Edge safety */ }
     }
   }
 }

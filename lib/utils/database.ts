@@ -359,12 +359,24 @@ export async function initDatabase(): Promise<void> {
   try {
     await db.open();
     // Request persistent storage to prevent browser from evicting IndexedDB
-    // under storage pressure (large media blobs can trigger LRU cleanup)
-    void navigator.storage?.persist?.();
+    // under storage pressure (large media blobs can trigger LRU cleanup).
+    // Edge InPrivate and some restricted contexts may not support this API.
+    try {
+      if (navigator?.storage?.persist) {
+        void navigator.storage.persist();
+      }
+    } catch {
+      // Silently ignore — persistence is optional
+    }
     log.info('Database initialized successfully');
   } catch (error) {
     log.error('Failed to initialize database:', error);
-    throw error;
+    // Don't throw — allow the app to continue with degraded functionality
+    // (e.g. no saved classrooms), rather than crashing entirely.
+    // This is critical for Edge InPrivate mode where IndexedDB may be blocked.
+    console.warn(
+      '[KelasKA] IndexedDB is unavailable. The app will work but classrooms cannot be saved.',
+    );
   }
 }
 

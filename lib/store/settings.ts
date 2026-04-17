@@ -4,11 +4,12 @@
  */
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { ProviderId } from '@/lib/ai/providers';
 import type { ProvidersConfig } from '@/lib/types/settings';
 import { PROVIDERS } from '@/lib/ai/providers';
 import type { TTSProviderId, ASRProviderId, BuiltInTTSProviderId } from '@/lib/audio/types';
+import { safeStorage } from '@/lib/store/safe-storage';
 import { isCustomTTSProvider, isCustomASRProvider } from '@/lib/audio/types';
 import { ASR_PROVIDERS, DEFAULT_TTS_VOICES, TTS_PROVIDERS } from '@/lib/audio/constants';
 import { PDF_PROVIDERS } from '@/lib/pdf/constants';
@@ -131,15 +132,6 @@ export interface SettingsState {
   // Media generation toggles
   imageGenerationEnabled: boolean;
   videoGenerationEnabled: boolean;
-
-  // Canva Settings
-  canvaEnabled: boolean;
-  canvaConfig: {
-    token: string;
-    baseUrl: string;
-    brandTemplateId: string;
-    exportFormat: 'png' | 'jpg';
-  };
 
   // Web Search settings
   webSearchProviderId: WebSearchProviderId;
@@ -283,10 +275,6 @@ export interface SettingsState {
   setImageGenerationEnabled: (enabled: boolean) => void;
   setVideoGenerationEnabled: (enabled: boolean) => void;
 
-  // Canva actions
-  setCanvaEnabled: (enabled: boolean) => void;
-  setCanvaConfig: (config: Partial<SettingsState['canvaConfig']>) => void;
-
   // Web Search actions
   setWebSearchProvider: (providerId: WebSearchProviderId) => void;
   setWebSearchProviderConfig: (
@@ -367,17 +355,6 @@ const getDefaultImageConfig = () => ({
     imagen: { apiKey: '', baseUrl: '', enabled: false },
     pollinations: { apiKey: '', baseUrl: '', enabled: false },
   } as Record<ImageProviderId, { apiKey: string; baseUrl: string; enabled: boolean }>,
-});
-
-// Initialize default Canva config
-const getDefaultCanvaConfig = () => ({
-  canvaEnabled: false,
-  canvaConfig: {
-    token: '',
-    baseUrl: 'https://api.canva.com/rest',
-    brandTemplateId: '',
-    exportFormat: 'png' as const,
-  },
 });
 
 // Initialize default Video config
@@ -548,9 +525,10 @@ function ensureBuiltInVideoProviders(state: Partial<SettingsState>): void {
 const migrateFromOldStorage = () => {
   if (typeof window === 'undefined') return null;
 
-  // Check if new storage already exists
-  const newStorage = localStorage.getItem('settings-storage');
-  if (newStorage) return null; // Already migrated or new install
+  try {
+    // Check if new storage already exists
+    const newStorage = localStorage.getItem('settings-storage');
+    if (newStorage) return null; // Already migrated or new install
 
   // Read old localStorage keys
   const oldLlmModel = localStorage.getItem('llmModel');
@@ -610,6 +588,10 @@ const migrateFromOldStorage = () => {
     selectedAgentIds,
     maxTurns,
   };
+  } catch {
+    // localStorage may throw SecurityError in Edge/iframe contexts
+    return null;
+  }
 };
 
 export const useSettingsStore = create<SettingsState>()(
@@ -622,7 +604,6 @@ export const useSettingsStore = create<SettingsState>()(
       const defaultImageConfig = getDefaultImageConfig();
       const defaultVideoConfig = getDefaultVideoConfig();
       const defaultWebSearchConfig = getDefaultWebSearchConfig();
-      const defaultCanvaConfig = getDefaultCanvaConfig();
 
       return {
         // Initial state (use migrated data if available)
@@ -657,9 +638,6 @@ export const useSettingsStore = create<SettingsState>()(
 
         // Video settings (use defaults)
         ...defaultVideoConfig,
-
-        // Canva settings
-        ...defaultCanvaConfig,
 
         // Media generation toggles (off by default)
         imageGenerationEnabled: false,
@@ -837,15 +815,6 @@ export const useSettingsStore = create<SettingsState>()(
           }
           set({ videoGenerationEnabled: enabled });
         },
-
-        setCanvaEnabled: (enabled) => set({ canvaEnabled: enabled }),
-        setCanvaConfig: (config) =>
-          set((state) => ({
-            canvaConfig: {
-              ...state.canvaConfig,
-              ...config,
-            },
-          })),
 
         setTTSEnabled: (enabled) => set({ ttsEnabled: enabled }),
         setASREnabled: (enabled) => set({ asrEnabled: enabled }),
@@ -1472,6 +1441,7 @@ export const useSettingsStore = create<SettingsState>()(
     },
     {
       name: 'settings-storage',
+      storage: createJSONStorage(() => safeStorage),
       version: 2,
       // Migrate persisted state
       migrate: (persistedState: unknown, version: number) => {

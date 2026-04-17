@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
 
     // Resolve model
     const pinToken = getPinTokenFromRequest(req) || undefined;
-    const { model: languageModel } = resolveModel({ pinToken });
+    const { model: languageModel } = await resolveModel({ pinToken });
 
     // Build the context from Kurikulum Merdeka data
     const struktur = getStrukturByFase(body.fase);

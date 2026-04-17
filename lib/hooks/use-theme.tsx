@@ -21,38 +21,59 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Hydrate from localStorage after mount (avoids SSR mismatch)
   /* eslint-disable react-hooks/set-state-in-effect -- Hydration from localStorage must happen in effect */
   useEffect(() => {
-    const stored = localStorage.getItem('theme') as Theme | null;
-    if (stored && ['light', 'dark', 'system'].includes(stored)) {
-      setThemeState(stored);
+    try {
+      const stored = localStorage.getItem('theme') as Theme | null;
+      if (stored && ['light', 'dark', 'system'].includes(stored)) {
+        setThemeState(stored);
+      }
+    } catch {
+      // localStorage may throw in Edge InPrivate or restricted contexts
     }
-    setSystemTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    try {
+      setSystemTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } catch {
+      // matchMedia may be unavailable in some contexts
+    }
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Apply theme to document
   useEffect(() => {
-    const root = document.documentElement;
-    if (resolvedTheme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    try {
+      const root = document.documentElement;
+      if (resolvedTheme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    } catch {
+      // document may not be available during SSR edge cases
     }
   }, [resolvedTheme]);
 
   // Listen to system theme changes
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
-    };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    try {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = () => {
+        setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
+      };
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } catch {
+      // matchMedia may be unavailable
+      return undefined;
+    }
   }, []);
 
   // Save theme to localStorage
   const handleSetTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem('theme', newTheme);
+    try {
+      localStorage.setItem('theme', newTheme);
+    } catch {
+      // localStorage may be unavailable
+    }
   };
 
   return (

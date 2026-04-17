@@ -17,6 +17,8 @@ export type BuiltInProviderId =
   | 'siliconflow'
   | 'doubao'
   | 'grok'
+  | 'nvidia'
+  | 'openrouter'
   | 'ollama';
 
 /**

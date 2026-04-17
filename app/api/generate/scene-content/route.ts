@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
         name: string;
         description?: string;
         style?: string;
+        language?: string;
       };
       stageId: string;
       agents?: AgentInfo[];
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
     // Ensure outline has language from stageInfo (fallback for older outlines)
     const outline: SceneOutline = {
       ...rawOutline,
-      language: rawOutline.language || (stageInfo?.language as 'en-US' | 'id-ID' | 'ar-SA') || 'id-ID',
+      language: rawOutline.language || (_stageInfo?.language as 'en-US' | 'id-ID' | 'ar-SA') || 'id-ID',
     };
 
     // ── Model resolution from request headers ──

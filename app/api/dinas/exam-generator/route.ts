@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Resolve model
     const pinToken = getPinTokenFromRequest(req) || undefined;
-    const { model: languageModel } = resolveModel({ pinToken });
+    const { model: languageModel } = await resolveModel({ pinToken });
 
     // Build context
     const struktur = getStrukturByFase(body.fase);

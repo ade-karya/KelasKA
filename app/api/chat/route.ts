@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     // Read PIN token from session cookie
     const pinToken = getPinTokenFromRequest(req) || undefined;
 
-    const { model: languageModel, apiKey: resolvedApiKey } = resolveModel({
+    const { model: languageModel, apiKey: resolvedApiKey, providerId } = await resolveModel({
       modelString: body.model,
       apiKey: body.apiKey,
       baseUrl: body.baseUrl,

@@ -18,6 +18,7 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
 import { getTTSVoices } from '@/lib/audio/constants';
 import { useTTSPreview } from '@/lib/audio/use-tts-preview';
+import { useBrowserVoices } from '@/lib/hooks/use-browser-voices';
 
 /** Extract the English name from voice name format "ChineseName (English)" */
 function getVoiceDisplayName(name: string, lang: string): string {
@@ -41,15 +42,25 @@ export function TtsConfigPopover() {
   const ttsProvidersConfig = useSettingsStore((s) => s.ttsProvidersConfig);
   const setTTSVoice = useSettingsStore((s) => s.setTTSVoice);
 
-  const voices = getTTSVoices(ttsProviderId);
-  const localizedVoices = useMemo(
-    () =>
-      voices.map((v) => ({
+  const staticVoices = getTTSVoices(ttsProviderId);
+  const browserVoices = useBrowserVoices();
+
+  const isBrowserNative = ttsProviderId === 'browser-native-tts';
+
+  const localizedVoices = useMemo(() => {
+    if (isBrowserNative && browserVoices.length > 0) {
+      // Use dynamic browser voices — show language tag for clarity
+      return browserVoices.map((v) => ({
         ...v,
-        displayName: getVoiceDisplayName(v.name, locale),
-      })),
-    [voices, locale],
-  );
+        displayName: `${v.name} (${v.language})`,
+      }));
+    }
+    // Static provider voices
+    return staticVoices.map((v) => ({
+      ...v,
+      displayName: getVoiceDisplayName(v.name, locale),
+    }));
+  }, [isBrowserNative, browserVoices, staticVoices, locale]);
 
   const pillCls =
     'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap border';

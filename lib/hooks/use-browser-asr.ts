@@ -132,8 +132,15 @@ export function useBrowserASR(options: UseBrowserASROptions = {}) {
       setInterimTranscript('');
     };
 
-    recognition.start();
-    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (err) {
+      // Edge may throw synchronously if microphone permission is denied
+      log.error('Failed to start speech recognition:', err);
+      onErrorRef.current?.('not-allowed');
+      setIsListening(false);
+    }
   }, [language, continuous, interimResults]);
 
   const stopListening = useCallback(() => {

@@ -46,7 +46,7 @@ const log = createLogger('AIProviders');
 export type { ProviderId, ProviderConfig, ModelInfo, ModelConfig };
 
 /** Provider IDs whose logos are monochrome-dark and need `dark:invert` in dark mode */
-export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'ollama']);
+export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'ollama', 'openrouter']);
 
 /**
  * Provider registry
@@ -982,6 +982,241 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         name: 'Grok 3 Mini',
         contextWindow: 131072,
         outputWindow: 32768,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+    ],
+  },
+
+  nvidia: {
+    id: 'nvidia',
+    name: 'NVIDIA',
+    type: 'openai',
+    defaultBaseUrl: 'https://integrate.api.nvidia.com/v1',
+    requiresApiKey: true,
+    icon: '/logos/nvidia.svg',
+    models: [
+      // Kimi K2.5 via NVIDIA NIM
+      {
+        id: 'moonshotai/kimi-k2.5',
+        name: 'Kimi K2.5',
+        contextWindow: 256000,
+        outputWindow: 16384,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: true,
+            budgetAdjustable: false,
+            defaultEnabled: true,
+          },
+        },
+      },
+      // DeepSeek R1 via NVIDIA NIM
+      {
+        id: 'deepseek-ai/deepseek-r1',
+        name: 'DeepSeek R1',
+        contextWindow: 128000,
+        outputWindow: 32000,
+        capabilities: {
+          streaming: true,
+          tools: false,
+          vision: false,
+          thinking: {
+            toggleable: false,
+            budgetAdjustable: false,
+            defaultEnabled: true,
+          },
+        },
+      },
+      // Meta Llama 3.3 70B via NVIDIA NIM
+      {
+        id: 'meta/llama-3.3-70b-instruct',
+        name: 'Llama 3.3 70B',
+        contextWindow: 131072,
+        outputWindow: 4096,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      // Qwen 2.5 72B via NVIDIA NIM
+      {
+        id: 'qwen/qwen2.5-72b-instruct',
+        name: 'Qwen 2.5 72B',
+        contextWindow: 131072,
+        outputWindow: 8192,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      // Mistral Large via NVIDIA NIM
+      {
+        id: 'mistralai/mistral-large-2-instruct',
+        name: 'Mistral Large 2',
+        contextWindow: 128000,
+        outputWindow: 4096,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+    ],
+  },
+
+  openrouter: {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    type: 'openai',
+    defaultBaseUrl: 'https://openrouter.ai/api/v1',
+    requiresApiKey: true,
+    icon: '/logos/openrouter.svg',
+    models: [
+      // Anthropic via OpenRouter
+      {
+        id: 'anthropic/claude-opus-4-6',
+        name: 'Claude Opus 4.6',
+        contextWindow: 200000,
+        outputWindow: 128000,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: true,
+            budgetAdjustable: true,
+            defaultEnabled: false,
+          },
+        },
+      },
+      {
+        id: 'anthropic/claude-sonnet-4-6',
+        name: 'Claude Sonnet 4.6',
+        contextWindow: 200000,
+        outputWindow: 128000,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: true,
+            budgetAdjustable: true,
+            defaultEnabled: false,
+          },
+        },
+      },
+      // OpenAI via OpenRouter
+      {
+        id: 'openai/gpt-5.2',
+        name: 'GPT-5.2',
+        contextWindow: 400000,
+        outputWindow: 128000,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: true,
+            budgetAdjustable: true,
+            defaultEnabled: false,
+          },
+        },
+      },
+      {
+        id: 'openai/gpt-4o',
+        name: 'GPT-4o',
+        contextWindow: 128000,
+        outputWindow: 4096,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      // Google via OpenRouter
+      {
+        id: 'google/gemini-2.5-flash',
+        name: 'Gemini 2.5 Flash',
+        contextWindow: 1048576,
+        outputWindow: 65536,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: true,
+            budgetAdjustable: true,
+            defaultEnabled: true,
+          },
+        },
+      },
+      {
+        id: 'google/gemini-2.5-pro',
+        name: 'Gemini 2.5 Pro',
+        contextWindow: 1048576,
+        outputWindow: 65536,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: false,
+            budgetAdjustable: true,
+            defaultEnabled: true,
+          },
+        },
+      },
+      // DeepSeek via OpenRouter
+      {
+        id: 'deepseek/deepseek-chat',
+        name: 'DeepSeek V3',
+        contextWindow: 128000,
+        outputWindow: 8192,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek/deepseek-r1',
+        name: 'DeepSeek R1',
+        contextWindow: 128000,
+        outputWindow: 32000,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: false,
+          thinking: {
+            toggleable: true,
+            budgetAdjustable: false,
+            defaultEnabled: true,
+          },
+        },
+      },
+      // Kimi via OpenRouter
+      {
+        id: 'moonshotai/kimi-k2.5',
+        name: 'Kimi K2.5',
+        contextWindow: 256000,
+        outputWindow: 8192,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: true,
+            budgetAdjustable: false,
+            defaultEnabled: true,
+          },
+        },
+      },
+      // Meta Llama via OpenRouter
+      {
+        id: 'meta-llama/llama-3.3-70b-instruct',
+        name: 'Llama 3.3 70B',
+        contextWindow: 131072,
+        outputWindow: 4096,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      // Mistral via OpenRouter
+      {
+        id: 'mistralai/devstral-2',
+        name: 'Devstral 2',
+        contextWindow: 256000,
+        outputWindow: 32768,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      // NVIDIA free model via OpenRouter
+      {
+        id: 'nvidia/nemotron-3-super',
+        name: 'Nemotron 3 Super',
+        contextWindow: 131072,
+        outputWindow: 8192,
         capabilities: { streaming: true, tools: true, vision: false },
       },
     ],

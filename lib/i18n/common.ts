@@ -32,10 +32,15 @@ export const commonZhCN = {
     ttsPreview: '试听',
     ttsPreviewing: '播放中...',
   },
+  import: {
+    classroom: '导入课堂',
+  },
   export: {
     pptx: '导出 PPTX',
     resourcePack: '导出教学资源包',
     resourcePackDesc: 'PPTX + 交互式页面',
+    classroomZip: '导出课堂',
+    classroomZipDesc: '供其他设备导入使用 (含媒体资源)',
     exporting: '正在导出...',
     exportSuccess: '导出成功',
     exportFailed: '导出失败',
@@ -76,10 +81,15 @@ export const commonEnUS = {
     ttsPreview: 'Preview',
     ttsPreviewing: 'Playing...',
   },
+  import: {
+    classroom: 'Import Classroom',
+  },
   export: {
     pptx: 'Export PPTX',
     resourcePack: 'Export Resource Pack',
     resourcePackDesc: 'PPTX + interactive pages',
+    classroomZip: 'Export Classroom',
+    classroomZipDesc: 'Export for importing on other devices',
     exporting: 'Exporting...',
     exportSuccess: 'Export successful',
     exportFailed: 'Export failed',
@@ -120,10 +130,15 @@ export const commonIdID = {
     ttsPreview: 'Pratinjau',
     ttsPreviewing: 'Memutar...',
   },
+  import: {
+    classroom: 'Impor Kelas',
+  },
   export: {
     pptx: 'Ekspor PPTX',
     resourcePack: 'Ekspor Paket Sumber Daya',
     resourcePackDesc: 'PPTX + halaman interaktif',
+    classroomZip: 'Ekspor Kelas',
+    classroomZipDesc: 'Untuk diimpor di perangkat lain',
     exporting: 'Mengekspor...',
     exportSuccess: 'Ekspor berhasil',
     exportFailed: 'Ekspor gagal',
@@ -164,10 +179,15 @@ export const commonArSA = {
     ttsPreview: 'معاينة',
     ttsPreviewing: 'جارٍ التشغيل...',
   },
+  import: {
+    classroom: 'استيراد الفصل',
+  },
   export: {
     pptx: 'تصدير PPTX',
     resourcePack: 'تصدير حزمة الموارد',
     resourcePackDesc: 'PPTX + صفحات تفاعلية',
+    classroomZip: 'تصدير الفصل',
+    classroomZipDesc: 'للاستيراد على أجهزة أخرى',
     exporting: 'جارٍ التصدير...',
     exportSuccess: 'تم التصدير بنجاح',
     exportFailed: 'فشل التصدير',
