@@ -9,6 +9,7 @@
   "scripts": {
     "postinstall": "cd packages/mathml2omml && pnpm run build && cd ../pptxgenjs && pnpm run build",
     "dev": "next dev",
+    "dev:lan": "next dev --experimental-https -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
