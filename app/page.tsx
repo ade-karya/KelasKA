@@ -116,8 +116,7 @@ function HomePage() {
       if (savedLanguage === 'en-US' || savedLanguage === 'id-ID' || savedLanguage === 'ar-SA') {
         updates.language = savedLanguage;
       } else {
-        const detected = navigator.language?.startsWith('id') ? 'id-ID' : navigator.language?.startsWith('ar') ? 'ar-SA' : navigator.language?.startsWith('en') ? 'en-US' : 'id-ID';
-        updates.language = detected;
+        updates.language = 'id-ID';
       }
       if (Object.keys(updates).length > 0) {
         setForm((prev) => ({ ...prev, ...updates }));
