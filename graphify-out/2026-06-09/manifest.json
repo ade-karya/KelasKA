@@ -1,0 +1,1507 @@
+{
+  "D:\\Project\\KelasKA\\lib\\action\\engine.ts": {
+    "mtime": 1781012436.9660895,
+    "ast_hash": "6706eb4fc885d21411281845cf83fc57",
+    "semantic_hash": "6706eb4fc885d21411281845cf83fc57"
+  },
+  "D:\\Project\\KelasKA\\lib\\ai\\llm.ts": {
+    "mtime": 1781012436.9675388,
+    "ast_hash": "6055983d4a118aaa1fe008e75457cac7",
+    "semantic_hash": "6055983d4a118aaa1fe008e75457cac7"
+  },
+  "D:\\Project\\KelasKA\\lib\\ai\\model-metadata.ts": {
+    "mtime": 1781012436.9675388,
+    "ast_hash": "946b3ee63a9dc3bbfa6f6923c092b315",
+    "semantic_hash": "946b3ee63a9dc3bbfa6f6923c092b315"
+  },
+  "D:\\Project\\KelasKA\\lib\\ai\\providers.ts": {
+    "mtime": 1781012436.968758,
+    "ast_hash": "4f1c103f688ad2ef66d336d11422de7e",
+    "semantic_hash": "4f1c103f688ad2ef66d336d11422de7e"
+  },
+  "D:\\Project\\KelasKA\\lib\\ai\\thinking-config.ts": {
+    "mtime": 1781012436.9699464,
+    "ast_hash": "e1125a8d67ecf47249f1bc22ac559402",
+    "semantic_hash": "e1125a8d67ecf47249f1bc22ac559402"
+  },
+  "D:\\Project\\KelasKA\\lib\\ai\\thinking-context.ts": {
+    "mtime": 1781012436.9699464,
+    "ast_hash": "afa97a2e03a1e646e448936d4203dc99",
+    "semantic_hash": "afa97a2e03a1e646e448936d4203dc99"
+  },
+  "D:\\Project\\KelasKA\\lib\\api\\stage-api-canvas.ts": {
+    "mtime": 1781012292.632915,
+    "ast_hash": "f4cdff1f7f174555aaa556e08188da06",
+    "semantic_hash": "f4cdff1f7f174555aaa556e08188da06"
+  },
+  "D:\\Project\\KelasKA\\lib\\api\\stage-api-defaults.ts": {
+    "mtime": 1781012292.632915,
+    "ast_hash": "dddb6c667a37fab6481a354191db3643",
+    "semantic_hash": "dddb6c667a37fab6481a354191db3643"
+  },
+  "D:\\Project\\KelasKA\\lib\\api\\stage-api-element.ts": {
+    "mtime": 1781012292.6485577,
+    "ast_hash": "5d91590c751bf537c4d2b7896396e8c4",
+    "semantic_hash": "5d91590c751bf537c4d2b7896396e8c4"
+  },
+  "D:\\Project\\KelasKA\\lib\\api\\stage-api-mode.ts": {
+    "mtime": 1781012292.6485577,
+    "ast_hash": "389f593ef1149f9ff2ef4c812bcc1d3f",
+    "semantic_hash": "389f593ef1149f9ff2ef4c812bcc1d3f"
+  },
+  "D:\\Project\\KelasKA\\lib\\api\\stage-api-navigation.ts": {
+    "mtime": 1781012292.6485577,
+    "ast_hash": "0195f1e5fceac3ab18ee8d65f648cbea",
+    "semantic_hash": "0195f1e5fceac3ab18ee8d65f648cbea"
+  },
+  "D:\\Project\\KelasKA\\lib\\api\\stage-api-scene.ts": {
+    "mtime": 1781012292.6485577,
+    "ast_hash": "34eb387d977fa4b556b9cc18e238037c",
+    "semantic_hash": "34eb387d977fa4b556b9cc18e238037c"
+  },
+  "D:\\Project\\KelasKA\\lib\\api\\stage-api-types.ts": {
+    "mtime": 1781012292.6485577,
+    "ast_hash": "d74fee242771a217145a9898770c65f0",
+    "semantic_hash": "d74fee242771a217145a9898770c65f0"
+  },
+  "D:\\Project\\KelasKA\\lib\\api\\stage-api-whiteboard.ts": {
+    "mtime": 1781012292.6485577,
+    "ast_hash": "af4e8e0a79d5242e3c61a758b36bdaf7",
+    "semantic_hash": "af4e8e0a79d5242e3c61a758b36bdaf7"
+  },
+  "D:\\Project\\KelasKA\\lib\\api\\stage-api.ts": {
+    "mtime": 1781012292.6520636,
+    "ast_hash": "9abfaa5792735d87b06244b0701251d5",
+    "semantic_hash": "9abfaa5792735d87b06244b0701251d5"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\agent-voice.ts": {
+    "mtime": 1781012436.9712899,
+    "ast_hash": "5f28b5e724cd51ee868540eddeb4b75a",
+    "semantic_hash": "5f28b5e724cd51ee868540eddeb4b75a"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\asr-providers.ts": {
+    "mtime": 1781012436.9712899,
+    "ast_hash": "6ed36e8a87202487157ab4cb1f176f80",
+    "semantic_hash": "6ed36e8a87202487157ab4cb1f176f80"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\azure.json": {
+    "mtime": 1781012292.654068,
+    "ast_hash": "de7289032fc504b2bf8f7acdefe05f4a",
+    "semantic_hash": "de7289032fc504b2bf8f7acdefe05f4a"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\browser-tts-preview.ts": {
+    "mtime": 1781012436.972338,
+    "ast_hash": "b63ce9def56d7d78b9c32443b6f4e1e5",
+    "semantic_hash": "b63ce9def56d7d78b9c32443b6f4e1e5"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\constants.ts": {
+    "mtime": 1781012436.9733381,
+    "ast_hash": "a97cf9cf524dc11d6335242af4302e3e",
+    "semantic_hash": "a97cf9cf524dc11d6335242af4302e3e"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\provider-enablement.ts": {
+    "mtime": 1781012436.9733381,
+    "ast_hash": "41cf87b44cfae73ef35c0a56b4d9e1f8",
+    "semantic_hash": "41cf87b44cfae73ef35c0a56b4d9e1f8"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\tts-providers.ts": {
+    "mtime": 1781012436.9745884,
+    "ast_hash": "c38f2ac5e7ae45a6c8f52238fbe942a1",
+    "semantic_hash": "c38f2ac5e7ae45a6c8f52238fbe942a1"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\tts-utils.ts": {
+    "mtime": 1781012292.6560721,
+    "ast_hash": "e8eb4c53f574a7225b9a23720c8a5cdd",
+    "semantic_hash": "e8eb4c53f574a7225b9a23720c8a5cdd"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\types.ts": {
+    "mtime": 1781012436.9745884,
+    "ast_hash": "bb593d3aa310fd1be958fb75ad38c463",
+    "semantic_hash": "bb593d3aa310fd1be958fb75ad38c463"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\use-tts-preview.ts": {
+    "mtime": 1781012436.975588,
+    "ast_hash": "8cf44a0f90c8e983bd03d2ebfd5f8d59",
+    "semantic_hash": "8cf44a0f90c8e983bd03d2ebfd5f8d59"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\voice-design.ts": {
+    "mtime": 1781012436.975588,
+    "ast_hash": "1da955e24b2e6e5b95d68e74f6bf7b6e",
+    "semantic_hash": "1da955e24b2e6e5b95d68e74f6bf7b6e"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\voice-registration-client.ts": {
+    "mtime": 1781012436.9770486,
+    "ast_hash": "66c00db786eae60f4b270ed1bc93e4dc",
+    "semantic_hash": "66c00db786eae60f4b270ed1bc93e4dc"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\voice-registration.ts": {
+    "mtime": 1781012436.9770486,
+    "ast_hash": "c9d7b7b9b3cb43cc5004370ce01f7f0f",
+    "semantic_hash": "c9d7b7b9b3cb43cc5004370ce01f7f0f"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\voice-resolver.ts": {
+    "mtime": 1781012436.9780617,
+    "ast_hash": "18a4a8acf5de63cadd57e06844ca99c5",
+    "semantic_hash": "18a4a8acf5de63cadd57e06844ca99c5"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\voxcpm-registration.ts": {
+    "mtime": 1781012436.9780617,
+    "ast_hash": "d07bc3ac11584acf40a1a1f95b40f383",
+    "semantic_hash": "d07bc3ac11584acf40a1a1f95b40f383"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\voxcpm-voices.ts": {
+    "mtime": 1781012436.9780617,
+    "ast_hash": "6ab813aa02118f5046062fdf3f3322d3",
+    "semantic_hash": "6ab813aa02118f5046062fdf3f3322d3"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\voxcpm.ts": {
+    "mtime": 1781012436.97939,
+    "ast_hash": "b022846f6f76a5bd008bb0b1ddfa11f2",
+    "semantic_hash": "b022846f6f76a5bd008bb0b1ddfa11f2"
+  },
+  "D:\\Project\\KelasKA\\lib\\audio\\wav-utils.ts": {
+    "mtime": 1781012436.97939,
+    "ast_hash": "4b1168860a3f3c777ff3d99b04419aab",
+    "semantic_hash": "4b1168860a3f3c777ff3d99b04419aab"
+  },
+  "D:\\Project\\KelasKA\\lib\\buffer\\stream-buffer.ts": {
+    "mtime": 1781012292.6645105,
+    "ast_hash": "4b7e75dd9f0e3b462e71735c2cb1dc30",
+    "semantic_hash": "4b7e75dd9f0e3b462e71735c2cb1dc30"
+  },
+  "D:\\Project\\KelasKA\\lib\\chat\\action-translations.ts": {
+    "mtime": 1781012292.6645105,
+    "ast_hash": "bde332d3510de328976b5a204da2243d",
+    "semantic_hash": "bde332d3510de328976b5a204da2243d"
+  },
+  "D:\\Project\\KelasKA\\lib\\chat\\agent-loop.ts": {
+    "mtime": 1781012436.9804688,
+    "ast_hash": "410a1a944127ae740efa1af8e0de6f4d",
+    "semantic_hash": "410a1a944127ae740efa1af8e0de6f4d"
+  },
+  "D:\\Project\\KelasKA\\lib\\classroom\\complete-summary.ts": {
+    "mtime": 1781012436.9804688,
+    "ast_hash": "b3a44233da35d7038ef0a809e358a05c",
+    "semantic_hash": "b3a44233da35d7038ef0a809e358a05c"
+  },
+  "D:\\Project\\KelasKA\\lib\\config\\feature-flags.ts": {
+    "mtime": 1781012436.981698,
+    "ast_hash": "56a9fbed9d7627f866f521a2f4650bc3",
+    "semantic_hash": "56a9fbed9d7627f866f521a2f4650bc3"
+  },
+  "D:\\Project\\KelasKA\\lib\\constants\\agent-defaults.ts": {
+    "mtime": 1781012292.6645105,
+    "ast_hash": "de14c4deb5d8dae5c2e64641266b91e8",
+    "semantic_hash": "de14c4deb5d8dae5c2e64641266b91e8"
+  },
+  "D:\\Project\\KelasKA\\lib\\constants\\generation.ts": {
+    "mtime": 1781012292.6645105,
+    "ast_hash": "b882c5540b7829846687192f2e459de8",
+    "semantic_hash": "b882c5540b7829846687192f2e459de8"
+  },
+  "D:\\Project\\KelasKA\\lib\\contexts\\media-stage-context.tsx": {
+    "mtime": 1781012292.6645105,
+    "ast_hash": "eaeffd40e27e53dfc20e7e2354812764",
+    "semantic_hash": "eaeffd40e27e53dfc20e7e2354812764"
+  },
+  "D:\\Project\\KelasKA\\lib\\contexts\\scene-context.tsx": {
+    "mtime": 1781012436.982697,
+    "ast_hash": "3892384470e5698514891cecf2446ac9",
+    "semantic_hash": "3892384470e5698514891cecf2446ac9"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\deleted-scene-recycle.ts": {
+    "mtime": 1781012436.982697,
+    "ast_hash": "8dbe5dda4e1609a50ba77d322657b96c",
+    "semantic_hash": "8dbe5dda4e1609a50ba77d322657b96c"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\edit-mode-lock.ts": {
+    "mtime": 1781012436.9836984,
+    "ast_hash": "d8d2796f5c4ce91be29ce4000a413b93",
+    "semantic_hash": "d8d2796f5c4ce91be29ce4000a413b93"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\element-id.ts": {
+    "mtime": 1781012436.9836984,
+    "ast_hash": "5f86db2a5cc9fa488372c0ac528eac67",
+    "semantic_hash": "5f86db2a5cc9fa488372c0ac528eac67"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\noop-surface.tsx": {
+    "mtime": 1781012436.9847176,
+    "ast_hash": "3da345b3e26e110917c6bc9a204fa963",
+    "semantic_hash": "3da345b3e26e110917c6bc9a204fa963"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\preload-editor.ts": {
+    "mtime": 1781012436.9847176,
+    "ast_hash": "6ce7c7b06894614da1c2bb597cfb8829",
+    "semantic_hash": "6ce7c7b06894614da1c2bb597cfb8829"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\regen-lock.ts": {
+    "mtime": 1781012436.9861393,
+    "ast_hash": "48d695395e036ff52a9a5a1076af115e",
+    "semantic_hash": "48d695395e036ff52a9a5a1076af115e"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\scene-creation-enabled.ts": {
+    "mtime": 1781012436.9861393,
+    "ast_hash": "b399a3d211d758bca48aa69a11b50f8a",
+    "semantic_hash": "b399a3d211d758bca48aa69a11b50f8a"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\scene-edit-bridge.ts": {
+    "mtime": 1781012436.9861393,
+    "ast_hash": "cad1170615ffbbc65651c88b5e2b57e6",
+    "semantic_hash": "cad1170615ffbbc65651c88b5e2b57e6"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\scene-editor-registry.ts": {
+    "mtime": 1781012436.987252,
+    "ast_hash": "e2f7c1564b14a30447805a6e26c11fad",
+    "semantic_hash": "e2f7c1564b14a30447805a6e26c11fad"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\scene-editor-surface.ts": {
+    "mtime": 1781012436.987252,
+    "ast_hash": "2d2b99a4bbf710ce6b8b20011313d473",
+    "semantic_hash": "2d2b99a4bbf710ce6b8b20011313d473"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\slide-defaults.ts": {
+    "mtime": 1781012436.988639,
+    "ast_hash": "1d6e108b2295549865dcf67ff3d3c017",
+    "semantic_hash": "1d6e108b2295549865dcf67ff3d3c017"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\slide-edit-elements.ts": {
+    "mtime": 1781012436.988639,
+    "ast_hash": "fb5a6a2396acd3a9cd51971255b69e92",
+    "semantic_hash": "fb5a6a2396acd3a9cd51971255b69e92"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\slide-ops.ts": {
+    "mtime": 1781012436.988639,
+    "ast_hash": "4d6c37c3ff070ddbfdae8a34e0314db1",
+    "semantic_hash": "4d6c37c3ff070ddbfdae8a34e0314db1"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\slide-schema.ts": {
+    "mtime": 1781012436.990133,
+    "ast_hash": "c1d54d38639a80fad34c356b9414ae9c",
+    "semantic_hash": "c1d54d38639a80fad34c356b9414ae9c"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\stage-mode.ts": {
+    "mtime": 1781012436.990133,
+    "ast_hash": "6b69acc0c7788c4464fe97bad2c353c4",
+    "semantic_hash": "6b69acc0c7788c4464fe97bad2c353c4"
+  },
+  "D:\\Project\\KelasKA\\lib\\edit\\transitions.ts": {
+    "mtime": 1781012436.990133,
+    "ast_hash": "9d4c8b6b3cd56f72d687c8c2ce1f8b45",
+    "semantic_hash": "9d4c8b6b3cd56f72d687c8c2ce1f8b45"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\classroom-zip-types.ts": {
+    "mtime": 1781012436.991131,
+    "ast_hash": "c6185b04abb47c864283132608928267",
+    "semantic_hash": "c6185b04abb47c864283132608928267"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\classroom-zip-utils.ts": {
+    "mtime": 1781012436.9921348,
+    "ast_hash": "5b73391a8d8d65ecfd1c2e0202938e2c",
+    "semantic_hash": "5b73391a8d8d65ecfd1c2e0202938e2c"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\html-parser\\format.ts": {
+    "mtime": 1781012292.6802478,
+    "ast_hash": "d54647b57a0e32c79a929d6cf61155c6",
+    "semantic_hash": "d54647b57a0e32c79a929d6cf61155c6"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\html-parser\\index.ts": {
+    "mtime": 1781012292.6802478,
+    "ast_hash": "d73885d96d7964bbaacf0d31e7dbf173",
+    "semantic_hash": "d73885d96d7964bbaacf0d31e7dbf173"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\html-parser\\lexer.ts": {
+    "mtime": 1781012292.6802478,
+    "ast_hash": "1f34afb0e78f3a50036cc76d1a9f940e",
+    "semantic_hash": "1f34afb0e78f3a50036cc76d1a9f940e"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\html-parser\\parser.ts": {
+    "mtime": 1781012292.6802478,
+    "ast_hash": "c83ee0f6fb6be40675e3a1c6cf5ddf20",
+    "semantic_hash": "c83ee0f6fb6be40675e3a1c6cf5ddf20"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\html-parser\\stringify.ts": {
+    "mtime": 1781012292.6802478,
+    "ast_hash": "2e3ac973ab11b129ada01fc68a40b267",
+    "semantic_hash": "2e3ac973ab11b129ada01fc68a40b267"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\html-parser\\tags.ts": {
+    "mtime": 1781012292.6802478,
+    "ast_hash": "f9ba18c54b683a41b6a001b9f1089280",
+    "semantic_hash": "f9ba18c54b683a41b6a001b9f1089280"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\html-parser\\types.ts": {
+    "mtime": 1781012292.6802478,
+    "ast_hash": "09a1555f90cc7a65c0271b4f473c2457",
+    "semantic_hash": "09a1555f90cc7a65c0271b4f473c2457"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\inline-assets-importmap.ts": {
+    "mtime": 1781012436.9921348,
+    "ast_hash": "53c0a977502ec78f2825aae621055ca2",
+    "semantic_hash": "53c0a977502ec78f2825aae621055ca2"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\inline-assets-shared.ts": {
+    "mtime": 1781012436.9931355,
+    "ast_hash": "78fd9fb4dcfce10422fc2e6905635d90",
+    "semantic_hash": "78fd9fb4dcfce10422fc2e6905635d90"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\inline-assets.ts": {
+    "mtime": 1781012436.9931355,
+    "ast_hash": "2918e791f42a33a5029b719901839b27",
+    "semantic_hash": "2918e791f42a33a5029b719901839b27"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\latex-to-omml.ts": {
+    "mtime": 1781012292.686805,
+    "ast_hash": "1a4644f8ad1bc543895363cc1b1d06ab",
+    "semantic_hash": "1a4644f8ad1bc543895363cc1b1d06ab"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\proxied-fetch.ts": {
+    "mtime": 1781012436.994132,
+    "ast_hash": "33988d170f472e16b999dd3606ae15df",
+    "semantic_hash": "33988d170f472e16b999dd3606ae15df"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\svg-arc-to-cubic-bezier.d.ts": {
+    "mtime": 1781012292.687819,
+    "ast_hash": "9833de67d96e02178e394d36ad5b9f1e",
+    "semantic_hash": "9833de67d96e02178e394d36ad5b9f1e"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\svg-path-parser.ts": {
+    "mtime": 1781012436.994132,
+    "ast_hash": "b0f53b52b8f0e0e938ba31e2bc5812dc",
+    "semantic_hash": "b0f53b52b8f0e0e938ba31e2bc5812dc"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\svg2base64.ts": {
+    "mtime": 1781012292.6891074,
+    "ast_hash": "2c172ad6b776b488a30facd0c9ec21dc",
+    "semantic_hash": "2c172ad6b776b488a30facd0c9ec21dc"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\use-export-classroom.ts": {
+    "mtime": 1781012436.9951339,
+    "ast_hash": "9a88cf9f7899763f0b460823347ccca9",
+    "semantic_hash": "9a88cf9f7899763f0b460823347ccca9"
+  },
+  "D:\\Project\\KelasKA\\lib\\export\\use-export-pptx.ts": {
+    "mtime": 1781012436.996132,
+    "ast_hash": "b598ab1306b5e6b42be3c91cf79d17d5",
+    "semantic_hash": "b598ab1306b5e6b42be3c91cf79d17d5"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\action-parser.ts": {
+    "mtime": 1781012292.691288,
+    "ast_hash": "ce868d41bb643b3ae2e805c57f37c043",
+    "semantic_hash": "ce868d41bb643b3ae2e805c57f37c043"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\generation-pipeline.ts": {
+    "mtime": 1781012436.997131,
+    "ast_hash": "5c7878f2c1e16a5d57164ef5dc10117d",
+    "semantic_hash": "5c7878f2c1e16a5d57164ef5dc10117d"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\interactive-post-processor.ts": {
+    "mtime": 1781012292.6927097,
+    "ast_hash": "38d3875a89e25d86e106afa1c51b0fbb",
+    "semantic_hash": "38d3875a89e25d86e106afa1c51b0fbb"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\json-repair.ts": {
+    "mtime": 1781012436.997131,
+    "ast_hash": "e699163bbd101087ddb2dcb0148d49c9",
+    "semantic_hash": "e699163bbd101087ddb2dcb0148d49c9"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\outline-generator.ts": {
+    "mtime": 1781012436.9981332,
+    "ast_hash": "a2a1adab6060012ad538579c32874e16",
+    "semantic_hash": "a2a1adab6060012ad538579c32874e16"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\pipeline-runner.ts": {
+    "mtime": 1781012436.9981332,
+    "ast_hash": "7504fd3526e659220da82656a0b74653",
+    "semantic_hash": "7504fd3526e659220da82656a0b74653"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\pipeline-types.ts": {
+    "mtime": 1781012292.6947088,
+    "ast_hash": "36b962689e2f30288ce03ce005b06bab",
+    "semantic_hash": "36b962689e2f30288ce03ce005b06bab"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\prompt-formatters.ts": {
+    "mtime": 1781012436.999501,
+    "ast_hash": "a1de8f0521a1d5ed575a021807eab3b1",
+    "semantic_hash": "a1de8f0521a1d5ed575a021807eab3b1"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\scene-builder.ts": {
+    "mtime": 1781012437.0005,
+    "ast_hash": "25efb9301bb7ee78d7cff9e91efdd633",
+    "semantic_hash": "25efb9301bb7ee78d7cff9e91efdd633"
+  },
+  "D:\\Project\\KelasKA\\lib\\generation\\scene-generator.ts": {
+    "mtime": 1781012437.0005,
+    "ast_hash": "499186f5375a2abcec968026e5505004",
+    "semantic_hash": "499186f5375a2abcec968026e5505004"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-audio-recorder.ts": {
+    "mtime": 1781012437.0019338,
+    "ast_hash": "a6d9b1aa19dc490be5e848f35441aae1",
+    "semantic_hash": "a6d9b1aa19dc490be5e848f35441aae1"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-browser-asr.ts": {
+    "mtime": 1781012437.0019338,
+    "ast_hash": "21a4f5e0b1a5447d4d92272eb0357e55",
+    "semantic_hash": "21a4f5e0b1a5447d4d92272eb0357e55"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-browser-tts.ts": {
+    "mtime": 1781012437.0031052,
+    "ast_hash": "5d10b94750496afe3af3977f3faedce7",
+    "semantic_hash": "5d10b94750496afe3af3977f3faedce7"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-canvas-operations.ts": {
+    "mtime": 1781012292.699166,
+    "ast_hash": "2749d9743c289b1b2db017d03bc62ca3",
+    "semantic_hash": "2749d9743c289b1b2db017d03bc62ca3"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-discussion-tts.ts": {
+    "mtime": 1781012437.0041063,
+    "ast_hash": "18760dc5aacf50aa45db762290482b16",
+    "semantic_hash": "18760dc5aacf50aa45db762290482b16"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-draft-cache.ts": {
+    "mtime": 1781012437.0051053,
+    "ast_hash": "e0956476bcd1ae07cff7c899fa3d77ea",
+    "semantic_hash": "e0956476bcd1ae07cff7c899fa3d77ea"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-history-snapshot.ts": {
+    "mtime": 1781012292.7006466,
+    "ast_hash": "b0e3dbb1bd1e3d010ca151adb6c302d4",
+    "semantic_hash": "b0e3dbb1bd1e3d010ca151adb6c302d4"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-i18n.tsx": {
+    "mtime": 1781012437.0061052,
+    "ast_hash": "538b09aa201fd2ad4a0c7e0bd376f268",
+    "semantic_hash": "538b09aa201fd2ad4a0c7e0bd376f268"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-order-element.ts": {
+    "mtime": 1781012292.7006466,
+    "ast_hash": "d40dd9ae60c44e0b6796be8ed07a6a32",
+    "semantic_hash": "d40dd9ae60c44e0b6796be8ed07a6a32"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-scene-generator.ts": {
+    "mtime": 1781012437.0061052,
+    "ast_hash": "a86bf87913f6b2d06b78828c052565ca",
+    "semantic_hash": "a86bf87913f6b2d06b78828c052565ca"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-slide-background-style.ts": {
+    "mtime": 1781012292.7006466,
+    "ast_hash": "b7fbc3be36c7c07540f76ad134b11ace",
+    "semantic_hash": "b7fbc3be36c7c07540f76ad134b11ace"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-streaming-text.ts": {
+    "mtime": 1781012437.0071058,
+    "ast_hash": "b36d16ba389d328e40ff4e66bcc46354",
+    "semantic_hash": "b36d16ba389d328e40ff4e66bcc46354"
+  },
+  "D:\\Project\\KelasKA\\lib\\hooks\\use-theme.tsx": {
+    "mtime": 1781012292.7046175,
+    "ast_hash": "8f2d2f08d5969afd5e75cf10470ee994",
+    "semantic_hash": "8f2d2f08d5969afd5e75cf10470ee994"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\config.ts": {
+    "mtime": 1781012437.0085313,
+    "ast_hash": "58a792292b116786316c23b4e5b77c80",
+    "semantic_hash": "58a792292b116786316c23b4e5b77c80"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\index.ts": {
+    "mtime": 1781012437.0095315,
+    "ast_hash": "5350fc1919ab2c45414d638d4c15ff8d",
+    "semantic_hash": "5350fc1919ab2c45414d638d4c15ff8d"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\locales.ts": {
+    "mtime": 1781012437.0095315,
+    "ast_hash": "e680a6d0591e86456ac7ac4d6dc7a7ab",
+    "semantic_hash": "e680a6d0591e86456ac7ac4d6dc7a7ab"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\locales\\ar-SA.json": {
+    "mtime": 1781012437.0106208,
+    "ast_hash": "e6fe5e7932e43e8d5339a51963da7712",
+    "semantic_hash": "e6fe5e7932e43e8d5339a51963da7712"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\locales\\en-US.json": {
+    "mtime": 1781012437.0116212,
+    "ast_hash": "758dd72f4aa17325f5749ecfa9262a48",
+    "semantic_hash": "758dd72f4aa17325f5749ecfa9262a48"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\locales\\ja-JP.json": {
+    "mtime": 1781012437.0126202,
+    "ast_hash": "96d867d4d0157ae0ee723a72f0b219b2",
+    "semantic_hash": "96d867d4d0157ae0ee723a72f0b219b2"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\locales\\pt-BR.json": {
+    "mtime": 1781012437.0136206,
+    "ast_hash": "a2b123b33c68c8b40355d0c480c087ef",
+    "semantic_hash": "a2b123b33c68c8b40355d0c480c087ef"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\locales\\ru-RU.json": {
+    "mtime": 1781012437.0136206,
+    "ast_hash": "b5fa96d4bd47c7ae2bfbb9013da01369",
+    "semantic_hash": "b5fa96d4bd47c7ae2bfbb9013da01369"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\locales\\zh-CN.json": {
+    "mtime": 1781012437.0146203,
+    "ast_hash": "07d20ca4c40f1f113f6c56da941e4d42",
+    "semantic_hash": "07d20ca4c40f1f113f6c56da941e4d42"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\locales\\zh-TW.json": {
+    "mtime": 1781012437.0156202,
+    "ast_hash": "3b41c21d83b7bf18bedf3e4a4d876c1d",
+    "semantic_hash": "3b41c21d83b7bf18bedf3e4a4d876c1d"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\types.ts": {
+    "mtime": 1781012437.0166228,
+    "ast_hash": "c5744fe81b77ad355fbc0a7ba8077cfd",
+    "semantic_hash": "c5744fe81b77ad355fbc0a7ba8077cfd"
+  },
+  "D:\\Project\\KelasKA\\lib\\import\\use-import-classroom.ts": {
+    "mtime": 1781012437.0166228,
+    "ast_hash": "a6d6fe6d243984888163d5920a0d0a3c",
+    "semantic_hash": "a6d6fe6d243984888163d5920a0d0a3c"
+  },
+  "D:\\Project\\KelasKA\\lib\\import\\use-import-pptx.ts": {
+    "mtime": 1781012437.0178945,
+    "ast_hash": "6d893b55cfc8c4358d2f131117d5d664",
+    "semantic_hash": "6d893b55cfc8c4358d2f131117d5d664"
+  },
+  "D:\\Project\\KelasKA\\lib\\logger.ts": {
+    "mtime": 1781012292.7046175,
+    "ast_hash": "45926c970732984dd2c36e14face4db1",
+    "semantic_hash": "45926c970732984dd2c36e14face4db1"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\grok-image-adapter.ts": {
+    "mtime": 1781012292.715843,
+    "ast_hash": "44480450497b92e8b50b8b76c941dd68",
+    "semantic_hash": "44480450497b92e8b50b8b76c941dd68"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\grok-video-adapter.ts": {
+    "mtime": 1781012292.7165973,
+    "ast_hash": "5ba55f3efe6432d5a7aeb9374a4ccc65",
+    "semantic_hash": "5ba55f3efe6432d5a7aeb9374a4ccc65"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\happyhorse-adapter.ts": {
+    "mtime": 1781012437.018895,
+    "ast_hash": "460d28773fe78b92c12334c6bc9b7735",
+    "semantic_hash": "460d28773fe78b92c12334c6bc9b7735"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\kling-adapter.ts": {
+    "mtime": 1781012292.7165973,
+    "ast_hash": "094f8d1d6c7f5efabf530f445a34e8e5",
+    "semantic_hash": "094f8d1d6c7f5efabf530f445a34e8e5"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\lemonade-image-adapter.ts": {
+    "mtime": 1781012437.0198934,
+    "ast_hash": "17263d96f03d8d9b29b6ba3816ea55a0",
+    "semantic_hash": "17263d96f03d8d9b29b6ba3816ea55a0"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\minimax-image-adapter.ts": {
+    "mtime": 1781012292.7192087,
+    "ast_hash": "87008d28c7d6a8754cdffe1609dadfbd",
+    "semantic_hash": "87008d28c7d6a8754cdffe1609dadfbd"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\minimax-video-adapter.ts": {
+    "mtime": 1781012292.7192087,
+    "ast_hash": "6ed7f7fadbbff8617bddb5755cb7026c",
+    "semantic_hash": "6ed7f7fadbbff8617bddb5755cb7026c"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\nano-banana-adapter.ts": {
+    "mtime": 1781012292.7202158,
+    "ast_hash": "805edccd3d3d330f92c873b7750c9e96",
+    "semantic_hash": "805edccd3d3d330f92c873b7750c9e96"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\openai-image-adapter.ts": {
+    "mtime": 1781012437.0198934,
+    "ast_hash": "3865d0a04e3b86d41a89d5618258beeb",
+    "semantic_hash": "3865d0a04e3b86d41a89d5618258beeb"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\qwen-image-adapter.ts": {
+    "mtime": 1781012292.7202158,
+    "ast_hash": "905b245d931b99d76d010d2d5ad36318",
+    "semantic_hash": "905b245d931b99d76d010d2d5ad36318"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\seedance-adapter.ts": {
+    "mtime": 1781012292.7216532,
+    "ast_hash": "d523efa17f676dda686a2d8c90d106eb",
+    "semantic_hash": "d523efa17f676dda686a2d8c90d106eb"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\seedream-adapter.ts": {
+    "mtime": 1781012292.7216532,
+    "ast_hash": "5196e89556519bbff575023f3c991313",
+    "semantic_hash": "5196e89556519bbff575023f3c991313"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\adapters\\veo-adapter.ts": {
+    "mtime": 1781012292.722793,
+    "ast_hash": "7de9fb15f080a3f30435e045791eeea1",
+    "semantic_hash": "7de9fb15f080a3f30435e045791eeea1"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\image-providers.ts": {
+    "mtime": 1781012437.020893,
+    "ast_hash": "7b655b2e37bf866de88dc2d02ed8c6d5",
+    "semantic_hash": "7b655b2e37bf866de88dc2d02ed8c6d5"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\media-orchestrator.ts": {
+    "mtime": 1781012292.722793,
+    "ast_hash": "86267f489ddd10b06c81eb9275271f2b",
+    "semantic_hash": "86267f489ddd10b06c81eb9275271f2b"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\types.ts": {
+    "mtime": 1781012437.020893,
+    "ast_hash": "55e8515a35c930ad84f49f4cd9feffff",
+    "semantic_hash": "55e8515a35c930ad84f49f4cd9feffff"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\video-manifest.ts": {
+    "mtime": 1781012437.0218956,
+    "ast_hash": "9b3a2ff4b0f6902beb6a3899205a66f0",
+    "semantic_hash": "9b3a2ff4b0f6902beb6a3899205a66f0"
+  },
+  "D:\\Project\\KelasKA\\lib\\media\\video-providers.ts": {
+    "mtime": 1781012437.0228932,
+    "ast_hash": "a284c266ab76047db3d9b945af2d638c",
+    "semantic_hash": "a284c266ab76047db3d9b945af2d638c"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\ai-sdk-adapter.ts": {
+    "mtime": 1781012437.0228932,
+    "ast_hash": "7d4fb57829c54b1905094839427a2aae",
+    "semantic_hash": "7d4fb57829c54b1905094839427a2aae"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\director-graph.ts": {
+    "mtime": 1781012437.023894,
+    "ast_hash": "7734f6a973777401d8a0127eb718d540",
+    "semantic_hash": "7734f6a973777401d8a0127eb718d540"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\director-prompt.ts": {
+    "mtime": 1781012437.0248964,
+    "ast_hash": "8425679ae231876b50a5c973670dc1dd",
+    "semantic_hash": "8425679ae231876b50a5c973670dc1dd"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\prompt-builder.ts": {
+    "mtime": 1781012437.0248964,
+    "ast_hash": "7db3d827cca33d2245fe697ddb3d8146",
+    "semantic_hash": "7db3d827cca33d2245fe697ddb3d8146"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\registry\\store.ts": {
+    "mtime": 1781012437.0258963,
+    "ast_hash": "2c1232cf85b86ba0424ce34927c49259",
+    "semantic_hash": "2c1232cf85b86ba0424ce34927c49259"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\registry\\types.ts": {
+    "mtime": 1781012437.0268936,
+    "ast_hash": "caad2d8acebd3e79696e8d89d90d043a",
+    "semantic_hash": "caad2d8acebd3e79696e8d89d90d043a"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\stateless-generate.ts": {
+    "mtime": 1781012437.0278955,
+    "ast_hash": "1ccb9acc1fadf90a607332cf2823beb0",
+    "semantic_hash": "1ccb9acc1fadf90a607332cf2823beb0"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\summarizers\\conversation-summary.ts": {
+    "mtime": 1781012437.0278955,
+    "ast_hash": "8c49d3a46a1eaf93d47e2e3a49ee43de",
+    "semantic_hash": "8c49d3a46a1eaf93d47e2e3a49ee43de"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\summarizers\\message-converter.ts": {
+    "mtime": 1781012437.0288937,
+    "ast_hash": "c492fc19c69ad0e40fddf87cf5982962",
+    "semantic_hash": "c492fc19c69ad0e40fddf87cf5982962"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\summarizers\\peer-context.ts": {
+    "mtime": 1781012437.0288937,
+    "ast_hash": "e8db8911044b1d0e91848aad58e09903",
+    "semantic_hash": "e8db8911044b1d0e91848aad58e09903"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\summarizers\\state-context.ts": {
+    "mtime": 1781012437.0288937,
+    "ast_hash": "be5f74da5c87b1fec34bde89af178dfe",
+    "semantic_hash": "be5f74da5c87b1fec34bde89af178dfe"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\summarizers\\whiteboard-conflicts.ts": {
+    "mtime": 1781012437.03031,
+    "ast_hash": "d73d239476a6f8d656247febb3261bb4",
+    "semantic_hash": "d73d239476a6f8d656247febb3261bb4"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\summarizers\\whiteboard-ledger.ts": {
+    "mtime": 1781012437.03031,
+    "ast_hash": "6f913985bb22ef2fbd61ca9649cd257b",
+    "semantic_hash": "6f913985bb22ef2fbd61ca9649cd257b"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\tool-schemas.ts": {
+    "mtime": 1781012437.0313115,
+    "ast_hash": "619a68cd8278774dc8bbaf746e9bad0e",
+    "semantic_hash": "619a68cd8278774dc8bbaf746e9bad0e"
+  },
+  "D:\\Project\\KelasKA\\lib\\orchestration\\types.ts": {
+    "mtime": 1781012437.0313115,
+    "ast_hash": "66065d968ff745281273358a0e740439",
+    "semantic_hash": "66065d968ff745281273358a0e740439"
+  },
+  "D:\\Project\\KelasKA\\lib\\pbl\\generate-pbl.ts": {
+    "mtime": 1781012437.0323093,
+    "ast_hash": "4941cfcae4849511db85b8c4d959a32f",
+    "semantic_hash": "4941cfcae4849511db85b8c4d959a32f"
+  },
+  "D:\\Project\\KelasKA\\lib\\pbl\\mcp\\agent-mcp.ts": {
+    "mtime": 1781012292.7369425,
+    "ast_hash": "8b94a5b11c060790f93e6ca33214c788",
+    "semantic_hash": "8b94a5b11c060790f93e6ca33214c788"
+  },
+  "D:\\Project\\KelasKA\\lib\\pbl\\mcp\\agent-templates.ts": {
+    "mtime": 1781012437.033309,
+    "ast_hash": "b2861e95c125581de4d71a33ef068207",
+    "semantic_hash": "b2861e95c125581de4d71a33ef068207"
+  },
+  "D:\\Project\\KelasKA\\lib\\pbl\\mcp\\issueboard-mcp.ts": {
+    "mtime": 1781012437.0343087,
+    "ast_hash": "37fb04c3bb9b6851d6c8b70428fc8388",
+    "semantic_hash": "37fb04c3bb9b6851d6c8b70428fc8388"
+  },
+  "D:\\Project\\KelasKA\\lib\\pbl\\mcp\\mode-mcp.ts": {
+    "mtime": 1781012292.7379427,
+    "ast_hash": "6827cdfa90ea832af727e4263a2ab36c",
+    "semantic_hash": "6827cdfa90ea832af727e4263a2ab36c"
+  },
+  "D:\\Project\\KelasKA\\lib\\pbl\\mcp\\project-mcp.ts": {
+    "mtime": 1781012292.7389426,
+    "ast_hash": "44430dab3a9d3045ad536b20eecbd883",
+    "semantic_hash": "44430dab3a9d3045ad536b20eecbd883"
+  },
+  "D:\\Project\\KelasKA\\lib\\pbl\\pbl-system-prompt.ts": {
+    "mtime": 1781012437.0343087,
+    "ast_hash": "9febbcf3c6df283daefc2d00e0faef56",
+    "semantic_hash": "9febbcf3c6df283daefc2d00e0faef56"
+  },
+  "D:\\Project\\KelasKA\\lib\\pbl\\types.ts": {
+    "mtime": 1781012292.7389426,
+    "ast_hash": "f882e611e78f8093753562d1b4185a23",
+    "semantic_hash": "f882e611e78f8093753562d1b4185a23"
+  },
+  "D:\\Project\\KelasKA\\lib\\pdf\\constants.ts": {
+    "mtime": 1781012437.0357287,
+    "ast_hash": "1975bc5585994aafa9569e46328ed3d2",
+    "semantic_hash": "1975bc5585994aafa9569e46328ed3d2"
+  },
+  "D:\\Project\\KelasKA\\lib\\pdf\\mineru-cloud.ts": {
+    "mtime": 1781012437.0357287,
+    "ast_hash": "3c70cf3cda97fc43cccfee7c14666b94",
+    "semantic_hash": "3c70cf3cda97fc43cccfee7c14666b94"
+  },
+  "D:\\Project\\KelasKA\\lib\\pdf\\mineru-parser.ts": {
+    "mtime": 1781012437.0367284,
+    "ast_hash": "86028e0be3b8fb09901ca2ced5c9d11c",
+    "semantic_hash": "86028e0be3b8fb09901ca2ced5c9d11c"
+  },
+  "D:\\Project\\KelasKA\\lib\\pdf\\pdf-providers.ts": {
+    "mtime": 1781012437.0367284,
+    "ast_hash": "137e4d75b4d33145e33cf20ab718ed16",
+    "semantic_hash": "137e4d75b4d33145e33cf20ab718ed16"
+  },
+  "D:\\Project\\KelasKA\\lib\\pdf\\types.ts": {
+    "mtime": 1781012437.0381117,
+    "ast_hash": "b8d940a4d8581b59b72427cb6e07cfbc",
+    "semantic_hash": "b8d940a4d8581b59b72427cb6e07cfbc"
+  },
+  "D:\\Project\\KelasKA\\lib\\playback\\derived-state.ts": {
+    "mtime": 1781012292.7429426,
+    "ast_hash": "b0e81e6a0c9f1fe0f3ee651192bc9b35",
+    "semantic_hash": "b0e81e6a0c9f1fe0f3ee651192bc9b35"
+  },
+  "D:\\Project\\KelasKA\\lib\\playback\\engine.ts": {
+    "mtime": 1781012437.0391169,
+    "ast_hash": "9c476bcf57438fc5dda31802c27fdf85",
+    "semantic_hash": "9c476bcf57438fc5dda31802c27fdf85"
+  },
+  "D:\\Project\\KelasKA\\lib\\playback\\index.ts": {
+    "mtime": 1781012292.7439425,
+    "ast_hash": "96106763d22be46c3d74a3a06b7fcf1c",
+    "semantic_hash": "96106763d22be46c3d74a3a06b7fcf1c"
+  },
+  "D:\\Project\\KelasKA\\lib\\playback\\types.ts": {
+    "mtime": 1781012292.7449427,
+    "ast_hash": "9ecfadc796f737bc9b6339c8a7c8d541",
+    "semantic_hash": "9ecfadc796f737bc9b6339c8a7c8d541"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\index.ts": {
+    "mtime": 1781012437.0401127,
+    "ast_hash": "ec201b222806f93c4049ce891e223807",
+    "semantic_hash": "ec201b222806f93c4049ce891e223807"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\loader.ts": {
+    "mtime": 1781012437.0401127,
+    "ast_hash": "e7fcddc2a438aee45e92db60e110db10",
+    "semantic_hash": "e7fcddc2a438aee45e92db60e110db10"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\types.ts": {
+    "mtime": 1781012437.0704763,
+    "ast_hash": "cc749e1f936fff2fb28eb70d416f362b",
+    "semantic_hash": "cc749e1f936fff2fb28eb70d416f362b"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\active-editor-registry.ts": {
+    "mtime": 1781012437.0704763,
+    "ast_hash": "3d62b11c945b765ef565ae89980a058e",
+    "semantic_hash": "3d62b11c945b765ef565ae89980a058e"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\commands\\replaceText.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "37982581a99f41226f62e2d6a0132c6b",
+    "semantic_hash": "37982581a99f41226f62e2d6a0132c6b"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\commands\\setListStyle.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "f2e26102e672d0d58e006948326cf903",
+    "semantic_hash": "f2e26102e672d0d58e006948326cf903"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\commands\\setTextAlign.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "f21b82ee50e8659c2dd1856900095f63",
+    "semantic_hash": "f21b82ee50e8659c2dd1856900095f63"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\commands\\setTextIndent.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "f5b743998ff69dc99c89f416f90866fd",
+    "semantic_hash": "f5b743998ff69dc99c89f416f90866fd"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\commands\\toggleList.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "c76c3da7813f775fab06eebd6841e3fa",
+    "semantic_hash": "c76c3da7813f775fab06eebd6841e3fa"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\index.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "7b9727420de1a491ccf6af79caceff1e",
+    "semantic_hash": "7b9727420de1a491ccf6af79caceff1e"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\plugins\\index.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "67b00e9c278105087743117891112760",
+    "semantic_hash": "67b00e9c278105087743117891112760"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\plugins\\inputrules.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "689c53320616bf14f896529d34955ff3",
+    "semantic_hash": "689c53320616bf14f896529d34955ff3"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\plugins\\keymap.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "32f161e580d8961d1ef1295c866ede6c",
+    "semantic_hash": "32f161e580d8961d1ef1295c866ede6c"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\plugins\\placeholder.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "6cdebab188033f9e0f213564920a7574",
+    "semantic_hash": "6cdebab188033f9e0f213564920a7574"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\schema\\index.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "9712e0ca4ff96e21b706c028fb7dadc8",
+    "semantic_hash": "9712e0ca4ff96e21b706c028fb7dadc8"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\schema\\marks.ts": {
+    "mtime": 1781012437.071476,
+    "ast_hash": "e625a381eb950e286019830cea40ffe5",
+    "semantic_hash": "e625a381eb950e286019830cea40ffe5"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\schema\\nodes.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "dba7cc06107123a522db70dd351e2e2a",
+    "semantic_hash": "dba7cc06107123a522db70dd351e2e2a"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\selection-sync.ts": {
+    "mtime": 1781012437.071476,
+    "ast_hash": "00c0cfdf1d517ded4a81422f29501e0e",
+    "semantic_hash": "00c0cfdf1d517ded4a81422f29501e0e"
+  },
+  "D:\\Project\\KelasKA\\lib\\prosemirror\\utils.ts": {
+    "mtime": 1781012292.779828,
+    "ast_hash": "f5ab7f9a5f4fb527658bed267a9c8e9e",
+    "semantic_hash": "f5ab7f9a5f4fb527658bed267a9c8e9e"
+  },
+  "D:\\Project\\KelasKA\\lib\\quiz\\grading.ts": {
+    "mtime": 1781012437.0724764,
+    "ast_hash": "41e3b492edafd7811d794d3d110d5f95",
+    "semantic_hash": "41e3b492edafd7811d794d3d110d5f95"
+  },
+  "D:\\Project\\KelasKA\\lib\\quiz\\persistence.ts": {
+    "mtime": 1781012437.0724764,
+    "ast_hash": "e2c6f4d8cd0ffe94a8b34d7b14445834",
+    "semantic_hash": "e2c6f4d8cd0ffe94a8b34d7b14445834"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\api-response.ts": {
+    "mtime": 1781012437.0734756,
+    "ast_hash": "c7830138f402f31dfb4045a706f76aba",
+    "semantic_hash": "c7830138f402f31dfb4045a706f76aba"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\classroom-generation.ts": {
+    "mtime": 1781012437.0744758,
+    "ast_hash": "35e9d2b3cc981ab8113b3b3e44510597",
+    "semantic_hash": "35e9d2b3cc981ab8113b3b3e44510597"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\classroom-job-runner.ts": {
+    "mtime": 1781012292.791235,
+    "ast_hash": "c8015364ea0f1c6821573cc0bd4df7af",
+    "semantic_hash": "c8015364ea0f1c6821573cc0bd4df7af"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\classroom-job-store.ts": {
+    "mtime": 1781012437.0744758,
+    "ast_hash": "70a66b21d4f962dd69441673a3028dd2",
+    "semantic_hash": "70a66b21d4f962dd69441673a3028dd2"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\classroom-media-generation.ts": {
+    "mtime": 1781012437.0754757,
+    "ast_hash": "57c001b1c9b6377c88698309935dd442",
+    "semantic_hash": "57c001b1c9b6377c88698309935dd442"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\classroom-storage.ts": {
+    "mtime": 1781012292.7949507,
+    "ast_hash": "196a4102afd5980bb3ee9b104d80735f",
+    "semantic_hash": "196a4102afd5980bb3ee9b104d80735f"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\provider-config.ts": {
+    "mtime": 1781012437.0764759,
+    "ast_hash": "b30c803d2ec2165cdd871cc830302b83",
+    "semantic_hash": "b30c803d2ec2165cdd871cc830302b83"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\proxy-fetch.ts": {
+    "mtime": 1781012292.7964242,
+    "ast_hash": "3fce528bb83d08be40134c721a3c24da",
+    "semantic_hash": "3fce528bb83d08be40134c721a3c24da"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\resolve-model.ts": {
+    "mtime": 1781012437.0764759,
+    "ast_hash": "cda0b6b7aa2d183c3f88008d313b2555",
+    "semantic_hash": "cda0b6b7aa2d183c3f88008d313b2555"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\search-query-builder.ts": {
+    "mtime": 1781012437.0774777,
+    "ast_hash": "e3661d6fb10137fc0c24ca632a25e5b6",
+    "semantic_hash": "e3661d6fb10137fc0c24ca632a25e5b6"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\ssrf-guard.ts": {
+    "mtime": 1781012437.0774777,
+    "ast_hash": "75cf23382311cef4ebdb579d821e7385",
+    "semantic_hash": "75cf23382311cef4ebdb579d821e7385"
+  },
+  "D:\\Project\\KelasKA\\lib\\server\\web-search-config.ts": {
+    "mtime": 1781012437.0786664,
+    "ast_hash": "8d0003d38a9647ee275c19f8b4be01c6",
+    "semantic_hash": "8d0003d38a9647ee275c19f8b4be01c6"
+  },
+  "D:\\Project\\KelasKA\\lib\\storage\\index.ts": {
+    "mtime": 1781012292.8000436,
+    "ast_hash": "6df49dde3c5ed5df2aa8fea53df702f6",
+    "semantic_hash": "6df49dde3c5ed5df2aa8fea53df702f6"
+  },
+  "D:\\Project\\KelasKA\\lib\\storage\\providers\\noop.ts": {
+    "mtime": 1781012292.8010526,
+    "ast_hash": "c8912bc7c95774e7279a184a0c3d8eee",
+    "semantic_hash": "c8912bc7c95774e7279a184a0c3d8eee"
+  },
+  "D:\\Project\\KelasKA\\lib\\storage\\types.ts": {
+    "mtime": 1781012292.8010526,
+    "ast_hash": "38eb9746531a039c6787638f5873c46d",
+    "semantic_hash": "38eb9746531a039c6787638f5873c46d"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\canvas.ts": {
+    "mtime": 1781012292.8025613,
+    "ast_hash": "cf84bb2b4797404e1688810ae70fc275",
+    "semantic_hash": "cf84bb2b4797404e1688810ae70fc275"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\index.ts": {
+    "mtime": 1781012292.8035645,
+    "ast_hash": "30c4071b4c0bd82acfcb71398a585120",
+    "semantic_hash": "30c4071b4c0bd82acfcb71398a585120"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\interactive-iframe-pool.ts": {
+    "mtime": 1781012437.0786664,
+    "ast_hash": "67a1012519a0ac25f310ef3d3eb485d7",
+    "semantic_hash": "67a1012519a0ac25f310ef3d3eb485d7"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\keyboard.ts": {
+    "mtime": 1781012292.8035645,
+    "ast_hash": "b9b81a5e4922f665d74e067864b17d4b",
+    "semantic_hash": "b9b81a5e4922f665d74e067864b17d4b"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\media-generation.ts": {
+    "mtime": 1781012292.8051653,
+    "ast_hash": "9f0cf4d78cc191ca6e4db062673f74fe",
+    "semantic_hash": "9f0cf4d78cc191ca6e4db062673f74fe"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\settings-validation.ts": {
+    "mtime": 1781012437.0800676,
+    "ast_hash": "69adc71c6bb36168b197ef45f2ad142b",
+    "semantic_hash": "69adc71c6bb36168b197ef45f2ad142b"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\settings.ts": {
+    "mtime": 1781012437.081077,
+    "ast_hash": "f3006fd27b0b88b574d677630e464e73",
+    "semantic_hash": "f3006fd27b0b88b574d677630e464e73"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\snapshot.ts": {
+    "mtime": 1781012292.8067768,
+    "ast_hash": "fa545167491270526143c1a9af6b1551",
+    "semantic_hash": "fa545167491270526143c1a9af6b1551"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\stage.ts": {
+    "mtime": 1781012437.081077,
+    "ast_hash": "f8efdd02951239f222e4da99c1f1f343",
+    "semantic_hash": "f8efdd02951239f222e4da99c1f1f343"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\user-profile.ts": {
+    "mtime": 1781012292.8083658,
+    "ast_hash": "3e3cf0e997a9e8a69971ae0782fd2859",
+    "semantic_hash": "3e3cf0e997a9e8a69971ae0782fd2859"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\whiteboard-history.ts": {
+    "mtime": 1781012292.8099568,
+    "ast_hash": "1ab083dca4bddf92d8ab9ee42bed4f88",
+    "semantic_hash": "1ab083dca4bddf92d8ab9ee42bed4f88"
+  },
+  "D:\\Project\\KelasKA\\lib\\store\\widget-iframe.ts": {
+    "mtime": 1781012437.0820878,
+    "ast_hash": "dfaa9379c72a47d56e81c47d86557a25",
+    "semantic_hash": "dfaa9379c72a47d56e81c47d86557a25"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\action.ts": {
+    "mtime": 1781012437.0830867,
+    "ast_hash": "aab1454ac8f40d9c8498d1825aba468c",
+    "semantic_hash": "aab1454ac8f40d9c8498d1825aba468c"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\chat.ts": {
+    "mtime": 1781012437.0830867,
+    "ast_hash": "91e078ff2e26368c4ae4fd5b4aa94322",
+    "semantic_hash": "91e078ff2e26368c4ae4fd5b4aa94322"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\edit.ts": {
+    "mtime": 1781012292.8122258,
+    "ast_hash": "6e831b3e6393247f992bef62cb6b4f23",
+    "semantic_hash": "6e831b3e6393247f992bef62cb6b4f23"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\export.ts": {
+    "mtime": 1781012292.8122258,
+    "ast_hash": "fae2572c38bb4823059adaf914fec83b",
+    "semantic_hash": "fae2572c38bb4823059adaf914fec83b"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\generation.ts": {
+    "mtime": 1781012437.0840847,
+    "ast_hash": "be7ca51113d4f9f75162f04af419d900",
+    "semantic_hash": "be7ca51113d4f9f75162f04af419d900"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\pdf.ts": {
+    "mtime": 1781012292.8132308,
+    "ast_hash": "90e979a261ef18d23466c057eca13e68",
+    "semantic_hash": "90e979a261ef18d23466c057eca13e68"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\provider.ts": {
+    "mtime": 1781012437.08509,
+    "ast_hash": "bab0b87c7624714de3f366269f089fa7",
+    "semantic_hash": "bab0b87c7624714de3f366269f089fa7"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\roundtable.ts": {
+    "mtime": 1781012292.8148656,
+    "ast_hash": "74ba721dd6a8dac09a7d725750685369",
+    "semantic_hash": "74ba721dd6a8dac09a7d725750685369"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\settings.ts": {
+    "mtime": 1781012437.0860858,
+    "ast_hash": "a02ac475b56e2c817ebf3a9ca08d5761",
+    "semantic_hash": "a02ac475b56e2c817ebf3a9ca08d5761"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\slides.ts": {
+    "mtime": 1781012437.0860858,
+    "ast_hash": "e332fedd2cde17fe5512a2891909bb4b",
+    "semantic_hash": "e332fedd2cde17fe5512a2891909bb4b"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\stage.ts": {
+    "mtime": 1781012437.087085,
+    "ast_hash": "75af83639df33b96e7c62670f7572f27",
+    "semantic_hash": "75af83639df33b96e7c62670f7572f27"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\web-search.ts": {
+    "mtime": 1781012292.816486,
+    "ast_hash": "3b7925b535f97d6b190b3a8293368e89",
+    "semantic_hash": "3b7925b535f97d6b190b3a8293368e89"
+  },
+  "D:\\Project\\KelasKA\\lib\\types\\widgets.ts": {
+    "mtime": 1781012437.0880847,
+    "ast_hash": "a33ef5943875932ce5c32dce6a5c771e",
+    "semantic_hash": "a33ef5943875932ce5c32dce6a5c771e"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\audio-player.ts": {
+    "mtime": 1781012437.0880847,
+    "ast_hash": "9f924eca3576126669647fd06d723495",
+    "semantic_hash": "9f924eca3576126669647fd06d723495"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\chat-storage.ts": {
+    "mtime": 1781012292.8196814,
+    "ast_hash": "c3936b74a72e7d9234f17dc9432527c8",
+    "semantic_hash": "c3936b74a72e7d9234f17dc9432527c8"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\cn.ts": {
+    "mtime": 1781012292.8196814,
+    "ast_hash": "0a3d688a6c4a897d87fc887b5e421c60",
+    "semantic_hash": "0a3d688a6c4a897d87fc887b5e421c60"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\concurrency.ts": {
+    "mtime": 1781012437.089085,
+    "ast_hash": "584d433bc5c290e201fe59834be7e628",
+    "semantic_hash": "584d433bc5c290e201fe59834be7e628"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\create-selectors.ts": {
+    "mtime": 1781012292.8212855,
+    "ast_hash": "2738a9fb7315b40190af7dedc5b3b9bd",
+    "semantic_hash": "2738a9fb7315b40190af7dedc5b3b9bd"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\database.ts": {
+    "mtime": 1781012437.089085,
+    "ast_hash": "7a282e92f49715af6c03b86480e24fdd",
+    "semantic_hash": "7a282e92f49715af6c03b86480e24fdd"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\element-fingerprint.ts": {
+    "mtime": 1781012437.0900865,
+    "ast_hash": "5afa8c4413da838f5e1fb573c582c1e9",
+    "semantic_hash": "5afa8c4413da838f5e1fb573c582c1e9"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\element.ts": {
+    "mtime": 1781012292.8229015,
+    "ast_hash": "ef0f37bd91ef2e1a58647185e3e790ef",
+    "semantic_hash": "ef0f37bd91ef2e1a58647185e3e790ef"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\emitter.ts": {
+    "mtime": 1781012292.8245337,
+    "ast_hash": "a1d53f66c6a19d6f36f8f96b026c6954",
+    "semantic_hash": "a1d53f66c6a19d6f36f8f96b026c6954"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\geometry.ts": {
+    "mtime": 1781012292.8245337,
+    "ast_hash": "de8e84d28f63c1a6b256d4685a6a3c6b",
+    "semantic_hash": "de8e84d28f63c1a6b256d4685a6a3c6b"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\iframe.ts": {
+    "mtime": 1781012437.0910864,
+    "ast_hash": "4f521aeaeffee47bee4493d543028ddb",
+    "semantic_hash": "4f521aeaeffee47bee4493d543028ddb"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\image-storage.ts": {
+    "mtime": 1781012292.8261547,
+    "ast_hash": "e7a7c6c599cc2b10bc580cf81f3873fa",
+    "semantic_hash": "e7a7c6c599cc2b10bc580cf81f3873fa"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\index.ts": {
+    "mtime": 1781012292.8261547,
+    "ast_hash": "0451b043d0604f78d4b56436cf5cbf33",
+    "semantic_hash": "0451b043d0604f78d4b56436cf5cbf33"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\model-config.ts": {
+    "mtime": 1781012437.0910864,
+    "ast_hash": "3aa34960c274284b0ad592aa60d9d463",
+    "semantic_hash": "3aa34960c274284b0ad592aa60d9d463"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\playback-storage.ts": {
+    "mtime": 1781012292.8282988,
+    "ast_hash": "f961b73ac5f518047b9706098bf051f0",
+    "semantic_hash": "f961b73ac5f518047b9706098bf051f0"
+  },
+  "D:\\Project\\KelasKA\\lib\\utils\\stage-storage.ts": {
+    "mtime": 1781012437.0920866,
+    "ast_hash": "85a3b43f9e91122c8d2c684a3c53f955",
+    "semantic_hash": "85a3b43f9e91122c8d2c684a3c53f955"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\baidu.ts": {
+    "mtime": 1781012437.0930853,
+    "ast_hash": "b537c1df3a0fff37240570848992cb56",
+    "semantic_hash": "b537c1df3a0fff37240570848992cb56"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\bocha.ts": {
+    "mtime": 1781012437.0930853,
+    "ast_hash": "eab8a0815b6e015b805240e52ea0e42f",
+    "semantic_hash": "eab8a0815b6e015b805240e52ea0e42f"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\brave.ts": {
+    "mtime": 1781012437.0930853,
+    "ast_hash": "85d3d021d698b4dd6a106a2747109fe4",
+    "semantic_hash": "85d3d021d698b4dd6a106a2747109fe4"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\constants.ts": {
+    "mtime": 1781012437.0940847,
+    "ast_hash": "a341042dd8c196e12d87ee4d205e4531",
+    "semantic_hash": "a341042dd8c196e12d87ee4d205e4531"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\format.ts": {
+    "mtime": 1781012437.0940847,
+    "ast_hash": "76a83f750cc1029a9ed60039b6fa20cd",
+    "semantic_hash": "76a83f750cc1029a9ed60039b6fa20cd"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\index.ts": {
+    "mtime": 1781012437.0950866,
+    "ast_hash": "5bd8487cdbc9177d043865c1461d6ea0",
+    "semantic_hash": "5bd8487cdbc9177d043865c1461d6ea0"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\minimax.ts": {
+    "mtime": 1781012437.0950866,
+    "ast_hash": "e34ddfa5a8859b06fe415ec41a9fed52",
+    "semantic_hash": "e34ddfa5a8859b06fe415ec41a9fed52"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\tavily.ts": {
+    "mtime": 1781012437.0960846,
+    "ast_hash": "d1e4210cb1bd7e3e35945f17b13d26fe",
+    "semantic_hash": "d1e4210cb1bd7e3e35945f17b13d26fe"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\types.ts": {
+    "mtime": 1781012437.0970914,
+    "ast_hash": "083130f588c26044369dc09118493753",
+    "semantic_hash": "083130f588c26044369dc09118493753"
+  },
+  "D:\\Project\\KelasKA\\lib\\web-search\\utils.ts": {
+    "mtime": 1781012437.0970914,
+    "ast_hash": "5be5fe424b003f8b1c9c4cc16471c51f",
+    "semantic_hash": "5be5fe424b003f8b1c9c4cc16471c51f"
+  },
+  "D:\\Project\\KelasKA\\lib\\i18n\\TRANSLATION_GUIDE.md": {
+    "mtime": 1781012437.0071058,
+    "ast_hash": "73da475b1c003383e8390a24246927a5",
+    "semantic_hash": "73da475b1c003383e8390a24246927a5"
+  },
+  "D:\\Project\\KelasKA\\lib\\pdf\\README.md": {
+    "mtime": 1781012292.7399426,
+    "ast_hash": "221d0eb1226266b286f2ec12b614fb05",
+    "semantic_hash": "221d0eb1226266b286f2ec12b614fb05"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\README.md": {
+    "mtime": 1781012437.0391169,
+    "ast_hash": "4b6a26fcf7592282f44d1cebbfde1a56",
+    "semantic_hash": "4b6a26fcf7592282f44d1cebbfde1a56"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\action-types.md": {
+    "mtime": 1781012437.041574,
+    "ast_hash": "8865f0e147abace8f9a41a65efa1f3fb",
+    "semantic_hash": "8865f0e147abace8f9a41a65efa1f3fb"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\element-types.md": {
+    "mtime": 1781012437.041574,
+    "ast_hash": "f5551b7e36efa935acb78d09eeb5cf5c",
+    "semantic_hash": "f5551b7e36efa935acb78d09eeb5cf5c"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\image-instructions.md": {
+    "mtime": 1781012437.041574,
+    "ast_hash": "b966ceb6d3bcf8c505c53f2dee4548e1",
+    "semantic_hash": "b966ceb6d3bcf8c505c53f2dee4548e1"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\json-output-rules.md": {
+    "mtime": 1781012437.0429409,
+    "ast_hash": "17333f9d083c381fce9f5e0843944b78",
+    "semantic_hash": "17333f9d083c381fce9f5e0843944b78"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\media-safety-guidelines.md": {
+    "mtime": 1781012437.0429409,
+    "ast_hash": "fa8fb88bd7203b775ef7a092eef1f483",
+    "semantic_hash": "fa8fb88bd7203b775ef7a092eef1f483"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\slide-generated-image-instructions.md": {
+    "mtime": 1781012437.0439405,
+    "ast_hash": "2ac50f251c929951519b789dbd0b0946",
+    "semantic_hash": "2ac50f251c929951519b789dbd0b0946"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\slide-image-instructions.md": {
+    "mtime": 1781012437.0439405,
+    "ast_hash": "9c07d29ca51043f974b1804742c612d3",
+    "semantic_hash": "9c07d29ca51043f974b1804742c612d3"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\slide-video-instructions.md": {
+    "mtime": 1781012437.0439405,
+    "ast_hash": "c94e7384718a725792c70c0b5349f211",
+    "semantic_hash": "c94e7384718a725792c70c0b5349f211"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\speech-guidelines.md": {
+    "mtime": 1781012437.0452619,
+    "ast_hash": "44d98931c328cc0cc2dff974253260df",
+    "semantic_hash": "44d98931c328cc0cc2dff974253260df"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\video-instructions.md": {
+    "mtime": 1781012437.0452619,
+    "ast_hash": "6f78a58f8a2ca395a8bb3fa8bdceb2bb",
+    "semantic_hash": "6f78a58f8a2ca395a8bb3fa8bdceb2bb"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\snippets\\whiteboard-reference.md": {
+    "mtime": 1781012437.0462615,
+    "ast_hash": "1559ae4f834ccde442d8a35642c9b7bd",
+    "semantic_hash": "1559ae4f834ccde442d8a35642c9b7bd"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\agent-system-wb-assistant\\system.md": {
+    "mtime": 1781012437.0472624,
+    "ast_hash": "29c040ed12a25844e866a4c2226407ea",
+    "semantic_hash": "29c040ed12a25844e866a4c2226407ea"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\agent-system-wb-student\\system.md": {
+    "mtime": 1781012437.0482614,
+    "ast_hash": "6e5d726ab853f7eb7d1d8e1f80adf11c",
+    "semantic_hash": "6e5d726ab853f7eb7d1d8e1f80adf11c"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\agent-system-wb-teacher\\system.md": {
+    "mtime": 1781012437.0482614,
+    "ast_hash": "20567c53d4c2a5ce06b9705ef0bcf1e6",
+    "semantic_hash": "20567c53d4c2a5ce06b9705ef0bcf1e6"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\agent-system\\system.md": {
+    "mtime": 1781012437.049261,
+    "ast_hash": "d215189eaf2b5afd0a5d5abfe96000fe",
+    "semantic_hash": "d215189eaf2b5afd0a5d5abfe96000fe"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\code-content\\system.md": {
+    "mtime": 1781012437.0502627,
+    "ast_hash": "bc50a125feb9df82784d9b780a6ad94a",
+    "semantic_hash": "bc50a125feb9df82784d9b780a6ad94a"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\code-content\\user.md": {
+    "mtime": 1781012437.0502627,
+    "ast_hash": "d3a494d9d8f6f8321b7d9e160e9e03b0",
+    "semantic_hash": "d3a494d9d8f6f8321b7d9e160e9e03b0"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\diagram-content\\system.md": {
+    "mtime": 1781012437.0515914,
+    "ast_hash": "3a9a77d151f893a96b0d6aa937cf9237",
+    "semantic_hash": "3a9a77d151f893a96b0d6aa937cf9237"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\diagram-content\\user.md": {
+    "mtime": 1781012437.0515914,
+    "ast_hash": "42addbfbf22a3ac84966d9a1ab691877",
+    "semantic_hash": "42addbfbf22a3ac84966d9a1ab691877"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\director\\system.md": {
+    "mtime": 1781012437.0528095,
+    "ast_hash": "bc6dec7ff8cee1953dc9275eae3c5fbe",
+    "semantic_hash": "bc6dec7ff8cee1953dc9275eae3c5fbe"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\game-content\\system.md": {
+    "mtime": 1781012437.0538094,
+    "ast_hash": "9bda6bd16e96d22430915d548bf13f15",
+    "semantic_hash": "9bda6bd16e96d22430915d548bf13f15"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\game-content\\user.md": {
+    "mtime": 1781012437.0538094,
+    "ast_hash": "ef67fded02020695e6634fb51448d7b3",
+    "semantic_hash": "ef67fded02020695e6634fb51448d7b3"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\interactive-actions\\system.md": {
+    "mtime": 1781012437.054809,
+    "ast_hash": "599b62e6484d22a604acdec4b7dab6f5",
+    "semantic_hash": "599b62e6484d22a604acdec4b7dab6f5"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\interactive-actions\\user.md": {
+    "mtime": 1781012437.0558095,
+    "ast_hash": "b1947491624934599ca5620b6e65b37b",
+    "semantic_hash": "b1947491624934599ca5620b6e65b37b"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\interactive-outlines\\system.md": {
+    "mtime": 1781012437.0558095,
+    "ast_hash": "2808dbe7b71d9be2cadb4125759db01d",
+    "semantic_hash": "2808dbe7b71d9be2cadb4125759db01d"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\interactive-outlines\\user.md": {
+    "mtime": 1781012437.0568092,
+    "ast_hash": "323c58a3a94f00e0182188bbafdbd62b",
+    "semantic_hash": "323c58a3a94f00e0182188bbafdbd62b"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\pbl-actions\\system.md": {
+    "mtime": 1781012437.0578113,
+    "ast_hash": "06ce19c54f6bffe3cafb45396b9245e5",
+    "semantic_hash": "06ce19c54f6bffe3cafb45396b9245e5"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\pbl-actions\\user.md": {
+    "mtime": 1781012437.0578113,
+    "ast_hash": "3a4b7d9b24f124a9b358048452204516",
+    "semantic_hash": "3a4b7d9b24f124a9b358048452204516"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\pbl-design\\system.md": {
+    "mtime": 1781012437.058928,
+    "ast_hash": "0d3a28773a1a5bff26583d0b783636ab",
+    "semantic_hash": "0d3a28773a1a5bff26583d0b783636ab"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\quiz-actions\\system.md": {
+    "mtime": 1781012437.058928,
+    "ast_hash": "36f5f0007d66af4c49bc90105e40057c",
+    "semantic_hash": "36f5f0007d66af4c49bc90105e40057c"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\quiz-actions\\user.md": {
+    "mtime": 1781012437.0599272,
+    "ast_hash": "68fba6f27616aba370db9ace810ef663",
+    "semantic_hash": "68fba6f27616aba370db9ace810ef663"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\quiz-content\\system.md": {
+    "mtime": 1781012437.0599272,
+    "ast_hash": "40b1d0d108dd794f2061a2842ffb2ea9",
+    "semantic_hash": "40b1d0d108dd794f2061a2842ffb2ea9"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\quiz-content\\user.md": {
+    "mtime": 1781012437.0609276,
+    "ast_hash": "7500358c778bffb5977a5206d090b741",
+    "semantic_hash": "7500358c778bffb5977a5206d090b741"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\requirements-to-outlines\\system.md": {
+    "mtime": 1781012437.0619984,
+    "ast_hash": "973c096d424c5fc31e12fd59234275a1",
+    "semantic_hash": "973c096d424c5fc31e12fd59234275a1"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\requirements-to-outlines\\user.md": {
+    "mtime": 1781012437.0619984,
+    "ast_hash": "5da49e43193f05d62f94d7e1a0a483ee",
+    "semantic_hash": "5da49e43193f05d62f94d7e1a0a483ee"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\simulation-content\\system.md": {
+    "mtime": 1781012437.0629983,
+    "ast_hash": "6a892ac8526ac2fc4cc1fd71956d7cde",
+    "semantic_hash": "6a892ac8526ac2fc4cc1fd71956d7cde"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\simulation-content\\user.md": {
+    "mtime": 1781012437.0629983,
+    "ast_hash": "fb153c3e137282194149f9d43046f62b",
+    "semantic_hash": "fb153c3e137282194149f9d43046f62b"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\slide-actions\\system.md": {
+    "mtime": 1781012437.0639987,
+    "ast_hash": "ce7308641394a06eda2acf23f56bca4b",
+    "semantic_hash": "ce7308641394a06eda2acf23f56bca4b"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\slide-actions\\user.md": {
+    "mtime": 1781012437.0649998,
+    "ast_hash": "31a77fe00ef39c608f8ae1626010b63c",
+    "semantic_hash": "31a77fe00ef39c608f8ae1626010b63c"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\slide-content\\system.md": {
+    "mtime": 1781012437.0649998,
+    "ast_hash": "608a4d4cbb3776121ac55dc0a456e373",
+    "semantic_hash": "608a4d4cbb3776121ac55dc0a456e373"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\slide-content\\user.md": {
+    "mtime": 1781012437.065998,
+    "ast_hash": "0e0c19983044c54fc5607e0ce9d8d0d9",
+    "semantic_hash": "0e0c19983044c54fc5607e0ce9d8d0d9"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\visualization3d-content\\system.md": {
+    "mtime": 1781012437.0669973,
+    "ast_hash": "01a8bbcb4d27e45ffae11bb8e1d90509",
+    "semantic_hash": "01a8bbcb4d27e45ffae11bb8e1d90509"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\visualization3d-content\\user.md": {
+    "mtime": 1781012437.0669973,
+    "ast_hash": "2ac0ce1e9fc3fe22f0ca35b299f7e450",
+    "semantic_hash": "2ac0ce1e9fc3fe22f0ca35b299f7e450"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\web-search-query-rewrite\\system.md": {
+    "mtime": 1781012437.0679991,
+    "ast_hash": "cbdad2f93afbaa664967b85e883374c4",
+    "semantic_hash": "cbdad2f93afbaa664967b85e883374c4"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\web-search-query-rewrite\\user.md": {
+    "mtime": 1781012437.0679991,
+    "ast_hash": "2e3af5ee66a907ec896db139f144e943",
+    "semantic_hash": "2e3af5ee66a907ec896db139f144e943"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\widget-teacher-actions\\system.md": {
+    "mtime": 1781012437.0689983,
+    "ast_hash": "ac228a8b81e070cbdeeabd5fd06c98f5",
+    "semantic_hash": "ac228a8b81e070cbdeeabd5fd06c98f5"
+  },
+  "D:\\Project\\KelasKA\\lib\\prompts\\templates\\widget-teacher-actions\\user.md": {
+    "mtime": 1781012437.0689983,
+    "ast_hash": "52b59d14c47e746404375b144058e5b8",
+    "semantic_hash": "52b59d14c47e746404375b144058e5b8"
+  }
+}
