@@ -1,5 +1,6 @@
 import json, os
 from pathlib import Path
+# pyrefly: ignore [missing-import]
 from graphify.llm import extract_corpus_parallel
 
 # GEMINI_API_KEY must be set in the environment before running this script
