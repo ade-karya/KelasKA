@@ -3,7 +3,7 @@ title: الإعدادات
 description: موفرو LLM و TTS و ASR والتحكم بالوصول و feature flags.
 ---
 
-يقرأ OpenMAIC الإعدادات من متغيرات البيئة عند بدء الخادم. جميعها اختيارية — فعّل الموفرات والميزات التي تحتاجها فقط. للاطلاع على القائمة الكاملة راجع [`.env.example`](https://github.com/THU-MAIC/OpenMAIC/blob/main/.env.example) في المستودع. لمعرّفات النماذج المدمجة، راجع [النماذج المدعومة](./supported-models.mdx).
+يقرأ KelasKA الإعدادات من متغيرات البيئة عند بدء الخادم. جميعها اختيارية — فعّل الموفرات والميزات التي تحتاجها فقط. للاطلاع على القائمة الكاملة راجع [`.env.example`](/blob/main/.env.example) في المستودع. لمعرّفات النماذج المدمجة، راجع [النماذج المدعومة](./supported-models.mdx).
 
 ## موفرو LLM
 
@@ -40,7 +40,7 @@ OPENAI_MODELS=                  # قائمة اختيارية بالنماذج �
 
 ## النماذج المحلية عبر Ollama
 
-لا تحتاج إلى API key. اضبط base URL على الخادم حتى يتجاوز OpenMAIC فحص SSRF:
+لا تحتاج إلى API key. اضبط base URL على الخادم حتى يتجاوز KelasKA فحص SSRF:
 
 ```bash
 OLLAMA_BASE_URL=http://localhost:11434/v1
@@ -136,7 +136,7 @@ PDF_MINERU_CLOUD_API_KEY=
 PDF_MINERU_CLOUD_BASE_URL=https://mineru.net/api/v4
 ```
 
-من دون parser على الخادم، يعود OpenMAIC إلى `unpdf`.
+من دون parser على الخادم، يعود KelasKA إلى `unpdf`.
 
 ## استخدام ملف إعداد YAML
 

@@ -3,7 +3,7 @@ title: VoxCPM2
 description: Self-hosted TTS с клонированием голоса. Backends, конфигурация и управление голосами.
 ---
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) — open-source TTS model от OpenBMB с клонированием голоса. OpenMAIC поставляется с adapter; запустите VoxCPM на своем hardware, и OpenMAIC сможет к нему обращаться.
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) — open-source TTS model от OpenBMB с клонированием голоса. KelasKA поставляется с adapter; запустите VoxCPM на своем hardware, и KelasKA сможет к нему обращаться.
 
 ## Когда использовать VoxCPM2
 
@@ -15,7 +15,7 @@ description: Self-hosted TTS с клонированием голоса. Backend
 
 ## 1. Запустите VoxCPM backend
 
-OpenMAIC поддерживает три варианта deployment. Все три используют один и тот же OpenMAIC adapter; нужно лишь выбрать backend в Settings.
+KelasKA поддерживает три варианта deployment. Все три используют один и тот же KelasKA adapter; нужно лишь выбрать backend в Settings.
 
 | Backend        | Endpoint           | Когда использовать                                         |
 | -------------- | ------------------ | ---------------------------------------------------------- |
@@ -32,13 +32,13 @@ python -m vllm_omni.server --model openbmb/VoxCPM2 --port 8000
 # endpoint at http://localhost:8000/v1
 ```
 
-## 2. Направьте OpenMAIC на backend
+## 2. Направьте KelasKA на backend
 
 Есть два способа. Выберите один.
 
 ### A. Для одного пользователя (Settings UI, без изменений сервера)
 
-Откройте **Settings → Text-to-Speech → VoxCPM2**, выберите backend и вставьте Base URL. Request URL preview подтвердит, что OpenMAIC обращается к правильному endpoint.
+Откройте **Settings → Text-to-Speech → VoxCPM2**, выберите backend и вставьте Base URL. Request URL preview подтвердит, что KelasKA обращается к правильному endpoint.
 
 Этот путь удобен для индивидуального тестирования и per-browser overrides. Он не влияет на других пользователей.
 
@@ -58,7 +58,7 @@ TTS_VOXCPM_BASE_URL=http://localhost:8000/v1
 
 ### Auto Voice (по умолчанию)
 
-OpenMAIC генерирует voice prompt из persona каждого agent во время synthesis. Настройка не требуется. Это поведение используется, если ничего не менять.
+KelasKA генерирует voice prompt из persona каждого agent во время synthesis. Настройка не требуется. Это поведение используется, если ничего не менять.
 
 ### Prompt voice
 

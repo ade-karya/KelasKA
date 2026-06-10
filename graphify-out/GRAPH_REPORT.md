@@ -1,16 +1,16 @@
 # Graph Report - KelasKA  (2026-06-09)
 
 ## Corpus Check
-- 1003 files · ~3,770,164 words
+- 1004 files · ~3,770,190 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 11081 nodes · 19551 edges · 619 communities (576 shown, 43 thin omitted)
+- 11083 nodes · 19552 edges · 630 communities (589 shown, 41 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 30 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7bb9e864`
+- Built from commit: `6858fb65`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -591,6 +591,7 @@
 - [[_COMMUNITY_Thinkingrequestadapter|Thinkingrequestadapter]]
 - [[_COMMUNITY_Message|Message]]
 - [[_COMMUNITY_Messageaction|Messageaction]]
+- [[_COMMUNITY_Animationtrigger|Animationtrigger]]
 - [[_COMMUNITY_Animationtype|Animationtype]]
 - [[_COMMUNITY_Chartdata|Chartdata]]
 - [[_COMMUNITY_Chartoptions|Chartoptions]]
@@ -614,7 +615,17 @@
 - [[_COMMUNITY_Pptlatexelement|Pptlatexelement]]
 - [[_COMMUNITY_Pptshapeelement|Pptshapeelement]]
 - [[_COMMUNITY_Ppttableelement|Ppttableelement]]
+- [[_COMMUNITY_Community 616|Community 616]]
+- [[_COMMUNITY_Community 617|Community 617]]
+- [[_COMMUNITY_Community 618|Community 618]]
+- [[_COMMUNITY_Community 619|Community 619]]
+- [[_COMMUNITY_Community 620|Community 620]]
+- [[_COMMUNITY_Community 621|Community 621]]
+- [[_COMMUNITY_Community 622|Community 622]]
+- [[_COMMUNITY_Community 623|Community 623]]
 - [[_COMMUNITY_Quizcontent|Quizcontent]]
+- [[_COMMUNITY_Community 625|Community 625]]
+- [[_COMMUNITY_Community 627|Community 627]]
 - [[_COMMUNITY_Codeconfig|Codeconfig]]
 - [[_COMMUNITY_Findelementgeometry|Findelementgeometry]]
 
@@ -632,87 +643,87 @@
 
 ## Surprising Connections (you probably didn't know these)
 - `ContentVisualizer()` --calls--> `getTheme()`  [INFERRED]
-  app/generation-preview/components/visualizers.tsx → packages/@maic/importer/src1/pptxtojson.js
+  app/generation-preview/components/visualizers.tsx → packages/@kelaska/importer/src1/pptxtojson.js
 - `StaticSearchDialog()` --calls--> `useI18n()`  [INFERRED]
   packages/docs/components/search-dialog.tsx → lib/hooks/use-i18n.tsx
 - `POST()` --calls--> `apiError()`  [INFERRED]
   app/api/chat/route.ts → lib/server/api-response.ts
-- `POST()` --calls--> `resolveModel()`  [INFERRED]
-  app/api/chat/route.ts → lib/server/resolve-model.ts
+- `StreamingOutlineVisualizer()` --calls--> `useI18n()`  [EXTRACTED]
+  app/generation-preview/components/visualizers.tsx → lib/hooks/use-i18n.tsx
 - `ClassroomCard()` --calls--> `useI18n()`  [EXTRACTED]
   app/page.tsx → lib/hooks/use-i18n.tsx
 
 ## Import Cycles
 - 1-file cycle: `eval/orchestration/types.ts -> eval/orchestration/types.ts`
 - 3-file cycle: `packages/pptxgenjs/src/gen-objects.ts -> packages/pptxgenjs/src/gen-tables.ts -> packages/pptxgenjs/src/pptxgen.ts -> packages/pptxgenjs/src/gen-objects.ts`
-- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/msub.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
-- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/mmultiscripts.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
-- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/msup.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
-- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/under_or_over.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
-- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/mfrac.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
-- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/mroot.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
 - 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/msubsup.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
+- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/mfrac.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
+- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/mmultiscripts.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
+- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/mroot.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
+- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/msub.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
+- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/msup.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
 - 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/munderover.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
+- 3-file cycle: `packages/mathml2omml/src/mathml/index.js -> packages/mathml2omml/src/mathml/under_or_over.js -> packages/mathml2omml/src/walker.js -> packages/mathml2omml/src/mathml/index.js`
 - 3-file cycle: `lib/generation/outline-generator.ts -> lib/generation/scene-builder.ts -> lib/generation/scene-generator.ts -> lib/generation/outline-generator.ts`
 - 4-file cycle: `packages/pptxgenjs/src/gen-objects.ts -> packages/pptxgenjs/src/gen-tables.ts -> packages/pptxgenjs/src/pptxgen.ts -> packages/pptxgenjs/src/slide.ts -> packages/pptxgenjs/src/gen-objects.ts`
 
-## Communities (619 total, 43 thin omitted)
+## Communities (630 total, 41 thin omitted)
 
 ### Community 0 - "Action Types & Events"
-Cohesion: 0.14
-Nodes (29): codeToLines(), log, SHAPE_PATHS, WidgetMessageCallback, ProactiveCardProps, ActionBase, DiscussionAction, FIRE_AND_FORGET_ACTIONS (+21 more)
+Cohesion: 0.17
+Nodes (18): DEF_SLIDE_MARGIN_IN, TableCell, TableRow, TableRowSlide, addChartDefinition(), addFormulaDefinition(), addImageDefinition(), addMediaDefinition() (+10 more)
 
 ### Community 1 - "AI Providers & Settings"
-Cohesion: 0.06
-Nodes (62): MONO_LOGO_PROVIDERS, TtsConfigPopover(), isCustomASRProvider(), useTTSPreview(), getVoxCPMVoiceOptions(), voxCPMBackendSupportsReferenceAudio(), ServerProvidersInit(), MultiTabEditConflictPromptProps (+54 more)
+Cohesion: 0.05
+Nodes (70): ControlsProps, ImageProps, LoaderIconProps, LoaderProps, PanelProps, ToolbarProps, MONO_LOGO_PROVIDERS, ASR_PROVIDERS (+62 more)
 
 ### Community 2 - "Stage API & Chat Orchestration"
-Cohesion: 0.05
-Nodes (65): createCanvasAPI(), createStageAPI(), createDefaultContent(), createDefaultInteractiveContent(), createDefaultPBLContent(), createDefaultQuizContent(), createDefaultSlideContent(), generateId() (+57 more)
+Cohesion: 0.19
+Nodes (24): createCanvasAPI(), createStageAPI(), createDefaultContent(), createDefaultInteractiveContent(), createDefaultPBLContent(), createDefaultQuizContent(), createDefaultSlideContent(), generateId() (+16 more)
 
 ### Community 3 - "Scene Editor & Import/Export"
-Cohesion: 0.33
-Nodes (6): sceneEditorRegistry, surfaces, SceneEditorRegistry, SceneEditorSurface, slideSurface, SceneType
+Cohesion: 0.11
+Nodes (18): LaserOverlay(), LaserOverlayProps, ZoomWrapperProps, findElementGeometry(), getElementPercentageGeometry(), TextAttrs, TextFormatBarProps, CanvasState (+10 more)
 
 ### Community 4 - "Playback Engine"
-Cohesion: 0.11
+Cohesion: 0.12
 Nodes (12): BubbleButtonState, computePlaybackView(), PlaybackPhase, PlaybackRawState, log, PlaybackEngine, Effect, EngineMode (+4 more)
 
 ### Community 5 - "Scene Generation & Widgets"
-Cohesion: 0.09
-Nodes (31): MediaStageContext, useMediaStageId(), useSceneGenerator(), ClassroomDetailPage(), log, ResolvedImageSrc, resolveImageSrc(), useResolvedImageSrc() (+23 more)
+Cohesion: 0.08
+Nodes (37): MediaStageContext, useMediaStageId(), useSceneGenerator(), Theme, ThemeContext, ThemeContextType, ThemeProvider(), ClassroomDetailPage() (+29 more)
 
 ### Community 6 - "Audio & Voice System"
 Cohesion: 0.14
-Nodes (18): AgentVoiceResolveOptions, effectiveVoiceDesign(), pickNarratorAgent(), resolveAgentVoiceOptions(), DESIGN, mockGetOptions, TTSProviderConfigShape, warmUpAgentVoices() (+10 more)
+Nodes (17): EditableElementProps, ScreenElementProps, useWhiteboardHistoryStore, WhiteboardHistoryState, WhiteboardSnapshot, PPTElement, elementFingerprint(), Whiteboard() (+9 more)
 
 ### Community 7 - "Generation Pipeline"
-Cohesion: 0.05
-Nodes (93): log, parseActionsFromStructuredOutput(), stripCodeFences(), convertLatexDelimiters(), injectKatex(), postProcessInteractiveHtml(), log, logJsonParseError() (+85 more)
+Cohesion: 0.06
+Nodes (86): log, logJsonParseError(), parseJsonResponse(), repairQuotedPropertyFragments(), tryParseJson(), applyOutlineFallbacks(), generateSceneOutlinesFromRequirements(), log (+78 more)
 
 ### Community 8 - "Agent Loop & Chat Buffer"
-Cohesion: 0.10
-Nodes (25): ActionItem, AgentEndItem, AgentStartItem, BufferItem, CueUserItem, DoneItem, ErrorItem, StreamBufferCallbacks (+17 more)
+Cohesion: 0.08
+Nodes (27): ActionItem, AgentEndItem, AgentStartItem, BufferItem, CueUserItem, DoneItem, ErrorItem, StreamBufferCallbacks (+19 more)
 
 ### Community 9 - "MCP & PBL System"
-Cohesion: 0.06
-Nodes (38): MessageResponse, Tool(), PBLChatRequest, AgentMCP, getJudgeAgentPrompt(), getQuestionAgentPrompt(), IssueboardMCP, ModeMCP (+30 more)
+Cohesion: 0.13
+Nodes (7): AgentConfigPanel(), AgentMCP, IssueboardMCP, ProjectMCP, PBLProjectConfig, PBLRoleDivision, PBLToolResult
 
 ### Community 10 - "Chat Session Management"
-Cohesion: 0.06
-Nodes (34): loadGeneratedAgentsForStage(), saveGeneratedAgents(), getActionsForRole(), ChatMessageMetadata, SessionConfig, SessionStatus, ToolCallRecord, ToolCallRequest (+26 more)
+Cohesion: 0.05
+Nodes (42): ChatSessionProps, SessionListProps, SceneContextValue, DeletedSceneRecycleState, RecycleEntry, useDeletedSceneRecycle, SceneActionsResult, loadGeneratedAgentsForStage() (+34 more)
 
 ### Community 11 - "Shape Editing & Slides Styling"
 Cohesion: 0.04
-Nodes (87): ATTENTION_ANIMATIONS, ENTER_ANIMATIONS, EXIT_ANIMATIONS, SLIDE_ANIMATIONS, SlideAnimation, ClipPath, ClipPaths, ClipPathTypes (+79 more)
+Nodes (90): ClipPath, ClipPaths, ClipPathTypes, LINE_LIST, LinePoolItem, PresetLine, PRESET_THEMES, PresetTheme (+82 more)
 
 ### Community 12 - "Editor Surface & Commands"
-Cohesion: 0.06
-Nodes (48): CUSTOM_ASR_DEFAULT_LANGUAGES, SpeechButtonProps, FontEntry, FONTS, EditorCommand, FloatingAction, SurfaceHistory, UiAffordance (+40 more)
+Cohesion: 0.07
+Nodes (36): CUSTOM_ASR_DEFAULT_LANGUAGES, FontEntry, FONTS, ConfiguredProvider, formatCompactThinkingValue(), formatThinkingValue(), GenerationToolbarProps, ModelSettingsPopover() (+28 more)
 
 ### Community 13 - "Whiteboard & Slide Content"
-Cohesion: 0.05
-Nodes (49): EditableElementProps, GridLines(), ViewportBackground(), SceneContext, SceneContextValue, SceneProvider(), useSceneSelector(), HighlightOverlay() (+41 more)
+Cohesion: 0.15
+Nodes (14): GridLines(), ViewportBackground(), SceneContext, SceneProvider(), useSceneData(), useSceneSelector(), HighlightOverlay(), ScreenCanvas() (+6 more)
 
 ### Community 14 - "Module Group 14"
 Cohesion: 0.02
@@ -720,31 +731,31 @@ Nodes (97): dependencies, ai, @ai-sdk/anthropic, @ai-sdk/google, @ai-sdk/openai,
 
 ### Community 15 - "Module Group 15"
 Cohesion: 0.12
-Nodes (23): ClassroomManifest, ManifestAction, ManifestAgent, ManifestScene, ManifestStage, MediaIndexEntry, actionsToManifest(), collectAudioFiles() (+15 more)
+Nodes (24): ClassroomManifest, ManifestAction, ManifestAgent, ManifestScene, ManifestStage, MediaIndexEntry, actionsToManifest(), collectAudioFiles() (+16 more)
 
 ### Community 16 - "Module Group 16"
 Cohesion: 0.02
-Nodes (60): AttachmentsContext, LocalAttachmentsContext, log, PromptInput(), PromptInputActionAddAttachments(), PromptInputActionAddAttachmentsProps, PromptInputActionMenuContentProps, PromptInputActionMenuItemProps (+52 more)
+Nodes (53): AttachmentsContext, LocalAttachmentsContext, log, PromptInputActionAddAttachmentsProps, PromptInputActionMenuContentProps, PromptInputActionMenuItemProps, PromptInputActionMenuProps, PromptInputActionMenuTriggerProps (+45 more)
 
 ### Community 17 - "Module Group 17"
-Cohesion: 0.05
-Nodes (74): SerializedCell, SerializedNode, SerializedParagraph, SerializedPresentation, SerializedRow, SerializedSlide, SerializedTextBody, serializeNode() (+66 more)
+Cohesion: 0.06
+Nodes (80): parseGroupChild(), SerializedCell, SerializedNode, SerializedParagraph, SerializedPresentation, SerializedRow, SerializedSlide, SerializedTextBody (+72 more)
 
 ### Community 18 - "Module Group 18"
 Cohesion: 0.02
 Nodes (84): generation, addFirstScene, addKeyPoint, agentGeneration, agentGenerationDesc, agentRevealTitle, aiWorking, alwaysReviewOutlines (+76 more)
 
 ### Community 19 - "Module Group 19"
-Cohesion: 0.16
-Nodes (18): agentGenerateNode(), buildInitialState(), createOrchestrationGraph(), directorNode(), log, OrchestratorState, OrchestratorStateType, resolveAgent() (+10 more)
+Cohesion: 0.12
+Nodes (23): agentGenerateNode(), buildInitialState(), createOrchestrationGraph(), directorNode(), log, OrchestratorState, OrchestratorStateType, resolveAgent() (+15 more)
 
 ### Community 20 - "Module Group 20"
 Cohesion: 0.33
 Nodes (3): NoopStorageProvider, StorageProvider, StorageType
 
 ### Community 21 - "Module Group 21"
-Cohesion: 0.08
-Nodes (41): GET(), log, log, POST(), GET(), log, GET(), log (+33 more)
+Cohesion: 0.07
+Nodes (48): AGENT_COLOR_PALETTE, AGENT_DEFAULT_AVATARS, createSceneWithActions(), buildVideoManifestFromOutlines(), getVideoMediaRefForElement(), isGeneratedVideoRef(), resolveVideoManifestEntry(), GET() (+40 more)
 
 ### Community 22 - "Module Group 22"
 Cohesion: 0.02
@@ -791,60 +802,60 @@ Cohesion: 0.05
 Nodes (21): Fixtures, test, MockApi, ClassroomPage, GenerationPreviewPage, HomePage, createMockSceneActionsResponse(), defaultTheme (+13 more)
 
 ### Community 33 - "Submithappyhorsetask"
-Cohesion: 0.07
-Nodes (56): CHART_NAME, PLACEHOLDER_TYPE, SHAPE_NAME, SLIDE_OBJECT_TYPES, BackgroundProps, ChartAxisTickMark, ChartLineCap, DataOrPathProps (+48 more)
+Cohesion: 0.09
+Nodes (49): CHART_NAME, PLACEHOLDER_TYPE, SHAPE_NAME, ChartAxisTickMark, DataOrPathProps, FormulaProps, HAlign, HyperlinkProps (+41 more)
 
 ### Community 34 - "Testhappyhorseconnectivity"
-Cohesion: 0.20
-Nodes (14): testHappyHorseConnectivity(), generateWithMiniMaxVideo(), MiniMaxFileRetrieveResponse, MiniMaxQueryResponse, MiniMaxSubmitResponse, pollTaskStatus(), retrieveFileDownloadUrl(), submitTask() (+6 more)
+Cohesion: 0.21
+Nodes (13): testHappyHorseConnectivity(), generateWithMiniMaxVideo(), MiniMaxFileRetrieveResponse, MiniMaxQueryResponse, MiniMaxSubmitResponse, pollTaskStatus(), retrieveFileDownloadUrl(), submitTask() (+5 more)
 
 ### Community 35 - "Generatewithkling"
 Cohesion: 0.33
 Nodes (10): base64url(), generateJWT(), generateWithKling(), getDimensions(), KlingPollResponse, KlingSubmitResponse, parseApiKey(), pollTask() (+2 more)
 
 ### Community 36 - "Testklingconnectivity"
-Cohesion: 0.08
-Nodes (64): angleToDeg(), emuToPt(), pctToDecimal(), dashArrayForKind(), dashKindToBorderType(), ensureHex(), lineStyleToBorder(), appendArrowsToPath() (+56 more)
+Cohesion: 0.07
+Nodes (64): angleToDeg(), detectUnit(), emuToPt(), pctToDecimal(), ptToPx(), smartToPx(), appendArrowsToPath(), buildArrowPath() (+56 more)
 
 ### Community 37 - "Generatewithlemonadeimage"
 Cohesion: 0.50
 Nodes (6): authHeaders(), generateWithLemonadeImage(), normalizeBaseUrl(), resolveSize(), testLemonadeImageConnectivity(), mockFetch
 
 ### Community 38 - "Testlemonadeimageconnectivity"
-Cohesion: 0.05
-Nodes (38): AgentAvatar(), AgentAvatarProps, isUrl(), NodeActionProps, NodeContentProps, NodeDescriptionProps, NodeFooterProps, NodeHeaderProps (+30 more)
+Cohesion: 0.10
+Nodes (17): NodeActionProps, NodeContentProps, NodeDescriptionProps, NodeFooterProps, NodeHeaderProps, NodeProps, NodeTitleProps, GeneratingProgress() (+9 more)
 
 ### Community 39 - "Generatewithminimaximage"
 Cohesion: 0.07
-Nodes (55): Math, applyClrChange(), applyExtLstImageEffectsToFilters(), applyLumToFilters(), buildImage(), buildImageFilters(), bytesToDataUrl(), isUnsupportedFormat() (+47 more)
+Nodes (59): Audio, Image, Video, compositeOnWhiteToHex(), defaultFill(), ensureHex(), gradientFillDataToValue(), renderBgPr() (+51 more)
 
 ### Community 40 - "Testminimaximageconnectivity"
 Cohesion: 0.07
-Nodes (46): collectOmml(), getThemeColors(), pxToPt(), toPptxtojsonFormat(), Output, Size, Slide, buildContextOverrides() (+38 more)
+Nodes (42): collectOmml(), getThemeColors(), pxToPt(), toPptxtojsonFormat(), Element, Output, Size, Slide (+34 more)
 
 ### Community 41 - "Generatewithminimaxvideo"
-Cohesion: 0.04
-Nodes (31): CheckpointIconProps, CheckpointProps, CheckpointTriggerProps, MessageActionProps, MessageActionsProps, MessageAttachmentProps, MessageAttachmentsProps, MessageBranchContent() (+23 more)
+Cohesion: 0.07
+Nodes (23): MessageActionProps, MessageActionsProps, MessageAttachmentProps, MessageAttachmentsProps, MessageBranchContent(), MessageBranchContentProps, MessageBranchContext, MessageBranchContextType (+15 more)
 
 ### Community 42 - "Testminimaxvideoconnectivity"
-Cohesion: 0.09
-Nodes (35): extractPlaceholdersRecursive(), getGroupXfrmInEmu(), getShapeXfrmInEmu(), isPlaceholder(), LayoutData, parseAllAttributes(), parseLayout(), PlaceholderEntry (+27 more)
+Cohesion: 0.08
+Nodes (41): extractPlaceholdersRecursive(), getGroupXfrmInEmu(), getShapeXfrmInEmu(), isPlaceholder(), LayoutData, parseAllAttributes(), parseLayout(), PlaceholderEntry (+33 more)
 
 ### Community 43 - "Generatewithnanobanana"
-Cohesion: 0.06
-Nodes (51): Audio, AutoFit, BaseElement, Chart, ChartItem, ChartType, ChartValue, ChartXLabel (+43 more)
+Cohesion: 0.08
+Nodes (35): AutoFit, BaseElement, Chart, ChartItem, ChartType, ChartValue, ChartXLabel, ColorFill (+27 more)
 
 ### Community 44 - "Testnanobananaconnectivity"
-Cohesion: 0.09
-Nodes (35): createGridLineElement(), createLineCap(), createShadowElement(), genXmlTitle(), makeCatAxis(), makeChartType(), makeSerAxis(), makeValAxis() (+27 more)
+Cohesion: 0.07
+Nodes (20): SLIDE_OBJECT_TYPES, IPresentationProps, ISlideRel, PresentationProps, genXmlBodyProperties(), genXmlTextBody(), genXmlTextRun(), getLayoutIdxForSlide() (+12 more)
 
 ### Community 45 - "Generatewithopenaiimage"
 Cohesion: 0.52
 Nodes (5): generateWithOpenAIImage(), normalizeBaseUrl(), resolveSize(), testOpenAIImageConnectivity(), mockFetch
 
 ### Community 46 - "Testopenaiimageconnectivity"
-Cohesion: 0.06
-Nodes (21): AlignH, AlignV, ChartType, OutputType, ShapeType, WRITE_OUTPUT_TYPE, AddSlideProps, IPresentationProps (+13 more)
+Cohesion: 0.07
+Nodes (13): AddSlideProps, BackgroundProps, HexColor, ISlideRelMedia, PresLayout, PresSlide, SectionProps, SlideBaseProps (+5 more)
 
 ### Community 47 - "Generatewithqwenimage"
 Cohesion: 0.04
@@ -859,8 +870,8 @@ Cohesion: 0.36
 Nodes (8): estimateDimensions(), generateWithSeedance(), pollSeedanceTask(), SeedancePollResponse, SeedanceSubmitResponse, submitSeedanceTask(), toSeedanceRatio(), toSeedanceResolution()
 
 ### Community 50 - "Pollseedancetask"
-Cohesion: 0.07
-Nodes (36): BARCHART_COLORS, BULLET_TYPES, CHART_TYPE, DEF_CELL_BORDER, DEF_CELL_MARGIN_IN, DEF_CELL_MARGIN_PT, DEF_CHART_BORDER, DEF_CHART_GRIDLINE (+28 more)
+Cohesion: 0.06
+Nodes (31): AlignH, AlignV, BARCHART_COLORS, BULLET_TYPES, CHART_TYPE, ChartType, DEF_CELL_BORDER, DEF_CELL_MARGIN_IN (+23 more)
 
 ### Community 51 - "Submitseedancetask"
 Cohesion: 0.05
@@ -888,7 +899,7 @@ Nodes (43): settings, actionCount, actions, agentMode, agentModeAuto, agentModeA
 
 ### Community 57 - "Callllm"
 Cohesion: 0.04
-Nodes (78): buildThinkingProviderOptions(), callLLM(), GenerateTextParams, getAnthropicEffort(), getGlobalThinkingConfig(), getModelId(), getModelProviderId(), injectProviderOptions() (+70 more)
+Nodes (72): buildThinkingProviderOptions(), GenerateTextParams, getAnthropicEffort(), getGlobalThinkingConfig(), getModelId(), getModelProviderId(), injectProviderOptions(), LLMRetryOptions (+64 more)
 
 ### Community 58 - "Llmretryoptions"
 Cohesion: 0.05
@@ -903,8 +914,8 @@ Cohesion: 0.05
 Nodes (43): settings, actionCount, actions, agentMode, agentModeAuto, agentModeAutoDesc, agentModePreset, agentsCollaborating (+35 more)
 
 ### Community 61 - "Getcatalogthinkingcapability"
-Cohesion: 0.05
-Nodes (22): QueueItemActionProps, QueueItemActionsProps, QueueItemAttachmentProps, QueueItemContentProps, QueueItemDescriptionProps, QueueItemFileProps, QueueItemImageProps, QueueItemIndicatorProps (+14 more)
+Cohesion: 0.06
+Nodes (18): QueueItemActionProps, QueueItemActionsProps, QueueItemAttachmentProps, QueueItemContentProps, QueueItemDescriptionProps, QueueItemFileProps, QueueItemImageProps, QueueItemIndicatorProps (+10 more)
 
 ### Community 62 - "Getmodelmetadatakey"
 Cohesion: 0.06
@@ -912,11 +923,11 @@ Nodes (25): ModelSelectorContentProps, ModelSelectorDialogProps, ModelSelectorEm
 
 ### Community 63 - "Getallmodels"
 Cohesion: 0.11
-Nodes (24): BaseChartElement(), BaseChartElementProps, ALIGN_MAP, BaseLatexElement(), BaseLatexElementProps, BaseLineElement(), BaseLineElementProps, BaseShapeElement() (+16 more)
+Nodes (24): BaseChartElement(), BaseChartElementProps, Chart(), ChartProps, ChartOptionPayload, EChartOption, getChartOption(), ALIGN_MAP (+16 more)
 
 ### Community 64 - "Getmodel"
 Cohesion: 0.06
-Nodes (25): CarouselApiContext, InlineCitationCardBodyProps, InlineCitationCardProps, InlineCitationCardTriggerProps, InlineCitationCarouselContentProps, InlineCitationCarouselHeaderProps, InlineCitationCarouselIndex(), InlineCitationCarouselIndexProps (+17 more)
+Nodes (32): CarouselApiContext, InlineCitationCardBodyProps, InlineCitationCardProps, InlineCitationCardTriggerProps, InlineCitationCarouselContentProps, InlineCitationCarouselHeaderProps, InlineCitationCarouselIndex(), InlineCitationCarouselIndexProps (+24 more)
 
 ### Community 65 - "Getmodelinfo"
 Cohesion: 0.05
@@ -932,7 +943,7 @@ Nodes (34): Canvas Specifications, ChartElement, Common Mistakes to Avoid, Compl
 
 ### Community 68 - "Parsemodelstring"
 Cohesion: 0.06
-Nodes (86): log, POST(), RequestBody, stripCodeFences(), ModelWithInfo, parseModelString(), log, POST() (+78 more)
+Nodes (54): log, POST(), RequestBody, stripCodeFences(), callLLM(), mocks, postProxy(), mocks (+46 more)
 
 ### Community 69 - "Clampbudgetforcapability"
 Cohesion: 0.16
@@ -943,16 +954,16 @@ Cohesion: 0.06
 Nodes (33): 1. Event Binding: Use Inline onclick for Start Button, 1. Physics/Action Games (HIGHLY RECOMMENDED), 2. CSS: Prefer Custom CSS Over Tailwind CDN, 2. Drag-and-Drop Puzzles, 3. Interactive Simulations as Games, 3. Script Placement: Wrap in DOMContentLoaded or Place at End, 4. Card/Matching Games, 4. Global Functions for onclick Handlers (+25 more)
 
 ### Community 71 - "Getthinkingconfigkey"
-Cohesion: 0.10
-Nodes (31): getThinkingConfigKey(), TTSProviderId, GenerationToolbar(), ImageProviderId, VideoProviderId, bufToHex(), config, encode() (+23 more)
+Cohesion: 0.06
+Nodes (48): TeacherVoicePill(), PROVIDERS, inter, metadata, DEFAULT_TTS_VOICES, AccessCodeGuard(), AccessCodeModal(), AccessCodeModalProps (+40 more)
 
 ### Community 72 - "Getthinkingdisplayvalue"
 Cohesion: 0.06
 Nodes (31): author, bugs, url, description, devDependencies, @biomejs/biome, entities, husky (+23 more)
 
 ### Community 73 - "Getthinkingmode"
-Cohesion: 0.16
-Nodes (3): ActionEngine, delay(), generateLineIds()
+Cohesion: 0.09
+Nodes (31): ActionEngine, codeToLines(), delay(), generateLineIds(), log, SHAPE_PATHS, WidgetMessageCallback, ProactiveCardProps (+23 more)
 
 ### Community 74 - "Normalizethinkingconfig"
 Cohesion: 0.06
@@ -971,8 +982,8 @@ Cohesion: 0.08
 Nodes (13): actionButtonIcons, buildCurvedArrowMultiPath(), buildCurvedVerticalArrowMultiPath(), MultiPathPresetGenerator, multiPathPresets, PresetOverlay, PresetOverlayGenerator, presetOverlays (+5 more)
 
 ### Community 78 - "Supportsconfigurablethinking"
-Cohesion: 0.09
-Nodes (21): OpenInChatGPT(), OpenInChatGPTProps, OpenInClaude(), OpenInClaudeProps, OpenInContentProps, OpenInContext, OpenInCursor(), OpenInCursorProps (+13 more)
+Cohesion: 0.11
+Nodes (15): deleteChatSessions(), loadChatSessions(), saveChatSessions(), clearPlaybackState(), deleteStageData(), getThumbnailMediaRef(), isGeneratedMediaRef(), loadStageData() (+7 more)
 
 ### Community 79 - "Createcanvasapi"
 Cohesion: 0.07
@@ -1011,8 +1022,8 @@ Cohesion: 0.07
 Nodes (28): quiz, aiComment, aiGrading, aiGradingWait, analysis, answering, charCount, correct (+20 more)
 
 ### Community 88 - "Createelementapi"
-Cohesion: 0.16
-Nodes (23): Fill, GradientFill, parseGroupChild(), parseGroupNode(), parsePicNode(), compositeOnWhiteToHex(), defaultFill(), ensureHex() (+15 more)
+Cohesion: 0.18
+Nodes (15): Math, GREEK_LOWER_LATEX, GREEK_UPPER_LATEX, mathToElement(), normalizeMathCharToUnicode(), normalizeOmmlXml(), ommlToLatex(), ommlToLatexJs() (+7 more)
 
 ### Community 89 - "Createmodeapi"
 Cohesion: 0.07
@@ -1031,8 +1042,8 @@ Cohesion: 0.07
 Nodes (27): toolbar, advancedSettings, auto, configureProvider, configureProviderHint, default, dynamic, enterClassroom (+19 more)
 
 ### Community 93 - "Stageapi"
-Cohesion: 0.07
-Nodes (26): common, cancel, confirm, loading, you, home, greetingWithName, slogan (+18 more)
+Cohesion: 0.08
+Nodes (23): agentBar, configTooltip, expandedTitle, noMatchingVoices, noVoice, readyToLearn, searchVoice, voiceAutoAssign (+15 more)
 
 ### Community 94 - "Apiresult"
 Cohesion: 0.07
@@ -1071,32 +1082,32 @@ Cohesion: 0.07
 Nodes (27): toolbar, advancedSettings, auto, configureProvider, configureProviderHint, default, dynamic, enterClassroom (+19 more)
 
 ### Community 103 - "Asrtranscriptionresult"
-Cohesion: 0.10
-Nodes (31): ASRTranscriptionResult, detectWavBuffer(), detectWavBytes(), getCurrentASRConfig(), getOptionalBearerAuthHeaders(), isWavAudio(), toAudioBlob(), transcribeAudio() (+23 more)
+Cohesion: 0.15
+Nodes (19): ASRTranscriptionResult, detectWavBuffer(), detectWavBytes(), getCurrentASRConfig(), getOptionalBearerAuthHeaders(), isWavAudio(), toAudioBlob(), transcribeAudio() (+11 more)
 
 ### Community 104 - "Getcurrentasrconfig"
-Cohesion: 0.13
-Nodes (26): colorToCssLocal(), escapeHtml(), escapeHtmlAttr(), findPlaceholderNode(), findStyleAtLevel(), formatRunTextForHtml(), generateAutoNumber(), getPlaceholderCategory() (+18 more)
+Cohesion: 0.14
+Nodes (25): colorToCssLocal(), escapeHtml(), escapeHtmlAttr(), findPlaceholderNode(), findStyleAtLevel(), formatRunTextForHtml(), generateAutoNumber(), getPlaceholderCategory() (+17 more)
 
 ### Community 105 - "Transcribeaudio"
 Cohesion: 0.08
 Nodes (25): 1. 不传 `upload` —— 本地预览 / 调试, 2. 传 `upload` —— 生产场景, 3. 已经用 `parse()` 拿到 JSON 时, 🔑 API 一览, Node.js(实验性，1.5.0以上版本), 🎨 pptxtojson, 📞 `upload` 回调被调用的时机, ⚒️ 使用场景 (+17 more)
 
 ### Community 106 - "Ensurevoicesloaded"
-Cohesion: 0.29
-Nodes (7): ensureVoicesLoaded(), inferPreviewLang(), isBrowserTTSAbortError(), playBrowserTTSPreview(), PlayBrowserTTSPreviewOptions, resolveBrowserVoice(), TTSPreviewOptions
+Cohesion: 0.11
+Nodes (13): CodeBlock(), CodeBlockContext, CodeBlockContextType, CodeBlockCopyButtonProps, CodeBlockProps, lineNumberTransformer, getStatusBadge(), ToolContentProps (+5 more)
 
 ### Community 107 - "Isbrowserttsaborterror"
 Cohesion: 0.08
 Nodes (25): common, cancel, confirm, loading, you, home, greetingWithName, slogan (+17 more)
 
 ### Community 108 - "Playbrowserttspreview"
-Cohesion: 0.16
-Nodes (18): countErrors(), pct(), writeReport(), judgeDirective(), ReportContext, writeReport(), getCurrentDir(), loadScenarios() (+10 more)
+Cohesion: 0.18
+Nodes (17): countErrors(), pct(), writeReport(), judgeDirective(), ReportContext, writeReport(), getCurrentDir(), loadScenarios() (+9 more)
 
 ### Community 109 - "Resolvebrowservoice"
-Cohesion: 0.10
-Nodes (7): InputGroup(), InputGroupAddon(), inputGroupAddonVariants, InputGroupButton(), inputGroupButtonVariants, InputGroupInput(), InputGroupTextarea()
+Cohesion: 0.11
+Nodes (13): PlanActionProps, PlanContentProps, PlanContext, PlanContextValue, PlanDescription(), PlanDescriptionProps, PlanFooterProps, PlanHeaderProps (+5 more)
 
 ### Community 110 - "Getallasrproviders"
 Cohesion: 0.10
@@ -1123,8 +1134,8 @@ Cohesion: 0.09
 Nodes (23): description, devDependencies, typescript, exports, files, import, keywords, license (+15 more)
 
 ### Community 116 - "Hasanyenabledttsprovider"
-Cohesion: 0.10
-Nodes (32): AgentBar(), AgentVoicePill(), TeacherVoicePill(), AgentConfigPanel(), TTS_PROVIDERS, BROWSER_NATIVE_TTS_PROVIDER_ID, ConfigMap, hasAnyEnabledTTSProvider() (+24 more)
+Cohesion: 0.07
+Nodes (52): AgentBar(), AgentVoicePill(), getTTSProvider(), MINIMAX_TTS_MODELS, TTS_PROVIDERS, BROWSER_NATIVE_TTS_PROVIDER_ID, ConfigMap, hasAnyEnabledTTSProvider() (+44 more)
 
 ### Community 117 - "Isttsproviderconfigured"
 Cohesion: 0.08
@@ -1143,12 +1154,12 @@ Cohesion: 0.08
 Nodes (24): discussion, lecture, qa, chat, badge, ended, endQA, error (+16 more)
 
 ### Community 121 - "Generatetts"
-Cohesion: 0.12
-Nodes (29): mockFetch, base64ToBlob(), buildVoxCPMTargetText(), escapeXml(), generateAzureTTS(), generateDoubaoTTS(), generateElevenLabsTTS(), generateGLMTTS() (+21 more)
+Cohesion: 0.11
+Nodes (30): getAllTTSProviders(), mockFetch, base64ToBlob(), buildVoxCPMTargetText(), escapeXml(), generateAzureTTS(), generateDoubaoTTS(), generateElevenLabsTTS() (+22 more)
 
 ### Community 122 - "Getcurrentttsconfig"
-Cohesion: 0.08
-Nodes (24): actions, names, status, discussion, laser, spotlight, wb_clear, wb_close (+16 more)
+Cohesion: 0.14
+Nodes (14): names, discussion, laser, spotlight, wb_clear, wb_close, wb_delete, wb_draw_chart (+6 more)
 
 ### Community 123 - "Throwifttsratelimited"
 Cohesion: 0.08
@@ -1163,8 +1174,8 @@ Cohesion: 0.08
 Nodes (24): actions, names, status, discussion, laser, spotlight, wb_clear, wb_close (+16 more)
 
 ### Community 126 - "Splitlongspeechactions"
-Cohesion: 0.16
-Nodes (15): log, splitLongSpeechActions(), TTS_MAX_TEXT_LENGTH, fetchSceneActions(), fetchSceneContent(), generateTTSForScene(), getApiHeaders(), log (+7 more)
+Cohesion: 0.13
+Nodes (16): log, splitLongSpeechActions(), TTS_MAX_TEXT_LENGTH, isSceneEditLocked(), SceneEditLockState, fetchSceneActions(), fetchSceneContent(), generateTTSForScene() (+8 more)
 
 ### Community 127 - "Splitlongspeechtext"
 Cohesion: 0.08
@@ -1207,16 +1218,16 @@ Cohesion: 0.20
 Nodes (23): convertArg(), DocxMathContent, DocxRun, eqFieldToLatex(), eqFieldToPlainText(), eqToPlain(), extractRuns(), parseArray() (+15 more)
 
 ### Community 137 - "Ttspreviewoptions"
-Cohesion: 0.15
-Nodes (21): Border, Table, TableCell, BorderResult, applyCellProperties(), applyStyleBorders(), applyStyleFill(), applyTableBackground() (+13 more)
+Cohesion: 0.12
+Nodes (38): Border, Table, TableCell, applyCellProperties(), applyStyleBorders(), applyStyleFill(), applyTableBackground(), BorderSide (+30 more)
 
 ### Community 138 - "Usettspreview"
 Cohesion: 0.12
 Nodes (14): BaseImageElement(), BaseImageElementProps, ClipPathDef, CLIPPATHS, ClipPathTypes, ImageEllipseOutlineProps, ImageOutline(), ImageOutlineProps (+6 more)
 
 ### Community 139 - "Buildvoicedesignprompt"
-Cohesion: 0.16
-Nodes (13): AUTO_VOICE_ID_PREFIX, buildVoiceDesignPrompt(), getDeterministicVoiceId(), design, base64ToBlob(), blobToBase64(), ensureRegisteredVoice(), getCachedClip() (+5 more)
+Cohesion: 0.11
+Nodes (16): ChainOfThought, ChainOfThoughtContent, ChainOfThoughtContentProps, ChainOfThoughtContext, ChainOfThoughtContextValue, ChainOfThoughtHeader, ChainOfThoughtHeaderProps, ChainOfThoughtImage (+8 more)
 
 ### Community 140 - "Getdeterministicvoiceid"
 Cohesion: 0.09
@@ -1279,8 +1290,8 @@ Cohesion: 0.10
 Nodes (20): roundtable, autoPlay, autoPlayOff, discussionEnded, inputPlaceholder, listening, noSpeechDetected, processing (+12 more)
 
 ### Community 155 - "Buildautovoxcpmvoiceprompt"
-Cohesion: 0.13
-Nodes (23): buildAutoVoxCPMVoicePrompt(), buildVoxCPMBackendUrl(), getVoxCPMBackendEndpoint(), getVoxCPMProfileIdFromVoiceId(), sanitizeAutoVoicePromptPart(), design, audioBlobToWav(), audioBufferToMonoWav() (+15 more)
+Cohesion: 0.05
+Nodes (65): ensureVoicesLoaded(), inferPreviewLang(), isBrowserTTSAbortError(), playBrowserTTSPreview(), PlayBrowserTTSPreviewOptions, resolveBrowserVoice(), getTTSVoices(), TtsConfigPopover() (+57 more)
 
 ### Community 156 - "Buildvoxcpmbackendurl"
 Cohesion: 0.10
@@ -1327,8 +1338,8 @@ Cohesion: 0.11
 Nodes (19): devDependencies, @babel/core, @babel/plugin-transform-runtime, @babel/preset-env, @babel/runtime, eslint, rollup, @rollup/plugin-babel (+11 more)
 
 ### Community 167 - "Usevoxcpmvoiceprofiles"
-Cohesion: 0.19
-Nodes (16): buildVariants(), computeRates(), DecisionClass, emptyRates(), getCurrentDir(), loadScenarios(), main(), pct() (+8 more)
+Cohesion: 0.13
+Nodes (22): AnsweringScenario, buildVariants(), computeRates(), DecisionClass, emptyRates(), getCurrentDir(), loadScenarios(), main() (+14 more)
 
 ### Community 168 - "Validatevoxcpmreferenceaudio"
 Cohesion: 0.16
@@ -1343,8 +1354,8 @@ Cohesion: 0.19
 Nodes (16): findOMath(), latexFormart(), parseAccent(), parseBar(), parseBox(), parseDelimiter(), parseFraction(), parseFunction() (+8 more)
 
 ### Community 171 - "Voxcpmbackendsupportsvoiceregistration"
-Cohesion: 0.35
-Nodes (18): applyAlpha(), applyColorModifiers(), applyHueMod(), applyHueOff(), applyLumMod(), applyLumOff(), applySatMod(), applySatOff() (+10 more)
+Cohesion: 0.18
+Nodes (11): MessageResponse, PBLChatRequest, ChatPanelProps, PBLRoleSelectionProps, PBLAgent, PBLChat, PBLChatMessage, PBLIssue (+3 more)
 
 ### Community 172 - "Voxcpmbackendtype"
 Cohesion: 0.11
@@ -1355,12 +1366,12 @@ Cohesion: 0.11
 Nodes (17): config, agentIds, sessionType, description, id, initialStoreState, currentSceneId, scenes (+9 more)
 
 ### Community 174 - "Audioblobtowav"
-Cohesion: 0.08
-Nodes (31): ASR_PROVIDERS, SpeechButton(), audioBlobToWav(), audioBufferToMonoWav(), isWavBlob(), normalizeASRUploadAudio(), writeAscii(), ProactiveCard() (+23 more)
+Cohesion: 0.03
+Nodes (100): AgentRevealModal(), AgentRevealModalProps, ROLE_ICONS, SpeechButton(), SpeechButtonProps, audioBlobToWav(), audioBufferToMonoWav(), isWavBlob() (+92 more)
 
 ### Community 175 - "Iswavblob"
 Cohesion: 0.12
-Nodes (16): AI-Assisted PRs 🤖, Before You Submit a PR, Claiming Issues, Commit Message Convention, Contributing to OpenMAIC, Development Workflow, Getting Started, How to Contribute (+8 more)
+Nodes (16): AI-Assisted PRs 🤖, Before You Submit a PR, Claiming Issues, Commit Message Convention, Contributing to KelasKA, Development Workflow, Getting Started, How to Contribute (+8 more)
 
 ### Community 176 - "Normalizeasruploadaudio"
 Cohesion: 0.12
@@ -1407,8 +1418,8 @@ Cohesion: 0.22
 Nodes (16): analyzePathCommands(), checkIfCircular(), extractPathCommands(), getCustomShapePath(), identifyShape(), isParallelogram(), isRectangle(), isRhombus() (+8 more)
 
 ### Community 188 - "Getactiondisplayname"
-Cohesion: 0.02
-Nodes (67): ChainOfThought, ChainOfThoughtContent, ChainOfThoughtContentProps, ChainOfThoughtContext, ChainOfThoughtContextValue, ChainOfThoughtHeader, ChainOfThoughtHeaderProps, ChainOfThoughtImage (+59 more)
+Cohesion: 0.11
+Nodes (12): SourceProps, SourcesContentProps, SourcesProps, SourcesTriggerProps, TaskContentProps, TaskItemFileProps, TaskItemProps, TaskProps (+4 more)
 
 ### Community 189 - "Getmessageactionparts"
 Cohesion: 0.12
@@ -1431,16 +1442,16 @@ Cohesion: 0.15
 Nodes (22): runAgentLoop(), captureWhiteboard(), closeCapture(), initCapture(), VIEWPORT, formatNum(), generateReport(), mean() (+14 more)
 
 ### Community 194 - "Answerreader"
-Cohesion: 0.05
-Nodes (37): AnswerReader, CompleteSummary, summarizeScenes(), gradeChoiceQuestions(), isShortAnswer(), QuestionResult, clearAllForScene(), clearSubmitted() (+29 more)
+Cohesion: 0.17
+Nodes (5): AnswerReader, CompleteSummary, summarizeScenes(), gradeChoiceQuestions(), isShortAnswer()
 
 ### Community 195 - "Summarizescenes"
 Cohesion: 0.12
 Nodes (16): whiteboard, clear, clearError, clearSuccess, elementCount, history, minimize, noHistory (+8 more)
 
 ### Community 196 - "Ismaiceditorenabled"
-Cohesion: 0.17
-Nodes (13): Stage(), isMaicEditorEnabled(), readBoolean(), EditChromeRoot(), EditChromeRootProps, MultiTabEditConflictPrompt(), PlaybackChromeRoot, PlaybackChromeRootHandle (+5 more)
+Cohesion: 0.20
+Nodes (11): Stage(), isMaicEditorEnabled(), readBoolean(), EditChromeRoot(), EditChromeRootProps, PlaybackChromeRoot, PlaybackChromeRootHandle, preloadEditor() (+3 more)
 
 ### Community 197 - "Usemediastageid"
 Cohesion: 0.12
@@ -1451,16 +1462,16 @@ Cohesion: 0.12
 Nodes (16): whiteboard, clear, clearError, clearSuccess, elementCount, history, minimize, noHistory (+8 more)
 
 ### Community 199 - "Usescenedata"
-Cohesion: 0.06
-Nodes (60): AlignmentLine(), AlignmentLineComponentProps, ContextmenuItem, EditableElement(), ElementCreateSelection(), ElementCreateSelectionProps, Canvas(), CanvasProps (+52 more)
+Cohesion: 0.05
+Nodes (61): AlignmentLine(), AlignmentLineComponentProps, ContextmenuItem, EditableElement(), ElementCreateSelection(), ElementCreateSelectionProps, Canvas(), CanvasProps (+53 more)
 
 ### Community 200 - "Usesceneselector"
 Cohesion: 0.12
 Nodes (16): classroom, clearSearch, daysAgo, delete, deleteConfirmTitle, nameCopied, recentClassrooms, rename (+8 more)
 
 ### Community 201 - "Editlockkey"
-Cohesion: 0.44
-Nodes (9): editLockKey(), EditLockState, isEditLockHeldByOther(), readEditLock(), refreshEditLock(), releaseEditLock(), tryAcquireEditLock(), writeEditLock() (+1 more)
+Cohesion: 0.21
+Nodes (10): editLockKey(), EditLockState, isEditLockHeldByOther(), readEditLock(), refreshEditLock(), releaseEditLock(), MemoryStorage, tryAcquireEditLock() (+2 more)
 
 ### Community 202 - "Editlockstate"
 Cohesion: 0.12
@@ -1488,43 +1499,43 @@ Nodes (16): classroom, clearSearch, daysAgo, delete, deleteConfirmTitle, nameCop
 
 ### Community 208 - "Createelementid"
 Cohesion: 0.09
-Nodes (32): SceneDataController, createElementId(), AnchoredBar(), AnchoredBarProps, AnchoredDeleteBar(), AnchoredDeleteBarProps, AnchoredTextBar(), AnchoredTextBarProps (+24 more)
+Nodes (30): SceneDataController, AnchoredBar(), AnchoredBarProps, AnchoredDeleteBar(), AnchoredDeleteBarProps, AnchoredTextBar(), AnchoredTextBarProps, DeleteButton() (+22 more)
 
 ### Community 209 - "Preloadeditor"
 Cohesion: 0.12
 Nodes (16): whiteboard, clear, clearError, clearSuccess, elementCount, history, minimize, noHistory (+8 more)
 
 ### Community 210 - "Issceneeditlocked"
-Cohesion: 0.06
-Nodes (24): ArtifactActionProps, ArtifactActionsProps, ArtifactCloseProps, ArtifactContentProps, ArtifactDescriptionProps, ArtifactHeaderProps, ArtifactProps, ArtifactTitleProps (+16 more)
+Cohesion: 0.05
+Nodes (35): ArtifactActionProps, ArtifactActionsProps, ArtifactCloseProps, ArtifactContentProps, ArtifactDescriptionProps, ArtifactHeaderProps, ArtifactProps, ArtifactTitleProps (+27 more)
 
 ### Community 211 - "Commitslideedit"
 Cohesion: 0.04
-Nodes (73): SHAPE_LIST, SHAPE_PATH_FORMULAS, ShapeListItem, ShapePathFormula, ShapePoolItem, AnyRecord, changedKeys(), commitSlideEdit() (+65 more)
+Nodes (75): AnyRecord, changedKeys(), commitSlideEdit(), deriveSlideEditOperations(), ELEMENT_SKIP, SLIDE_META_SKIP, makeContent(), createDefaultImageElement() (+67 more)
 
 ### Community 212 - "Deriveslideeditoperations"
 Cohesion: 0.12
 Nodes (16): classroom, clearSearch, daysAgo, delete, deleteConfirmTitle, nameCopied, recentClassrooms, rename (+8 more)
 
 ### Community 213 - "Editorhint"
-Cohesion: 0.33
-Nodes (5): EditorHint, HintRail(), HintRailProps, ICONS, SEVERITY_STYLES
+Cohesion: 0.13
+Nodes (15): useDraftCache(), UseDraftCacheOptions, UseDraftCacheReturn, draftKey(), SubmittedState, gradeShortAnswerQuestion(), log, MultipleChoiceQuestion() (+7 more)
 
 ### Community 214 - "Surfacehistory"
 Cohesion: 0.12
 Nodes (16): whiteboard, clear, clearError, clearSuccess, elementCount, history, minimize, noHistory (+8 more)
 
 ### Community 215 - "Surfacestate"
-Cohesion: 0.13
-Nodes (11): EMPTY_STATE, NOOP_SURFACE, ReadOnlyBadge(), SurfaceState, GRID_STYLE, StageGrid(), StageGridProps, CommandBar() (+3 more)
+Cohesion: 0.07
+Nodes (29): EMPTY_STATE, NOOP_SURFACE, ReadOnlyBadge(), sceneEditorRegistry, surfaces, EditorCommand, EditorHint, FloatingAction (+21 more)
 
 ### Community 216 - "Createblankslidescene"
-Cohesion: 0.14
-Nodes (14): createBlankSlideScene(), DEFAULT_THEME, duplicateSlideScene(), makeGroupedSlideScene(), makeSlideScene(), makeTextEl(), getElementRange(), getLineElementPath() (+6 more)
+Cohesion: 0.10
+Nodes (22): createBlankSlideScene(), DEFAULT_THEME, duplicateSlideScene(), makeGroupedSlideScene(), makeSlideScene(), makeTextEl(), migrateScene(), migrateSceneContent() (+14 more)
 
 ### Community 217 - "Duplicateslidescene"
 Cohesion: 0.12
-Nodes (15): API, Companion package, Fonts (optional, CDN-hosted), Granular components — `@maic/renderer/elements`, Install, License, @maic/renderer, Media injection slots (+7 more)
+Nodes (15): API, Companion package, Fonts (optional, CDN-hosted), Granular components — `@kelaska/renderer/elements`, Install, @kelaska/renderer, License, Media injection slots (+7 more)
 
 ### Community 218 - "Createdefaultimageelement"
 Cohesion: 0.12
@@ -1577,6 +1588,10 @@ Nodes (15): text, alignCenter, alignLeft, alignRight, bold, bullet, color, font 
 ### Community 230 - "Slidemetapatch"
 Cohesion: 0.13
 Nodes (15): text, alignCenter, alignLeft, alignRight, bold, bullet, color, font (+7 more)
+
+### Community 231 - "Undoslideeditoperation"
+Cohesion: 0.14
+Nodes (3): AudioPlayer, createAudioPlayer(), log
 
 ### Community 232 - "Migratescene"
 Cohesion: 0.14
@@ -1635,8 +1650,8 @@ Cohesion: 0.15
 Nodes (15): AssetRef, AssetRefKind, collectAssetRefs(), createAssetFetcher(), buildInlinedImportmap(), extractSpecifiers(), inlineCssUrls(), inlineHtmlAssets() (+7 more)
 
 ### Community 246 - "Assetrefkind"
-Cohesion: 0.19
-Nodes (13): Carousel(), CarouselApi, CarouselContent(), CarouselContext, CarouselContextProps, CarouselItem(), CarouselNext(), CarouselOptions (+5 more)
+Cohesion: 0.14
+Nodes (5): ButtonGroup(), buttonGroupVariants, Field(), fieldVariants, Separator()
 
 ### Community 247 - "Collectassetrefs"
 Cohesion: 0.14
@@ -1648,7 +1663,7 @@ Nodes (12): Description, Game Design (CRITICAL - NOT A QUIZ!), Game Elements, Ga
 
 ### Community 249 - "Buildinlinedimportmap"
 Cohesion: 0.15
-Nodes (13): dependencies, jpegxr, jszip, katex, @maic/dsl, mathml-to-latex, nanoid, omml2mathml (+5 more)
+Nodes (13): dependencies, jpegxr, jszip, katex, @kelaska/dsl, mathml-to-latex, nanoid, omml2mathml (+5 more)
 
 ### Community 250 - "Extractspecifiers"
 Cohesion: 0.15
@@ -1659,8 +1674,8 @@ Cohesion: 0.15
 Nodes (13): stage, confirmSwitchMessage, confirmSwitchTitle, courseComplete, currentScene, doneEditing, editCourse, exitFullscreen (+5 more)
 
 ### Community 252 - "Inlinecssurls"
-Cohesion: 0.18
-Nodes (11): SCHEME_COLORS, SchemeColor, Color, Coord, ShadowProps, ShapeFillProps, ShapeLineProps, TextGlowProps (+3 more)
+Cohesion: 0.15
+Nodes (28): SCHEME_COLORS, ChartLineCap, Color, Coord, ShadowProps, ShapeFillProps, ShapeLineProps, TextGlowProps (+20 more)
 
 ### Community 253 - "Inlinehtmlassets"
 Cohesion: 0.21
@@ -1684,7 +1699,7 @@ Nodes (12): classroomComplete, encouragement, quizScoreLabel, title, trailLabels
 
 ### Community 258 - "Latextoomml"
 Cohesion: 0.06
-Nodes (49): buildMathRPr(), latexToOmml(), log, postProcessOmml(), stripUnsupportedMathML(), math(), semantics(), menclose() (+41 more)
+Nodes (44): math(), semantics(), menclose(), mfrac(), mglyph(), mmultiscripts(), mroot(), mrow() (+36 more)
 
 ### Community 259 - "Createproxiedfetch"
 Cohesion: 0.17
@@ -1704,11 +1719,11 @@ Nodes (12): classroomComplete, encouragement, quizScoreLabel, title, trailLabels
 
 ### Community 263 - "Useexportclassroom"
 Cohesion: 0.04
-Nodes (55): AgentRevealModal(), AgentRevealModalProps, ROLE_ICONS, Header(), HeaderProps, LanguageSwitcher(), LanguageSwitcherProps, ContentVisualizer() (+47 more)
+Nodes (51): OpenInChatGPT(), OpenInChatGPTProps, OpenInClaude(), OpenInClaudeProps, OpenInContentProps, OpenInContext, OpenInCursor(), OpenInCursorProps (+43 more)
 
 ### Community 264 - "Buildpptxblob"
-Cohesion: 0.17
-Nodes (11): 0. Choose Mode, 1. Clone Or Reuse Existing Repo, 2. Choose Startup Mode, 3. Configure Provider Keys, 4. Start And Verify OpenMAIC, 5. Generate A Classroom, Core Rules, OpenMAIC Skill (+3 more)
+Cohesion: 0.13
+Nodes (11): Reasoning, ReasoningContent, ReasoningContentProps, ReasoningContext, ReasoningContextValue, ReasoningProps, ReasoningTrigger, ReasoningTriggerProps (+3 more)
 
 ### Community 265 - "Useexportpptx"
 Cohesion: 0.17
@@ -1732,27 +1747,27 @@ Nodes (11): EmfContent, extractPdfFromBuffer(), findSequence(), matchesAt(), par
 
 ### Community 270 - "Applyoutlinefallbacks"
 Cohesion: 0.18
-Nodes (10): 1. Run a VoxCPM backend, 2. Point OpenMAIC at it, 3. Voice management, A. Per-user (Settings UI, no server change), Auto Voice (default), B. Server-side (env var, default for everyone), Clone voice, Prompt voice (+2 more)
+Nodes (10): 1. Run a VoxCPM backend, 2. Point KelasKA at it, 3. Voice management, A. Per-user (Settings UI, no server change), Auto Voice (default), B. Server-side (env var, default for everyone), Clone voice, Prompt voice (+2 more)
 
 ### Community 271 - "Generatesceneoutlinesfromrequirements"
 Cohesion: 0.18
-Nodes (10): 1. شغّل VoxCPM backend, 2. وجّه OpenMAIC إليه, 3. إدارة الأصوات, A. لكل مستخدم (Settings UI بلا تغيير في الخادم), Auto Voice (افتراضي), B. على الخادم (env var، افتراضي للجميع), Clone voice, Prompt voice (+2 more)
+Nodes (10): 1. شغّل VoxCPM backend, 2. وجّه KelasKA إليه, 3. إدارة الأصوات, A. لكل مستخدم (Settings UI بلا تغيير في الخادم), Auto Voice (افتراضي), B. على الخادم (env var، افتراضي للجميع), Clone voice, Prompt voice (+2 more)
 
 ### Community 272 - "Creategenerationsession"
 Cohesion: 0.18
-Nodes (10): 1. VoxCPM backend を起動する, 2. OpenMAIC から接続する, 3. 音声管理, A. ユーザー単位（Settings UI、サーバー変更なし）, Auto Voice（既定）, B. サーバー側（環境変数、全員の既定値）, Clone voice, Prompt voice (+2 more)
+Nodes (10): 1. VoxCPM backend を起動する, 2. KelasKA から接続する, 3. 音声管理, A. ユーザー単位（Settings UI、サーバー変更なし）, Auto Voice（既定）, B. サーバー側（環境変数、全員の既定値）, Clone voice, Prompt voice (+2 more)
 
 ### Community 273 - "Rungenerationpipeline"
 Cohesion: 0.18
-Nodes (10): 1. Запустите VoxCPM backend, 2. Направьте OpenMAIC на backend, 3. Управление голосами, A. Для одного пользователя (Settings UI, без изменений сервера), Auto Voice (по умолчанию), B. На стороне сервера (env var, значение по умолчанию для всех), Clone voice, Prompt voice (+2 more)
+Nodes (10): 1. Запустите VoxCPM backend, 2. Направьте KelasKA на backend, 3. Управление голосами, A. Для одного пользователя (Settings UI, без изменений сервера), Auto Voice (по умолчанию), B. На стороне сервера (env var, значение по умолчанию для всех), Clone voice, Prompt voice (+2 more)
 
 ### Community 274 - "Aicallfn"
 Cohesion: 0.18
-Nodes (10): 1. 起一个 VoxCPM 后端, 2. 让 OpenMAIC 对接它, 3. 声音管理, A. 单用户（设置 UI，不动服务端）, Auto Voice（默认）, B. 服务端默认（环境变量，所有人共用）, Clone voice（声音克隆）, Prompt voice（提示词音色） (+2 more)
+Nodes (10): 1. 起一个 VoxCPM 后端, 2. 让 KelasKA 对接它, 3. 声音管理, A. 单用户（设置 UI，不动服务端）, Auto Voice（默认）, B. 服务端默认（环境变量，所有人共用）, Clone voice（声音克隆）, Prompt voice（提示词音色） (+2 more)
 
 ### Community 275 - "Generatedslidedata"
 Cohesion: 0.18
-Nodes (10): 1. 啟動 VoxCPM 後端, 2. 讓 OpenMAIC 對接它, 3. 聲音管理, A. 單一使用者（Settings UI，不改伺服器）, Auto Voice（預設）, B. 伺服器端預設（環境變數，所有人共用）, Clone voice, Prompt voice (+2 more)
+Nodes (10): 1. 啟動 VoxCPM 後端, 2. 讓 KelasKA 對接它, 3. 聲音管理, A. 單一使用者（Settings UI，不改伺服器）, Auto Voice（預設）, B. 伺服器端預設（環境變數，所有人共用）, Clone voice, Prompt voice (+2 more)
 
 ### Community 276 - "Generationresult"
 Cohesion: 0.24
@@ -1771,8 +1786,8 @@ Cohesion: 0.18
 Nodes (11): devDependencies, rollup, @rollup/plugin-commonjs, @rollup/plugin-node-resolve, @rollup/plugin-typescript, tslib, @types/katex, @types/react (+3 more)
 
 ### Community 280 - "Formatagentsforprompt"
-Cohesion: 0.22
-Nodes (5): BaseTableElement(), BaseTableElementProps, StaticTable(), StaticTableProps, getTextStyle()
+Cohesion: 0.29
+Nodes (3): StaticTable(), StaticTableProps, getTextStyle()
 
 ### Community 281 - "Formatimagedescription"
 Cohesion: 0.20
@@ -1823,8 +1838,8 @@ Cohesion: 0.20
 Nodes (10): step2, desc, title, desc, example, title, desc, s1 (+2 more)
 
 ### Community 293 - "Asrerrorcode"
-Cohesion: 0.40
-Nodes (3): ASRErrorCode, log, UseBrowserASROptions
+Cohesion: 0.21
+Nodes (9): Tool(), ModeMCP, GeneratePBLCallbacks, GeneratePBLConfig, generatePBLContent(), postProcessPBL(), buildPBLSystemPrompt(), PBLSystemPromptConfig (+1 more)
 
 ### Community 294 - "Usebrowserasr"
 Cohesion: 0.20
@@ -1843,8 +1858,8 @@ Cohesion: 0.20
 Nodes (10): step2, desc, title, desc, example, title, desc, s1 (+2 more)
 
 ### Community 298 - "Canvasoperations"
-Cohesion: 0.20
-Nodes (10): agentBar, configTooltip, expandedTitle, noMatchingVoices, noVoice, readyToLearn, searchVoice, voiceAutoAssign (+2 more)
+Cohesion: 0.26
+Nodes (13): QuestionResult, clearAllForScene(), clearSubmitted(), QuizAnswers, readAnswersForSummary(), readSubmittedState(), safeGet(), safeRemove() (+5 more)
 
 ### Community 299 - "Usecanvasoperations"
 Cohesion: 0.20
@@ -1855,8 +1870,8 @@ Cohesion: 0.20
 Nodes (10): help, howItWorks, step1, step3, title, guide, desc, title (+2 more)
 
 ### Community 301 - "Usedraftcache"
-Cohesion: 0.06
-Nodes (37): inter, metadata, ClassroomCard(), FormState, GreetingBar(), HomePage(), initialFormState, isCustomAvatar() (+29 more)
+Cohesion: 0.04
+Nodes (46): ClassroomCard(), FormState, GreetingBar(), HomePage(), initialFormState, isCustomAvatar(), log, isCustomAvatar() (+38 more)
 
 ### Community 302 - "Usehistorysnapshot"
 Cohesion: 0.20
@@ -1900,7 +1915,7 @@ Nodes (10): help, howItWorks, step1, step3, title, guide, desc, title (+2 more)
 
 ### Community 313 - "Ast"
 Cohesion: 0.08
-Nodes (40): format(), toAST(), findTextEnd(), jumpPosition(), lex(), lexComment(), lexer(), lexSkipTag() (+32 more)
+Nodes (39): format(), findTextEnd(), jumpPosition(), lex(), lexComment(), lexer(), lexSkipTag(), lexTag() (+31 more)
 
 ### Community 314 - "Attributetoken"
 Cohesion: 0.20
@@ -1976,7 +1991,7 @@ Nodes (9): 1. Development Mode, 2. Production-Like Local Mode, 3. Docker Compose
 
 ### Community 332 - "Locale"
 Cohesion: 0.22
-Nodes (8): Build, Dependency arrows (acyclic), Divergence reconciled (seed provenance), License, @maic/dsl, Roadmap, Status, What's in here
+Nodes (8): Build, Dependency arrows (acyclic), Divergence reconciled (seed provenance), @kelaska/dsl, License, Roadmap, Status, What's in here
 
 ### Community 333 - "Importphase"
 Cohesion: 0.22
@@ -2016,7 +2031,7 @@ Nodes (9): browser, express, fs, https, image-size, node:fs, node:https, os (+1 
 
 ### Community 342 - "Testimageconnectivity"
 Cohesion: 0.22
-Nodes (9): dependencies, clsx, html2canvas-pro, html-to-image, katex, lucide-react, @maic/dsl, tailwind-merge (+1 more)
+Nodes (9): dependencies, clsx, html2canvas-pro, html-to-image, katex, @kelaska/dsl, lucide-react, tailwind-merge (+1 more)
 
 ### Community 343 - "Generatemediaforoutlines"
 Cohesion: 0.22
@@ -2071,8 +2086,8 @@ Cohesion: 0.25
 Nodes (8): allCompleteMessage, currentIssue, issueCompleteMessage, mentionHint, placeholder, send, title, chat
 
 ### Community 356 - "Buildvideomanifestfromoutlines"
-Cohesion: 0.12
-Nodes (18): GenerationPreviewContent(), log, ALL_STEPS, getActiveSteps(), buildVideoManifestFromOutlines(), getVideoMediaRefForElement(), isGeneratedVideoRef(), resolveVideoManifestEntry() (+10 more)
+Cohesion: 0.08
+Nodes (23): AgentVoiceResolveOptions, effectiveVoiceDesign(), pickNarratorAgent(), resolveAgentVoiceOptions(), DESIGN, mockGetOptions, TTSProviderConfigShape, warmUpAgentVoices() (+15 more)
 
 ### Community 357 - "Getvideomediarefforelement"
 Cohesion: 0.25
@@ -2107,8 +2122,8 @@ Cohesion: 0.25
 Nodes (7): Agent Design Guidelines, Issue Agent Auto-Creation, Issue Design Guidelines, Language, Mode System, Workflow, Your Responsibility
 
 ### Community 365 - "Builddirectorprompt"
-Cohesion: 0.27
-Nodes (7): classify(), buildDirectorPrompt(), buildWhiteboardStateForDirector(), log, parseDirectorDecision(), summarizeWhiteboardForDirector(), ParsedSample
+Cohesion: 0.14
+Nodes (7): ClassroomCompletePage(), ClassroomCompletePageProps, CONFETTI_COLORS, encouragementKey(), Particle, SCENE_TYPE_ICONS, TYPE_ORDER
 
 ### Community 366 - "Parsedirectordecision"
 Cohesion: 0.25
@@ -2119,8 +2134,8 @@ Cohesion: 0.32
 Nodes (4): canvasToBlob(), nextFrame(), slideToPng(), SlideToPngOptions
 
 ### Community 368 - "Buildstructuredprompt"
-Cohesion: 0.08
-Nodes (32): buildDiscussionContextSection(), buildLanguageConstraint(), buildLengthGuidelines(), buildStructuredPrompt(), buildStudentProfileSection(), buildWhiteboardGuidelines(), DiscussionContext, ROLE_GUIDELINES (+24 more)
+Cohesion: 0.13
+Nodes (21): buildDiscussionContextSection(), buildLanguageConstraint(), buildLengthGuidelines(), buildStructuredPrompt(), buildStudentProfileSection(), buildWhiteboardGuidelines(), DiscussionContext, ROLE_GUIDELINES (+13 more)
 
 ### Community 369 - "Createparserstate"
 Cohesion: 0.25
@@ -2135,8 +2150,8 @@ Cohesion: 0.29
 Nodes (6): Animated step reveals, Code demonstrations, Core discipline, Keep the board open, Layout conflicts, Whiteboard — Teacher Role
 
 ### Community 372 - "Getactiondescriptions"
-Cohesion: 0.33
-Nodes (5): Chart(), ChartProps, ChartOptionPayload, EChartOption, getChartOption()
+Cohesion: 0.26
+Nodes (14): assignBakedRotFlip(), BakedTransform, bakeGroupTransform(), ChildEl, detectLineOrientation(), FILL_TAGS, findGroupFillNode(), groupToElement() (+6 more)
 
 ### Community 373 - "Geteffectiveactions"
 Cohesion: 0.29
@@ -2190,9 +2205,13 @@ Nodes (6): ASR 模型, LLM 模型, PDF 解析提供方, TTS 模型与后端, 图
 Cohesion: 0.29
 Nodes (6): ASR 模型, LLM 模型, PDF 解析供應商, TTS 模型與後端, 圖像生成模型, 影片生成模型
 
+### Community 386 - "Pbltoolresult"
+Cohesion: 0.24
+Nodes (12): isProviderKeyRequired(), ModelWithInfo, parseModelString(), log, POST(), resolveApiKey(), resolveBaseUrl(), resolveProxy() (+4 more)
+
 ### Community 387 - "Getallpdfproviders"
 Cohesion: 0.11
-Nodes (26): getAllPDFProviders(), getPDFProvider(), PDF_PROVIDERS, BatchExtractRow, fetchWithRetry(), isRetryable(), log, MIME_MAP (+18 more)
+Nodes (25): log, getAllPDFProviders(), getPDFProvider(), BatchExtractRow, fetchWithRetry(), isRetryable(), log, MIME_MAP (+17 more)
 
 ### Community 388 - "Getpdfprovider"
 Cohesion: 0.29
@@ -2251,8 +2270,8 @@ Cohesion: 0.52
 Nodes (6): blockQuoteRule(), buildInputRules(), bulletListRule(), codeRule(), linkRule(), orderedListRule()
 
 ### Community 402 - "Interpolatevariables"
-Cohesion: 0.22
-Nodes (14): buildPromptFromTemplate(), buildPromptFromTemplate(), getPromptsDir(), interpolateVariables(), loadPrompt(), loadSnippet(), log, processConditionalBlocks() (+6 more)
+Cohesion: 0.17
+Nodes (19): buildPromptFromTemplate(), buildPromptFromTemplate(), buildVariants(), FIX_RULE_NUMBERS, readDirectorTemplate(), stripFixRules(), summarizeConversationPreFix(), getPromptsDir() (+11 more)
 
 ### Community 403 - "Loadprompt"
 Cohesion: 0.29
@@ -2283,8 +2302,8 @@ Cohesion: 0.33
 Nodes (5): Layout conflicts, Speech over drawing, What NOT to do, What to contribute, Whiteboard — Teaching Assistant Role
 
 ### Community 410 - "Hasactivetexteditor"
-Cohesion: 0.23
-Nodes (8): hasActiveTextEditor(), registerActiveTextEditor(), runActiveTextCommand(), Runner, runners, TextCommandPayload, shouldPushAttrs(), ToggleButtonProps
+Cohesion: 0.29
+Nodes (6): hasActiveTextEditor(), registerActiveTextEditor(), runActiveTextCommand(), Runner, runners, shouldPushAttrs()
 
 ### Community 411 - "Registeractivetexteditor"
 Cohesion: 0.47
@@ -2363,8 +2382,8 @@ Cohesion: 0.33
 Nodes (6): pbl, emptyProject, legacyFormat, roleSelection, description, title
 
 ### Community 430 - "Getdefaultagents"
-Cohesion: 0.06
-Nodes (51): AGENT_COLOR_PALETTE, AGENT_DEFAULT_AVATARS, DEFAULT_AGENTS, getDefaultAgents(), SLIDE_ACTIONS, WHITEBOARD_ACTIONS, DefaultModeFields, GenerateModeFields (+43 more)
+Cohesion: 0.14
+Nodes (21): resolveServerWebSearchProviderId(), resolveWebSearchApiKey(), resolveWebSearchBaseUrl(), buildSearchQuery(), log, normalizePdfExcerpt(), normalizeSearchRequirement(), SearchQueryBuildResult (+13 more)
 
 ### Community 431 - "Loadgeneratedagentsforstage"
 Cohesion: 0.33
@@ -2455,8 +2474,8 @@ Cohesion: 0.33
 Nodes (6): noIssues, statusActive, statusDone, statusPending, title, issueboard
 
 ### Community 453 - "Generatemediaforclassroom"
-Cohesion: 0.09
-Nodes (40): DEFAULT_TTS_VOICES, VOXCPM_TTS_PROVIDER_ID, GET(), ensureDir(), generateMediaForClassroom(), generateTTSForClassroom(), log, mediaServingUrl() (+32 more)
+Cohesion: 0.06
+Nodes (80): DEFAULT_TTS_MODELS, normalizeVoiceDesign(), GET(), log, POST(), aspectRatioToDimensions(), generateVideo(), normalizeVideoOptions() (+72 more)
 
 ### Community 454 - "Generatettsforclassroom"
 Cohesion: 0.33
@@ -2515,12 +2534,12 @@ Cohesion: 0.33
 Nodes (4): DSL_MIGRATIONS, DSL_VERSION, DslMigration, DslVersion
 
 ### Community 468 - "Getserverttsproviders"
-Cohesion: 0.33
-Nodes (5): SHAPE_LIST, SHAPE_PATH_FORMULAS, ShapeListItem, ShapePathFormula, ShapePoolItem
+Cohesion: 0.24
+Nodes (7): AgentAvatar(), AgentAvatarProps, isUrl(), Avatar(), AvatarFallback(), AvatarImage(), CardDescription()
 
 ### Community 469 - "Getservervideoproviders"
-Cohesion: 0.47
-Nodes (4): getElementRange(), getLineElementPath(), getRectRotatedRange(), RotatedElementData
+Cohesion: 0.15
+Nodes (13): stage, confirmSwitchMessage, confirmSwitchTitle, courseComplete, currentScene, doneEditing, editCourse, exitFullscreen (+5 more)
 
 ### Community 470 - "Getserverwebsearchproviders"
 Cohesion: 0.33
@@ -2603,8 +2622,8 @@ Cohesion: 0.40
 Nodes (5): workspace, cancel, confirm, confirmRestart, restart
 
 ### Community 490 - "Proxyfetch"
-Cohesion: 0.07
-Nodes (50): getProxyAgent(), getProxyUrl(), log, proxyFetch(), WebSearchResult, WebSearchSource, BaiduBaikeResponse, BaiduBaikeResult (+42 more)
+Cohesion: 0.06
+Nodes (57): getProxyAgent(), getProxyUrl(), log, proxyFetch(), WebSearchResult, WebSearchSource, BaiduBaikeResponse, BaiduBaikeResult (+49 more)
 
 ### Community 491 - "Resolvemodel"
 Cohesion: 0.40
@@ -2667,8 +2686,8 @@ Cohesion: 0.40
 Nodes (5): sceneType, interactive, pbl, quiz, slide
 
 ### Community 506 - "Iframepoolentry"
-Cohesion: 0.17
-Nodes (10): InteractiveIframeHost(), PooledIframe(), PooledIframeProps, IframePoolEntry, IframeRect, InteractiveIframePoolState, MountInput, useInteractiveIframePool (+2 more)
+Cohesion: 0.12
+Nodes (14): InteractiveRenderer(), InteractiveRendererProps, InteractiveIframeHost(), PooledIframe(), PooledIframeProps, IframePoolEntry, IframeRect, InteractiveIframePoolState (+6 more)
 
 ### Community 507 - "Iframerect"
 Cohesion: 0.40
@@ -2687,20 +2706,20 @@ Cohesion: 0.40
 Nodes (5): optional, peerDependenciesMeta, echarts, shiki, optional
 
 ### Community 511 - "Mediataskstatus"
-Cohesion: 0.40
-Nodes (4): destDir, __dirname, root, srcDir
+Cohesion: 0.23
+Nodes (5): AgentLoopRequest, AISdkLangGraphAdapter, log, StreamChunk, ThinkingConfig
 
 ### Community 512 - "Playbackspeed"
 Cohesion: 0.40
-Nodes (4): Disclosure Process, Reporting a Vulnerability, Security Policy for OpenMAIC, Supported Versions
+Nodes (4): Disclosure Process, Reporting a Vulnerability, Security Policy for KelasKA, Supported Versions
 
 ### Community 513 - "Promotelegacycustomproviderbaseurls"
 Cohesion: 0.50
 Nodes (3): Layout conflicts, When invited, Whiteboard — Student Role
 
 ### Community 514 - "Hasusablellmprovider"
-Cohesion: 0.18
-Nodes (14): resolveLLMSelection(), getStore(), localStorageStub, mockFetch, MockServerResponse, storage, hasUsableLLMProvider(), isLLMProviderConfigured() (+6 more)
+Cohesion: 0.17
+Nodes (11): 0. Choose Mode, 1. Clone Or Reuse Existing Repo, 2. Choose Startup Mode, 3. Configure Provider Keys, 4. Start And Verify KelasKA, 5. Generate A Classroom, Core Rules, KelasKA Skill (+3 more)
 
 ### Community 517 - "Llmprovidercfglike"
 Cohesion: 0.50
@@ -2731,8 +2750,8 @@ Cohesion: 0.50
 Nodes (4): assistant, student, teacher, agentRoles
 
 ### Community 524 - "Openaimessage"
-Cohesion: 0.12
-Nodes (25): AnsweringScenario, classifyDecision(), endRate(), BuildArgs, buildVariants(), FIX_RULE_NUMBERS, readDirectorTemplate(), stripFixRules() (+17 more)
+Cohesion: 0.16
+Nodes (18): classify(), parseDirectorDecision(), classifyDecision(), endRate(), ParsedSample, callDirector(), getCurrentDir(), loadScenarios() (+10 more)
 
 ### Community 525 - "Summarizeconversation"
 Cohesion: 0.50
@@ -2775,8 +2794,12 @@ Cohesion: 0.50
 Nodes (4): themeOptions, dark, light, system
 
 ### Community 535 - "Lecturenoteentry"
-Cohesion: 0.09
-Nodes (23): ChatArea, ChatAreaProps, AVATARS, ChatSessionComponent(), MessageBubble, MessagePart, ACTION_CONFIG, ActionCfg (+15 more)
+Cohesion: 0.21
+Nodes (7): BaseShapeElement(), BaseShapeElementProps, GradientDefs(), GradientDefsProps, PatternDefs(), PatternDefsProps, useElementFill()
+
+### Community 537 - "Messageaction"
+Cohesion: 0.31
+Nodes (8): HeaderProps, SlideEditor(), PBLRenderer(), PBLRendererProps, HeaderControlsProps, SceneRendererProps, PBLContent, StageMode
 
 ### Community 538 - "Parsedtoolcall"
 Cohesion: 0.50
@@ -2791,8 +2814,8 @@ Cohesion: 0.50
 Nodes (4): ./types, import, require, types
 
 ### Community 541 - "Sessionlistitem"
-Cohesion: 0.50
-Nodes (3): entry, rel, root
+Cohesion: 0.20
+Nodes (10): actions, status, error, inputAvailable, inputStreaming, outputAvailable, outputDenied, outputError (+2 more)
 
 ### Community 542 - "Sessionsummary"
 Cohesion: 0.50
@@ -2807,8 +2830,16 @@ Cohesion: 0.50
 Nodes (3): PDF Excerpt, Task, User Requirement
 
 ### Community 545 - "Alignmentlineaxis"
-Cohesion: 0.11
-Nodes (39): LINE_LIST, LinePoolItem, PresetLine, useCommonOperate(), BorderLine(), BorderLineProps, CommonElementOperate(), CommonElementOperateProps (+31 more)
+Cohesion: 0.14
+Nodes (31): useCommonOperate(), BorderLine(), BorderLineProps, CommonElementOperate(), CommonElementOperateProps, PPTElement, ImageElementOperate(), ImageElementOperateProps (+23 more)
+
+### Community 547 - "Createelementselectiondata"
+Cohesion: 0.28
+Nodes (3): statusKeyMap, Badge(), badgeVariants
+
+### Community 548 - "Creatingelement"
+Cohesion: 0.25
+Nodes (8): PromptInput(), PromptInputActionAddAttachments(), PromptInputAttachment(), PromptInputAttachments(), PromptInputTextarea(), useOptionalPromptInputController(), useOptionalProviderAttachments(), usePromptInputAttachments()
 
 ### Community 552 - "Multiselectrange"
 Cohesion: 0.67
@@ -2819,8 +2850,8 @@ Cohesion: 0.67
 Nodes (3): ttsModelOptions, azureTts, openaiTts
 
 ### Community 554 - "Textformatpainterkeys"
-Cohesion: 0.13
-Nodes (16): replaceText(), setListStyle(), Style, alignmentCommand(), setTextAlign(), HOTKEY_DOC, HotkeyItem, KEYS (+8 more)
+Cohesion: 0.12
+Nodes (17): replaceText(), setListStyle(), Style, alignmentCommand(), setTextAlign(), HOTKEY_DOC, HotkeyItem, KEYS (+9 more)
 
 ### Community 556 - "Generationsession"
 Cohesion: 0.67
@@ -2866,25 +2897,57 @@ Nodes (3): BackgroundProps, ShapeFillProps, ShapeLineProps
 Cohesion: 0.67
 Nodes (3): WriteBaseProps, WriteFileProps, WriteProps
 
+### Community 580 - "Animationtrigger"
+Cohesion: 0.32
+Nodes (4): SuggestionProps, SuggestionsProps, ScrollArea(), ScrollBar()
+
 ### Community 582 - "Chartdata"
 Cohesion: 0.16
 Nodes (17): BaseChartElement(), BaseChartElementProps, Chart(), ChartProps, ChartOptionPayload, EChartOption, getChartOption(), ChartElement() (+9 more)
 
 ### Community 585 - "Codeline"
-Cohesion: 0.15
-Nodes (11): BaseCodeElement(), BaseCodeElementProps, CodeLineRow(), computeRevealSteps(), getTypingCharCount(), getTypingDuration(), LANG_DISPLAY_NAMES, LineAnimationState (+3 more)
+Cohesion: 0.14
+Nodes (12): BaseCodeElement(), BaseCodeElementProps, CodeLineRow(), computeRevealSteps(), getTypingCharCount(), getTypingDuration(), LANG_DISPLAY_NAMES, LineAnimationState (+4 more)
 
 ### Community 602 - "Pptlatexelement"
 Cohesion: 0.29
-Nodes (6): ALIGN_MAP, BaseLatexElement(), BaseLatexElementProps, LatexElement(), LatexElementProps, PPTLatexElement
+Nodes (7): SHAPE_LIST, SHAPE_PATH_FORMULAS, ShapeListItem, ShapePathFormula, ShapePoolItem, ShapeSpec, ShapePathFormulasKeys
 
 ### Community 605 - "Ppttableelement"
 Cohesion: 0.23
 Nodes (12): BaseTableElement(), BaseTableElementProps, TableElement(), TableElementProps, StaticTable(), StaticTableProps, formatText(), getHiddenCells() (+4 more)
 
+### Community 616 - "Community 616"
+Cohesion: 0.33
+Nodes (6): ATTENTION_ANIMATIONS, ENTER_ANIMATIONS, EXIT_ANIMATIONS, SLIDE_ANIMATIONS, SlideAnimation, TurningMode
+
+### Community 617 - "Community 617"
+Cohesion: 0.33
+Nodes (6): log, parseActionsFromStructuredOutput(), stripCodeFences(), ActionType, SLIDE_ONLY_ACTIONS, SuggestedAction
+
+### Community 618 - "Community 618"
+Cohesion: 0.33
+Nodes (5): SHAPE_LIST, SHAPE_PATH_FORMULAS, ShapeListItem, ShapePathFormula, ShapePoolItem
+
+### Community 619 - "Community 619"
+Cohesion: 0.47
+Nodes (4): getElementRange(), getLineElementPath(), getRectRotatedRange(), RotatedElementData
+
+### Community 621 - "Community 621"
+Cohesion: 0.40
+Nodes (4): destDir, __dirname, root, srcDir
+
+### Community 622 - "Community 622"
+Cohesion: 0.83
+Nodes (3): convertLatexDelimiters(), injectKatex(), postProcessInteractiveHtml()
+
 ### Community 624 - "Quizcontent"
-Cohesion: 0.07
-Nodes (29): ControlsProps, ConversationContentProps, ConversationEmptyStateProps, ConversationProps, ConversationScrollButtonProps, ImageProps, LoaderIconProps, LoaderProps (+21 more)
+Cohesion: 0.22
+Nodes (4): ConversationContentProps, ConversationEmptyStateProps, ConversationProps, ConversationScrollButtonProps
+
+### Community 625 - "Community 625"
+Cohesion: 0.50
+Nodes (3): entry, rel, root
 
 ### Community 629 - "Codeconfig"
 Cohesion: 0.15
@@ -2895,24 +2958,24 @@ Cohesion: 0.16
 Nodes (17): useSlideBackgroundStyle(), UseViewportSizeOptions, UseViewportSizeResult, ViewportStyles, SlideContext, SlideContextValue, SlideRendererProvider(), SlideRendererProviderProps (+9 more)
 
 ## Knowledge Gaps
-- **6047 isolated node(s):** `log`, `log`, `log`, `MIME_TYPES`, `log` (+6042 more)
+- **6048 isolated node(s):** `log`, `log`, `log`, `MIME_TYPES`, `log` (+6043 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **43 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `cn` connect `Quizcontent` to `AI Providers & Settings`, `Stage API & Chat Orchestration`, `Useexportclassroom`, `Editor Surface & Commands`, `Module Group 16`, `Lecturenoteentry`, `Findelementgeometry`, `Testlemonadeimageconnectivity`, `Generatewithminimaxvideo`, `Usedraftcache`, `Audioblobtowav`, `Getactiondisplayname`, `Getcatalogthinkingcapability`, `Getmodelmetadatakey`, `Getmodel`, `Answerreader`, `Usescenedata`, `Pickthinkingeffort`, `Supportsconfigurablethinking`, `Issceneeditlocked`, `Surfacestate`, `Buildvideomanifestfromoutlines`, `Resolvebrowservoice`, `Getallasrproviders`, `Hasanyenabledttsprovider`, `Assetrefkind`?**
+- **Why does `cn` connect `AI Providers & Settings` to `Useexportclassroom`, `Buildpptxblob`, `Buildvoicedesignprompt`, `Editor Surface & Commands`, `Module Group 16`, `Findelementgeometry`, `Buildautovoxcpmvoiceprompt`, `Createelementselectiondata`, `Testlemonadeimageconnectivity`, `Generatewithminimaxvideo`, `Usedraftcache`, `Audioblobtowav`, `Getactiondisplayname`, `Getcatalogthinkingcapability`, `Getmodelmetadatakey`, `Getmodel`, `Animationtrigger`, `Getthinkingconfigkey`, `Usescenedata`, `Pickthinkingeffort`, `Issceneeditlocked`, `Getserverttsproviders`, `Editorhint`, `Surfacestate`, `Buildvideomanifestfromoutlines`, `Ensurevoicesloaded`, `Resolvebrowservoice`, `Getallasrproviders`, `Builddirectorprompt`, `Quizcontent`, `Assetrefkind`?**
   _High betweenness centrality (0.052) - this node is a cross-community bridge._
-- **Why does `createLogger()` connect `Parsemodelstring` to `Action Types & Events`, `AI Providers & Settings`, `Latextoomml`, `Getallpdfproviders`, `Playback Engine`, `Scene Generation & Widgets`, `Stage API & Chat Orchestration`, `Generation Pipeline`, `Agent Loop & Chat Buffer`, `MCP & PBL System`, `Chat Session Management`, `Module Group 15`, `Module Group 16`, `Interpolatevariables`, `Module Group 19`, `Module Group 21`, `Asrerrorcode`, `Usedraftcache`, `Audioblobtowav`, `Getdefaultagents`, `Callllm`, `Answerreader`, `Generatemediaforclassroom`, `Getthinkingconfigkey`, `Commitslideedit`, `Buildvideomanifestfromoutlines`, `Proxyfetch`, `Builddirectorprompt`, `Splitlongspeechactions`?**
+- **Why does `createLogger()` connect `Parsemodelstring` to `AI Providers & Settings`, `Pbltoolresult`, `Getallpdfproviders`, `Playback Engine`, `Scene Generation & Widgets`, `Generation Pipeline`, `Agent Loop & Chat Buffer`, `Chat Session Management`, `Module Group 15`, `Module Group 16`, `Interpolatevariables`, `Module Group 19`, `Module Group 21`, `Buildautovoxcpmvoiceprompt`, `Voxcpmbackendsupportsvoiceregistration`, `Usedraftcache`, `Audioblobtowav`, `Getdefaultagents`, `Callllm`, `Generatemediaforclassroom`, `Getthinkingconfigkey`, `Getthinkingmode`, `Supportsconfigurablethinking`, `Commitslideedit`, `Editorhint`, `Buildvideomanifestfromoutlines`, `Undoslideeditoperation`, `Community 617`, `Proxyfetch`, `Splitlongspeechactions`, `Mediataskstatus`?**
   _High betweenness centrality (0.018) - this node is a cross-community bridge._
 - **Why does `BaseImageElement()` connect `Usettspreview` to `Generatewithminimaximage`, `Getallmodels`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
 - **What connects `log`, `log`, `log` to the rest of the system?**
-  _6047 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Action Types & Events` be split into smaller, more focused modules?**
-  _Cohesion score 0.1431451612903226 - nodes in this community are weakly interconnected._
+  _6048 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `AI Providers & Settings` be split into smaller, more focused modules?**
-  _Cohesion score 0.05822784810126582 - nodes in this community are weakly interconnected._
-- **Should `Stage API & Chat Orchestration` be split into smaller, more focused modules?**
-  _Cohesion score 0.05262027491408935 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05142428785607196 - nodes in this community are weakly interconnected._
+- **Should `Scene Editor & Import/Export` be split into smaller, more focused modules?**
+  _Cohesion score 0.10666666666666667 - nodes in this community are weakly interconnected._
+- **Should `Playback Engine` be split into smaller, more focused modules?**
+  _Cohesion score 0.1166429587482219 - nodes in this community are weakly interconnected._

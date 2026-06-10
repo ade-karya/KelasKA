@@ -3,7 +3,7 @@ title: VoxCPM2
 description: 自託管 TTS 與聲音複製。後端選型、設定和聲音管理。
 ---
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) 是 OpenBMB 開源的 TTS 模型，支援聲音複製。OpenMAIC 內建適配器，把 VoxCPM 跑在自己的硬體上即可對接。
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) 是 OpenBMB 開源的 TTS 模型，支援聲音複製。KelasKA 內建適配器，把 VoxCPM 跑在自己的硬體上即可對接。
 
 ## 什麼時候使用 VoxCPM2
 
@@ -15,7 +15,7 @@ description: 自託管 TTS 與聲音複製。後端選型、設定和聲音管�
 
 ## 1. 啟動 VoxCPM 後端
 
-OpenMAIC 支援三種部署形態。三種都使用同一個 OpenMAIC 適配器，你只需要在 Settings 中切換後端類型。
+KelasKA 支援三種部署形態。三種都使用同一個 KelasKA 適配器，你只需要在 Settings 中切換後端類型。
 
 | 後端           | 端點               | 適用場景                                      |
 | -------------- | ------------------ | --------------------------------------------- |
@@ -32,13 +32,13 @@ python -m vllm_omni.server --model openbmb/VoxCPM2 --port 8000
 # 端點位於 http://localhost:8000/v1
 ```
 
-## 2. 讓 OpenMAIC 對接它
+## 2. 讓 KelasKA 對接它
 
 兩種方式，選一種即可。
 
 ### A. 單一使用者（Settings UI，不改伺服器）
 
-打開 **Settings → Text-to-Speech → VoxCPM2**，選擇後端類型並貼上 Base URL。Request URL 預覽會確認 OpenMAIC 將呼叫正確端點。
+打開 **Settings → Text-to-Speech → VoxCPM2**，選擇後端類型並貼上 Base URL。Request URL 預覽會確認 KelasKA 將呼叫正確端點。
 
 這條路適合個人測試和每個瀏覽器各自覆蓋設定，不會影響其他使用者。
 
@@ -58,7 +58,7 @@ VoxCPM2 有三種聲音模式，全部都在 **Settings → Text-to-Speech → V
 
 ### Auto Voice（預設）
 
-OpenMAIC 會在合成時根據每個 agent 的人設動態生成 voice prompt。無需設定；不改任何東西就是這個效果。
+KelasKA 會在合成時根據每個 agent 的人設動態生成 voice prompt。無需設定；不改任何東西就是這個效果。
 
 ### Prompt voice
 

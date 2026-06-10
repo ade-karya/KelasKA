@@ -72,7 +72,7 @@ export async function searchWithMiniMax(params: {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`,
-      'MM-API-Source': 'OpenMAIC',
+      'MM-API-Source': 'KelasKA',
     },
     body: JSON.stringify({ q: query }),
   });

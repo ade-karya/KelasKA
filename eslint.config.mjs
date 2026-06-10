@@ -16,11 +16,11 @@ const eslintConfig = defineConfig([
     'packages/docs/**',
     'packages/mathml2omml/**',
     'packages/pptxgenjs/**',
-    // Our own @maic/* packages: lint the source, but skip build output,
+    // Our own @kelaska/* packages: lint the source, but skip build output,
     // installed deps, and the vendored JS sources under importer/src1.
-    'packages/@maic/*/dist/**',
-    'packages/@maic/*/node_modules/**',
-    'packages/@maic/importer/src1/**',
+    'packages/@kelaska/*/dist/**',
+    'packages/@kelaska/*/node_modules/**',
+    'packages/@kelaska/importer/src1/**',
     // Generated importer bundle copied into public/ by the sync script (postinstall):
     'public/vendor/**',
     // Claude Code local files:

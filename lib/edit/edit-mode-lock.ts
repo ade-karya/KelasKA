@@ -21,7 +21,7 @@
  * exceeded.
  */
 
-const KEY_PREFIX = 'maic-editor:edit-lock';
+const KEY_PREFIX = 'kelaska-editor:edit-lock';
 export const LOCK_HEARTBEAT_MS = 5_000;
 export const LOCK_STALE_MS = LOCK_HEARTBEAT_MS * 3;
 

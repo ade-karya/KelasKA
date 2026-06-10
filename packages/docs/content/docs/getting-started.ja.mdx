@@ -1,9 +1,9 @@
 ---
 title: はじめに
-description: OpenMAIC を 5 分でローカル環境に立ち上げます。
+description: KelasKA を 5 分でローカル環境に立ち上げます。
 ---
 
-OpenMAIC は自分のマシンで実行できる Next.js アプリケーションです。Node.js、pnpm、そして少なくとも 1 つの LLM API key が必要です。
+KelasKA は自分のマシンで実行できる Next.js アプリケーションです。Node.js、pnpm、そして少なくとも 1 つの LLM API key が必要です。
 
 ## 前提条件
 
@@ -16,8 +16,8 @@ OpenMAIC は自分のマシンで実行できる Next.js アプリケーショ�
 リポジトリをクローンして依存関係をインストールします。
 
 ```bash
-git clone https://github.com/THU-MAIC/OpenMAIC.git
-cd OpenMAIC
+git clone .git
+cd KelasKA
 pnpm install
 ```
 
@@ -51,7 +51,7 @@ OLLAMA_BASE_URL=http://localhost:11434/v1
 pnpm dev
 ```
 
-[http://localhost:3000](http://localhost:3000) を開くと OpenMAIC のクラスルーム生成画面が表示されます。トピックまたは PDF を投入し、Generate をクリックすると、AI 教師が複数シーンからなるクラスルームを作成します。
+[http://localhost:3000](http://localhost:3000) を開くと KelasKA のクラスルーム生成画面が表示されます。トピックまたは PDF を投入し、Generate をクリックすると、AI 教師が複数シーンからなるクラスルームを作成します。
 
 ## 本番ビルド
 
@@ -66,5 +66,5 @@ Vercel、Docker、または自分のサーバーにもデプロイできます�
 
 - [プロバイダー、TTS、ACCESS_CODE を設定する →](./configuration.mdx)
 - [Vercel または Docker にデプロイする →](./deployment.mdx)
-- [GitHub でアーキテクチャを確認し、コントリビュートする](https://github.com/THU-MAIC/OpenMAIC#-contributing)
+- [GitHub でアーキテクチャを確認し、コントリビュートする](#-contributing)
 

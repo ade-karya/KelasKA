@@ -3,7 +3,7 @@ title: 設定說明
 description: LLM 供應商、TTS、ASR、存取控制和功能開關。
 ---
 
-OpenMAIC 會在伺服器啟動時讀取環境變數。所有項目都是選填——依需求啟用即可。完整清單請見倉庫中的 [`.env.example`](https://github.com/THU-MAIC/OpenMAIC/blob/main/.env.example)。內建模型 ID 請見[支援模型](./supported-models.mdx)。
+KelasKA 會在伺服器啟動時讀取環境變數。所有項目都是選填——依需求啟用即可。完整清單請見倉庫中的 [`.env.example`](/blob/main/.env.example)。內建模型 ID 請見[支援模型](./supported-models.mdx)。
 
 ## LLM 供應商
 
@@ -40,7 +40,7 @@ OPENAI_MODELS=                  # 選填的模型白名單（逗號分隔）
 
 ## 本機模型（Ollama）
 
-不需要 API key。把 base URL 寫在伺服器端，讓 OpenMAIC 繞過 SSRF 檢查：
+不需要 API key。把 base URL 寫在伺服器端，讓 KelasKA 繞過 SSRF 檢查：
 
 ```bash
 OLLAMA_BASE_URL=http://localhost:11434/v1
@@ -136,7 +136,7 @@ PDF_MINERU_CLOUD_API_KEY=
 PDF_MINERU_CLOUD_BASE_URL=https://mineru.net/api/v4
 ```
 
-未設定伺服器端解析器時，OpenMAIC 會回退到 `unpdf`。
+未設定伺服器端解析器時，KelasKA 會回退到 `unpdf`。
 
 ## 使用 YAML 設定檔
 

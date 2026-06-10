@@ -59,7 +59,7 @@
     "success": "教室のインポートが完了しました",
     "pptxSuccess": "PPTX を解析しました（{{count}} ページ、出力をコンソールに表示しました）",
     "error": {
-      "invalidZip": "無効なファイルです。有効な .maic.zip ファイルを選択してください。",
+      "invalidZip": "無効なファイルです。有効な .kelaska.zip ファイルを選択してください。",
       "invalidPptx": "PPTX の解析に失敗しました。ファイルが有効か確認してください。",
       "parserUnavailable": "PPTX インポートは利用できません：パーサーがデプロイされていません。インストール／同期を再実行してください。",
       "invalidManifest": "無効な教室ファイル：manifest.json が見つからないか破損しています。",

@@ -9,7 +9,7 @@ export async function GET() {
   let authenticated = false;
   if (enabled) {
     const cookieStore = await cookies();
-    const token = cookieStore.get('openmaic_access')?.value;
+    const token = cookieStore.get('kelaska_access')?.value;
     authenticated = !!token && verifyAccessToken(token, accessCode);
   }
 

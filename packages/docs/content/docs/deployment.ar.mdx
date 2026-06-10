@@ -1,13 +1,13 @@
 ---
 title: النشر
-description: انشر OpenMAIC على Vercel أو Docker أو مضيفك الخاص.
+description: انشر KelasKA على Vercel أو Docker أو مضيفك الخاص.
 ---
 
-OpenMAIC هو تطبيق Next.js قياسي. يمكنك نشره في أي مكان يعمل فيه Next.js.
+KelasKA هو تطبيق Next.js قياسي. يمكنك نشره في أي مكان يعمل فيه Next.js.
 
 ## Vercel (نقرة واحدة)
 
-هذا هو المسار الأسرع. اضغط زر deploy في [README](https://github.com/THU-MAIC/OpenMAIC)، اعمل fork للمستودع، واملأ مفتاح LLM API واحدا على الأقل أثناء الإعداد.
+هذا هو المسار الأسرع. اضغط زر deploy في [README]()، اعمل fork للمستودع، واملأ مفتاح LLM API واحدا على الأقل أثناء الإعداد.
 
 يبني Vercel التطبيق مع كل commit ويقدّم static assets تلقائيا من edge network.
 
@@ -16,19 +16,19 @@ OpenMAIC هو تطبيق Next.js قياسي. يمكنك نشره في أي مك�
 يتضمن المستودع `Dockerfile` جاهزا للإنتاج. ابنِ وشغّل:
 
 ```bash
-docker build -t openmaic .
+docker build -t kelaska .
 
 docker run -p 3000:3000 \
   -e OPENAI_API_KEY=sk-... \
-  openmaic
+  kelaska
 ```
 
 للإعدادات متعددة الحاويات (مع reverse proxy أو خدمات أخرى بجانبه)، استخدم `docker-compose`:
 
 ```yaml title="docker-compose.yml"
 services:
-  openmaic:
-    image: openmaic:latest
+  kelaska:
+    image: kelaska:latest
     ports:
       - '3000:3000'
     env_file:
@@ -46,7 +46,7 @@ pnpm build
 pnpm start      # يستمع على port 3000 افتراضيا
 ```
 
-ضع nginx أو Caddy أمامه لإنهاء TLS. للصفوف ذات الزيارات العالية، فكّر في تشغيل عدة app instances خلف load balancer — OpenMAIC عديم الحالة افتراضيا (الحالة محفوظة في IndexedDB داخل المتصفح).
+ضع nginx أو Caddy أمامه لإنهاء TLS. للصفوف ذات الزيارات العالية، فكّر في تشغيل عدة app instances خلف load balancer — KelasKA عديم الحالة افتراضيا (الحالة محفوظة في IndexedDB داخل المتصفح).
 
 ## متغيرات البيئة
 

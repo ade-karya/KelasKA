@@ -52,7 +52,7 @@ export async function POST(request: Request) {
 
   const token = createAccessToken(accessCode);
   const cookieStore = await cookies();
-  cookieStore.set('openmaic_access', token, {
+  cookieStore.set('kelaska_access', token, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',

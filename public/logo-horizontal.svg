@@ -1,0 +1,10 @@
+<svg width="600" height="150" viewBox="0 0 600 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(10, 15)">
+    <!-- Hexagon Outline -->
+    <path d="M55 10 L100 36 L100 88 L55 114 L10 88 L10 36 Z" stroke="#8b5cf6" stroke-width="10" stroke-linejoin="round"/>
+    <!-- Inner K shape -->
+    <path d="M40 36 L40 88 M40 62 L70 36 M40 62 L70 88 M70 36 L70 88" stroke="#8b5cf6" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- Text -->
+  <text x="140" y="100" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="80" fill="#475569">Kelas<tspan fill="#8b5cf6">KA</tspan></text>
+</svg>

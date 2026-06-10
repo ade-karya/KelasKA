@@ -3,7 +3,7 @@ import localFont from 'next/font/local';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import './globals.css';
-import '@maic/renderer/fonts.css';
+import '@kelaska/renderer/fonts.css';
 import 'animate.css';
 import 'katex/dist/katex.min.css';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
@@ -19,7 +19,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'OpenMAIC',
+  title: 'KelasKA',
   description:
     'The open-source AI interactive classroom. Upload a PDF to instantly generate an immersive, multi-agent learning experience.',
 };

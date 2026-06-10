@@ -8,7 +8,7 @@ const config = {
   reactStrictMode: true,
   // Static export: served as plain files by nginx, no Node server.
   output: 'export',
-  // Target deploy path: open.maic.chat/docs
+  // Target deploy path: kelas-ka.riau.ai/docs
   basePath: DOCS_BASE_PATH,
   // Static export cannot optimize images at runtime.
   images: {

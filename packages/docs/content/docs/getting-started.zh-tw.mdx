@@ -1,9 +1,9 @@
 ---
 title: 快速開始
-description: 五分鐘內在本機跑起 OpenMAIC。
+description: 五分鐘內在本機跑起 KelasKA。
 ---
 
-OpenMAIC 是一個 Next.js 應用程式，可以在自己的機器上執行。你需要 Node.js、pnpm，以及至少一個 LLM 服務的 API key。
+KelasKA 是一個 Next.js 應用程式，可以在自己的機器上執行。你需要 Node.js、pnpm，以及至少一個 LLM 服務的 API key。
 
 ## 前置條件
 
@@ -16,8 +16,8 @@ OpenMAIC 是一個 Next.js 應用程式，可以在自己的機器上執行。�
 複製倉庫並安裝依賴：
 
 ```bash
-git clone https://github.com/THU-MAIC/OpenMAIC.git
-cd OpenMAIC
+git clone .git
+cd KelasKA
 pnpm install
 ```
 
@@ -51,7 +51,7 @@ OLLAMA_BASE_URL=http://localhost:11434/v1
 pnpm dev
 ```
 
-打開 [http://localhost:3000](http://localhost:3000)，應該能看到 OpenMAIC 的課堂生成器。輸入一個主題或上傳 PDF，點選 Generate，AI 教師就會建立一場完整的多場景課堂。
+打開 [http://localhost:3000](http://localhost:3000)，應該能看到 KelasKA 的課堂生成器。輸入一個主題或上傳 PDF，點選 Generate，AI 教師就會建立一場完整的多場景課堂。
 
 ## 生產建置
 
@@ -66,5 +66,5 @@ pnpm start
 
 - [設定 provider、TTS、ACCESS_CODE →](./configuration.mdx)
 - [部署到 Vercel 或 Docker →](./deployment.mdx)
-- 想了解架構或貢獻程式碼，請前往 [GitHub](https://github.com/THU-MAIC/OpenMAIC#-contributing)
+- 想了解架構或貢獻程式碼，請前往 [GitHub](#-contributing)
 

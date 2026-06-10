@@ -1,9 +1,9 @@
 ---
 title: البدء
-description: ثبّت OpenMAIC وشغّله محليا خلال خمس دقائق.
+description: ثبّت KelasKA وشغّله محليا خلال خمس دقائق.
 ---
 
-OpenMAIC هو تطبيق Next.js يمكنك تشغيله على جهازك. تحتاج إلى Node.js و pnpm ومفتاح API واحد على الأقل لموفر LLM.
+KelasKA هو تطبيق Next.js يمكنك تشغيله على جهازك. تحتاج إلى Node.js و pnpm ومفتاح API واحد على الأقل لموفر LLM.
 
 ## المتطلبات
 
@@ -16,8 +16,8 @@ OpenMAIC هو تطبيق Next.js يمكنك تشغيله على جهازك. تح
 استنسخ المستودع وثبّت الاعتماديات:
 
 ```bash
-git clone https://github.com/THU-MAIC/OpenMAIC.git
-cd OpenMAIC
+git clone .git
+cd KelasKA
 pnpm install
 ```
 
@@ -51,7 +51,7 @@ OLLAMA_BASE_URL=http://localhost:11434/v1
 pnpm dev
 ```
 
-افتح [http://localhost:3000](http://localhost:3000). سترى مولّد الصفوف في OpenMAIC. أدخل موضوعا أو PDF، اضغط Generate، وسيبني AI teacher صفا كاملا من عدة مشاهد.
+افتح [http://localhost:3000](http://localhost:3000). سترى مولّد الصفوف في KelasKA. أدخل موضوعا أو PDF، اضغط Generate، وسيبني AI teacher صفا كاملا من عدة مشاهد.
 
 ## بناء الإنتاج
 
@@ -66,5 +66,5 @@ pnpm start
 
 - [اضبط providers و TTS و ACCESS_CODE →](./configuration.mdx)
 - [انشر على Vercel أو Docker →](./deployment.mdx)
-- [استكشف البنية وساهم على GitHub](https://github.com/THU-MAIC/OpenMAIC#-contributing)
+- [استكشف البنية وساهم على GitHub](#-contributing)
 

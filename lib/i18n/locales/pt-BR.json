@@ -59,7 +59,7 @@
     "success": "Sala de aula importada com sucesso",
     "pptxSuccess": "PPTX processado com sucesso ({{count}} slides, saída registrada no console)",
     "error": {
-      "invalidZip": "Arquivo inválido. Selecione um arquivo .maic.zip válido.",
+      "invalidZip": "Arquivo inválido. Selecione um arquivo .kelaska.zip válido.",
       "invalidPptx": "Falha ao processar o PPTX. Verifique se o arquivo é válido.",
       "parserUnavailable": "A importação de PPTX está indisponível: o pacote do analisador não foi implantado. Execute install/sync novamente.",
       "invalidManifest": "Arquivo inválido: manifest.json ausente ou corrompido.",

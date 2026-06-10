@@ -19,7 +19,7 @@ export function baseOptions(lang?: string): BaseLayoutProps {
     links: [
       {
         text: 'Live Demo',
-        url: 'https://open.maic.chat',
+        url: 'https://kelas-ka.riau.ai',
         external: true,
       },
     ],

@@ -3,7 +3,7 @@ title: Конфигурация
 description: LLM providers, TTS, ASR, контроль доступа и feature flags.
 ---
 
-OpenMAIC читает конфигурацию из переменных окружения при запуске сервера. Все параметры необязательны — включайте только нужные providers и функции. Полный список смотрите в [`.env.example`](https://github.com/THU-MAIC/OpenMAIC/blob/main/.env.example) в репозитории. Встроенные model ID перечислены в разделе [Поддерживаемые модели](./supported-models.mdx).
+KelasKA читает конфигурацию из переменных окружения при запуске сервера. Все параметры необязательны — включайте только нужные providers и функции. Полный список смотрите в [`.env.example`](/blob/main/.env.example) в репозитории. Встроенные model ID перечислены в разделе [Поддерживаемые модели](./supported-models.mdx).
 
 ## LLM providers
 
@@ -40,7 +40,7 @@ OPENAI_MODELS=                  # необязательный список ра
 
 ## Локальные модели через Ollama
 
-API key не нужен. Укажите base URL на сервере, чтобы OpenMAIC обошел SSRF check:
+API key не нужен. Укажите base URL на сервере, чтобы KelasKA обошел SSRF check:
 
 ```bash
 OLLAMA_BASE_URL=http://localhost:11434/v1
@@ -136,7 +136,7 @@ PDF_MINERU_CLOUD_API_KEY=
 PDF_MINERU_CLOUD_BASE_URL=https://mineru.net/api/v4
 ```
 
-Без серверного parser OpenMAIC откатывается на `unpdf`.
+Без серверного parser KelasKA откатывается на `unpdf`.
 
 ## YAML config file
 

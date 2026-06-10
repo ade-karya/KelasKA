@@ -48,7 +48,7 @@ async function seedDatabase(page: import('@playwright/test').Page) {
   await page.evaluate(
     ({ stageId, interactiveId, html, theme }) => {
       return new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open('MAIC-Database');
+        const request = indexedDB.open('KelasKA-Database');
         request.onsuccess = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
           const tx = db.transaction(['stages', 'scenes', 'stageOutlines'], 'readwrite');

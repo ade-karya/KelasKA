@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check cookie — validate HMAC signature, not just existence
-  const cookie = request.cookies.get('openmaic_access');
+  const cookie = request.cookies.get('kelaska_access');
   if (cookie?.value && (await verifyToken(cookie.value, accessCode))) {
     return NextResponse.next();
   }

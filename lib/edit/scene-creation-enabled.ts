@@ -8,4 +8,4 @@
  *
  * Flip to `true` once newly-created scenes are made playable.
  */
-export const SCENE_CREATION_ENABLED = false;
+export const SCENE_CREATION_ENABLED = true;

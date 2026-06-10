@@ -59,7 +59,7 @@
     "success": "Kelas berhasil diimpor",
     "pptxSuccess": "PPTX berhasil diurai ({{count}} slide, output dicatat di konsol)",
     "error": {
-      "invalidZip": "File tidak valid. Silakan pilih file .maic.zip yang valid.",
+      "invalidZip": "File tidak valid. Silakan pilih file .kelaska.zip yang valid.",
       "invalidPptx": "Gagal mengurai PPTX. Silakan periksa apakah file valid.",
       "parserUnavailable": "Impor PPTX tidak tersedia: bundel parser belum terpasang. Jalankan ulang install/sync.",
       "invalidManifest": "File kelas tidak valid: manifest.json hilang atau rusak.",

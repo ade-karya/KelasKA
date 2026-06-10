@@ -23,7 +23,7 @@ const BAIDU_SCHOLAR_PATH = '/v2/tools/baidu_scholar/search';
 function baiduHeaders(apiKey: string): Record<string, string> {
   return {
     Authorization: `Bearer ${apiKey}`,
-    'X-Appbuilder-From': 'openmaic',
+    'X-Appbuilder-From': 'kelaska',
     'Content-Type': 'application/json',
   };
 }

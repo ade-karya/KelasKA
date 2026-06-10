@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { EditShell } from '@/components/edit/EditShell';
 import { SlideNavRail } from '@/components/edit/SlideNavRail';
 import { HeaderControls } from '@/components/stage/header-controls';
-import { isMaicEditorEnabled } from '@/lib/config/feature-flags';
+import { isKelaskaEditorEnabled } from '@/lib/config/feature-flags';
 import { preloadEditor } from '@/lib/edit/preload-editor';
 import type { Scene } from '@/lib/types/stage';
 
@@ -42,9 +42,9 @@ export function EditChromeRoot({ scene, isEditable, onToggleEditMode }: EditChro
   // SlideCanvas (which was mounted only for slide scenes) so the
   // attribute now covers read-only scene types in Pro mode too.
   useEffect(() => {
-    document.body.dataset.maicEditor = 'true';
+    document.body.dataset.kelaskaEditor = 'true';
     return () => {
-      delete document.body.dataset.maicEditor;
+      delete document.body.dataset.kelaskaEditor;
     };
   }, []);
 
@@ -67,7 +67,7 @@ export function EditChromeRoot({ scene, isEditable, onToggleEditMode }: EditChro
         <HeaderControls
           mode="edit"
           canEdit={isEditable}
-          onToggleEditMode={isMaicEditorEnabled() ? onToggleEditMode : undefined}
+          onToggleEditMode={isKelaskaEditorEnabled() ? onToggleEditMode : undefined}
         />
       }
     />

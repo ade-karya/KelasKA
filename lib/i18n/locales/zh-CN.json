@@ -59,7 +59,7 @@
     "success": "课堂导入成功",
     "pptxSuccess": "PPTX 解析成功（共 {{count}} 页，输出已打印到控制台）",
     "error": {
-      "invalidZip": "无效文件，请选择有效的 .maic.zip 文件。",
+      "invalidZip": "无效文件，请选择有效的 .kelaska.zip 文件。",
       "invalidPptx": "PPTX 解析失败，请检查文件是否有效。",
       "parserUnavailable": "PPTX 导入不可用：解析器未部署。请重新执行安装/同步步骤。",
       "invalidManifest": "无效课堂文件：manifest.json 缺失或已损坏。",

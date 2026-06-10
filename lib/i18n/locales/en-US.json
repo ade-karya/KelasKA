@@ -59,7 +59,7 @@
     "success": "Classroom imported successfully",
     "pptxSuccess": "PPTX parsed successfully ({{count}} slides, output logged to console)",
     "error": {
-      "invalidZip": "Invalid file. Please select a valid .maic.zip file.",
+      "invalidZip": "Invalid file. Please select a valid .kelaska.zip file.",
       "invalidPptx": "Failed to parse PPTX. Please check the file is valid.",
       "parserUnavailable": "PPTX import is unavailable: the parser bundle is not deployed. Re-run install/sync.",
       "invalidManifest": "Invalid classroom file: manifest.json is missing or corrupted.",

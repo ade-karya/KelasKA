@@ -3,7 +3,7 @@ title: VoxCPM2
 description: Self-hosted TTS with voice cloning. Backends, configuration, and voice management.
 ---
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) is an open-source TTS model from OpenBMB with voice cloning. OpenMAIC ships an adapter; run VoxCPM on your own hardware and OpenMAIC will talk to it.
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) is an open-source TTS model from OpenBMB with voice cloning. KelasKA ships an adapter; run VoxCPM on your own hardware and KelasKA will talk to it.
 
 ## When to use VoxCPM2
 
@@ -15,7 +15,7 @@ If you just want a default voice, the built-in **Doubao** or **OpenAI-compatible
 
 ## 1. Run a VoxCPM backend
 
-OpenMAIC supports three deployment styles. All three speak the same OpenMAIC adapter; you only toggle the backend in Settings.
+KelasKA supports three deployment styles. All three speak the same KelasKA adapter; you only toggle the backend in Settings.
 
 | Backend        | Endpoint           | When to use                                                 |
 | -------------- | ------------------ | ----------------------------------------------------------- |
@@ -32,13 +32,13 @@ python -m vllm_omni.server --model openbmb/VoxCPM2 --port 8000
 # endpoint at http://localhost:8000/v1
 ```
 
-## 2. Point OpenMAIC at it
+## 2. Point KelasKA at it
 
 Two ways. Pick one.
 
 ### A. Per-user (Settings UI, no server change)
 
-Open **Settings → Text-to-Speech → VoxCPM2**, pick the backend, and paste your Base URL. The Request URL preview confirms OpenMAIC will hit the right endpoint.
+Open **Settings → Text-to-Speech → VoxCPM2**, pick the backend, and paste your Base URL. The Request URL preview confirms KelasKA will hit the right endpoint.
 
 This path is best for individual testing and per-browser overrides. It does not affect other users.
 
@@ -58,7 +58,7 @@ VoxCPM2 has three voice modes, all under **Settings → Text-to-Speech → VoxCP
 
 ### Auto Voice (default)
 
-OpenMAIC generates a voice prompt from each agent's persona at synthesis time. No setup required. This is what you get if you don't change anything.
+KelasKA generates a voice prompt from each agent's persona at synthesis time. No setup required. This is what you get if you don't change anything.
 
 ### Prompt voice
 

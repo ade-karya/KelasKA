@@ -2,7 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-@source "../node_modules/@maic/renderer/dist/**/*.{js,cjs}";
+@source "../node_modules/@kelaska/renderer/dist/**/*.{js,cjs}";
 /* slide-renderer-demo is gitignored (local sandbox), which makes Tailwind v4's
    auto source detection skip it. Re-include it explicitly so the demo's
    Tailwind classes (e.g. bg-violet-600) still get generated. */
@@ -144,7 +144,7 @@
      extra compensation creates a visible horizontal layout shift when opening
      Settings on the homepage/classroom shells. Keep Radix's modal focus and
      interaction locking, but neutralize only the redundant gap compensation. */
-  body[data-maic-editor='true'],
+  body[data-kelaska-editor='true'],
   body[data-scroll-locked] {
     padding-right: 0 !important;
     margin-right: 0 !important;
@@ -173,7 +173,7 @@
 
    `.editable-element-text` is the PLAYBACK text wrapper, rendered for every
    classroom/playback user — not just in the editor. So its rules MUST be
-   scoped to editor mode (`body[data-maic-editor='true']`, set by
+   scoped to editor mode (`body[data-kelaska-editor='true']`, set by
    EditChromeRoot while Pro mode is mounted) to keep flag-off playback
    rendering byte-unchanged: the editor surface isn't GA yet, so playback
    display of editor-authored lists is deferred. Scoping keeps list markers
@@ -181,17 +181,17 @@
    altering how the same wrapper renders during normal playback for all
    users. `.prosemirror-editor` is an editor-only class already (playback's
    BaseTextElement never carries it), so it stays unscoped. */
-body[data-maic-editor='true'] .editable-element-text ul,
+body[data-kelaska-editor='true'] .editable-element-text ul,
 .prosemirror-editor ul {
   list-style: disc outside !important;
   padding-inline-start: 1.5rem !important;
 }
-body[data-maic-editor='true'] .editable-element-text ol,
+body[data-kelaska-editor='true'] .editable-element-text ol,
 .prosemirror-editor ol {
   list-style: decimal outside !important;
   padding-inline-start: 1.5rem !important;
 }
-body[data-maic-editor='true'] .editable-element-text li,
+body[data-kelaska-editor='true'] .editable-element-text li,
 .prosemirror-editor li {
   display: list-item !important;
 }

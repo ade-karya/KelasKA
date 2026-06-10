@@ -12,11 +12,11 @@ function readBoolean(envValue: string | undefined): boolean {
 }
 
 /**
- * MAIC Editor (Pro mode) gate. Default OFF — gates only the Pro toggle
+ * KelasKA Editor (Pro mode) gate. Default OFF — gates only the Pro toggle
  * affordance in `Header`. The `StageMode` type union is unaffected so
  * existing code paths typecheck identically with the flag in either
  * state.
  */
-export function isMaicEditorEnabled(): boolean {
-  return readBoolean(process.env.NEXT_PUBLIC_MAIC_EDITOR_ENABLED);
+export function isKelaskaEditorEnabled(): boolean {
+  return readBoolean(process.env.NEXT_PUBLIC_KELASKA_EDITOR_ENABLED);
 }

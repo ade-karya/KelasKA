@@ -43,7 +43,7 @@ async function seedVideoThumbnailStage({
       theme,
     }) => {
       return new Promise<void>((resolve, reject) => {
-        const request = indexedDB.open('MAIC-Database');
+        const request = indexedDB.open('KelasKA-Database');
 
         request.onsuccess = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;

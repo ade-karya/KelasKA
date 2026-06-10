@@ -3,7 +3,7 @@ title: 設定
 description: LLM プロバイダー、TTS、ASR、アクセス制御、feature flag。
 ---
 
-OpenMAIC はサーバー起動時に環境変数を読み込みます。すべて任意項目なので、必要なプロバイダーと機能だけを有効にしてください。完全な一覧はリポジトリの [`.env.example`](https://github.com/THU-MAIC/OpenMAIC/blob/main/.env.example) を参照してください。組み込みモデル ID は[対応モデル](./supported-models.mdx)にあります。
+KelasKA はサーバー起動時に環境変数を読み込みます。すべて任意項目なので、必要なプロバイダーと機能だけを有効にしてください。完全な一覧はリポジトリの [`.env.example`](/blob/main/.env.example) を参照してください。組み込みモデル ID は[対応モデル](./supported-models.mdx)にあります。
 
 ## LLM プロバイダー
 
@@ -40,7 +40,7 @@ OPENAI_MODELS=                  # 任意の許可モデル一覧（カンマ区�
 
 ## Ollama によるローカルモデル
 
-API key は不要です。OpenMAIC の SSRF チェックを回避できるよう、base URL はサーバー側に設定します。
+API key は不要です。KelasKA の SSRF チェックを回避できるよう、base URL はサーバー側に設定します。
 
 ```bash
 OLLAMA_BASE_URL=http://localhost:11434/v1
@@ -136,7 +136,7 @@ PDF_MINERU_CLOUD_API_KEY=
 PDF_MINERU_CLOUD_BASE_URL=https://mineru.net/api/v4
 ```
 
-サーバー側パーサーが未設定の場合、OpenMAIC は `unpdf` にフォールバックします。
+サーバー側パーサーが未設定の場合、KelasKA は `unpdf` にフォールバックします。
 
 ## YAML 設定ファイルを使う
 

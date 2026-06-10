@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useStageStore } from '@/lib/store';
 import { isCurrentSceneEditable } from '@/lib/edit/stage-mode';
-import { isMaicEditorEnabled } from '@/lib/config/feature-flags';
+import { isKelaskaEditorEnabled } from '@/lib/config/feature-flags';
 import { EditChromeRoot } from '@/components/edit/EditChromeRoot';
 import {
   PlaybackChromeRoot,
@@ -104,7 +104,7 @@ export function Stage({
     if (mode !== 'edit') releaseEditLock();
   }, [mode, releaseEditLock]);
 
-  const toggleHandler = isMaicEditorEnabled() ? handleToggleEditMode : undefined;
+  const toggleHandler = isKelaskaEditorEnabled() ? handleToggleEditMode : undefined;
 
   // Mode swap choreography — a clean opacity cross-fade. Both roots layer
   // via `absolute inset-0` so they coexist for the ~280ms window without

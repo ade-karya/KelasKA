@@ -26,7 +26,7 @@ export interface Snapshot {
 }
 
 /**
- * MAIC Local Database
+ * KelasKA Local Database
  *
  * Uses IndexedDB to store all user data locally
  * - Does not delete expired data; all data is stored permanently
@@ -207,13 +207,13 @@ export function mediaFileKey(stageId: string, elementId: string): string {
 
 // ==================== Database Definition ====================
 
-const DATABASE_NAME = 'MAIC-Database';
+const DATABASE_NAME = 'KelasKA-Database';
 const _DATABASE_VERSION = 11;
 
 /**
- * MAIC Database Instance
+ * KelasKA Database Instance
  */
-class MAICDatabase extends Dexie {
+class KelasKADatabase extends Dexie {
   // Table definitions
   stages!: EntityTable<StageRecord, 'id'>;
   scenes!: EntityTable<SceneRecord, 'id'>;
@@ -413,7 +413,7 @@ class MAICDatabase extends Dexie {
 }
 
 // Create database instance
-export const db = new MAICDatabase();
+export const db = new KelasKADatabase();
 
 // ==================== Helper Functions ====================
 
