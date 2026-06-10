@@ -11,7 +11,7 @@
     "sync:kelaska-importer": "node scripts/sync-kelaska-importer.mjs",
     "dev": "next dev",
     "build": "node scripts/assert-vendor-kelaska-importer.mjs && next build",
-    "start": "next start",
+    "start": "node .next/standalone/server.js",
     "lint": "eslint",
     "check:i18n-keys": "node scripts/check-i18n-keys.mjs",
     "check": "prettier . --check",
