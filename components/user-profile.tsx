@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { toast } from 'sonner';
 import { useUserProfileStore, AVATAR_OPTIONS } from '@/lib/store/user-profile';
+import { useSettingsStore } from '@/lib/store/settings';
 
 /** Check whether avatar is a custom upload (data-URL) */
 function isCustomAvatar(avatar: string) {
@@ -25,9 +26,12 @@ export function UserProfileCard() {
   const avatar = useUserProfileStore((s) => s.avatar);
   const nickname = useUserProfileStore((s) => s.nickname);
   const bio = useUserProfileStore((s) => s.bio);
+  const email = useUserProfileStore((s) => s.email);
   const setAvatar = useUserProfileStore((s) => s.setAvatar);
   const setNickname = useUserProfileStore((s) => s.setNickname);
   const setBio = useUserProfileStore((s) => s.setBio);
+  const setEmail = useUserProfileStore((s) => s.setEmail);
+  const syncUserConfigs = useSettingsStore((s) => s.syncUserConfigs);
 
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
@@ -224,6 +228,19 @@ export function UserProfileCard() {
         maxLength={200}
         rows={3}
         className="mt-3 resize-none bg-background/50 min-h-[80px]"
+      />
+
+      {/* Email input (for admin-managed provider configs) */}
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => {
+          const val = e.target.value;
+          setEmail(val);
+          syncUserConfigs(val);
+        }}
+        placeholder={t('profile.emailPlaceholder') || 'Email (for admin configuration)...'}
+        className="mt-3 w-full rounded-xl border border-border/60 bg-background/60 px-3.5 py-2.5 text-sm outline-none transition-all duration-200 focus:border-violet-400 focus:ring-2 focus:ring-violet-400/10 placeholder:text-muted-foreground/40"
       />
     </Card>
   );

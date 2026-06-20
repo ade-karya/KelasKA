@@ -1136,5 +1136,41 @@
     "title": "Введите код доступа",
     "placeholder": "Код доступа",
     "error": "Неверный код доступа. Попробуйте ещё раз."
+  },
+  "contextMenu": {
+    "unlock": "Разблокировать",
+    "cut": "Вырезать",
+    "copy": "Копировать",
+    "paste": "Вставить",
+    "alignCenterHorizontal": "По центру горизонтально",
+    "alignCenterHorizontalVertical": "По центру горизонтально и вертикально",
+    "alignLeft": "По левому краю",
+    "alignRight": "По правому краю",
+    "alignCenterVertical": "По центру вертикально",
+    "alignTop": "По верхнему краю",
+    "alignBottom": "По нижнему краю",
+    "bringToFront": "На передний план",
+    "bringToFrontMost": "На самый передний план",
+    "bringForward": "Переместить вперед",
+    "sendToBack": "На задний план",
+    "sendToBackMost": "На самый задний план",
+    "sendBackward": "Переместить назад",
+    "setLink": "Установить ссылку",
+    "group": "Сгруппировать",
+    "ungroup": "Разгруппировать",
+    "selectAll": "Выбрать все",
+    "lock": "Заблокировать",
+    "delete": "Удалить"
+  },
+  "canvasMenu": {
+    "paste": "Вставить",
+    "selectAll": "Выбрать все",
+    "ruler": "Линейка",
+    "gridLines": "Линии сетки",
+    "gridNone": "Нет",
+    "gridSmall": "Маленькая",
+    "gridMedium": "Средняя",
+    "gridLarge": "Большая",
+    "resetCurrentPage": "Сбросить текущую страницу"
   }
 }

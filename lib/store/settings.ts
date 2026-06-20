@@ -324,6 +324,10 @@ export interface SettingsState {
   ) => void;
   setBaiduSubSources: (sources: Partial<BaiduSubSources>) => void;
 
+  // Admin managed configs (read-only locking on frontend)
+  adminManagedFields: Record<string, boolean>;
+  syncUserConfigs: (email: string) => Promise<void>;
+
   // Server provider actions
   fetchServerProviders: () => Promise<void>;
 }
@@ -856,6 +860,8 @@ export const useSettingsStore = create<SettingsState>()(
         parallelSceneConcurrency: 0,
 
         autoConfigApplied: false,
+
+        adminManagedFields: {},
 
         // Web Search settings (use defaults)
         ...defaultWebSearchConfig,
@@ -1659,6 +1665,127 @@ export const useSettingsStore = create<SettingsState>()(
           } catch (e) {
             // Silently fail — server providers are optional
             log.warn('Failed to fetch server providers:', e);
+          }
+        },
+
+        syncUserConfigs: async (email) => {
+          if (!email) {
+            set((state) => {
+              const resetConfig = <T extends Record<string, any>>(configObj: T): T => {
+                const copy = { ...configObj } as any;
+                for (const pid of Object.keys(copy)) {
+                  copy[pid] = {
+                    ...copy[pid],
+                    isServerConfigured: false,
+                  };
+                }
+                return copy as T;
+              };
+
+              return {
+                adminManagedFields: {},
+                providersConfig: resetConfig(state.providersConfig),
+                ttsProvidersConfig: resetConfig(state.ttsProvidersConfig),
+                asrProvidersConfig: resetConfig(state.asrProvidersConfig),
+                pdfProvidersConfig: resetConfig(state.pdfProvidersConfig),
+                imageProvidersConfig: resetConfig(state.imageProvidersConfig),
+                videoProvidersConfig: resetConfig(state.videoProvidersConfig),
+                webSearchProvidersConfig: resetConfig(state.webSearchProvidersConfig),
+              };
+            });
+            return;
+          }
+
+          try {
+            const res = await fetch(`/api/user/configs?email=${encodeURIComponent(email)}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.success || !data.data || !data.data.exists) {
+              get().syncUserConfigs('');
+              return;
+            }
+
+            const dbConfigs = data.data.configs as Array<{
+              category: string;
+              provider_id: string;
+              api_key: string;
+              base_url: string;
+              models?: string[];
+              extra_config?: Record<string, any>;
+            }>;
+
+            set((state) => {
+              const newProvidersConfig = { ...state.providersConfig };
+              const newTtsProvidersConfig = { ...state.ttsProvidersConfig };
+              const newAsrProvidersConfig = { ...state.asrProvidersConfig };
+              const newPdfProvidersConfig = { ...state.pdfProvidersConfig };
+              const newImageProvidersConfig = { ...state.imageProvidersConfig };
+              const newVideoProvidersConfig = { ...state.videoProvidersConfig };
+              const newWebSearchProvidersConfig = { ...state.webSearchProvidersConfig };
+              const nextManagedFields: Record<string, boolean> = {};
+
+              const updateProvider = (
+                configObj: Record<string, any>,
+                category: string,
+                providerId: string,
+                apiKey: string,
+                baseUrl: string,
+                models?: string[],
+              ) => {
+                if (!configObj[providerId]) return;
+                configObj[providerId] = {
+                  ...configObj[providerId],
+                  isServerConfigured: true,
+                  ...(apiKey && { apiKey }),
+                  ...(baseUrl && { baseUrl }),
+                  ...(models && models.length > 0 && {
+                    models: models.map(id => ({ id, name: id }))
+                  }),
+                };
+                if (apiKey) nextManagedFields[`${category}:${providerId}:apiKey`] = true;
+                if (baseUrl) nextManagedFields[`${category}:${providerId}:baseUrl`] = true;
+              };
+
+              for (const config of dbConfigs) {
+                const { category, provider_id, api_key, base_url, models } = config;
+                switch (category) {
+                  case 'llm':
+                    updateProvider(newProvidersConfig, 'llm', provider_id, api_key, base_url, models);
+                    break;
+                  case 'tts':
+                    updateProvider(newTtsProvidersConfig, 'tts', provider_id, api_key, base_url);
+                    break;
+                  case 'asr':
+                    updateProvider(newAsrProvidersConfig, 'asr', provider_id, api_key, base_url);
+                    break;
+                  case 'pdf':
+                    updateProvider(newPdfProvidersConfig, 'pdf', provider_id, api_key, base_url);
+                    break;
+                  case 'image':
+                    updateProvider(newImageProvidersConfig, 'image', provider_id, api_key, base_url);
+                    break;
+                  case 'video':
+                    updateProvider(newVideoProvidersConfig, 'video', provider_id, api_key, base_url);
+                    break;
+                  case 'web_search':
+                    updateProvider(newWebSearchProvidersConfig, 'web_search', provider_id, api_key, base_url);
+                    break;
+                }
+              }
+
+              return {
+                adminManagedFields: nextManagedFields,
+                providersConfig: newProvidersConfig,
+                ttsProvidersConfig: newTtsProvidersConfig,
+                asrProvidersConfig: newAsrProvidersConfig,
+                pdfProvidersConfig: newPdfProvidersConfig,
+                imageProvidersConfig: newImageProvidersConfig,
+                videoProvidersConfig: newVideoProvidersConfig,
+                webSearchProvidersConfig: newWebSearchProvidersConfig,
+              };
+            });
+          } catch (error) {
+            log.warn('Failed to sync user configs:', error);
           }
         },
       };

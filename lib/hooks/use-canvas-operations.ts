@@ -27,11 +27,13 @@ import type { SlideContent } from '@/lib/types/stage';
 import type { PPTElement, Slide } from '@/lib/types/slides';
 import { useCallback, useMemo } from 'react';
 import { useHistorySnapshot } from '@/lib/hooks/use-history-snapshot';
-import { toast } from 'sonner';
 import { ElementAlignCommands, ElementOrderCommands } from '@/lib/types/edit';
 import { getElementListRange } from '@/lib/utils/element';
 import { useOrderElement } from './use-order-element';
 import { nanoid } from 'nanoid';
+
+// Module-level clipboard for copy/cut/paste operations
+let clipboardElements: PPTElement[] = [];
 
 type PPTElementKey = keyof PPTElement;
 
@@ -178,34 +180,54 @@ export function useCanvasOperations() {
     [updateSceneData],
   );
 
-  // Copy selected element data to clipboard
+  // Copy selected element data to in-memory clipboard
   const copyElement = () => {
-    // if (!activeElementIdList.length) return
+    if (!activeElementIdList.length) return;
 
-    // const text = JSON.stringify({
-    //   type: 'elements',
-    //   data: activeElementList,
-    // })
-
-    // copyText(text).then(() => {
-    //   setEditorareaFocus(true)
-    // })
-    toast.warning('Not implemented');
+    // Deep clone the active elements
+    clipboardElements = JSON.parse(JSON.stringify(activeElementList));
+    _setEditorareaFocus(true);
   };
 
   // Copy and delete selected elements (cut)
   const cutElement = () => {
-    // copyElement()
-    // deleteElement()
-    toast.warning('Not implemented');
+    if (!activeElementIdList.length) return;
+    copyElement();
+    deleteElement();
   };
 
-  // Attempt to paste element data from clipboard
+  // Paste element data from in-memory clipboard
   const pasteElement = () => {
-    // readClipboard().then(text => {
-    //   pasteTextClipboardData(text)
-    // }).catch(err => toast.warning(err))
-    toast.warning('Not implemented');
+    if (!clipboardElements.length) return;
+
+    // Deep clone and assign new IDs, offset position so they don't overlap
+    const newGroupIdMap: Record<string, string> = {};
+    const newElements: PPTElement[] = clipboardElements.map((el) => {
+      const newEl: PPTElement = JSON.parse(JSON.stringify(el));
+      newEl.id = nanoid(10);
+      newEl.left = (newEl.left ?? 0) + 20;
+      newEl.top = (newEl.top ?? 0) + 20;
+
+      // Preserve group relationships with new group IDs
+      if (newEl.groupId) {
+        if (!newGroupIdMap[newEl.groupId]) {
+          newGroupIdMap[newEl.groupId] = nanoid(10);
+        }
+        newEl.groupId = newGroupIdMap[newEl.groupId];
+      }
+
+      return newEl;
+    });
+
+    addElement(newElements);
+    addHistorySnapshot();
+
+    // Update clipboard offset for subsequent pastes
+    clipboardElements = clipboardElements.map((el) => ({
+      ...el,
+      left: (el.left ?? 0) + 20,
+      top: (el.top ?? 0) + 20,
+    }));
   };
 
   // Copy and immediately paste selected elements

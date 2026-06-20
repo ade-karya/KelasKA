@@ -22,9 +22,11 @@ export interface UserProfileState {
   avatar: string;
   nickname: string;
   bio: string;
+  email: string;
   setAvatar: (avatar: string) => void;
   setNickname: (nickname: string) => void;
   setBio: (bio: string) => void;
+  setEmail: (email: string) => void;
 }
 
 export const useUserProfileStore = create<UserProfileState>()(
@@ -33,12 +35,15 @@ export const useUserProfileStore = create<UserProfileState>()(
       avatar: AVATAR_OPTIONS[0],
       nickname: '',
       bio: '',
+      email: '',
       setAvatar: (avatar) => set({ avatar }),
       setNickname: (nickname) => set({ nickname }),
       setBio: (bio) => set({ bio }),
+      setEmail: (email) => set({ email }),
     }),
     {
       name: 'user-profile-storage',
     },
   ),
 );
+

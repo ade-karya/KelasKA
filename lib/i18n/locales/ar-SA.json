@@ -1136,5 +1136,41 @@
     "title": "أدخل رمز الوصول",
     "placeholder": "رمز الوصول",
     "error": "رمز الوصول غير صالح. يرجى المحاولة مرة أخرى."
+  },
+  "contextMenu": {
+    "unlock": "إلغاء القفل",
+    "cut": "قص",
+    "copy": "نسخ",
+    "paste": "لصق",
+    "alignCenterHorizontal": "محاذاة للوسط أفقياً",
+    "alignCenterHorizontalVertical": "محاذاة للوسط أفقياً وعمودياً",
+    "alignLeft": "محاذاة لليسار",
+    "alignRight": "محاذاة لليمين",
+    "alignCenterVertical": "محاذاة للوسط عمودياً",
+    "alignTop": "محاذاة للأعلى",
+    "alignBottom": "محاذاة للأسفل",
+    "bringToFront": "إحضار إلى المقدمة",
+    "bringToFrontMost": "إحضار إلى المقدمة تماماً",
+    "bringForward": "إحضار للأمام",
+    "sendToBack": "إرسال إلى الخلفية",
+    "sendToBackMost": "إرسال إلى الخلفية تماماً",
+    "sendBackward": "إرسال للخلف",
+    "setLink": "تعيين رابط",
+    "group": "تجميع",
+    "ungroup": "فك التجميع",
+    "selectAll": "تحديد الكل",
+    "lock": "قفل",
+    "delete": "حذف"
+  },
+  "canvasMenu": {
+    "paste": "لصق",
+    "selectAll": "تحديد الكل",
+    "ruler": "مسطرة",
+    "gridLines": "خطوط الشبكة",
+    "gridNone": "بدون",
+    "gridSmall": "صغير",
+    "gridMedium": "متوسط",
+    "gridLarge": "كبير",
+    "resetCurrentPage": "إعادة تعيين الصفحة الحالية"
   }
 }

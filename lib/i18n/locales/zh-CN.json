@@ -1136,5 +1136,41 @@
     "title": "请输入访问码",
     "placeholder": "访问码",
     "error": "访问码错误，请重试。"
+  },
+  "contextMenu": {
+    "unlock": "解锁",
+    "cut": "剪切",
+    "copy": "复制",
+    "paste": "粘贴",
+    "alignCenterHorizontal": "水平居中",
+    "alignCenterHorizontalVertical": "水平垂直居中",
+    "alignLeft": "左对齐",
+    "alignRight": "右对齐",
+    "alignCenterVertical": "垂直居中",
+    "alignTop": "顶部对齐",
+    "alignBottom": "底部对齐",
+    "bringToFront": "置于顶层",
+    "bringToFrontMost": "置于顶层",
+    "bringForward": "上移一层",
+    "sendToBack": "置于底层",
+    "sendToBackMost": "置于底层",
+    "sendBackward": "下移一层",
+    "setLink": "设置链接",
+    "group": "组合",
+    "ungroup": "取消组合",
+    "selectAll": "全选",
+    "lock": "锁定",
+    "delete": "删除"
+  },
+  "canvasMenu": {
+    "paste": "粘贴",
+    "selectAll": "全选",
+    "ruler": "标尺",
+    "gridLines": "网格线",
+    "gridNone": "无",
+    "gridSmall": "小",
+    "gridMedium": "中",
+    "gridLarge": "大",
+    "resetCurrentPage": "重置当前页"
   }
 }

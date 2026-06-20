@@ -1136,5 +1136,41 @@
     "title": "アクセスコードを入力",
     "placeholder": "アクセスコード",
     "error": "アクセスコードが正しくありません。もう一度お試しください。"
+  },
+  "contextMenu": {
+    "unlock": "ロック解除",
+    "cut": "切り取り",
+    "copy": "コピー",
+    "paste": "貼り付け",
+    "alignCenterHorizontal": "左右中央揃え",
+    "alignCenterHorizontalVertical": "上下左右中央揃え",
+    "alignLeft": "左揃え",
+    "alignRight": "右揃え",
+    "alignCenterVertical": "上下中央揃え",
+    "alignTop": "上揃え",
+    "alignBottom": "下揃え",
+    "bringToFront": "最前面へ移動",
+    "bringToFrontMost": "最前面へ移動",
+    "bringForward": "前面へ移動",
+    "sendToBack": "最背面へ移動",
+    "sendToBackMost": "最背面へ移動",
+    "sendBackward": "背面へ移動",
+    "setLink": "リンク設定",
+    "group": "グループ化",
+    "ungroup": "グループ解除",
+    "selectAll": "すべて選択",
+    "lock": "ロック",
+    "delete": "削除"
+  },
+  "canvasMenu": {
+    "paste": "貼り付け",
+    "selectAll": "すべて選択",
+    "ruler": "ルーラー",
+    "gridLines": "グリッド線",
+    "gridNone": "なし",
+    "gridSmall": "小",
+    "gridMedium": "中",
+    "gridLarge": "大",
+    "resetCurrentPage": "現在のページをリセット"
   }
 }

@@ -1136,5 +1136,41 @@
     "title": "Digite o Código de Acesso",
     "placeholder": "Código de acesso",
     "error": "Código inválido. Tente novamente."
+  },
+  "contextMenu": {
+    "unlock": "Desbloquear",
+    "cut": "Recortar",
+    "copy": "Copiar",
+    "paste": "Colar",
+    "alignCenterHorizontal": "Centralizar Horizontalmente",
+    "alignCenterHorizontalVertical": "Centralizar Horizontalmente e Verticalmente",
+    "alignLeft": "Alinhar à Esquerda",
+    "alignRight": "Alinhar à Direita",
+    "alignCenterVertical": "Centralizar Verticalmente",
+    "alignTop": "Alinhar ao Topo",
+    "alignBottom": "Alinhar à Base",
+    "bringToFront": "Trazer para a Frente",
+    "bringToFrontMost": "Trazer para o Primeiro Plano",
+    "bringForward": "Avançar",
+    "sendToBack": "Enviar para Trás",
+    "sendToBackMost": "Enviar para o Plano de Fundo",
+    "sendBackward": "Recuar",
+    "setLink": "Definir Link",
+    "group": "Agrupar",
+    "ungroup": "Desagrupar",
+    "selectAll": "Selecionar Tudo",
+    "lock": "Bloquear",
+    "delete": "Excluir"
+  },
+  "canvasMenu": {
+    "paste": "Colar",
+    "selectAll": "Selecionar Tudo",
+    "ruler": "Régua",
+    "gridLines": "Linhas de Grade",
+    "gridNone": "Nenhuma",
+    "gridSmall": "Pequena",
+    "gridMedium": "Média",
+    "gridLarge": "Grande",
+    "resetCurrentPage": "Redefinir Página Atual"
   }
 }
