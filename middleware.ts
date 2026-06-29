@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAdminToken, ADMIN_COOKIE_NAME } from '@/lib/admin/admin-auth';
 
 /** Convert string to Uint8Array */
 function encode(str: string): Uint8Array {
@@ -42,12 +43,38 @@ async function verifyToken(token: string, accessCode: string): Promise<boolean> 
 }
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // --- Admin Route Protection ---
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+    // Whitelist login routes
+    if (pathname === '/admin/login' || pathname === '/api/admin/auth/login') {
+      return NextResponse.next();
+    }
+
+    const adminCookie = request.cookies.get(ADMIN_COOKIE_NAME);
+    const isValidAdmin = adminCookie?.value ? await verifyAdminToken(adminCookie.value) : false;
+
+    if (!isValidAdmin) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { success: false, errorCode: 'UNAUTHORIZED', error: 'Admin access required' },
+          { status: 401 },
+        );
+      }
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+    
+    // If valid admin, let them through
+    return NextResponse.next();
+  }
+  // --- End Admin Route Protection ---
+
   const accessCode = process.env.ACCESS_CODE;
   if (!accessCode) {
     return NextResponse.next();
   }
 
-  const { pathname } = request.nextUrl;
 
   // Whitelist: access-code endpoints, health check
   if (pathname.startsWith('/api/access-code/') || pathname === '/api/health') {
