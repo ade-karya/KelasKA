@@ -14,7 +14,10 @@
 		"sourceMap": true,
 		"strict": true,
 		"strictNullChecks": false, // NOTE: very necessary!
-		"target": "es2016"
+		"target": "es2016",
+		"types": [
+			"node"
+		]
 	},
 	"display": "Recommended",
 	"$schema": "https://json.schemastore.org/tsconfig",

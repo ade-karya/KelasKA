@@ -11,6 +11,9 @@ import { I18nProvider } from '@/lib/hooks/use-i18n';
 import { Toaster } from '@/components/ui/sonner';
 import { ServerProvidersInit } from '@/components/server-providers-init';
 import { AccessCodeGuard } from '@/components/access-code-guard';
+import { MobileInitializer } from '@/components/mobile-init';
+import { MobileBottomNav } from '@/components/mobile-bottom-nav';
+import { SessionProvider } from 'next-auth/react';
 
 const inter = localFont({
   src: '../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
@@ -19,9 +22,10 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  title: 'OpenMAIC',
+  title: 'KelasKA — Platform Belajar AI Interaktif',
   description:
-    'The open-source AI interactive classroom. Upload a PDF to instantly generate an immersive, multi-agent learning experience.',
+    'KelasKA adalah platform LMS berbasis AI multi-agent. Belajar lebih interaktif dengan guru AI, kuis otomatis, dan sertifikat kelulusan.',
+  keywords: 'LMS, belajar online, AI classroom, kursus online, Indonesia',
 };
 
 export default function RootLayout({
@@ -37,9 +41,13 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <I18nProvider>
-            <ServerProvidersInit />
-            <AccessCodeGuard>{children}</AccessCodeGuard>
-            <Toaster position="top-center" />
+            <SessionProvider>
+              <ServerProvidersInit />
+              <MobileInitializer />
+              <AccessCodeGuard>{children}</AccessCodeGuard>
+              <MobileBottomNav />
+              <Toaster position="top-center" />
+            </SessionProvider>
           </I18nProvider>
         </ThemeProvider>
       </body>

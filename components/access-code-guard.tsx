@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { AccessCodeModal } from '@/components/access-code-modal';
 
 export function AccessCodeGuard({ children }: { children: ReactNode }) {
@@ -34,7 +35,9 @@ export function AccessCodeGuard({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const needsAuth = !status.loading && status.enabled && !status.authenticated;
+  const pathname = usePathname();
+  const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
+  const needsAuth = !status.loading && status.enabled && !status.authenticated && !isAuthRoute;
 
   return (
     <>

@@ -1,15 +1,59 @@
 services:
-  openmaic:
+  # ── KelasKA App ────────────────────────────────
+  app:
     build: .
     ports:
       - "3000:3000"
     env_file:
       - .env.local
+    environment:
+      - DATABASE_URL=postgresql://kelaska:kelaska_secret@postgres:5432/kelaska
+      - REDIS_URL=redis://redis:6379
+      - AUTH_TRUST_HOST=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
-      # Optional: mount server-providers.yml for provider config
-      # - ./server-providers.yml:/app/server-providers.yml:ro
-      - openmaic-data:/app/data
+      - app-data:/app/data
+      - app-uploads:/app/uploads
+    restart: unless-stopped
+
+  # ── PostgreSQL 17 ──────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: kelaska
+      POSTGRES_USER: kelaska
+      POSTGRES_PASSWORD: kelaska_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kelaska"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Redis 7 (sessions, cache, queues) ──────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
 volumes:
-  openmaic-data:
+  app-data:
+  app-uploads:
+  postgres-data:
+  redis-data:

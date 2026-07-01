@@ -308,11 +308,42 @@ interface ClassroomCompletePageProps {
 export function ClassroomCompletePage({ scenes, title }: ClassroomCompletePageProps) {
   const { t, locale } = useI18n();
   const prefersReducedMotion = useReducedMotion();
+  const stage = useStageStore((s) => s.stage);
 
   // Computed once on mount: re-grading on every render would be wasteful and
   // the underlying localStorage values only change when the user revisits a
   // quiz scene (which unmounts this page).
   const summary = useMemo(() => summarizeScenes(scenes, readAnswersForSummary), [scenes]);
+
+  useEffect(() => {
+    if (!stage?.id) return;
+
+    const saveAttempt = async () => {
+      try {
+        const answers: Record<string, any> = {};
+        for (const scene of scenes) {
+          if (scene.type === 'quiz') {
+            answers[scene.id] = readAnswersForSummary(scene.id);
+          }
+        }
+
+        await fetch('/api/quiz-attempts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            classroomId: stage.id,
+            correct: summary.quiz?.correct ?? 0,
+            total: summary.quiz?.total ?? 0,
+            answers,
+          }),
+        });
+      } catch (err) {
+        console.error('Failed to save quiz attempt:', err);
+      }
+    };
+
+    saveAttempt();
+  }, [stage?.id, summary.quiz, scenes]);
 
   const dateLabel = useMemo(() => {
     try {

@@ -1,5 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import NextAuth from 'next-auth';
+import { authConfig } from './auth.config';
 import { verifyAdminToken, ADMIN_COOKIE_NAME } from '@/lib/admin/admin-auth';
+
+const { auth } = NextAuth(authConfig);
 
 /** Convert string to Uint8Array */
 function encode(str: string): Uint8Array {
@@ -33,7 +37,6 @@ async function verifyToken(token: string, accessCode: string): Promise<boolean> 
   const data = encode(timestamp);
   const expected = bufToHex(await crypto.subtle.sign('HMAC', key, data.buffer as ArrayBuffer));
 
-  // Constant-length comparison (not truly constant-time in JS, but sufficient here)
   if (signature.length !== expected.length) return false;
   let mismatch = 0;
   for (let i = 0; i < signature.length; i++) {
@@ -42,12 +45,25 @@ async function verifyToken(token: string, accessCode: string): Promise<boolean> 
   return mismatch === 0;
 }
 
-export async function middleware(request: NextRequest) {
+export default auth(async function proxy(request) {
   const { pathname } = request.nextUrl;
+  const isLoggedIn = !!request.auth?.user;
+
+  // --- NextAuth Protection ---
+  const isOnDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/classroom');
+  const isOnAuth = pathname.startsWith('/login') || pathname.startsWith('/register');
+
+  if (isOnDashboard && !isLoggedIn) {
+    return NextResponse.redirect(new URL('/login', request.nextUrl));
+  }
+
+  if (isOnAuth && isLoggedIn) {
+    return NextResponse.redirect(new URL('/dashboard', request.nextUrl));
+  }
+  // --- End NextAuth Protection ---
 
   // --- Admin Route Protection ---
   if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
-    // Whitelist login routes
     if (pathname === '/admin/login' || pathname === '/api/admin/auth/login') {
       return NextResponse.next();
     }
@@ -64,30 +80,33 @@ export async function middleware(request: NextRequest) {
       }
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
-    
-    // If valid admin, let them through
     return NextResponse.next();
   }
   // --- End Admin Route Protection ---
 
+  // --- Access Code Protection (Optional, if set in env) ---
   const accessCode = process.env.ACCESS_CODE;
   if (!accessCode) {
     return NextResponse.next();
   }
 
-
-  // Whitelist: access-code endpoints, health check
-  if (pathname.startsWith('/api/access-code/') || pathname === '/api/health') {
+  // Whitelist: access-code endpoints, health check, login/register, nextauth endpoints
+  if (
+    pathname.startsWith('/api/access-code/') || 
+    pathname === '/api/health' ||
+    pathname.startsWith('/api/auth/') ||
+    pathname === '/login' ||
+    pathname === '/register'
+  ) {
     return NextResponse.next();
   }
 
-  // Check cookie — validate HMAC signature, not just existence
+  // Check cookie — validate HMAC signature
   const cookie = request.cookies.get('openmaic_access');
   if (cookie?.value && (await verifyToken(cookie.value, accessCode))) {
     return NextResponse.next();
   }
 
-  // API requests without valid cookie → 401
   if (pathname.startsWith('/api/')) {
     return NextResponse.json(
       { success: false, errorCode: 'INVALID_REQUEST', error: 'Access code required' },
@@ -95,9 +114,8 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Page requests → let through, frontend shows modal
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico|logos/).*)'],

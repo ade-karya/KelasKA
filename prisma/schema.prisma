@@ -1,0 +1,253 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ── Multi-tenant ────────────────────────
+model Tenant {
+  id          String   @id @default(cuid())
+  name        String                         // e.g., "SMA Negeri 1 Bandung"
+  slug        String   @unique               // e.g., "sman1-bandung"
+  logo        String?
+  plan        Plan     @default(FREE)
+  maxUsers    Int      @default(50)
+  maxCourses  Int      @default(10)
+  createdAt   DateTime @default(now())
+  
+  users       TenantUser[]
+  courses     Course[]
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+  ENTERPRISE
+}
+
+// ── Users ───────────────────────────────
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String?                       // null if Google OAuth only
+  avatar        String?
+  bio           String?
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  
+  accounts      Account[]                     // OAuth accounts
+  tenants       TenantUser[]
+  enrollments   Enrollment[]
+  progress      Progress[]
+  quizAttempts  QuizAttempt[]
+  certificates  Certificate[]
+  discussions   Discussion[]
+  replies       Reply[]
+  notifications Notification[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+}
+
+model TenantUser {
+  id       String   @id @default(cuid())
+  userId   String
+  tenantId String
+  role     Role     @default(STUDENT)
+  joinedAt DateTime @default(now())
+  
+  user   User   @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  
+  @@unique([userId, tenantId])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+}
+
+// ── Courses ─────────────────────────────
+model Course {
+  id            String       @id @default(cuid())
+  tenantId      String
+  instructorId  String
+  title         String
+  description   String?
+  thumbnail     String?
+  category      String?
+  tags          String[]
+  status        CourseStatus  @default(DRAFT)
+  isFree        Boolean      @default(true)
+  price         Float?
+  maxStudents   Int?
+  enrollStart   DateTime?
+  enrollEnd     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
+  lessons     Lesson[]
+  enrollments Enrollment[]
+  discussions Discussion[]
+  certificates Certificate[]
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// ── Lessons ─────────────────────────────
+model Lesson {
+  id             String   @id @default(cuid())
+  courseId       String
+  title          String
+  description    String?
+  order          Int
+  classroomId    String?                    // link to existing classroom data if generated
+  classroomData  Json?                      // embedded classroom JSON
+  duration       Int?                       // estimated minutes
+  isFree         Boolean  @default(false)   // free preview lesson
+  createdAt      DateTime @default(now())
+  
+  course       Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress     Progress[]
+  quizAttempts QuizAttempt[]
+}
+
+// ── Enrollments ─────────────────────────
+model Enrollment {
+  id         String           @id @default(cuid())
+  userId     String
+  courseId   String
+  status     EnrollmentStatus @default(ACTIVE)
+  enrolledAt DateTime         @default(now())
+  
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+  
+  @@unique([userId, courseId])
+}
+
+enum EnrollmentStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+// ── Progress ────────────────────────────
+model Progress {
+  id          String         @id @default(cuid())
+  userId      String
+  lessonId    String
+  status      ProgressStatus @default(NOT_STARTED)
+  timeSpent   Int            @default(0)    // seconds
+  lastAccess  DateTime       @default(now())
+  completedAt DateTime?
+  
+  user   User   @relation(fields: [userId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+  
+  @@unique([userId, lessonId])
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+// ── Quiz Attempts ───────────────────────
+model QuizAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  lessonId  String
+  score     Float
+  maxScore  Float
+  answers   Json
+  createdAt DateTime @default(now())
+  
+  user   User   @relation(fields: [userId], references: [id])
+  lesson Lesson @relation(fields: [lessonId], references: [id])
+}
+
+// ── Certificates ────────────────────────
+model Certificate {
+  id               String   @id @default(cuid())
+  userId           String
+  courseId         String
+  verificationCode String   @unique @default(cuid())
+  issuedAt         DateTime @default(now())
+  
+  user   User   @relation(fields: [userId], references: [id])
+  course Course @relation(fields: [courseId], references: [id])
+  
+  @@unique([userId, courseId])
+}
+
+// ── Discussion Forum ────────────────────
+model Discussion {
+  id         String   @id @default(cuid())
+  courseId   String
+  userId     String
+  title      String
+  content    String
+  isPinned   Boolean  @default(false)
+  isResolved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  
+  course  Course  @relation(fields: [courseId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+  replies Reply[]
+}
+
+model Reply {
+  id           String   @id @default(cuid())
+  discussionId String
+  userId       String
+  content      String
+  createdAt    DateTime @default(now())
+  
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id])
+}
+
+// ── Notifications ───────────────────────
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String                          // enrollment, grade, announcement, etc.
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id])
+}
