@@ -198,11 +198,167 @@ DEFAULT_MODEL=glm:glm-5.1
 
 ### 3. Run
 
+KelasKA can run on **Web**, **Desktop (Windows)**, and **Mobile (Android)**. Choose the platform that suits your needs:
+
+---
+
+#### 🌐 Web (Development Server)
+
 ```bash
 pnpm dev
 ```
 
 Open **http://localhost:3000** and start learning!
+
+#### 🌐 Web (Production)
+
+```bash
+pnpm build && pnpm start
+```
+
+The production server will be available at **http://localhost:3000**.
+
+---
+
+#### 🖥️ Desktop (Electron — Windows)
+
+KelasKA ships with an Electron wrapper for a native desktop experience on Windows.
+
+**Prerequisites:**
+- Completed steps 1 & 2 above (clone, install, configure)
+- Node.js >= 20
+
+**Step 1 — Build the Next.js server bundle:**
+
+```bash
+# From the root project directory
+node desktop/scripts/build-desktop.js
+```
+
+This script will:
+1. Build Next.js in standalone mode
+2. Prepare the server bundle in `desktop/.server-bundle`
+3. Install desktop dependencies
+4. Package the Electron app
+
+**Step 2 — Run in development mode:**
+
+```bash
+cd desktop
+npm install
+npm run dev
+```
+
+This launches the Electron app, which starts an embedded Next.js server and opens the KelasKA window.
+
+**Step 3 — Build installer (optional):**
+
+```bash
+cd desktop
+npm run build          # Build NSIS + MSI installers
+npm run build:nsis     # Build NSIS installer only
+npm run build:msi      # Build MSI installer only
+```
+
+Installers will be output to `desktop/dist-electron/`.
+
+---
+
+#### 📱 Mobile (Android — Capacitor)
+
+KelasKA uses **Capacitor 7** to wrap the web app as a native Android application.
+
+**Prerequisites:**
+
+| Tool | Version | Notes |
+|------|---------|-------|
+| Node.js | 20+ | Required for Next.js |
+| JDK | 17 (Azul Zulu/Temurin) | Required for Android toolchain |
+| Android Studio | Hedgehog+ | Open & build the Android project |
+| Android SDK | API 24+ | Minimum target |
+| `ANDROID_HOME` | — | Path to Android SDK must be set |
+
+**Step 1 — Build the web app:**
+
+```bash
+# From the root project directory
+pnpm install
+pnpm build
+```
+
+**Step 2 — Install Capacitor dependencies:**
+
+```bash
+cd mobile
+npm install
+```
+
+**Step 3 — Add Android platform & sync:**
+
+```bash
+# First time only — add the Android platform
+npx cap add android
+
+# Sync web assets to native project
+npm run cap:sync
+```
+
+**Step 4 — Configure server URL:**
+
+Edit `mobile/capacitor.config.ts`:
+
+- **Production** — point to your deployed URL:
+  ```typescript
+  server: {
+    url: 'https://kelaska.com',
+    cleartext: false,
+  }
+  ```
+- **Local development** (emulator → host machine):
+  ```typescript
+  server: {
+    url: 'http://10.0.2.2:3000',
+    cleartext: true,
+  }
+  ```
+
+**Step 5 — Open in Android Studio & build:**
+
+```bash
+npm run cap:open   # Opens Android Studio
+```
+
+In Android Studio:
+1. **Build → Generate Signed Bundle/APK**
+2. Choose **AAB** (for Play Store) or **APK** (for sideloading)
+3. Select or create a keystore
+4. Choose **release** build variant
+5. Click **Finish**
+
+**Development with Emulator:**
+
+```bash
+# Terminal 1 — Run the Next.js dev server
+pnpm dev
+
+# Terminal 2 — Sync & launch emulator
+cd mobile
+npm run cap:sync
+npx cap run android
+```
+
+> The Android emulator accesses `10.0.2.2` as `localhost` on the host machine.
+
+**Optional: Firebase Push Notifications (FCM):**
+
+1. Create a project in [Firebase Console](https://console.firebase.google.com)
+2. Add an Android app with package name `com.kelaska.app`
+3. Download `google-services.json` → place in `mobile/android/app/`
+4. Add `apply plugin: 'com.google.gms.google-services'` to `mobile/android/app/build.gradle`
+
+> See [ANDROID_BUILD_GUIDE.md](mobile/ANDROID_BUILD_GUIDE.md) for the full mobile build guide.
+
+---
 
 ### 4. Build for Production
 
