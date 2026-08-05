@@ -5,13 +5,38 @@
  * Each stage has its own storage key based on stageId
  */
 
-import { makeScene, Stage, Scene } from '../types/stage';
+import { Stage, Scene } from '../types/stage';
 import { ChatSession } from '../types/chat';
 import { db } from './database';
-import { saveChatSessions, loadChatSessions, deleteChatSessions } from './chat-storage';
-import { clearPlaybackState } from './playback-storage';
+import {
+  ChatStorageLockUnavailableError,
+  saveChatSessions,
+  loadChatSessions,
+  deleteChatSessions,
+  type ChatStorageSnapshot,
+} from './chat-storage';
+import isEqual from 'lodash/isEqual';
+import { clearCursor } from '@/lib/playback/cursor';
+import {
+  accessDocument,
+  clearCurrentScene,
+  getDocumentStore,
+  getLegacyDocumentStore,
+  loadCurrentScene,
+  mutateDocument,
+  saveCurrentScene,
+  type AppDocumentOutline,
+} from '@/lib/document-store';
 import { clearAllForScene } from '@/lib/quiz/persistence';
+import { beginStageRuntimeDeletionSafely } from '@/lib/runtime/store';
+import { clearStageDrainWatermarks } from '@/lib/pbl/v2/runtime/drain';
 import { createLogger } from '@/lib/logger';
+import {
+  withRuntimeStorageExclusiveLockUntilSettled,
+  withRuntimeStorageSharedLock,
+} from './chat-storage-lock';
+import { DocumentVersionError } from '@openmaic/storage';
+import { preparePBLScenesForDocumentPersistence } from '@/lib/pbl/v2/runtime/document-persistence';
 
 const log = createLogger('StageStorage');
 
@@ -20,7 +45,23 @@ export interface StageStoreData {
   scenes: Scene[];
   currentSceneId: string | null;
   chats: ChatSession[];
+  chatSnapshot?: ChatStorageSnapshot;
+  /** The aggregate save contract treats omission as deletion; callers should carry this snapshot. */
+  outline?: AppDocumentOutline;
 }
+
+/**
+ * A logical editor change waiting for persistence. Call sites intentionally
+ * describe what changed, not how it is stored, so a future operation-log
+ * backend can replace the flush implementation without changing mutations.
+ */
+export type PendingChange =
+  | { kind: 'scene'; sceneId: string }
+  | { kind: 'structure' }
+  | { kind: 'stage' }
+  | { kind: 'outline' }
+  | { kind: 'currentScene' }
+  | { kind: 'chats' };
 
 export interface StageListItem {
   id: string;
@@ -33,52 +74,98 @@ export interface StageListItem {
   taskEngineMode?: boolean;
 }
 
+function stampStage(stageId: string, stage: Stage, now: number): Stage {
+  return {
+    ...stage,
+    id: stageId,
+    name: stage.name || 'Untitled Stage',
+    createdAt: stage.createdAt || now,
+    updatedAt: now,
+  };
+}
+
+function stampScene(stageId: string, scene: Scene, index: number, now: number): Scene {
+  return {
+    ...scene,
+    stageId,
+    order: scene.order ?? index,
+    createdAt: scene.createdAt || now,
+    updatedAt: scene.updatedAt || now,
+  };
+}
+
+function documentSnapshot(
+  stageId: string,
+  data: StageStoreData,
+  existingOutline: AppDocumentOutline | undefined,
+  now: number,
+) {
+  const outline = data.outline ??
+    existingOutline ?? {
+      outlines: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+  return {
+    stage: stampStage(stageId, data.stage, now),
+    scenes: data.scenes.map((scene, index) => stampScene(stageId, scene, index, now)),
+    outline: {
+      ...outline,
+      createdAt: existingOutline?.createdAt ?? outline.createdAt,
+    },
+  };
+}
+
+async function saveStageChats(
+  stageId: string,
+  data: StageStoreData,
+  globalLockHeld = false,
+): Promise<boolean> {
+  try {
+    await saveChatSessions(stageId, data.chats, {
+      ...(globalLockHeld ? { globalLockHeld: true } : {}),
+      snapshot: data.chatSnapshot,
+    });
+    return true;
+  } catch (error) {
+    const unchangedSnapshot = isEqual(data.chatSnapshot?.sessions ?? [], data.chats);
+    if (error instanceof ChatStorageLockUnavailableError && !unchangedSnapshot) throw error;
+    log.warn(`Chat sessions failed to save for stage ${stageId}:`, error);
+    return false;
+  }
+}
+
 /**
  * Save stage data to IndexedDB
  */
-export async function saveStageData(stageId: string, data: StageStoreData): Promise<void> {
+export async function saveStageData(
+  stageId: string,
+  data: StageStoreData,
+): Promise<{ failedChanges: PendingChange[] } | undefined> {
   try {
     const now = Date.now();
+    const failedChanges: PendingChange[] = [];
+    await mutateDocument(
+      stageId,
+      async (existing, store) => {
+        // Lock order: per-stage document lock, then the global runtime epoch.
+        // Maintenance may wait for this save, but this save never waits on a
+        // document lock while already occupying the shared epoch.
+        await withRuntimeStorageSharedLock(async () => {
+          const existingOutline = existing?.outline as AppDocumentOutline | undefined;
+          await store.saveDocument(documentSnapshot(stageId, data, existingOutline, now));
+          await saveCurrentScene(stageId, data.currentSceneId);
 
-    // Save to stages table
-    await db.stages.put({
-      id: stageId,
-      name: data.stage.name || 'Untitled Stage',
-      description: data.stage.description,
-      createdAt: data.stage.createdAt || now,
-      updatedAt: now,
-      languageDirective: data.stage.languageDirective,
-      style: data.stage.style,
-      currentSceneId: data.currentSceneId || undefined,
-      agentIds: data.stage.agentIds,
-      videoManifest: data.stage.videoManifest,
-      interactiveMode: data.stage.interactiveMode,
-      taskEngineMode: data.stage.taskEngineMode,
-      generatedAgentConfigs: data.stage.generatedAgentConfigs,
-    });
-
-    // Delete old scenes first to avoid orphaned data
-    await db.scenes.where('stageId').equals(stageId).delete();
-
-    // Save new scenes
-    if (data.scenes && data.scenes.length > 0) {
-      await db.scenes.bulkPut(
-        data.scenes.map((scene, index) => ({
-          ...scene,
-          stageId,
-          order: scene.order ?? index,
-          createdAt: scene.createdAt || now,
-          updatedAt: scene.updatedAt || now,
-        })),
-      );
-    }
-
-    // Save chat sessions to independent table
-    if (data.chats) {
-      await saveChatSessions(stageId, data.chats);
-    }
-
+          // Chat sessions live in the learner RuntimeStore, outside the document DB.
+          if (data.chats && !(await saveStageChats(stageId, data, true))) {
+            failedChanges.push({ kind: 'chats' });
+          }
+        });
+      },
+      { storageSharedLockHeld: true },
+    );
     log.info(`Saved stage: ${stageId}`);
+    return failedChanges.length > 0 ? { failedChanges } : undefined;
   } catch (error) {
     log.error('Failed to save stage:', error);
     throw error;
@@ -86,37 +173,154 @@ export async function saveStageData(stageId: string, data: StageStoreData): Prom
 }
 
 /**
+ * Persist only the logical units dirtied by the editor. Structural and outline
+ * changes still use the aggregate contract: structure must reconcile scene
+ * membership/order, while DocumentStore does not yet expose putOutline.
+ */
+export async function saveStageDataIncremental(
+  stageId: string,
+  dirty: readonly PendingChange[],
+  data: StageStoreData,
+): Promise<{ failedChanges: PendingChange[] }> {
+  const has = (kind: PendingChange['kind']) => dirty.some((change) => change.kind === kind);
+  const dirtySceneIds = new Set(
+    dirty.flatMap((change) => (change.kind === 'scene' ? [change.sceneId] : [])),
+  );
+  const needsDocumentWrite =
+    dirtySceneIds.size > 0 || has('structure') || has('stage') || has('outline');
+  const documentCategories = new Set(
+    dirty.flatMap((change) =>
+      change.kind === 'scene' ||
+      change.kind === 'structure' ||
+      change.kind === 'stage' ||
+      change.kind === 'outline'
+        ? [change.kind]
+        : [],
+    ),
+  );
+
+  if (needsDocumentWrite) {
+    await mutateDocument(
+      stageId,
+      async (existing, store) => {
+        await withRuntimeStorageSharedLock(async () => {
+          const now = Date.now();
+          const fullSave = async () => {
+            const persistedScenes = await preparePBLScenesForDocumentPersistence(
+              stageId,
+              data.scenes,
+            );
+            await store.saveDocument(
+              documentSnapshot(
+                stageId,
+                { ...data, scenes: persistedScenes },
+                existing?.outline as AppDocumentOutline | undefined,
+                now,
+              ),
+            );
+          };
+
+          // The incremental fast path is deliberately homogeneous. Combining
+          // scene and stage writes would span separate requests/transactions,
+          // exposing a torn document to concurrent readers. Structure and
+          // outline already require the aggregate contract, and any batch with
+          // more than one document category follows that same atomic path.
+          if (!existing || has('structure') || has('outline') || documentCategories.size > 1) {
+            await fullSave();
+            return;
+          }
+
+          try {
+            if (dirtySceneIds.size > 0) {
+              const dirtyScenes = data.scenes.filter((scene) => dirtySceneIds.has(scene.id));
+              // Preparation synchronizes and strips each PBL scene independently;
+              // it has no sibling-scene dependency, so the hot path stays local.
+              const persistedScenes = await preparePBLScenesForDocumentPersistence(
+                stageId,
+                dirtyScenes,
+              );
+              for (const scene of persistedScenes) {
+                const index = data.scenes.findIndex((candidate) => candidate.id === scene.id);
+                await store.putScene(stageId, stampScene(stageId, scene, index, now));
+              }
+            }
+            if (has('stage')) {
+              await store.putStage(stageId, stampStage(stageId, data.stage, now));
+            }
+          } catch (error) {
+            // Incremental APIs reject pre-versioned destinations. The aggregate
+            // save migrates/stamps the whole document coherently.
+            if (error instanceof DocumentVersionError && error.kind === 'not-current') {
+              await fullSave();
+              return;
+            }
+            throw error;
+          }
+        });
+      },
+      { storageSharedLockHeld: true },
+    );
+  }
+
+  if (has('currentScene')) await saveCurrentScene(stageId, data.currentSceneId);
+  const failedChanges: PendingChange[] = [];
+  if (has('chats') && !(await saveStageChats(stageId, data))) {
+    failedChanges.push({ kind: 'chats' });
+  }
+  return { failedChanges };
+}
+
+/**
  * Load stage data from IndexedDB
  */
 export async function loadStageData(stageId: string): Promise<StageStoreData | null> {
   try {
-    // Load stage
-    const stage = await db.stages.get(stageId);
-    if (!stage) {
+    const access = await accessDocument(stageId);
+    const document = access.document;
+    if (!document) {
       log.info(`Stage not found: ${stageId}`);
       return null;
     }
+    const currentScene = await loadCurrentScene(stageId);
 
-    // Load scenes
-    const scenes = await db.scenes.where('stageId').equals(stageId).sortBy('order');
+    // Chat runtime data lives in a separate IndexedDB database. Keep the
+    // document available when that independent store is temporarily
+    // unavailable; a later chat load/save can recover without treating the
+    // already-loaded stage as missing.
+    let chats: ChatSession[] = [];
+    let chatSnapshot: ChatStorageSnapshot = { sessions: [], restoreMarker: undefined };
+    try {
+      chats = await loadChatSessions(stageId, {
+        onSnapshot: (snapshot) => {
+          chatSnapshot = snapshot;
+        },
+      });
+    } catch (error) {
+      log.warn(`Failed to load chat sessions for stage ${stageId}:`, error);
+    }
 
-    // Load chat sessions from independent table
-    const chats = await loadChatSessions(stageId);
+    log.info(`Loaded stage: ${stageId}, scenes: ${document.scenes.length}, chats: ${chats.length}`);
 
-    log.info(`Loaded stage: ${stageId}, scenes: ${scenes.length}, chats: ${chats.length}`);
+    // Deliberate defense-in-depth: persisted cursors can outlive scene deletion
+    // or come from legacy storage, so never expose one absent from the document.
+    const storedCursor = currentScene?.sceneId ?? access.legacyCurrentSceneId;
+    const currentSceneId =
+      storedCursor && document.scenes.some((scene) => scene.id === storedCursor)
+        ? storedCursor
+        : (document.scenes[0]?.id ?? null);
 
     return {
-      stage,
-      // `SceneRecord` is the loose persisted shape (independent `type` + `content`);
-      // re-bind each to a discriminated `AppScene`, deriving `type` from the stored
-      // `content.type`. Spreads the full record, so `whiteboard` etc. are preserved.
-      scenes: scenes.map((s) => makeScene(s, s.content)),
-      currentSceneId: stage.currentSceneId || scenes[0]?.id || null,
+      stage: document.stage,
+      scenes: document.scenes,
+      currentSceneId,
       chats,
+      chatSnapshot,
+      outline: document.outline as AppDocumentOutline | undefined,
     };
   } catch (error) {
     log.error('Failed to load stage:', error);
-    return null;
+    // Corrupt or future-versioned destinations must never masquerade as missing.
+    throw error;
   }
 }
 
@@ -124,31 +328,80 @@ export async function loadStageData(stageId: string): Promise<StageStoreData | n
  * Delete stage and all related data
  */
 export async function deleteStageData(stageId: string): Promise<void> {
-  try {
-    // Collect scene ids before deletion so we can sweep per-scene localStorage
-    // keys (quiz draft / submitted answers / graded results).
-    const sceneIds = (await db.scenes.where('stageId').equals(stageId).toArray()).map((s) => s.id);
+  // storageSharedLockHeld: the cascade below holds the EXCLUSIVE epoch, which
+  // subsumes the shared one — the generation-guarded store must not re-acquire
+  // shared inside it (self-deadlock against our own exclusive hold).
+  return mutateDocument(
+    stageId,
+    async (document, store) =>
+      // Lock order: per-stage document lock, then the exclusive runtime epoch.
+      withRuntimeStorageExclusiveLockUntilSettled(async (releaseCaller) => {
+        try {
+          // Collect scene ids before deletion so we can sweep per-scene localStorage
+          // keys (quiz draft / submitted answers / graded results).
+          const legacyScenes = await db.scenes.where('stageId').equals(stageId).toArray();
+          const sceneIds = [
+            ...new Set([
+              ...(document?.scenes.map((s) => s.id) ?? []),
+              ...legacyScenes.map((s) => s.id),
+            ]),
+          ];
 
-    // Delete stage
-    await db.stages.delete(stageId);
+          await store.deleteDocument(stageId);
 
-    // Delete scenes
-    await db.scenes.where('stageId').equals(stageId).delete();
+          // Clear legacy chat rows and the device-scoped playback cursor. Runtime
+          // rows of every kind are removed by the all-kind cascade below.
+          await deleteChatSessions(stageId);
+          // An unmigrated legacy playback row must not outlive its stage.
+          await db.playbackState.delete(stageId);
+          try {
+            await clearCursor(stageId);
+          } catch (error) {
+            log.warn(`Failed to clear playback cursor for stage ${stageId}:`, error);
+          }
+          try {
+            await clearCurrentScene(stageId);
+          } catch (error) {
+            log.warn(`Failed to clear editor current scene for stage ${stageId}:`, error);
+          }
 
-    // Delete chat sessions and playback state
-    await deleteChatSessions(stageId);
-    await clearPlaybackState(stageId);
+          // Sweep quiz persistence keys for each deleted scene.
+          for (const sceneId of sceneIds) {
+            clearAllForScene(sceneId);
+          }
 
-    // Sweep quiz persistence keys for each deleted scene.
-    for (const sceneId of sceneIds) {
-      clearAllForScene(sceneId);
-    }
+          // Migration retains legacy rows, but an explicit whole-stage deletion does not.
+          await db.transaction('rw', [db.stages, db.scenes, db.stageOutlines], async () => {
+            await db.stages.delete(stageId);
+            await db.scenes.where('stageId').equals(stageId).delete();
+            await db.stageOutlines.delete(stageId);
+          });
 
-    log.info(`Deleted stage: ${stageId}`);
-  } catch (error) {
-    log.error('Failed to delete stage:', error);
-    throw error;
-  }
+          // Learner-runtime data lives in a separate IndexedDB database, so it is
+          // cascaded after the Dexie work: it cannot join those transactions, and a
+          // runtime failure must not abort them (the helper warns instead of
+          // throwing).
+          const runtimeDeletion = beginStageRuntimeDeletionSafely(stageId);
+          await runtimeDeletion.completion;
+          try {
+            await clearStageDrainWatermarks(stageId);
+          } catch (error) {
+            log.warn(`Failed to clear PBL drain watermarks for stage ${stageId}:`, error);
+          }
+
+          log.info(`Deleted stage: ${stageId}`);
+          releaseCaller(undefined);
+          // The public deletion remains bounded, but this callback deliberately
+          // retains the exclusive lock until a late runtime cascade can no longer
+          // delete data written after the caller was released.
+          await runtimeDeletion.settlement;
+        } catch (error) {
+          log.error('Failed to delete stage:', error);
+          throw error;
+        }
+      }),
+    { storageSharedLockHeld: true },
+  );
 }
 
 /**
@@ -156,29 +409,35 @@ export async function deleteStageData(stageId: string): Promise<void> {
  */
 export async function listStages(): Promise<StageListItem[]> {
   try {
-    const stages = await db.stages.orderBy('updatedAt').reverse().toArray();
-
-    const stageList: StageListItem[] = await Promise.all(
-      stages.map(async (stage) => {
-        const sceneCount = await db.scenes.where('stageId').equals(stage.id).count();
-
-        return {
+    const summaries = await getDocumentStore().listDocuments();
+    const ids = new Set(summaries.map((summary) => summary.id));
+    const legacy = await getLegacyDocumentStore().listStages();
+    const legacyOnly = await Promise.all(
+      legacy
+        .filter((stage) => !ids.has(stage.id))
+        .map(async (stage) => {
+          const snapshot = await getLegacyDocumentStore().read(stage.id);
+          return snapshot ? { ...stage, sceneCount: snapshot.scenes.length } : null;
+        }),
+    );
+    return [
+      ...summaries,
+      ...legacyOnly
+        .filter((stage) => stage !== null)
+        .map((stage) => ({
           id: stage.id,
           name: stage.name,
           description: stage.description,
-          sceneCount,
+          sceneCount: stage.sceneCount,
           createdAt: stage.createdAt,
           updatedAt: stage.updatedAt,
           interactiveMode: stage.interactiveMode,
           taskEngineMode: stage.taskEngineMode,
-        };
-      }),
-    );
-
-    return stageList;
+        })),
+    ].sort((a, b) => b.updatedAt - a.updatedAt);
   } catch (error) {
     log.error('Failed to list stages:', error);
-    return [];
+    throw error;
   }
 }
 
@@ -249,8 +508,8 @@ export async function getFirstSlideByStages(
   try {
     await Promise.all(
       stageIds.map(async (stageId) => {
-        const scenes = await db.scenes.where('stageId').equals(stageId).sortBy('order');
-        const firstSlide = scenes.find((s) => s.content?.type === 'slide');
+        const document = (await accessDocument(stageId)).document;
+        const firstSlide = document?.scenes.find((s) => s.content?.type === 'slide');
         if (firstSlide && firstSlide.content.type === 'slide') {
           const slide = structuredClone(firstSlide.content.canvas);
 
@@ -316,7 +575,10 @@ export async function getFirstSlideByStages(
  */
 export async function renameStage(stageId: string, newName: string): Promise<void> {
   try {
-    await db.stages.update(stageId, { name: newName, updatedAt: Date.now() });
+    await mutateDocument(stageId, async (document, store) => {
+      if (!document) throw new Error(`Stage not found: ${stageId}`);
+      await store.putStage(stageId, { ...document.stage, name: newName, updatedAt: Date.now() });
+    });
     log.info(`Renamed stage ${stageId} to "${newName}"`);
   } catch (error) {
     log.error('Failed to rename stage:', error);
@@ -329,8 +591,9 @@ export async function renameStage(stageId: string, newName: string): Promise<voi
  */
 export async function stageExists(stageId: string): Promise<boolean> {
   try {
-    const stage = await db.stages.get(stageId);
-    return !!stage;
+    const summaries = await getDocumentStore().listDocuments();
+    if (summaries.some((stage) => stage.id === stageId)) return true;
+    return (await getLegacyDocumentStore().read(stageId)) !== null;
   } catch (error) {
     log.error('Failed to check stage existence:', error);
     return false;

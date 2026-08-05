@@ -5,7 +5,7 @@ import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 import { useStageStore } from '@/lib/store/stage';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { db, getGeneratedAgentsByStageId } from '@/lib/utils/database';
+import { getGeneratedAgentsByStageId } from '@/lib/utils/database';
 import {
   CLASSROOM_ZIP_FORMAT_VERSION,
   CLASSROOM_ZIP_EXTENSION,
@@ -26,6 +26,8 @@ import {
 } from './inline-assets';
 import { createProxiedFetch } from './proxied-fetch';
 import type { SceneContent } from '@/lib/types/stage';
+import { preparePBLScenesForDocumentPersistence } from '@/lib/pbl/v2/runtime/document-persistence';
+import { accessDocument } from '@/lib/document-store';
 
 export async function inlineSceneContent(
   content: SceneContent,
@@ -54,10 +56,11 @@ export function useExportClassroom() {
     try {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
+      const documentScenes = await preparePBLScenesForDocumentPersistence(stage.id, scenes);
 
-      // 1. Read latest stage name from IndexedDB (may have been renamed on home page)
-      const freshStage = await db.stages.get(stage.id);
-      const latestName = freshStage?.name || stage.name;
+      // 1. Read latest stage name from the document aggregate (it may have been renamed at home).
+      const freshDocument = await accessDocument(stage.id);
+      const latestName = freshDocument.document?.stage.name || stage.name;
 
       // 2. Collect agents from DB
       const agentRecords = await getGeneratedAgentsByStageId(stage.id);
@@ -117,7 +120,7 @@ export function useExportClassroom() {
       const aggregateReport: InlineReport = { inlined: [], failed: [] };
       const sharedFetcher = createAssetFetcher({ fetchImpl: createProxiedFetch() });
       const manifestScenes: ManifestScene[] = await Promise.all(
-        scenes.map(async (scene) => {
+        documentScenes.map(async (scene) => {
           const { content, report } = await inlineSceneContent(scene.content, {
             fetcher: sharedFetcher,
           });

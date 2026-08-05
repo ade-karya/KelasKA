@@ -1,10 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { setSelectedAgentIds } = vi.hoisted(() => ({
+  setSelectedAgentIds: vi.fn(),
+}));
+
 // IndexedDB / stage-storage modules are imported dynamically inside the
 // store's save/load actions. Mock them so the debounced save doesn't try
 // to talk to a real (or jsdom) IndexedDB in the test environment.
 vi.mock('@/lib/utils/stage-storage', () => ({
   saveStageData: vi.fn().mockResolvedValue(undefined),
+  saveStageDataIncremental: vi.fn().mockResolvedValue(undefined),
   loadStageData: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('@/lib/utils/database', () => ({
@@ -13,9 +18,14 @@ vi.mock('@/lib/utils/database', () => ({
 vi.mock('@/lib/orchestration/registry/store', () => ({
   saveGeneratedAgents: vi.fn().mockResolvedValue([]),
 }));
+vi.mock('@/lib/store/settings', () => ({
+  useSettingsStore: {
+    getState: () => ({ setSelectedAgentIds }),
+  },
+}));
 
 import { useStageStore } from '@/lib/store/stage';
-import { saveStageData } from '@/lib/utils/stage-storage';
+import { saveStageData, saveStageDataIncremental } from '@/lib/utils/stage-storage';
 import { saveGeneratedAgents } from '@/lib/orchestration/registry/store';
 import type { Stage } from '@/lib/types/stage';
 import type { GeneratedAgentConfig } from '@/lib/types/stage';
@@ -42,6 +52,7 @@ function makeAgentConfig(id: string): GeneratedAgentConfig {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers();
   useStageStore.setState({
     stage: makeStage(),
     scenes: [],
@@ -49,8 +60,15 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => {
-  useStageStore.getState().clearStore();
+afterEach(async () => {
+  try {
+    await vi.runOnlyPendingTimersAsync();
+    await vi.dynamicImportSettled();
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    useStageStore.getState().clearStore();
+    vi.useRealTimers();
+  }
 });
 
 describe('setStageAgents', () => {
@@ -89,13 +107,10 @@ describe('setStageAgents', () => {
 
 describe('setStageAgents persistence (debounced save)', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     vi.mocked(saveStageData).mockClear();
+    vi.mocked(saveStageDataIncremental).mockClear();
     vi.mocked(saveGeneratedAgents).mockClear();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
+    setSelectedAgentIds.mockClear();
   });
 
   it('includes generatedAgentConfigs in saveStageData after debounce', async () => {
@@ -105,8 +120,8 @@ describe('setStageAgents persistence (debounced save)', () => {
     // Flush the 500 ms debounce
     await vi.runAllTimersAsync();
 
-    expect(saveStageData).toHaveBeenCalledOnce();
-    const [, storeData] = vi.mocked(saveStageData).mock.calls[0];
+    expect(saveStageDataIncremental).toHaveBeenCalledOnce();
+    const [, , storeData] = vi.mocked(saveStageDataIncremental).mock.calls[0];
     expect(storeData.stage.generatedAgentConfigs).toEqual(configs);
   });
 
@@ -150,8 +165,9 @@ describe('setStageAgents persistence (debounced save)', () => {
 
     await vi.runAllTimersAsync();
 
-    // saveStageData fires (the snapshot write is fine), but saveGeneratedAgents must not.
-    expect(saveStageData).toHaveBeenCalledOnce();
+    // Only the device-scoped incremental path fires; the document is untouched.
+    expect(saveStageDataIncremental).toHaveBeenCalledOnce();
+    expect(saveStageData).not.toHaveBeenCalled();
     expect(saveGeneratedAgents).not.toHaveBeenCalled();
   });
 

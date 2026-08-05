@@ -15,11 +15,86 @@ import type { SceneOutline } from '@/lib/types/generation';
 import { createLogger } from '@/lib/logger';
 import { useCanvasStore } from '@/lib/store/canvas';
 import { migrateScene } from '@/lib/edit/slide-schema';
+import { preparePBLScenesForDocumentPersistence } from '@/lib/pbl/v2/runtime/document-persistence';
+import { hydratePBLScenesFromRuntime } from '@/lib/pbl/v2/runtime/hydration';
+import type { ChatStorageSnapshot } from '@/lib/utils/chat-storage';
+import type { PendingChange } from '@/lib/utils/stage-storage';
 
 const log = createLogger('StageStore');
 
 /** Virtual scene ID used when the user navigates to a page still being generated */
 export const PENDING_SCENE_ID = '__pending__';
+
+export type StageSceneLoadToken = number;
+
+let latestStageSceneLoadToken = 0;
+
+type PendingEntry = { change: PendingChange; revision: number };
+
+let pendingStageId: string | null = null;
+let pendingRevision = 0;
+const pendingChanges = new Map<string, PendingEntry>();
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+type FlushRound = {
+  dirtySnapshot: ReadonlyMap<string, PendingEntry>;
+  promise: Promise<Set<string>>;
+};
+let flushInFlight: FlushRound | null = null;
+let stageStorageModulePromise: Promise<typeof import('@/lib/utils/stage-storage')> | null = null;
+
+const DEPARTING_STAGE_RETRY_DELAY_MS = 100;
+
+function pendingChangeKey(change: PendingChange): string {
+  return change.kind === 'scene' ? `scene:${change.sceneId}` : change.kind;
+}
+
+function cancelScheduledSave(): void {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = null;
+}
+
+function resetPendingChanges(stageId: string | null = null): void {
+  cancelScheduledSave();
+  pendingChanges.clear();
+  pendingStageId = stageId;
+}
+
+function schedulePendingSave(): void {
+  cancelScheduledSave();
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    void flushStageSave().catch(() => {
+      // flushStageSave logs once and retains the pending entries for retry.
+    });
+  }, 500);
+}
+
+function markPendingChanges(stageId: string | undefined, ...changes: PendingChange[]): void {
+  if (!stageId) return;
+  if (pendingStageId !== stageId) resetPendingChanges(stageId);
+  for (const change of changes) {
+    pendingRevision += 1;
+    pendingChanges.set(pendingChangeKey(change), { change, revision: pendingRevision });
+  }
+  schedulePendingSave();
+}
+
+/**
+ * Persistence seam for production code that must use the raw Zustand
+ * setState API. Normal store actions mark their own logical changes.
+ */
+export function markStagePersistenceDirty(changes: PendingChange[]): void {
+  markPendingChanges(useStageStore.getState().stage?.id, ...changes);
+}
+
+export function claimStageSceneLoadToken(): StageSceneLoadToken {
+  latestStageSceneLoadToken += 1;
+  return latestStageSceneLoadToken;
+}
+
+export function isCurrentStageSceneLoadToken(token: StageSceneLoadToken): boolean {
+  return token === latestStageSceneLoadToken;
+}
 
 // ==================== Debounce Helper ====================
 
@@ -72,6 +147,7 @@ interface StageState {
 
   // Chats
   chats: ChatSession[];
+  chatSnapshot: ChatStorageSnapshot;
 
   // Mode
   mode: StageMode;
@@ -126,8 +202,69 @@ interface StageState {
 
   // Storage
   saveToStorage: () => Promise<boolean>;
-  loadFromStorage: (stageId: string) => Promise<void>;
+  loadFromStorage: (stageId: string, loadToken?: StageSceneLoadToken) => Promise<void>;
   clearStore: () => void;
+}
+
+function isDeckComplete({
+  outlines,
+  scenes,
+  failedOutlines,
+}: Pick<StageState, 'outlines' | 'scenes' | 'failedOutlines'>): boolean {
+  return (
+    outlines.length > 0 &&
+    failedOutlines.length === 0 &&
+    outlines.every((o) => scenes.some((s) => s.order === o.order))
+  );
+}
+
+type StagePersistenceSnapshot = Pick<
+  StageState,
+  | 'stage'
+  | 'scenes'
+  | 'currentSceneId'
+  | 'chats'
+  | 'chatSnapshot'
+  | 'outlines'
+  | 'generationComplete'
+>;
+
+function persistenceSnapshot(state: StageState): StagePersistenceSnapshot {
+  const { stage, scenes, currentSceneId, chats, chatSnapshot, outlines, generationComplete } =
+    state;
+  return { stage, scenes, currentSceneId, chats, chatSnapshot, outlines, generationComplete };
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function persistDirtySnapshot(
+  stageId: string,
+  dirtySnapshot: ReadonlyMap<string, PendingEntry>,
+  snapshot: StagePersistenceSnapshot,
+): Promise<Set<string>> {
+  if (!snapshot.stage) return new Set();
+  stageStorageModulePromise ??= import('@/lib/utils/stage-storage');
+  const { saveStageDataIncremental } = await stageStorageModulePromise;
+  const result = await saveStageDataIncremental(
+    stageId,
+    [...dirtySnapshot.values()].map(({ change }) => change),
+    {
+      stage: snapshot.stage,
+      scenes: snapshot.scenes,
+      currentSceneId: snapshot.currentSceneId,
+      chats: snapshot.chats,
+      chatSnapshot: snapshot.chatSnapshot,
+      outline: {
+        outlines: snapshot.outlines,
+        generationComplete: snapshot.generationComplete,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    },
+  );
+  return new Set((result?.failedChanges ?? []).map(pendingChangeKey));
 }
 
 const useStageStoreBase = create<StageState>()((set, get) => ({
@@ -136,6 +273,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
   scenes: [],
   currentSceneId: null,
   chats: [],
+  chatSnapshot: { sessions: [], restoreMarker: null },
   mode: 'playback',
   toolbarState: 'ai',
   generatingOutlines: [],
@@ -148,15 +286,58 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
   // Actions
   setStage: (stage) => {
+    claimStageSceneLoadToken();
+    const departingState = get();
+    if (
+      departingState.stage?.id &&
+      pendingStageId === departingState.stage.id &&
+      pendingChanges.size > 0
+    ) {
+      const departingStageId = departingState.stage.id;
+      const departingDirty = new Map(pendingChanges);
+      const departingSnapshot = persistenceSnapshot(departingState);
+      /**
+       * Navigation is intentionally not a durability barrier. The immutable
+       * departing snapshot is attempted immediately, retried once after a
+       * short delay, then logged and dropped so it cannot leak into the next
+       * document or block navigation indefinitely.
+       */
+      void (async () => {
+        let lastFailedKeys = new Set<string>();
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            lastFailedKeys = await persistDirtySnapshot(
+              departingStageId,
+              departingDirty,
+              departingSnapshot,
+            );
+            if (lastFailedKeys.size === 0) return;
+          } catch (error) {
+            if (attempt === 1) throw error;
+          }
+          await delay(DEPARTING_STAGE_RETRY_DELAY_MS);
+        }
+        log.warn(
+          `Departing stage ${departingStageId} dropped failed changes after one retry: ${[...lastFailedKeys].join(', ')}`,
+        );
+      })().catch((error) => {
+        log.error(
+          `Failed to flush departing stage ${departingStageId} after one retry; changes were dropped:`,
+          error,
+        );
+      });
+    }
+    resetPendingChanges(stage.id);
     set((s) => ({
       stage,
       scenes: [],
       currentSceneId: null,
       chats: [],
+      chatSnapshot: { sessions: [], restoreMarker: null },
       generationComplete: false,
       generationEpoch: s.generationEpoch + 1,
     }));
-    debouncedSave();
+    markPendingChanges(stage.id, { kind: 'structure' }, { kind: 'stage' });
   },
 
   setScenes: (scenes) => {
@@ -164,12 +345,17 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     // a schemaVersion (API / snapshot / legacy) is normalized once at
     // the store boundary.
     const migrated = scenes.map(migrateScene);
-    set({ scenes: migrated });
-    // Auto-select first scene if no current scene
-    if (!get().currentSceneId && migrated.length > 0) {
-      set({ currentSceneId: migrated[0].id });
-    }
-    debouncedSave();
+    const previousCurrentSceneId = get().currentSceneId;
+    const currentSceneId =
+      !previousCurrentSceneId && migrated.length > 0 ? migrated[0].id : previousCurrentSceneId;
+    set({ scenes: migrated, currentSceneId });
+    markPendingChanges(
+      get().stage?.id,
+      { kind: 'structure' },
+      ...(currentSceneId !== previousCurrentSceneId
+        ? ([{ kind: 'currentScene' }] as PendingChange[])
+        : []),
+    );
   },
 
   addScene: (scene) => {
@@ -191,7 +377,11 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
       generatingOutlines,
       ...(shouldSwitch ? { currentSceneId: scene.id } : {}),
     });
-    debouncedSave();
+    markPendingChanges(
+      currentStage.id,
+      { kind: 'structure' },
+      ...(shouldSwitch ? ([{ kind: 'currentScene' }] as PendingChange[]) : []),
+    );
   },
 
   insertSceneAfter: (anchorSceneId, scene) => {
@@ -213,7 +403,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     const next = [...current.slice(0, insertIndex), migrated, ...current.slice(insertIndex)];
     const rebalanced = next.map((s, i) => (s.order === i + 1 ? s : { ...s, order: i + 1 }));
     set({ scenes: rebalanced });
-    debouncedSave();
+    markPendingChanges(currentStage.id, { kind: 'structure' });
   },
 
   updateScene: (sceneId, updates) => {
@@ -225,7 +415,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
       return makeScene({ ...scene, ...updates }, content);
     });
     set({ scenes });
-    debouncedSave();
+    markPendingChanges(get().stage?.id, { kind: 'scene', sceneId });
   },
 
   deleteScene: (sceneId) => {
@@ -236,11 +426,8 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     // flag existed, or edited without a reload so loadFromStorage's self-heal
     // never ran. Without this, the deletion breaks the scenes===outlines count
     // and the "Course complete" page disappears.
-    const wasComplete =
-      !get().generationComplete &&
-      get().outlines.length > 0 &&
-      get().failedOutlines.length === 0 &&
-      get().outlines.every((o) => get().scenes.some((s) => s.order === o.order));
+    const state = get();
+    const wasComplete = !state.generationComplete && isDeckComplete(state);
 
     const scenes = get().scenes.filter((scene) => scene.id !== sceneId);
     const currentSceneId = get().currentSceneId;
@@ -259,17 +446,21 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
     if (wasComplete) get().setGenerationComplete(true);
 
-    debouncedSave();
+    markPendingChanges(
+      get().stage?.id,
+      { kind: 'structure' },
+      ...(currentSceneId === sceneId ? ([{ kind: 'currentScene' }] as PendingChange[]) : []),
+    );
   },
 
   setCurrentSceneId: (sceneId) => {
     set({ currentSceneId: sceneId });
-    debouncedSave();
+    markPendingChanges(get().stage?.id, { kind: 'currentScene' });
   },
 
   setChats: (chats) => {
     set({ chats });
-    debouncedSave();
+    markPendingChanges(get().stage?.id, { kind: 'chats' });
   },
 
   setMode: (mode) => {
@@ -287,7 +478,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     const stage = get().stage;
     if (!stage) return;
     set({ stage: { ...stage, generatedAgentConfigs: configs } });
-    debouncedSave();
+    markPendingChanges(stage.id, { kind: 'stage' });
     debouncedSaveAgents();
   },
 
@@ -295,60 +486,19 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
 
   setOutlines: (outlines) => {
     set({ outlines });
-    // Persist outlines to IndexedDB. Carry generationComplete so writing
-    // outlines never clobbers a previously-recorded completion flag.
-    const stageId = get().stage?.id;
-    if (stageId) {
-      const generationComplete = get().generationComplete;
-      import('@/lib/utils/database').then(({ db }) => {
-        db.stageOutlines.put({
-          stageId,
-          outlines,
-          generationComplete,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-      });
-    }
+    markPendingChanges(get().stage?.id, { kind: 'outline' });
   },
 
   setGenerationComplete: (generationComplete) => {
     set({ generationComplete });
-    // Persist alongside the outlines record so resume-on-mount can read it.
-    const stageId = get().stage?.id;
-    if (stageId) {
-      const outlines = get().outlines;
-      // Flush the current scenes BEFORE recording completion, and only record
-      // it once that flush is verified. Scenes save through a 500ms debounce,
-      // so writing the flag eagerly could let a reload see
-      // generationComplete=true with the final slide still unsaved — which
-      // would then be suppressed (not pending) and lost. If the scene flush
-      // fails, skip the flag: the deck stays resumable and recovers on reload.
-      void get()
-        .saveToStorage()
-        .then((saved) => {
-          if (!saved) return;
-          return import('@/lib/utils/database').then(({ db }) => {
-            db.stageOutlines.put({
-              stageId,
-              outlines,
-              generationComplete,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-            });
-          });
-        });
-    }
+    // Final scenes and the completion barrier commit in the same aggregate write.
+    void get().saveToStorage();
   },
 
   markGenerationCompleteIfDone: () => {
     const { outlines, scenes, failedOutlines, generationComplete } = get();
     if (generationComplete) return;
-    const done =
-      outlines.length > 0 &&
-      failedOutlines.length === 0 &&
-      outlines.every((o) => scenes.some((s) => s.order === o.order));
-    if (done) get().setGenerationComplete(true);
+    if (isDeckComplete({ outlines, scenes, failedOutlines })) get().setGenerationComplete(true);
   },
 
   setGenerationStatus: (generationStatus) => set({ generationStatus }),
@@ -390,20 +540,61 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
   // durability (e.g. setGenerationComplete) can avoid recording state that
   // outruns the scene data.
   saveToStorage: async () => {
-    const { stage, scenes, currentSceneId, chats } = get();
+    const { stage, scenes, currentSceneId, chats, chatSnapshot, outlines, generationComplete } =
+      get();
     if (!stage?.id) {
       log.warn('Cannot save: stage.id is required');
       return false;
     }
 
+    const pendingAtStart = new Map(pendingChanges);
     try {
+      const persistedScenes = await preparePBLScenesForDocumentPersistence(stage.id, scenes);
       const { saveStageData } = await import('@/lib/utils/stage-storage');
-      await saveStageData(stage.id, {
+      const result = await saveStageData(stage.id, {
         stage,
-        scenes,
+        scenes: persistedScenes,
         currentSceneId,
         chats,
+        chatSnapshot,
+        outline: {
+          outlines,
+          generationComplete,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        },
       });
+
+      const failedKeys = new Set((result?.failedChanges ?? []).map(pendingChangeKey));
+      if (
+        failedKeys.has('chats') &&
+        pendingStageId === stage.id &&
+        !pendingChanges.has('chats') &&
+        get().stage?.id === stage.id &&
+        get().chats === chats
+      ) {
+        markPendingChanges(stage.id, { kind: 'chats' });
+      }
+      // Bind future saves to the exact chat snapshot this successful write
+      // represented. Keep the restore marker unchanged: a stale no-op after a
+      // restore must remain stale until the editor reloads.
+      if (!failedKeys.has('chats') && get().stage?.id === stage.id && get().chats === chats) {
+        set({
+          chatSnapshot: {
+            sessions: structuredClone(chats),
+            restoreMarker: chatSnapshot.restoreMarker,
+          },
+        });
+      }
+      if (pendingStageId === stage.id) {
+        for (const [key, entry] of pendingAtStart) {
+          if (!failedKeys.has(key) && pendingChanges.get(key)?.revision === entry.revision) {
+            pendingChanges.delete(key);
+          }
+        }
+        if (pendingChanges.size === 0) cancelScheduledSave();
+        else schedulePendingSave();
+      }
 
       return true;
     } catch (error) {
@@ -412,8 +603,9 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
     }
   },
 
-  loadFromStorage: async (stageId: string) => {
+  loadFromStorage: async (stageId: string, loadToken?: StageSceneLoadToken) => {
     try {
+      const token = loadToken ?? claimStageSceneLoadToken();
       // Skip IndexedDB load if the store already has this stage with scenes
       // (e.g. navigated from generation-preview with fresh in-memory data)
       const currentState = get();
@@ -425,9 +617,7 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
       const { loadStageData } = await import('@/lib/utils/stage-storage');
       const data = await loadStageData(stageId);
 
-      // Load outlines for resume-on-refresh
-      const { db } = await import('@/lib/utils/database');
-      const outlinesRecord = await db.stageOutlines.get(stageId);
+      const outlinesRecord = data?.outline;
       const outlines = outlinesRecord?.outlines || [];
       const persistedComplete = outlinesRecord?.generationComplete ?? false;
 
@@ -435,37 +625,45 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
         // Normalize legacy slide content (missing schemaVersion) at the load
         // boundary, same as setScenes/addScene — IndexedDB snapshots predate
         // the schema field, so they must be migrated on the way in.
-        const migrated = data.scenes.map(migrateScene);
+        const migrated = await hydratePBLScenesFromRuntime(stageId, data.scenes.map(migrateScene));
+        if (!isCurrentStageSceneLoadToken(token)) {
+          log.info('Newer stage load started during IndexedDB hydration, skipping load:', stageId);
+          return;
+        }
+        const latestState = get();
+        if (latestState.stage?.id === stageId && latestState.scenes.length > 0) {
+          log.info('Stage appeared in memory during IndexedDB hydration, skipping load:', stageId);
+          return;
+        }
 
         // Self-heal decks generated before generationComplete was tracked: if
-        // every outline already has a matching scene, generation must have
-        // finished, so treat the deck as complete and persist the flag. This
-        // prevents a pre-existing finished deck from regenerating a slide the
-        // user deletes before the flag was ever recorded.
+        // every outline already has a matching scene and none failed,
+        // generation must have finished, so treat the deck as complete and
+        // persist the flag. This prevents a pre-existing finished deck from
+        // regenerating a slide the user deletes before the flag was ever
+        // recorded.
         //
         // Matching is by `order`, consistent with the rest of the resume
         // pipeline. For a never-edited deck order is a faithful key; the only
         // way it diverges is Pro-mode insert/reorder, which is blocked while
         // outlines are still pending (see stage-mode edit gating), so an
         // interrupted deck cannot be edited into a false "all materialized".
-        const allMaterialized =
-          outlines.length > 0 && outlines.every((o) => migrated.some((s) => s.order === o.order));
-        const generationComplete = persistedComplete || allMaterialized;
-        if (generationComplete && !persistedComplete) {
-          db.stageOutlines.put({
-            stageId,
+        const inMemoryState = get();
+        const failedOutlines =
+          inMemoryState.stage?.id === stageId ? inMemoryState.failedOutlines : [];
+        const generationComplete =
+          persistedComplete ||
+          isDeckComplete({
             outlines,
-            generationComplete: true,
-            createdAt: outlinesRecord?.createdAt ?? Date.now(),
-            updatedAt: Date.now(),
+            scenes: migrated,
+            failedOutlines,
           });
-        }
-
         set({
           stage: data.stage,
           scenes: migrated,
           currentSceneId: data.currentSceneId,
           chats: data.chats,
+          chatSnapshot: data.chatSnapshot ?? { sessions: [], restoreMarker: undefined },
           outlines,
           generationComplete,
           // Compute generatingOutlines from persisted outlines minus completed
@@ -483,6 +681,8 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
           // this normalises the SPA path to match.
           mode: 'playback',
         });
+        resetPendingChanges(stageId);
+        if (generationComplete && !persistedComplete) void get().saveToStorage();
         log.info('Loaded from storage:', stageId);
       } else {
         log.warn('No data found for stage:', stageId);
@@ -494,11 +694,14 @@ const useStageStoreBase = create<StageState>()((set, get) => ({
   },
 
   clearStore: () => {
+    claimStageSceneLoadToken();
+    resetPendingChanges();
     set((s) => ({
       stage: null,
       scenes: [],
       currentSceneId: null,
       chats: [],
+      chatSnapshot: { sessions: [], restoreMarker: null },
       outlines: [],
       generationComplete: false,
       generationEpoch: s.generationEpoch + 1,
@@ -515,13 +718,122 @@ export const useStageStore = createSelectors(useStageStoreBase);
 
 // ==================== Debounced Save ====================
 
+const MAX_FLUSH_DRAIN_ROUNDS = 20;
+
+function startFlushRound(): FlushRound | null {
+  if (flushInFlight) return flushInFlight;
+  if (!pendingStageId || pendingChanges.size === 0) return null;
+
+  const stageId = pendingStageId;
+  const dirtySnapshot = new Map(pendingChanges);
+  const state = useStageStore.getState();
+  if (state.stage?.id !== stageId) {
+    resetPendingChanges(state.stage?.id ?? null);
+    return null;
+  }
+  const snapshot = persistenceSnapshot(state);
+
+  const run = (async () => {
+    try {
+      const failedKeys = await persistDirtySnapshot(stageId, dirtySnapshot, snapshot);
+      if (pendingStageId === stageId) {
+        for (const [key, entry] of dirtySnapshot) {
+          if (!failedKeys.has(key) && pendingChanges.get(key)?.revision === entry.revision) {
+            pendingChanges.delete(key);
+          }
+        }
+      }
+      if (
+        dirtySnapshot.has('chats') &&
+        !failedKeys.has('chats') &&
+        useStageStore.getState().stage?.id === stageId &&
+        useStageStore.getState().chats === snapshot.chats
+      ) {
+        useStageStore.setState({
+          chatSnapshot: {
+            sessions: structuredClone(snapshot.chats),
+            restoreMarker: snapshot.chatSnapshot.restoreMarker,
+          },
+        });
+      }
+      return failedKeys;
+    } catch (error) {
+      log.error(`Failed to flush pending stage changes for ${stageId}:`, error);
+      throw error;
+    } finally {
+      flushInFlight = null;
+      // Successive mutations and failed writes both leave durable work queued.
+      // Always restore the retry timer so dirt is never stranded.
+      if (pendingChanges.size > 0 && pendingStageId) schedulePendingSave();
+    }
+  })();
+  const round = { dirtySnapshot, promise: run };
+  flushInFlight = round;
+  return round;
+}
+
+function roundCoversEntry(
+  round: FlushRound,
+  entrySnapshot: ReadonlyMap<string, PendingEntry>,
+): boolean {
+  for (const [key, entry] of entrySnapshot) {
+    const pending = pendingChanges.get(key);
+    if (!pending || pending.revision < entry.revision) continue;
+    const attempted = round.dirtySnapshot.get(key);
+    if (!attempted || attempted.revision < entry.revision) return false;
+  }
+  return true;
+}
+
 /**
- * Debounced version of saveToStorage to prevent excessive writes
- * Waits 500ms after the last change before saving
+ * Drain every mutation visible to the caller, including one that lands after
+ * an in-flight round captured its snapshot. Chat-store failures are reported
+ * as retained dirt and retried by the debounce without rolling back a
+ * successful document commit.
  */
-const debouncedSave = debounce(() => {
-  useStageStore.getState().saveToStorage();
-}, 500);
+export async function flushStageSave(): Promise<void> {
+  const entryStageId = pendingStageId;
+  const entryRevision = pendingRevision;
+  const entrySnapshot = new Map(
+    [...pendingChanges].filter(([, entry]) => entry.revision <= entryRevision),
+  );
+
+  for (let round = 0; round < MAX_FLUSH_DRAIN_ROUNDS; round += 1) {
+    cancelScheduledSave();
+    const stillPendingAtEntry = [...entrySnapshot].some(([key, entry]) => {
+      const pending = pendingChanges.get(key);
+      return (
+        pendingStageId === entryStageId &&
+        pending !== undefined &&
+        pending.revision >= entry.revision
+      );
+    });
+    if (!entryStageId || entrySnapshot.size === 0 || !stillPendingAtEntry) return;
+
+    const flushRound = startFlushRound();
+    if (!flushRound) return;
+    const coversEntry = roundCoversEntry(flushRound, entrySnapshot);
+    try {
+      const failedKeys = await flushRound.promise;
+      if (coversEntry && failedKeys.size > 0) return;
+    } catch (error) {
+      if (coversEntry) throw error;
+    }
+  }
+  throw new Error(`Stage persistence did not quiesce after ${MAX_FLUSH_DRAIN_ROUNDS} flush rounds`);
+}
+
+if (typeof window !== 'undefined') {
+  const kickPendingSave = () => {
+    void flushStageSave().catch(() => {
+      // Best effort during page shutdown; pending dirt remains for a live retry.
+    });
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') kickPendingSave();
+  });
+  window.addEventListener('beforeunload', kickPendingSave);
+}
 
 /**
  * Debounced registry sync — fires ONLY when the agent roster is edited.
