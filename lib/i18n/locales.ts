@@ -23,4 +23,5 @@ export const supportedLocales = [
   { code: 'pt-BR', label: 'Português (Brasil)', shortLabel: 'BR' },
   { code: 'ko-KR', label: '한국어', shortLabel: 'KO' },
   { code: 'es-MX', label: 'Español (México)', shortLabel: 'ES' },
+  { code: 'id-ID', label: 'Bahasa Indonesia', shortLabel: 'ID' },
 ] as const satisfies readonly LocaleEntry[];

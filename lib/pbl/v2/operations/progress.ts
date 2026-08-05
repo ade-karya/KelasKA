@@ -898,6 +898,13 @@ function taskDividerLabels(language: string | undefined): {
         nextPrefix: 'بدء المهمة التالية: ',
         nextFallback: 'بدء المهمة التالية',
       };
+    case 'id-ID':
+      return {
+        completedPrefix: 'Tugas selesai: ',
+        completedFallback: 'Tugas saat ini selesai',
+        nextPrefix: 'Tugas berikutnya: ',
+        nextFallback: 'Tugas berikutnya',
+      };
     default:
       return {
         completedPrefix: 'Task complete: ',
@@ -963,6 +970,8 @@ function milestoneDividerLabel(language: string | undefined, handover: PBLHandov
       return `Продвижение этапа: ${transition}`;
     case 'ar-SA':
       return `تقدم المرحلة: ${transition}`;
+    case 'id-ID':
+      return `Kemajuan tahap: ${transition}`;
     default:
       return `Stage progression: ${transition}`;
   }
