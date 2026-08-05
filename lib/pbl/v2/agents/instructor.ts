@@ -1269,8 +1269,35 @@ function difficultyAdjustAck(language: string | undefined): string {
       return 'Certo, vou ajustar a forma de explicar.';
     case 'ar-SA':
       return 'حسنًا، سأعدّل طريقة الشرح.';
+    case 'id-ID':
+      return 'Baik, saya akan menyesuaikan cara penjelasannya.';
     default:
       return "Got it — I'll adjust how I explain things.";
+  }
+}
+
+/**
+ * Localised message for the "empty output" error frame — the instructor
+ * turn produced nothing the learner can see.
+ */
+function emptyOutputMessage(language: string | undefined): string {
+  switch (language) {
+    case 'zh-CN':
+      return '导师本轮没有产生新的内容。请稍后再试，或者把你的问题再说得具体一些。';
+    case 'zh-TW':
+      return '導師本輪沒有產生新的內容。請稍後再試，或者把你的問題再說得具體一些。';
+    case 'ja-JP':
+      return 'この回では新しい内容が生成されませんでした。しばらくしてからもう一度お試しいただくか、質問をもう少し具体的にしてみてください。';
+    case 'ru-RU':
+      return 'Наставник не сгенерировал новый контент в этом раунде. Попробуйте позже или задайте вопрос конкретнее.';
+    case 'pt-BR':
+      return 'O instrutor não produziu conteúdo novo nesta rodada. Tente novamente mais tarde ou reformule sua pergunta de forma mais específica.';
+    case 'ar-SA':
+      return 'لم ينتج المعلم محتوى جديدًا في هذه الجولة. حاول مرة أخرى لاحقًا، أو اجعل سؤالك أكثر تحديدًا.';
+    case 'id-ID':
+      return 'Instruktur tidak menghasilkan konten baru pada putaran ini. Silakan coba lagi nanti, atau buat pertanyaan Anda lebih spesifik.';
+    default:
+      return 'The instructor did not produce new content this round. Please try again later, or make your question more specific.';
   }
 }
 
@@ -1660,7 +1687,7 @@ export async function* runInstructorTurn(
     yield {
       type: 'error',
       code: 'EMPTY_LLM_OUTPUT',
-      message: '导师本轮没有产生新的内容。请稍后再试，或者把你的问题再说得具体一些。',
+      message: emptyOutputMessage(project.language),
     };
   }
 

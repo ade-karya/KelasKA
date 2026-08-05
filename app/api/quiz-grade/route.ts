@@ -50,12 +50,17 @@ export async function POST(req: NextRequest) {
       'quiz-grade',
     );
 
-    const isZh = language === 'zh-CN';
+    const isZh = language === 'zh-CN' || language === 'zh-TW';
+    const isId = language === 'id-ID';
 
     const systemPrompt = isZh
       ? `你是一位专业的教育评估专家。请根据题目和学生答案进行评分并给出简短评语。
 必须以如下 JSON 格式回复（不要包含其他内容）：
 {"score": <0到${points}的整数>, "comment": "<一两句评语>"}`
+      : isId
+      ? `Anda adalah seorang penilai pendidikan profesional. Berikan nilai pada jawaban siswa dan berikan umpan balik singkat.
+Anda harus membalas dalam format JSON berikut saja (tanpa konten lain):
+{"score": <bilangan bulat dari 0 sampai ${points}>, "comment": "<satu atau dua kalimat umpan balik>"}`
       : `You are a professional educational assessor. Grade the student's answer and provide brief feedback.
 You must reply in the following JSON format only (no other content):
 {"score": <integer from 0 to ${points}>, "comment": "<one or two sentences of feedback>"}`;
@@ -64,6 +69,10 @@ You must reply in the following JSON format only (no other content):
       ? `题目：${question}
 满分：${points}分
 ${commentPrompt ? `评分要点：${commentPrompt}\n` : ''}学生答案：${userAnswer}`
+      : isId
+      ? `Pertanyaan: ${question}
+Nilai penuh: ${points} poin
+${commentPrompt ? `Panduan penilaian: ${commentPrompt}\n` : ''}Jawaban siswa: ${userAnswer}`
       : `Question: ${question}
 Full marks: ${points} points
 ${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}Student answer: ${userAnswer}`;
@@ -98,6 +107,8 @@ ${commentPrompt ? `Grading guidance: ${commentPrompt}\n` : ''}Student answer: ${
         score: Math.round(points * 0.5),
         comment: isZh
           ? '已作答，请参考标准答案。'
+          : isId
+          ? 'Jawaban diterima. Silakan lihat jawaban standar.'
           : 'Answer received. Please refer to the standard answer.',
       };
     }

@@ -1741,5 +1741,40 @@
       "quiz": "測驗",
       "slide": "頁面"
     }
+  },
+  "canvas": {
+    "paste": "貼上",
+    "selectAll": "全選",
+    "ruler": "標尺",
+    "gridlines": "網格線",
+    "gridNone": "無",
+    "gridSmall": "小",
+    "gridMedium": "中",
+    "gridLarge": "大",
+    "resetPage": "重置當前頁",
+    "unlock": "解鎖",
+    "cut": "剪切",
+    "copy": "複製",
+    "alignHorizontal": "水平居中",
+    "alignCenter": "水平垂直居中",
+    "alignLeft": "左對齊",
+    "alignRight": "右對齊",
+    "alignVertical": "垂直居中",
+    "alignTop": "頂部對齊",
+    "alignBottom": "底部對齊",
+    "bringToFront": "置於頂層",
+    "bringForward": "上移一層",
+    "sendToBack": "置於底層",
+    "sendBackward": "下移一層",
+    "setLink": "設定連結",
+    "group": "組合",
+    "ungroup": "取消組合",
+    "lock": "鎖定",
+    "delete": "刪除"
+  },
+  "vocational": {
+    "testFeature": "測試功能",
+    "vocationalTask": "職教任務",
+    "testFeatureTooltip": "從當前輸入框提交職教實操訓練測試"
   }
 }

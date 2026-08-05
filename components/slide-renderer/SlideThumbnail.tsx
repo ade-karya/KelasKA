@@ -5,6 +5,7 @@ import { Play } from 'lucide-react';
 import type { Slide, PPTVideoElement } from '@openmaic/dsl';
 import { isMediaPlaceholder } from '@/lib/store/media-generation';
 import { SlideCanvas } from '@openmaic/renderer';
+import { useI18n } from '@/lib/hooks/use-i18n';
 import { useResolvedSlide } from './use-resolved-slide';
 
 interface SlideThumbnailProps {
@@ -86,6 +87,7 @@ export function SlideThumbnail({
   viewportRatio,
   visible = true,
 }: SlideThumbnailProps) {
+  const { t } = useI18n();
   const resolvedSlide = useResolvedSlide(slide);
   const autoSize = size === undefined;
 
@@ -100,7 +102,7 @@ export function SlideThumbnail({
     return (
       <div className={containerClass} style={containerStyle}>
         <div className="placeholder w-full h-full flex justify-center items-center text-gray-400 text-sm">
-          加载中 ...
+          {t('common.loading')}
         </div>
       </div>
     );
@@ -112,7 +114,6 @@ export function SlideThumbnail({
         slide={resolvedSlide}
         chrome={false}
         renderVideo={renderThumbnailVideo}
-        videoInteractive={false}
       />
     </div>
   );

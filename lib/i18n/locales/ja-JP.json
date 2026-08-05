@@ -1741,5 +1741,40 @@
     "title": "アクセスコードを入力",
     "placeholder": "アクセスコード",
     "error": "アクセスコードが正しくありません。もう一度お試しください。"
+  },
+  "canvas": {
+    "paste": "Paste",
+    "selectAll": "Select All",
+    "ruler": "Ruler",
+    "gridlines": "Gridlines",
+    "gridNone": "None",
+    "gridSmall": "Small",
+    "gridMedium": "Medium",
+    "gridLarge": "Large",
+    "resetPage": "Reset Current Page",
+    "unlock": "Unlock",
+    "cut": "Cut",
+    "copy": "Copy",
+    "alignHorizontal": "Align Horizontal",
+    "alignCenter": "Align Center",
+    "alignLeft": "Align Left",
+    "alignRight": "Align Right",
+    "alignVertical": "Align Vertical",
+    "alignTop": "Align Top",
+    "alignBottom": "Align Bottom",
+    "bringToFront": "Bring to Front",
+    "bringForward": "Bring Forward",
+    "sendToBack": "Send to Back",
+    "sendBackward": "Send Backward",
+    "setLink": "Set Link",
+    "group": "Group",
+    "ungroup": "Ungroup",
+    "lock": "Lock",
+    "delete": "Delete"
+  },
+  "vocational": {
+    "testFeature": "Test Feature",
+    "vocationalTask": "Vocational Task",
+    "testFeatureTooltip": "Submit vocational practical training test from current input box"
   }
 }

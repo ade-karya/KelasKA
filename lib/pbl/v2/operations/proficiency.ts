@@ -191,6 +191,9 @@ const KEYWORDS_ADVANCED: ReadonlyArray<string> = [
   'production-grade',
   'in-depth',
   'expert',
+  'lanjutan',
+  'mahir',
+  'tingkat lanjut',
 ];
 
 const KEYWORDS_BEGINNER: ReadonlyArray<string> = [
@@ -205,6 +208,10 @@ const KEYWORDS_BEGINNER: ReadonlyArray<string> = [
   'intro',
   'introduction',
   'getting started',
+  'pemula',
+  'dasar',
+  'dari nol',
+  'pengenalan',
 ];
 
 function scanKeywords(text: string): { direction: number; weight: number; hits: string[] } {

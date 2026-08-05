@@ -1741,5 +1741,40 @@
     "title": "Masukkan Kode Akses",
     "placeholder": "Kode akses",
     "error": "Kode akses tidak valid. Harap coba lagi."
+  },
+  "canvas": {
+    "paste": "Tempel",
+    "selectAll": "Pilih Semua",
+    "ruler": "Penggaris",
+    "gridlines": "Garis Kisi",
+    "gridNone": "Tidak Ada",
+    "gridSmall": "Kecil",
+    "gridMedium": "Sedang",
+    "gridLarge": "Besar",
+    "resetPage": "Atur Ulang Halaman Ini",
+    "unlock": "Buka Kunci",
+    "cut": "Potong",
+    "copy": "Salin",
+    "alignHorizontal": "Rata Tengah Horizontal",
+    "alignCenter": "Rata Tengah Horizontal & Vertikal",
+    "alignLeft": "Rata Kiri",
+    "alignRight": "Rata Kanan",
+    "alignVertical": "Rata Tengah Vertikal",
+    "alignTop": "Rata Atas",
+    "alignBottom": "Rata Bawah",
+    "bringToFront": "Pindahkan ke Depan",
+    "bringForward": "Maju Satu Tingkat",
+    "sendToBack": "Pindahkan ke Belakang",
+    "sendBackward": "Mundur Satu Tingkat",
+    "setLink": "Atur Tautan",
+    "group": "Kelompokkan",
+    "ungroup": "Batal Kelompokkan",
+    "lock": "Kunci",
+    "delete": "Hapus"
+  },
+  "vocational": {
+    "testFeature": "Fitur Pengujian",
+    "vocationalTask": "Tugas Vokasi",
+    "testFeatureTooltip": "Kirim pengujian pelatihan praktis vokasi dari kotak input saat ini"
   }
 }

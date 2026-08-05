@@ -1741,5 +1741,40 @@
     "title": "请输入访问码",
     "placeholder": "访问码",
     "error": "访问码错误，请重试。"
+  },
+  "canvas": {
+    "paste": "粘贴",
+    "selectAll": "全选",
+    "ruler": "标尺",
+    "gridlines": "网格线",
+    "gridNone": "无",
+    "gridSmall": "小",
+    "gridMedium": "中",
+    "gridLarge": "大",
+    "resetPage": "重置当前页",
+    "unlock": "解锁",
+    "cut": "剪切",
+    "copy": "复制",
+    "alignHorizontal": "水平居中",
+    "alignCenter": "水平垂直居中",
+    "alignLeft": "左对齐",
+    "alignRight": "右对齐",
+    "alignVertical": "垂直居中",
+    "alignTop": "顶部对齐",
+    "alignBottom": "底部对齐",
+    "bringToFront": "置于顶层",
+    "bringForward": "上移一层",
+    "sendToBack": "置于底层",
+    "sendBackward": "下移一层",
+    "setLink": "设置链接",
+    "group": "组合",
+    "ungroup": "取消组合",
+    "lock": "锁定",
+    "delete": "删除"
+  },
+  "vocational": {
+    "testFeature": "测试功能",
+    "vocationalTask": "职教任务",
+    "testFeatureTooltip": "从当前输入框提交职教实操训练测试"
   }
 }
