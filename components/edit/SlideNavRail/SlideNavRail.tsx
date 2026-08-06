@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useStageStore } from '@/lib/store';
 import { useSettingsStore } from '@/lib/store/settings';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { BrandLogo } from '@/components/brand-logo';
 import { useDeletedSceneRecycle } from '@/lib/edit/deleted-scene-recycle';
 import { createBlankSlideScene, duplicateSlideScene } from '@/lib/edit/slide-defaults';
 import { SCENE_CREATION_ENABLED } from '@/lib/edit/scene-creation-enabled';
@@ -385,7 +386,7 @@ export function SlideNavRail() {
             title={t('generation.backToHome')}
             className="flex items-center gap-2 cursor-pointer rounded-lg px-1.5 -mx-1.5 py-1 -my-1 hover:bg-gray-100/80 dark:hover:bg-gray-800/60 active:scale-[0.97] transition-all duration-150"
           >
-            <img src="/logo-horizontal.png" alt="OpenMAIC" className="h-6" />
+            <BrandLogo size="sm" />
           </button>
         )}
         <div className={cn('flex items-center gap-1', collapsed && 'flex-col')}>

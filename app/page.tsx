@@ -37,6 +37,7 @@ import { AgentBar } from '@/components/agent/agent-bar';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { nanoid } from 'nanoid';
 import { deleteDocumentBlob, storeDocumentBlob } from '@/lib/utils/image-storage';
+import { BrandLogo } from '@/components/brand-logo';
 import { normalizeDocumentMimeType } from '@/lib/document/mime';
 import { dedupeCourseMaterialFiles } from '@/lib/document/course-materials';
 import type {
@@ -560,9 +561,7 @@ function HomePage() {
         )}
       >
         {/* ── Logo ── */}
-        <motion.img
-          src="/logo-horizontal.png"
-          alt="OpenMAIC"
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{
@@ -571,8 +570,10 @@ function HomePage() {
             stiffness: 200,
             damping: 20,
           }}
-          className="h-12 md:h-16 mb-2 -ml-2 md:-ml-3"
-        />
+          className="mb-4 flex items-center justify-center"
+        >
+          <BrandLogo size="lg" />
+        </motion.div>
 
         {/* ── Slogan ── */}
         <motion.p
@@ -944,7 +945,7 @@ function HomePage() {
 
       {/* Footer — flows with content, at the very end */}
       <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40">
-        OpenMAIC Open Source Project
+        Kelas KA
       </div>
     </div>
   );
