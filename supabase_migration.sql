@@ -1,0 +1,156 @@
+-- SQL Migration Script for Supabase Schema setup for KelasKA & kelas_ka
+-- Run this script in your Supabase Project SQL Editor
+
+-- 1. Create Classes Table
+CREATE TABLE IF NOT EXISTS public.classes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Create Subjects Table
+CREATE TABLE IF NOT EXISTS public.subjects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    class_id UUID REFERENCES public.classes(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 3. Create Students Table
+CREATE TABLE IF NOT EXISTS public.students (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(100) NOT NULL,
+    nim VARCHAR(20) NOT NULL UNIQUE,
+    class_name VARCHAR(50) NOT NULL,
+    attendance_rate NUMERIC(5, 2) DEFAULT 100.00,
+    average_score NUMERIC(5, 2) DEFAULT 0.00,
+    avatar_url TEXT,
+    status VARCHAR(30) DEFAULT 'Good',
+    last_active VARCHAR(50) DEFAULT 'Baru saja',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 4. Create Student Scores Table
+CREATE TABLE IF NOT EXISTS public.student_scores (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    subject_name VARCHAR(100) NOT NULL,
+    score NUMERIC(5, 2) DEFAULT 0.00,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 5. Create Attendance Table
+CREATE TABLE IF NOT EXISTS public.attendance (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    is_present BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 6. Create Assignments Table
+CREATE TABLE IF NOT EXISTS public.assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(150) NOT NULL,
+    class_name VARCHAR(50) NOT NULL,
+    due_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    status VARCHAR(30) DEFAULT 'Active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 7. Create Teacher Notes Table
+CREATE TABLE IF NOT EXISTS public.teacher_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    note TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS & Public Access Policies for REST API / Flutter
+ALTER TABLE public.classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.student_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teacher_notes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read classes" ON public.classes FOR SELECT USING (true);
+CREATE POLICY "Allow public all classes" ON public.classes FOR ALL USING (true);
+
+CREATE POLICY "Allow public read subjects" ON public.subjects FOR SELECT USING (true);
+CREATE POLICY "Allow public all subjects" ON public.subjects FOR ALL USING (true);
+
+CREATE POLICY "Allow public read students" ON public.students FOR SELECT USING (true);
+CREATE POLICY "Allow public all students" ON public.students FOR ALL USING (true);
+
+CREATE POLICY "Allow public read student_scores" ON public.student_scores FOR SELECT USING (true);
+CREATE POLICY "Allow public all student_scores" ON public.student_scores FOR ALL USING (true);
+
+CREATE POLICY "Allow public read attendance" ON public.attendance FOR SELECT USING (true);
+CREATE POLICY "Allow public all attendance" ON public.attendance FOR ALL USING (true);
+
+CREATE POLICY "Allow public read assignments" ON public.assignments FOR SELECT USING (true);
+CREATE POLICY "Allow public all assignments" ON public.assignments FOR ALL USING (true);
+
+CREATE POLICY "Allow public read teacher_notes" ON public.teacher_notes FOR SELECT USING (true);
+CREATE POLICY "Allow public all teacher_notes" ON public.teacher_notes FOR ALL USING (true);
+
+-- Insert Seed Data (Classes)
+INSERT INTO public.classes (name, description) VALUES
+('KA-101', 'Kelas Komputer Akuntansi 101'),
+('KA-102', 'Kelas Komputer Akuntansi 102'),
+('KA-103', 'Kelas Komputer Akuntansi 103')
+ON CONFLICT (name) DO NOTHING;
+
+-- Insert Seed Data (Students)
+INSERT INTO public.students (id, name, nim, class_name, attendance_rate, average_score, avatar_url, status, last_active) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Aditya Pratama', '2024001', 'KA-101', 96.00, 92.50, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aditya', 'Excelled', '2 jam yang lalu'),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Budi Santoso', '2024002', 'KA-101', 88.00, 84.00, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Budi', 'Good', '5 jam yang lalu'),
+('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Citra Dewi', '2024003', 'KA-101', 98.00, 94.80, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Citra', 'Excelled', '10 menit yang lalu'),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Deni Kurniawan', '2024004', 'KA-102', 74.00, 68.50, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Deni', 'Needs Attention', '1 hari yang lalu'),
+('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Eka Rahmawati', '2024005', 'KA-102', 91.00, 86.20, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Eka', 'Good', '3 jam yang lalu'),
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Fajar Nugraha', '2024006', 'KA-103', 82.00, 78.00, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fajar', 'Good', '12 jam yang lalu')
+ON CONFLICT (nim) DO NOTHING;
+
+-- Insert Student Scores
+INSERT INTO public.student_scores (student_id, subject_name, score) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Pemrograman Web', 95),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Algoritma & Struktur Data', 90),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Basis Data', 94),
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Matematika Diskrit', 91),
+
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Pemrograman Web', 82),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Algoritma & Struktur Data', 85),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Basis Data', 88),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Matematika Diskrit', 81),
+
+('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Pemrograman Web', 98),
+('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Algoritma & Struktur Data', 96),
+('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Basis Data', 92),
+('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Matematika Diskrit', 93),
+
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Pemrograman Web', 65),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Algoritma & Struktur Data', 70),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Basis Data', 72),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Matematika Diskrit', 67),
+
+('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Pemrograman Web', 88),
+('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Algoritma & Struktur Data', 84),
+('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Basis Data', 87),
+('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Matematika Diskrit', 86),
+
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Pemrograman Web', 76),
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Algoritma & Struktur Data', 80),
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Basis Data', 78),
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Matematika Diskrit', 78);
+
+-- Insert Teacher Notes
+INSERT INTO public.teacher_notes (student_id, note) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Sangat aktif di kelas dan memiliki pemahaman logika pemrograman yang kuat.'),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Konsisten dan selalu mengumpulkan tugas tepat waktu.'),
+('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Juara kelas. Penjelasan tugas sangat terstruktur.'),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Perlu bimbingan tambahan pada materi Algoritma.'),
+('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Partisipasi baik dan hasil diskusi kelompok memuaskan.'),
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Tingkatkan kehadiran di sesi lab.');
