@@ -622,7 +622,7 @@ function HomePage() {
                     setSettingsSection(section);
                     setSettingsOpen(true);
                   }}
-                  courseMaterials={form.courseMaterials}
+                  courseMaterials={form.courseMaterials ?? []}
                   onCourseMaterialsAdd={addCourseMaterials}
                   onCourseMaterialRemove={removeCourseMaterial}
                   onPdfError={setError}

@@ -8,11 +8,11 @@ import 'katex/dist/katex.min.css';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { I18nProvider } from '@/lib/hooks/use-i18n';
 import { AuthProvider } from '@/lib/contexts/auth-context';
+import { SupabaseAuthProvider } from '@/lib/contexts/supabase-auth-context';
 import { Toaster } from '@/components/ui/sonner';
 import { ServerProvidersInit } from '@/components/server-providers-init';
 import { StorageHealthNotice } from '@/components/storage-health-notice';
 import { AccessCodeGuard } from '@/components/access-code-guard';
-
 
 // The UI font is loaded from @fontsource's stylesheet rather than next/font,
 // because only the stylesheet carries the per-subset `unicode-range`
@@ -52,17 +52,19 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ThemeProvider>
-          <AuthProvider>
-            <I18nProvider>
-              <ServerProvidersInit />
-              <AccessCodeGuard>{children}</AccessCodeGuard>
-              <Toaster position="top-center" />
-              {/* After the Toaster: this one raises a toast on mount when
-                  persistence is already broken, and a toast raised before its
-                  host exists has nowhere to go. */}
-              <StorageHealthNotice />
-            </I18nProvider>
-          </AuthProvider>
+          <SupabaseAuthProvider>
+            <AuthProvider>
+              <I18nProvider>
+                <ServerProvidersInit />
+                <AccessCodeGuard>{children}</AccessCodeGuard>
+                <Toaster position="top-center" />
+                {/* After the Toaster: this one raises a toast on mount when
+                    persistence is already broken, and a toast raised before its
+                    host exists has nowhere to go. */}
+                <StorageHealthNotice />
+              </I18nProvider>
+            </AuthProvider>
+          </SupabaseAuthProvider>
         </ThemeProvider>
       </body>
     </html>

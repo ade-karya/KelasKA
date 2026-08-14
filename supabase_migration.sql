@@ -154,3 +154,26 @@ INSERT INTO public.teacher_notes (student_id, note) VALUES
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Perlu bimbingan tambahan pada materi Algoritma.'),
 ('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Partisipasi baik dan hasil diskusi kelompok memuaskan.'),
 ('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Tingkatkan kehadiran di sesi lab.');
+
+-- 8. Create User Activity Logs Table
+CREATE TABLE IF NOT EXISTS public.user_activity_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
+    user_email VARCHAR(255),
+    action VARCHAR(100) NOT NULL,
+    details JSONB DEFAULT '{}'::jsonb,
+    ip_address VARCHAR(45),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Index for fast queries by user and created_at
+CREATE INDEX IF NOT EXISTS idx_user_activity_logs_created_at ON public.user_activity_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_activity_logs_user_id ON public.user_activity_logs (user_id);
+
+-- RLS & Policies for user_activity_logs
+ALTER TABLE public.user_activity_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read user_activity_logs" ON public.user_activity_logs FOR SELECT USING (true);
+CREATE POLICY "Allow public insert user_activity_logs" ON public.user_activity_logs FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public all user_activity_logs" ON public.user_activity_logs FOR ALL USING (true);
+

@@ -70,7 +70,7 @@ export function GenerationToolbar({
   webSearch,
   onWebSearchChange,
   onSettingsOpen,
-  courseMaterials,
+  courseMaterials = [],
   onCourseMaterialsAdd,
   onCourseMaterialRemove,
   onPdfError,
@@ -113,12 +113,12 @@ export function GenerationToolbar({
           isServerConfigured: config.isServerConfigured,
           models:
             config.isServerConfigured && !config.apiKey && config.serverModels?.length
-              ? config.models.filter((model) =>
+              ? (config.models ?? []).filter((model) =>
                   config.serverModels?.some((serverModelId) =>
                     modelIdsMatch(id, model.id, serverModelId),
                   ),
                 )
-              : config.models,
+              : (config.models ?? []),
         }))
     : [];
 
@@ -147,7 +147,8 @@ export function GenerationToolbar({
   // materials, drop only the incompatible files so the eventual extraction
   // request matches the current provider capability.
   useEffect(() => {
-    const unsupportedMaterials = courseMaterials.filter(
+    const safeMaterials = courseMaterials ?? [];
+    const unsupportedMaterials = safeMaterials.filter(
       (file) =>
         !isMimeSupportedByProviders(
           { mimeType: file.type, fileName: file.name },
@@ -166,6 +167,7 @@ export function GenerationToolbar({
   }, [activeDocumentProviderIds, courseMaterials]);
 
   const handleFilesSelect = (incomingFiles: File[]) => {
+    const safeMaterials = courseMaterials ?? [];
     const supportedFiles = incomingFiles.filter((file) =>
       isMimeSupportedByProviders(
         { mimeType: file.type, fileName: file.name },
@@ -185,16 +187,16 @@ export function GenerationToolbar({
       return;
     }
 
-    const dedupedFiles = dedupeCourseMaterialFiles(courseMaterials, supportedFiles);
+    const dedupedFiles = dedupeCourseMaterialFiles(safeMaterials, supportedFiles);
     if (dedupedFiles.length === 0) return;
 
-    if (courseMaterials.length + dedupedFiles.length > MAX_DOCUMENT_BUNDLE_FILES) {
+    if (safeMaterials.length + dedupedFiles.length > MAX_DOCUMENT_BUNDLE_FILES) {
       onPdfError(t('upload.courseMaterialCountLimit', { n: MAX_DOCUMENT_BUNDLE_FILES }));
       return;
     }
 
     const totalSize =
-      courseMaterials.reduce((sum, file) => sum + file.size, 0) +
+      safeMaterials.reduce((sum, file) => sum + file.size, 0) +
       dedupedFiles.reduce((sum, file) => sum + file.size, 0);
     if (totalSize > MAX_DOCUMENT_BUNDLE_TOTAL_SIZE_BYTES) {
       onPdfError(
@@ -214,6 +216,9 @@ export function GenerationToolbar({
     'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all cursor-pointer select-none whitespace-nowrap border';
   const pillMuted = `${pillCls} border-border/50 text-muted-foreground/70 hover:text-foreground hover:bg-muted/60`;
   const pillActive = `${pillCls} border-violet-200/60 dark:border-violet-700/50 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300`;
+
+  // Guard against undefined during hydration races
+  const safeMaterials = courseMaterials ?? [];
 
   return (
     <div className="flex items-center gap-1 flex-wrap">
@@ -258,13 +263,13 @@ export function GenerationToolbar({
         {/* ── Course material (extractor + upload) combined Popover ── */}
         <Popover>
           <PopoverTrigger asChild>
-            {courseMaterials.length > 0 ? (
+            {safeMaterials.length > 0 ? (
               <button className={pillActive}>
                 <Paperclip className="size-3.5" />
                 <span className="max-w-[140px] truncate">
-                  {courseMaterials.length === 1
-                    ? courseMaterials[0].name
-                    : t('toolbar.courseMaterialsSelected', { n: courseMaterials.length })}
+                  {safeMaterials.length === 1
+                    ? safeMaterials[0].name
+                    : t('toolbar.courseMaterialsSelected', { n: safeMaterials.length })}
                 </span>
               </button>
             ) : (
@@ -362,13 +367,13 @@ export function GenerationToolbar({
                   </p>
                 </div>
 
-                {courseMaterials.length > 0 && (
+                {safeMaterials.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-[10px] text-muted-foreground/70">
                       {t('toolbar.courseMaterialMergeOrder')}
                     </p>
                     <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
-                      {[...courseMaterials]
+                      {[...safeMaterials]
                         .sort((a, b) => a.order - b.order)
                         .map((file) => (
                           <div
