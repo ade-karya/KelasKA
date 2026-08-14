@@ -3,6 +3,9 @@ import { spotlightV1 } from '@/lib/choreography';
 import { compileVideoTimeline, emitHyperframes } from '@/lib/video-export';
 import type { AssetMeta, CompilerScene } from '@/lib/video-export';
 import {
+  NO_ASSETS,
+  NO_PROBE,
+  interactive,
   slide,
   quiz,
   el,
@@ -12,6 +15,7 @@ import {
   playVideo,
   stubProbe,
   stubAssets,
+  stubInteractiveHtml,
 } from './helpers';
 
 const audioMeta = (id: string): AssetMeta => ({
@@ -112,7 +116,7 @@ describe('emitHyperframes', () => {
       /<div dir="auto" style="font-size:2\.2vw[^"]*">Mixed fallback: English ثم العربية<\/div>/,
     );
     expect(fallbackHtml).toMatch(
-      /<div dir="auto" style="font-size:1\.2vw[^"]*">Interactive\/widget scenes require runtime playback/,
+      /<div dir="auto" style="font-size:1\.2vw[^"]*">interactive-static-fallback/,
     );
   });
 
@@ -187,6 +191,57 @@ describe('emitHyperframes', () => {
     expect(
       html.replace(/data:font\/woff2;base64,[A-Za-z0-9+/=]+/, 'data:font/woff2;base64,<embedded>'),
     ).toMatchSnapshot();
+  });
+});
+
+describe('emitHyperframes frozen interactive HTML', () => {
+  const ir = compileVideoTimeline(
+    {
+      stage: { id: 'stage', name: 'Interactive export' },
+      scenes: [interactive('widget', '<!doctype html><h1>Widget</h1>')],
+    },
+    {
+      timing: NO_PROBE,
+      assets: NO_ASSETS,
+      interactive: stubInteractiveHtml({
+        widget: {
+          id: 'interactive:widget',
+          present: true,
+          contentHash: 'b'.repeat(64),
+        },
+      }),
+    },
+  );
+  const html = emitHyperframes(ir, { width: 1280, height: 720 }).files.find(
+    (file) => file.path === 'index.html',
+  )!.content;
+
+  it('loads the packaged page in a script-only sandbox with the placeholder ready', () => {
+    expect(html).toContain('data-interactive-static-host');
+    expect(html).toContain('data-src="assets/interactive/001-widget.html"');
+    expect(html).toContain('sandbox="allow-scripts"');
+    expect(html).not.toMatch(/sandbox="[^"]*allow-same-origin/);
+    expect(html).toContain('data-interactive-fallback');
+  });
+
+  it('waits for every iframe to freeze or fall back before registering the timeline', () => {
+    const ready = html.indexOf(
+      'window.__openmaicInteractiveReady = initializeOpenMaicInteractiveStaticFrames()',
+    );
+    const registration = html.indexOf('window.__timelines["openmaic"] = tl;', ready);
+    expect(ready).toBeGreaterThan(0);
+    expect(registration).toBeGreaterThan(ready);
+    expect(html).toContain("'interactive-runtime-failure'");
+    expect(html).toContain("'interactive-ready-timeout'");
+    expect(html).toContain('window.__openmaicVideoDiagnostics');
+    expect(html).toContain('data-openmaic-runtime-diagnostics');
+    expect(html).toContain('window.__openmaicVideoManifest.runtimeDiagnostics');
+  });
+
+  it('keeps runtime diagnostics in the live report instead of an immutable sidecar', () => {
+    expect(html).toContain('data-openmaic-runtime-diagnostics');
+    expect(html).toContain('window.__openmaicVideoManifest.runtimeDiagnostics');
+    expect(html).not.toContain('openmaic-runtime-diagnostics.json');
   });
 });
 
@@ -520,7 +575,10 @@ describe('emitHyperframes static Quiz/PBL cover cards', () => {
         title: 'Bare PBL',
         order: 0,
         type: 'pbl',
-        content: { type: 'pbl', projectV2: { title: 'Bare', description: '' } },
+        content: {
+          type: 'pbl',
+          projectV2: { title: 'Bare', description: '', roles: [], milestones: [] },
+        },
         actions: [],
       },
     ] as Parameters<typeof compileVideoTimeline>[0]['scenes'];
@@ -555,6 +613,7 @@ describe('emitHyperframes static Quiz/PBL cover cards', () => {
             title: 'Named',
             description: '',
             roles: [{ id: 'i', type: 'instructor', name: '林教练' }],
+            milestones: [],
           },
         },
         actions: [],
@@ -682,6 +741,7 @@ describe('emitHyperframes cover cards at constrained resolutions', () => {
             title: 'Compact project',
             description: 'A compact project description.',
             gains: ['Gain one', 'Gain two', 'Gain three', 'Gain four', 'Gain five'],
+            roles: [],
             milestones: [{ id: 'm1', microtasks: [{ id: 't1' }] }],
           },
         },
