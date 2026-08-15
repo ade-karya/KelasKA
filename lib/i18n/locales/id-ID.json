@@ -240,7 +240,9 @@
       "alignLeft": "Rata kiri",
       "alignCenter": "Rata tengah",
       "alignRight": "Rata kanan",
-      "bullet": "Daftar simbol"
+      "bullet": "Daftar simbol",
+      "toolbar": "Bilah alat teks",
+      "colorHex": "Nilai warna"
     },
     "insert": {
       "textBox": "Kotak teks",
@@ -250,7 +252,37 @@
       "imageDrop": "Seret gambar atau klik untuk memilih berkas",
       "imageOr": "atau tempel URL gambar",
       "imageUrlPlaceholder": "https://…",
-      "imageInsert": "Sisipkan"
+      "imageInsert": "Sisipkan",
+      "toolbar": "Bilah alat sisipkan",
+      "line": "Garis",
+      "linePresets": {
+        "straight": "Garis lurus",
+        "dashed": "Garis putus-putus",
+        "arrow": "Garis panah",
+        "dashedArrow": "Garis panah putus-putus",
+        "dottedEnd": "Garis berujung titik",
+        "broken": "Garis patah",
+        "doubleBroken": "Garis patah ganda",
+        "curve": "Lengkung",
+        "cubic": "Kurva kubik"
+      },
+      "table": "Tabel",
+      "formula": "Rumus",
+      "chart": "Bagan",
+      "chartBar": "Bagan batang",
+      "chartLine": "Bagan garis",
+      "chartPie": "Bagan lingkaran",
+      "tableDimensions": "Tabel {{rows}} x {{columns}}",
+      "video": "Video",
+      "videoDrop": "Tarik video ke sini atau klik untuk memilih berkas",
+      "videoOr": "atau tempel URL video",
+      "videoUrlPlaceholder": "https://…",
+      "videoInsert": "Sisipkan",
+      "audio": "Audio",
+      "audioDrop": "Tarik audio ke sini atau klik untuk memilih berkas",
+      "audioOr": "atau tempel URL audio",
+      "audioUrlPlaceholder": "https://…",
+      "audioInsert": "Sisipkan"
     },
     "nav": {
       "addSlide": "Tambah slide",
@@ -275,12 +307,15 @@
     "image": {
       "replace": "Ganti gambar",
       "flipH": "Balik horizontal",
-      "flipV": "Balik vertikal"
+      "flipV": "Balik vertikal",
+      "toolbar": "Bilah alat gambar",
+      "crop": "Pangkas gambar"
     },
     "background": {
       "label": "Latar belakang",
       "solid": "Warna polos",
-      "image": "Gambar"
+      "image": "Gambar",
+      "color": "Warna"
     },
     "quiz": {
       "addQuestion": "Tambah pertanyaan",
@@ -330,13 +365,14 @@
       "discussion": "Diskusi"
     },
     "element": {
+      "toolbar": "Bilah alat elemen",
       "text": "Teks",
       "image": "Gambar",
       "shape": "Bentuk",
       "line": "Garis",
       "chart": "Bagan",
       "table": "Tabel",
-      "latex": "Formula",
+      "latex": "Rumus",
       "video": "Video",
       "audio": "Audio",
       "code": "Kode"
@@ -494,6 +530,78 @@
       "removeFromClass": "Hapus dari kelas",
       "aiClassmates": "Teman sekelas AI · {{count}}",
       "addRole": "Tambah peran"
+    },
+    "line": {
+      "toolbar": "Bilah alat garis",
+      "kind": "Jenis garis",
+      "color": "Warna garis",
+      "width": "Ketebalan garis",
+      "style": "Gaya garis",
+      "start": "Penanda awal",
+      "end": "Penanda akhir",
+      "straight": "Lurus",
+      "broken": "Garis patah",
+      "broken2": "Garis patah ganda",
+      "curve": "Lengkung",
+      "cubic": "Kurva kubik",
+      "solid": "Solid",
+      "dashed": "Putus-putus",
+      "dotted": "Titik-titik",
+      "none": "Tidak ada",
+      "arrow": "Panah",
+      "dot": "Titik"
+    },
+    "asset": {
+      "drop": "Tarik berkas ke sini atau klik untuk memilih",
+      "orUrl": "atau tempel URL berkas",
+      "urlPlaceholder": "https://…",
+      "insert": "Sisipkan",
+      "invalidType": "Jenis berkas tidak didukung",
+      "readFailed": "Gagal membaca berkas"
+    },
+    "latex": {
+      "toolbar": "Bilah alat rumus",
+      "editFormula": "Edit rumus",
+      "dialog": "Editor rumus",
+      "source": "Sumber LaTeX",
+      "preview": "Pratinjau",
+      "symbols": "Simbol",
+      "presets": "Preset",
+      "invalidSource": "Sumber LaTeX tidak valid."
+    },
+    "video": {
+      "toolbar": "Bilah alat video",
+      "poster": "Atur poster"
+    },
+    "audio": {
+      "toolbar": "Bilah alat audio",
+      "preview": "Pratinjau audio",
+      "pause": "Jeda pratinjau",
+      "loop": "Ulangi"
+    },
+    "table": {
+      "doubleClickToEdit": "Klik dua kali untuk mengedit"
+    },
+    "contextMenu": {
+      "horizontalAlignment": "Perataan horizontal",
+      "verticalAlignment": "Perataan vertikal",
+      "selectAll": "Pilih semua",
+      "copy": "Salin",
+      "cut": "Potong",
+      "paste": "Tempel",
+      "unlock": "Buka kunci",
+      "lock": "Kunci",
+      "group": "Kelompokkan",
+      "ungroup": "Pisahkan kelompok",
+      "bringForward": "Maju satu tingkat",
+      "sendBackward": "Mundur satu tingkat",
+      "alignTop": "Rata atas",
+      "alignMiddle": "Rata tengah",
+      "alignBottom": "Rata bawah"
+    },
+    "common": {
+      "cancel": "Batal",
+      "confirm": "Konfirmasi"
     }
   },
   "classroomComplete": {
@@ -583,67 +691,7 @@
     "startRecording": "Mulai rekaman"
   },
   "pbl": {
-    "legacyFormat": "Adegan PBL ini menggunakan format lama. Harap buat ulang kursus.",
     "emptyProject": "Proyek PBL belum dibuat. Harap buat melalui pembuat kursus.",
-    "roleSelection": {
-      "title": "Pilih Peran Anda",
-      "description": "Pilih peran untuk mulai berkolaborasi dalam proyek"
-    },
-    "workspace": {
-      "restart": "Mulai Ulang",
-      "confirmRestart": "Atur ulang semua kemajuan?",
-      "confirm": "Konfirmasi",
-      "cancel": "Batal"
-    },
-    "issueboard": {
-      "title": "Papan Masalah",
-      "noIssues": "Belum ada masalah",
-      "statusDone": "Selesai",
-      "statusActive": "Aktif",
-      "statusPending": "Menunggu"
-    },
-    "chat": {
-      "title": "Diskusi Proyek",
-      "currentIssue": "Masalah Saat Ini",
-      "mentionHint": "Gunakan @question untuk bertanya, @judge untuk mengajukan peninjauan",
-      "placeholder": "Ketik pesan...",
-      "send": "Kirim",
-      "issueCompleteMessage": "Masalah \"{{completed}}\" selesai! Beralih ke masalah berikutnya: \"{{next}}\"",
-      "allCompleteMessage": "🎉 Semua masalah selesai! Kerja bagus untuk proyek ini!"
-    },
-    "guide": {
-      "howItWorks": "Cara kerja",
-      "help": "Bantuan",
-      "title": "Bantuan",
-      "step1": {
-        "title": "Langkah 1: Pilih Peran",
-        "desc": "Setelah proyek dibuat, pilih peran dari daftar (peran non-sistem ditandai dengan 🟢)"
-      },
-      "step2": {
-        "title": "Langkah 2: Selesaikan Masalah",
-        "desc": "Setiap masalah mewakili tugas belajar:",
-        "s1": {
-          "title": "Lihat Masalah saat ini",
-          "desc": "Periksa judul, deskripsi, dan penerima tugas masalah"
-        },
-        "s2": {
-          "title": "Dapatkan panduan",
-          "example": "@question Dari mana saya harus mulai?\n@question Bagaimana cara mengimplementasikan fitur ini?",
-          "desc": "Agen Pertanyaan memberikan pertanyaan panduan dan petunjuk (bukan jawaban langsung)"
-        },
-        "s3": {
-          "title": "Kirimkan hasil kerja Anda",
-          "example": "@judge Saya sudah selesai, tolong periksa Catatan saya",
-          "desc": "Agen Penilai mengevaluasi hasil kerja Anda dan memberikan umpan balik:",
-          "complete": "Otomatis beralih ke masalah berikutnya",
-          "revision": "Tingkatkan berdasarkan umpan balik"
-        }
-      },
-      "step3": {
-        "title": "Langkah 3: Selesaikan Proyek",
-        "desc": "Ketika semua masalah selesai, sistem menampilkan \"🎉 Proyek Selesai!\""
-      }
-    },
     "v2": {
       "hero": {
         "title": "Pembelajaran Berbasis Proyek",
@@ -885,7 +933,37 @@
     "searchPlaceholder": "Cari kursus...",
     "searchAriaLabel": "Cari kursus",
     "clearSearch": "Bersihkan",
-    "searchEmpty": "Tidak ada kursus yang cocok dengan pencarian Anda"
+    "searchEmpty": "Tidak ada kursus yang cocok dengan pencarian Anda",
+    "newFolderTitle": "Folder baru",
+    "newFolderDesc": "Kelompokkan kursus berdasarkan topik atau penggunaan untuk akses yang lebih mudah.",
+    "newFolderInline": "Folder baru…",
+    "folderNameLabel": "Nama folder",
+    "folderNamePlaceholder": "cth. Matematika, Bahasa Inggris, Kursus Utama",
+    "folderNameHint": "Karakter CJK dan Latin keduanya bisa; spasi diperhitungkan.",
+    "folderNameExists": "Folder dengan nama ini sudah ada",
+    "folderCountLimit": "Batas jumlah folder tercapai",
+    "folderWidth": "Lebar {{width}}/{{max}}",
+    "folderCreate": "Buat",
+    "folderBadge": "Folder",
+    "folderCourseCountUnit": "kursus",
+    "deleteFolderTitle": "Hapus folder \"{{name}}\"",
+    "deleteFolderEmptyDesc": "Folder ini kosong. Penghapusan tidak dapat dibatalkan.",
+    "deleteFolderUngroupDesc": "Kursus tetap berada di \"Kursus Saya\", hanya tidak lagi dikelompokkan.",
+    "moveToFolder": "Pindahkan ke folder",
+    "moveToFolderLabel": "Pindahkan ke…",
+    "ungrouped": "Tanpa Folder",
+    "searchResults": "Hasil pencarian",
+    "folderCreateFailed": "Gagal membuat folder",
+    "folderRenameFailed": "Gagal mengubah nama folder",
+    "folderDeleteFailed": "Gagal menghapus folder",
+    "moveFailed": "Gagal memindahkan kursus",
+    "emptyFolderHint": "Folder ini kosong",
+    "emptyLibraryHint": "Belum ada kursus — buat di atas, atau impor kursus.",
+    "folderNameEmpty": "Nama folder tidak boleh kosong",
+    "deleteFolderOnly": "Hapus folder saja",
+    "deleteFolderAndCourses": "Hapus folder dan {{count}} kursus",
+    "deleteFolderAndCourses_other": "Hapus folder dan {{count}} kursus",
+    "deleteFolderConfirmRemove": "Ini akan menghapus folder dan semua kursus di dalamnya, termasuk riwayat obrolan."
   },
   "upload": {
     "pdfSizeLimit": "Mendukung berkas PDF hingga 50MB",
@@ -1109,7 +1187,8 @@
       "bocha": "Bocha",
       "brave": "Brave Search",
       "baidu": "Baidu",
-      "searxng": "SearXNG"
+      "searxng": "SearXNG",
+      "claude": "Claude"
     },
     "providerTypes": {
       "openai": "Protokol OpenAI",
@@ -1709,7 +1788,10 @@
     },
     "ttsBrowserNativeTimelineNotice": "TTS bawaan peramban tidak mendukung fitur audio linimasa editor (pratinjau, buat ulang, dan pengisi suara massal). Beralih ke penyedia TTS terkelola untuk membuat dan mengelola audio per baris.",
     "alidocmindAccessKeyId": "AccessKey ID",
-    "alidocmindAccessKeySecret": "AccessKey Secret"
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "clearCacheBlockedByOtherTabs": "Tutup tab aplikasi lain lalu coba lagi.",
+    "claudeSearchModel": "Model Pencarian",
+    "claudeSearchModelHint": "Model Claude yang menjalankan pencarian web dan meringkas hasil."
   },
   "profile": {
     "title": "Profil",

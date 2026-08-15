@@ -23,12 +23,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
+    try {
+      if (!auth) {
+        setLoading(false);
+        return;
+      }
+      const unsubscribe = onAuthStateChanged(
+        auth,
+        (currentUser) => {
+          setUser(currentUser);
+          setLoading(false);
+        },
+        (error) => {
+          console.warn("Firebase Auth state error (check Firebase config):", error);
+          setLoading(false);
+        }
+      );
 
-    return () => unsubscribe();
+      return () => unsubscribe();
+    } catch (err) {
+      console.warn("Failed to subscribe to Firebase Auth:", err);
+      setLoading(false);
+    }
   }, []);
 
   const signInWithGoogle = async () => {

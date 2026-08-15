@@ -2,7 +2,12 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   output: process.env.VERCEL ? undefined : 'standalone',
-  transpilePackages: ['mathml2omml', 'pptxgenjs', '@openmaic/importer'],
+  transpilePackages: [
+    'mathml2omml',
+    'pptxgenjs',
+    '@openmaic/importer',
+    '@supabase/supabase-js',
+  ],
   // These agent packages do a runtime `import(specifier)` with a computed
   // specifier (to lazily load node:fs/os/path without breaking browser/Vite
   // builds). webpack can't statically analyze that and bundling it throws
