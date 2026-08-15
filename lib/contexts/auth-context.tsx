@@ -49,6 +49,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     try {
+      if (!auth) {
+        console.warn("Firebase disabled; Google sign-in is unavailable");
+        return;
+      }
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Error signing in with Google:", error);
@@ -58,6 +62,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
+      if (!auth) {
+        console.warn("Firebase disabled; sign-out is unavailable");
+        return;
+      }
       await signOut(auth);
     } catch (error) {
       console.error("Error signing out:", error);
