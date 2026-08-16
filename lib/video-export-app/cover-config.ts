@@ -1,5 +1,6 @@
 import type { Locale } from '@/lib/i18n';
 import arSA from '@/lib/i18n/locales/ar-SA.json';
+import deDE from '@/lib/i18n/locales/de-DE.json';
 import enUS from '@/lib/i18n/locales/en-US.json';
 import esMX from '@/lib/i18n/locales/es-MX.json';
 import frFR from '@/lib/i18n/locales/fr-FR.json';
@@ -57,6 +58,7 @@ const LOCALE_RESOURCES: Record<Locale, Record<string, unknown>> = {
   'ru-RU': ruRU,
   'ar-SA': arSA,
   'id-ID': idID,
+  'de-DE': deDE,
 };
 
 /**
