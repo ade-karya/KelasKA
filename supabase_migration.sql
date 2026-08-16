@@ -113,7 +113,8 @@ INSERT INTO public.students (id, name, nim, nisn, password_hash, class_name, att
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Citra Dewi', '2024003', '0020240003', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-101', 98.00, 94.80, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Citra', 'Excelled', '10 menit yang lalu'),
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Deni Kurniawan', '2024004', '0020240004', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-102', 74.00, 68.50, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Deni', 'Needs Attention', '1 hari yang lalu'),
 ('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Eka Rahmawati', '2024005', '0020240005', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-102', 91.00, 86.20, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Eka', 'Good', '3 jam yang lalu'),
-('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Fajar Nugraha', '2024006', '0020240006', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-103', 82.00, 78.00, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fajar', 'Good', '12 jam yang lalu')
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Fajar Nugraha', '2024006', '0020240006', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-103', 82.00, 78.00, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fajar', 'Good', '12 jam yang lalu'),
+('a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'Gita Puspita', '2024007', '0020240007', '$2b$10$Q4vlo/ReB46MAVRO.7RieeKc6EXu5ycEl2QWaK.MacfqFoJ6QabuG', 'KA-103', 90.00, 88.50, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Gita', 'Good', 'Baru saja')
 ON CONFLICT (nim) DO NOTHING;
 
 -- Insert Student Scores
@@ -146,7 +147,12 @@ INSERT INTO public.student_scores (student_id, subject_name, score) VALUES
 ('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Pemrograman Web', 76),
 ('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Algoritma & Struktur Data', 80),
 ('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Basis Data', 78),
-('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Matematika Diskrit', 78);
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Matematika Diskrit', 78),
+
+('a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'Pemrograman Web', 90),
+('a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'Algoritma & Struktur Data', 88),
+('a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'Basis Data', 89),
+('a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'Matematika Diskrit', 87);
 
 -- Insert Teacher Notes
 INSERT INTO public.teacher_notes (student_id, note) VALUES
@@ -155,7 +161,8 @@ INSERT INTO public.teacher_notes (student_id, note) VALUES
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Juara kelas. Penjelasan tugas sangat terstruktur.'),
 ('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Perlu bimbingan tambahan pada materi Algoritma.'),
 ('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Partisipasi baik dan hasil diskusi kelompok memuaskan.'),
-('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Tingkatkan kehadiran di sesi lab.');
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Tingkatkan kehadiran di sesi lab.'),
+('a1eebc99-9c0b-4ef8-bb6d-6bb9bd380a17', 'Proaktif bertanya dan hasil praktikum sangat baik.');
 
 -- 8. Create User Activity Logs Table
 CREATE TABLE IF NOT EXISTS public.user_activity_logs (

@@ -110,6 +110,24 @@ const MOCK_STUDENTS = [
     lastActive: '12 jam yang lalu',
     teacherNotes: 'Tingkatkan kehadiran di sesi lab.',
   },
+  {
+    id: 'std-7',
+    name: 'Gita Puspita',
+    nim: '2024007',
+    className: 'KA-103',
+    attendanceRate: 90,
+    averageScore: 88.5,
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Gita',
+    status: 'Good',
+    subjects: [
+      { name: 'Pemrograman Web', score: 90 },
+      { name: 'Algoritma & Struktur Data', score: 88 },
+      { name: 'Basis Data', score: 89 },
+      { name: 'Matematika Diskrit', score: 87 },
+    ],
+    lastActive: 'Baru saja',
+    teacherNotes: 'Proaktif bertanya dan hasil praktikum sangat baik.',
+  },
 ];
 
 export async function GET(request: Request) {
