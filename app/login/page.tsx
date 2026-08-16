@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabaseAuth } from "@/lib/contexts/supabase-auth-context";
 import { logUserActivity } from "@/lib/supabase/activity-logger";
-import { Lock, Mail, UserCheck, LogIn, ArrowRight, ShieldCheck, Activity } from "lucide-react";
+import { Lock, Mail, UserCheck, LogIn, ArrowRight, ShieldCheck, Activity, GraduationCap } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -238,7 +238,7 @@ export default function LoginPage() {
         )}
 
         {/* Footer Link */}
-        <div className="mt-8 pt-4 border-t border-slate-800/80 text-center">
+        <div className="mt-8 pt-4 border-t border-slate-800/80 text-center space-y-2">
           <button
             onClick={() => router.push("/admin/activity-logs")}
             className="text-xs text-indigo-400 hover:text-indigo-300 font-medium inline-flex items-center gap-1 transition-colors"
@@ -246,6 +246,15 @@ export default function LoginPage() {
             <Activity className="w-3.5 h-3.5" />
             Buka Halaman Monitoring Activity Log
           </button>
+          <div>
+            <button
+              onClick={() => router.push("/login-siswa")}
+              className="text-xs text-slate-400 hover:text-slate-200 font-medium inline-flex items-center gap-1 transition-colors"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              Login Siswa dengan NISN
+            </button>
+          </div>
         </div>
 
       </div>
