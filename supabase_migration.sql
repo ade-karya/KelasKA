@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS public.students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     nim VARCHAR(20) NOT NULL UNIQUE,
+    nisn VARCHAR(20) UNIQUE,
+    password_hash TEXT,
     class_name VARCHAR(50) NOT NULL,
     attendance_rate NUMERIC(5, 2) DEFAULT 100.00,
     average_score NUMERIC(5, 2) DEFAULT 0.00,
@@ -105,13 +107,13 @@ INSERT INTO public.classes (name, description) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert Seed Data (Students)
-INSERT INTO public.students (id, name, nim, class_name, attendance_rate, average_score, avatar_url, status, last_active) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Aditya Pratama', '2024001', 'KA-101', 96.00, 92.50, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aditya', 'Excelled', '2 jam yang lalu'),
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Budi Santoso', '2024002', 'KA-101', 88.00, 84.00, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Budi', 'Good', '5 jam yang lalu'),
-('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Citra Dewi', '2024003', 'KA-101', 98.00, 94.80, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Citra', 'Excelled', '10 menit yang lalu'),
-('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Deni Kurniawan', '2024004', 'KA-102', 74.00, 68.50, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Deni', 'Needs Attention', '1 hari yang lalu'),
-('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Eka Rahmawati', '2024005', 'KA-102', 91.00, 86.20, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Eka', 'Good', '3 jam yang lalu'),
-('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Fajar Nugraha', '2024006', 'KA-103', 82.00, 78.00, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fajar', 'Good', '12 jam yang lalu')
+INSERT INTO public.students (id, name, nim, nisn, password_hash, class_name, attendance_rate, average_score, avatar_url, status, last_active) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'Aditya Pratama', '2024001', '0020240001', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-101', 96.00, 92.50, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aditya', 'Excelled', '2 jam yang lalu'),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Budi Santoso', '2024002', '0020240002', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-101', 88.00, 84.00, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Budi', 'Good', '5 jam yang lalu'),
+('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Citra Dewi', '2024003', '0020240003', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-101', 98.00, 94.80, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Citra', 'Excelled', '10 menit yang lalu'),
+('d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'Deni Kurniawan', '2024004', '0020240004', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-102', 74.00, 68.50, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Deni', 'Needs Attention', '1 hari yang lalu'),
+('e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'Eka Rahmawati', '2024005', '0020240005', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-102', 91.00, 86.20, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Eka', 'Good', '3 jam yang lalu'),
+('f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16', 'Fajar Nugraha', '2024006', '0020240006', '$2b$10$IjdbeS/RYQ0.A/InKOtnZ.kZeY96BOg09iLLkS1q7QG0ukv7lrSfS', 'KA-103', 82.00, 78.00, 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fajar', 'Good', '12 jam yang lalu')
 ON CONFLICT (nim) DO NOTHING;
 
 -- Insert Student Scores
@@ -166,6 +168,44 @@ CREATE TABLE IF NOT EXISTS public.user_activity_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 9. Create Quiz Attempts Table (student quiz/test results)
+CREATE TABLE IF NOT EXISTS public.quiz_attempts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID REFERENCES public.students(id) ON DELETE CASCADE,
+    stage_id TEXT NOT NULL,
+    scene_id TEXT NOT NULL,
+    attempt_id TEXT NOT NULL UNIQUE,
+    class_name VARCHAR(50),
+    subject_name TEXT,
+    phase VARCHAR(20) NOT NULL DEFAULT 'submitted',
+    retry_number INTEGER DEFAULT 0,
+    total_points NUMERIC(10, 2) DEFAULT 0.00,
+    earned_points NUMERIC(10, 2) DEFAULT 0.00,
+    score NUMERIC(5, 2) DEFAULT 0.00,
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 10. Create Quiz Attempt Answers Table (per-question details)
+CREATE TABLE IF NOT EXISTS public.quiz_attempt_answers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    attempt_id UUID REFERENCES public.quiz_attempts(id) ON DELETE CASCADE,
+    question_id TEXT NOT NULL,
+    question_type VARCHAR(20),
+    answer JSONB DEFAULT '{}'::jsonb,
+    is_correct BOOLEAN,
+    earned NUMERIC(10, 2) DEFAULT 0.00,
+    points NUMERIC(10, 2) DEFAULT 0.00,
+    ai_comment TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Indexes for quiz attempts
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_student_created ON public.quiz_attempts (student_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_scene ON public.quiz_attempts (scene_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempt_answers_attempt ON public.quiz_attempt_answers (attempt_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempt_answers_question ON public.quiz_attempt_answers (question_id);
+
 -- Index for fast queries by user and created_at
 CREATE INDEX IF NOT EXISTS idx_user_activity_logs_created_at ON public.user_activity_logs (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_user_activity_logs_user_id ON public.user_activity_logs (user_id);
@@ -176,4 +216,14 @@ ALTER TABLE public.user_activity_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow public read user_activity_logs" ON public.user_activity_logs FOR SELECT USING (true);
 CREATE POLICY "Allow public insert user_activity_logs" ON public.user_activity_logs FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow public all user_activity_logs" ON public.user_activity_logs FOR ALL USING (true);
+
+-- RLS & Policies for quiz_attempts
+ALTER TABLE public.quiz_attempts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read quiz_attempts" ON public.quiz_attempts FOR SELECT USING (true);
+CREATE POLICY "Allow public all quiz_attempts" ON public.quiz_attempts FOR ALL USING (true);
+
+-- RLS & Policies for quiz_attempt_answers
+ALTER TABLE public.quiz_attempt_answers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read quiz_attempt_answers" ON public.quiz_attempt_answers FOR SELECT USING (true);
+CREATE POLICY "Allow public all quiz_attempt_answers" ON public.quiz_attempt_answers FOR ALL USING (true);
 

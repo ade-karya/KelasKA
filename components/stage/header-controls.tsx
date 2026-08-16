@@ -26,6 +26,7 @@ import { CircularProgress } from '@/components/ui/circular-progress';
 import { VideoExportDialog } from './video-export-dialog';
 import { LanguageSwitcher } from '../language-switcher';
 import { SettingsDialog } from '../settings';
+import { StudentAuthButton } from '../student-auth-button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -194,6 +195,9 @@ export function HeaderControls({
         >
           <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
         </button>
+
+        {/* Student login / profile — sits next to the settings trigger. */}
+        <StudentAuthButton />
       </div>
 
       {/* Pro Switch — toggle property: on/off both clickable, not a
