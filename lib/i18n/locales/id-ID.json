@@ -3,7 +3,11 @@
     "you": "Anda",
     "confirm": "Konfirmasi",
     "cancel": "Batal",
-    "loading": "Memuat..."
+    "loading": "Memuat...",
+    "errorPrefix": "Galat: ",
+    "loadingClassroom": "Memuat ruang kelas...",
+    "retry": "Coba Lagi",
+    "close": "Tutup"
   },
   "home": {
     "slogan": "Pembelajaran Generatif dalam Ruang Kelas Interaktif Multi-Agen",
@@ -88,7 +92,15 @@
     "subtitlesFailed": "Gagal mengunduh subjudul",
     "noSlides": "Tidak ada slide untuk diekspor",
     "noSlidesSkipped": "Tidak ada slide dalam kursus ini — PPTX dilewati",
-    "nothingToExport": "Tidak ada yang dapat diekspor"
+    "nothingToExport": "Tidak ada yang dapat diekspor",
+    "scriptMd": "Unduh Naskah (.md)",
+    "scriptMdDesc": "Teks narasi sebagai Markdown",
+    "script": "Unduh Naskah",
+    "scriptDocx": "Unduh Naskah (.docx)",
+    "scriptDocxDesc": "Dokumen Word asli dalam format DOCX",
+    "slideFallback": "Slide {{order}}",
+    "textOnly": "Ekspor Naskah",
+    "mediaPending": "Menunggu media selesai dibuat"
   },
   "import": {
     "classroom": "Impor Ruang Kelas",
@@ -282,7 +294,9 @@
       "audioDrop": "Tarik audio ke sini atau klik untuk memilih berkas",
       "audioOr": "atau tempel URL audio",
       "audioUrlPlaceholder": "https://…",
-      "audioInsert": "Sisipkan"
+      "audioInsert": "Sisipkan",
+      "collapseToolbar": "Ciutkan alat sisipkan",
+      "expandToolbar": "Perluas alat sisipkan"
     },
     "nav": {
       "addSlide": "Tambah slide",
@@ -298,7 +312,10 @@
       "deckLabel": "Adegan",
       "moreActions": "Tindakan lainnya",
       "rename": "Ubah nama",
-      "sceneIncomplete": "Halaman ini memiliki konten yang belum lengkap"
+      "sceneIncomplete": "Halaman ini memiliki konten yang belum lengkap",
+      "addPage": "Tambah halaman",
+      "nextPage": "Halaman berikutnya",
+      "prevPage": "Halaman sebelumnya"
     },
     "zorder": {
       "toFront": "Bawa ke depan",
@@ -465,7 +482,9 @@
       "statusReady": "Bersuara",
       "statusNone": "Belum bersuara",
       "statusGenerating": "Membuat",
-      "statusError": "Gagal"
+      "statusError": "Gagal",
+      "cancelPreview": "Batalkan pratinjau",
+      "stopPreview": "Hentikan pratinjau"
     },
     "pick": {
       "pickFor": "Pilih elemen untuk \"{{label}}\"",
@@ -474,7 +493,10 @@
       "expand": "Perluas",
       "collapse": "Ciutkan",
       "noElements": "Tidak ada elemen yang dapat ditemukan di slide ini.",
-      "bindHint": "Klik elemen yang disorot pada kanvas untuk mengikat"
+      "bindHint": "Klik elemen yang disorot pada kanvas untuk mengikat",
+      "refCapHint": "Batas tercapai — hapus satu untuk mengganti · Esc saat selesai",
+      "refHint": "Klik untuk menambah atau menghapus · Esc saat selesai",
+      "refLead": "Merujuk elemen · {{count}}/{{max}}"
     },
     "regen": {
       "title": "Buat ulang narasi",
@@ -529,7 +551,8 @@
       "moveDown": "Pindahkan ke bawah",
       "removeFromClass": "Hapus dari kelas",
       "aiClassmates": "Teman sekelas AI · {{count}}",
-      "addRole": "Tambah peran"
+      "addRole": "Tambah peran",
+      "shortTitle": "Daftar"
     },
     "line": {
       "toolbar": "Bilah alat garis",
@@ -602,6 +625,16 @@
     "common": {
       "cancel": "Batal",
       "confirm": "Konfirmasi"
+    },
+    "elementRef": {
+      "remove": "Hapus rujukan {{label}}",
+      "counts": "{{count}}/{{max}} dirujuk",
+      "exitPicking": "Selesai memilih",
+      "startPicking": "Rujuk elemen"
+    },
+    "dock": {
+      "elementRefHint": "Rujukan elemen — pilih elemen untuk dikirim bersama pesan berikutnya",
+      "globalTools": "Alat global"
     }
   },
   "classroomComplete": {
@@ -963,7 +996,10 @@
     "deleteFolderOnly": "Hapus folder saja",
     "deleteFolderAndCourses": "Hapus folder dan {{count}} kursus",
     "deleteFolderAndCourses_other": "Hapus folder dan {{count}} kursus",
-    "deleteFolderConfirmRemove": "Ini akan menghapus folder dan semua kursus di dalamnya, termasuk riwayat obrolan."
+    "deleteFolderConfirmRemove": "Ini akan menghapus folder dan semua kursus di dalamnya, termasuk riwayat obrolan.",
+    "notFound": "Kursus tidak ditemukan",
+    "notFoundDesc": "Kursus ini tidak ada, atau telah dihapus.",
+    "backToHome": "Kembali ke beranda"
   },
   "upload": {
     "pdfSizeLimit": "Mendukung berkas PDF hingga 50MB",
@@ -1791,7 +1827,44 @@
     "alidocmindAccessKeySecret": "AccessKey Secret",
     "clearCacheBlockedByOtherTabs": "Tutup tab aplikasi lain lalu coba lagi.",
     "claudeSearchModel": "Model Pencarian",
-    "claudeSearchModelHint": "Model Claude yang menjalankan pencarian web dan meringkas hasil."
+    "claudeSearchModelHint": "Model Claude yang menjalankan pencarian web dan meringkas hasil.",
+    "qwenCloneVoicesTitle": "Suara Kloning Qwen TTS",
+    "qwenCloneRefText": "Masukkan transkrip verbatim dari audio referensi",
+    "qwenCloneRefAudioHint": "Gunakan sampel suara bersih 1–60 detik. Disarankan 10–20 detik; audio akan dikonversi ke PCM WAV mono 24 kHz.",
+    "qwenCloneSaved": "Suara kloning Qwen berhasil didaftarkan dan disimpan",
+    "qwenCloneSaveFailed": "Gagal mendaftarkan suara kloning Qwen",
+    "qwenCloneUnsupported": "Perekaman tidak didukung di peramban ini; unggah berkas audio sebagai gantinya.",
+    "qwenCloneSpeedHint": "Suara kloning selalu disintesis pada kecepatan 1×.",
+    "qwenCloneDeleteWarning": "Suara telah dihapus secara lokal, tetapi penghapusan di penyedia gagal.",
+    "qwenCloneNarrationUnavailable": "Suara yang ditetapkan tidak tersedia. Narasi akan menggunakan suara lain yang aktif.",
+    "qwenCloneDiscussionUnavailable": "Suara yang ditetapkan tidak tersedia. Diskusi akan menggunakan suara lain yang aktif.",
+    "skills": {
+      "nav": "Skill",
+      "title": "Pengaturan Skill",
+      "description": "Telusuri skill yang terpasang untuk akun Anda, lihat detail skill, dan unduh sebagai zip untuk dibagikan atau dicadangkan.",
+      "mySkills": "Skill Saya",
+      "builtinSkills": "Skill Bawaan",
+      "emptyMySkills": "Belum ada skill pribadi — minta agen di obrolan untuk membuatnya dari riwayat.",
+      "emptyBuiltinSkills": "Tidak ada skill bawaan tersedia.",
+      "listFailed": "Gagal memuat daftar skill",
+      "retry": "Coba Lagi",
+      "badgeBuiltin": "Bawaan",
+      "badgeOwner": "Skill Saya",
+      "badgeConstraints": "Batasan",
+      "details": "Detail",
+      "download": "Unduh",
+      "detailFailed": "Gagal memuat detail skill",
+      "contentLabel": "Konten",
+      "builtinDetailNote": "Skill ini bawaan OpenMAIC. Unduh untuk mengimpor ke ruang kerja agen lain.",
+      "upload": "Unggah",
+      "uploading": "Mengunggah…",
+      "uploadFailed": "Gagal mengunggah skill. Periksa berkas dan coba lagi.",
+      "delete": "Hapus",
+      "deleting": "Menghapus…",
+      "deleteTitle": "Hapus skill?",
+      "deleteConfirm": "Tindakan ini akan menghapus skill dari akun Anda. Tidak dapat dibatalkan.",
+      "deleteFailed": "Gagal menghapus skill. Silakan coba lagi."
+    }
   },
   "profile": {
     "title": "Profil",
@@ -1858,5 +1931,130 @@
     "testFeature": "Fitur Pengujian",
     "vocationalTask": "Tugas Vokasi",
     "testFeatureTooltip": "Kirim pengujian pelatihan praktis vokasi dari kotak input saat ini"
+  },
+  "workspace": {
+    "untitledCourse": "Kursus tanpa judul",
+    "sceneCount": "{{count}} halaman",
+    "sceneCount_one": "{{count}} halaman",
+    "sceneCount_other": "{{count}} halaman",
+    "courseLinkHint": "Buka {{name}} di panel kanan",
+    "courseLinkMore": "{{count}} ruang kelas lainnya",
+    "courseMention": {
+      "title": "Rujuk ruang kelas untuk pesan ini",
+      "empty": "Tidak ada ruang kelas yang cocok",
+      "alreadyNamed": "Sudah dirujuk",
+      "remove": "Hapus {{name}}",
+      "pillHint": "Pesan ini merujuk {{name}}",
+      "notAccepted": "Server sementara tidak tersedia. Silakan coba lagi segera.",
+      "reference": "Rujuk {{name}}",
+      "capped": "Menampilkan {{count}} pertama — terus ketik untuk mempersempit"
+    },
+    "heroTitle": "Apa yang akan Anda buat hari ini?",
+    "heroSubtitle": "Bagikan ide dan ubah menjadi perjalanan belajar yang dapat diikuti",
+    "newSession": "Obrolan baru",
+    "sections": {
+      "courses": "Kursus",
+      "sessions": "Obrolan"
+    },
+    "coursesEmpty": "Belum ada kursus",
+    "sessionsEmpty": "Belum ada obrolan",
+    "loading": "Memuat",
+    "loadFailed": "Gagal memuat",
+    "retry": "Coba Lagi",
+    "untitledSession": "Obrolan tanpa judul",
+    "pagePosition": "Halaman {{index}} dari {{total}}",
+    "exitPro": "Keluar Pro",
+    "navAria": "Navigasi ruang kerja",
+    "homeAria": "Kembali ke beranda",
+    "currentSession": "Obrolan saat ini",
+    "startLearning": "Mulai belajar",
+    "time": {
+      "justNow": "Baru saja",
+      "minutesAgo": "{{count}} mnt lalu",
+      "hoursAgo": "{{count}} j lalu",
+      "daysAgo": "{{count}} h lalu"
+    },
+    "sessionStatus": {
+      "connecting": "Menghubungkan",
+      "queued": "Dalam antrean",
+      "running": "Berjalan",
+      "succeeded": "Siap",
+      "failed": "Perlu perhatian",
+      "cancelled": "Dihentikan"
+    },
+    "backToWorkspace": "Kembali ke ruang kerja",
+    "searchPlaceholder": "Saring menurut nama",
+    "searchAria": "Cari {{section}}",
+    "searchEmpty": "Tidak ada hasil",
+    "showMore": "Tampilkan {{count}} lagi",
+    "showLess": "Tampilkan lebih sedikit",
+    "utilitiesAria": "Preferensi dan akun",
+    "resizeAria": "Seret untuk mengubah ukuran bilah samping",
+    "chatPaneAria": "Panel obrolan",
+    "classroomPaneAria": "Ruang kelas",
+    "collapseNav": "Ciutkan navigasi",
+    "expandNav": "Perluas navigasi",
+    "expandNavInto": "Perluas navigasi · {{section}}",
+    "collapseChat": "Ciutkan percakapan",
+    "expandChat": "Percakapan",
+    "collapseClassroom": "Ciutkan ruang kelas",
+    "expandClassroom": "Ruang kelas",
+    "readOnlyBadge": "Hanya baca",
+    "noCourseTitle": "Tidak ada kursus terbuka",
+    "noCourseHint": "Buka salah satu dari tautan kursus di percakapan, atau pilih dari daftar di kiri — percakapan tetap di tempat",
+    "resizeChatAria": "Seret untuk mengubah ukuran panel percakapan",
+    "firstPageLanding": "Halaman pertama sedang mendarat…",
+    "autoSaving": "Menyimpan otomatis…",
+    "autoSaved": "Tersimpan",
+    "collapsedTitle": "Kedua panel diciutkan",
+    "collapsedHint": "Gunakan tab di kiri untuk memunculkan kembali percakapan atau ruang kelas",
+    "moreUtilities": "Lainnya",
+    "rowMore": "Tindakan lainnya untuk {{name}}",
+    "folderDeleteHint": "Kursus di dalamnya kembali ke tingkat atas. Tidak ada yang dihapus.",
+    "dropToUnfile": "Lepaskan di sini untuk mengeluarkan dari folder",
+    "renameInvalid": "Nama harus 1–120 karakter",
+    "renameForbidden": "Anda tidak membuat kursus ini, sehingga tidak dapat mengubah namanya",
+    "renameGone": "Kursus tersebut tidak lagi ada",
+    "renameSession": "Ubah nama obrolan",
+    "renameSessionAria": "Ubah nama obrolan “{{name}}”",
+    "renameSessionFailed": "Pengubahan nama gagal, silakan coba lagi",
+    "delete": "Hapus",
+    "confirmDelete": "Konfirmasi hapus",
+    "deleting": "Menghapus…",
+    "deleteFailed": "Gagal menghapus. Silakan coba lagi.",
+    "tabsAria": "Obrolan dan kursus",
+    "courseTabsAria": "Kursus terbuka",
+    "courseTabClose": "Tutup tab: {{name}}",
+    "courseTabRunning": "Membuat",
+    "foldersUnavailable": "Folder tidak tersedia di build ini"
+  },
+  "proMode": {
+    "attach": "Lampirkan materi",
+    "mentionCourse": "Rujuk ruang kelas",
+    "loadSkill": "Muat skill",
+    "skillMenuTitle": "Pilih skill perancangan kursus",
+    "skillsLoading": "Memuat skill…",
+    "noSkillsAvailable": "Tidak ada skill tersedia",
+    "userSkillsGroup": "Skill Saya",
+    "builtinSkillsGroup": "Skill Bawaan",
+    "skillsLoadFailed": "Gagal memuat skill. Klik untuk coba lagi",
+    "retrySkills": "Coba Lagi",
+    "noSkillMatch": "Tidak ada Skill yang cocok dengan “{{query}}”",
+    "badgeAria": "Mode Pro",
+    "badgeEnter": "Mode Pro",
+    "badgeExit": "Kembali ke klasik",
+    "launchPlaceholder": "Jelaskan pengalaman belajar yang ingin Anda buat",
+    "launchSend": "Mulai membangun"
+  },
+  "workbench": {
+    "tool": {
+      "label": {
+        "extractMaterial": null,
+        "waitMaterials": null
+      },
+      "error": {
+        "materialExtraction": null
+      }
+    }
   }
 }

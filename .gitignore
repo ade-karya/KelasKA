@@ -89,10 +89,4 @@ e2e/screenshots/
 
 # local e2e screenshots for #619 review
 e2e/__screenshots-619/
-/desktop
-/packages
-/mobile
-/graphify-out
-.gitignore
-.agents/rules/graphify.md
-.agents/workflows/graphify.md
+/.playwright-mcp/
