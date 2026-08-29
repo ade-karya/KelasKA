@@ -41,6 +41,7 @@ import { AgentBar } from '@/components/agent/agent-bar';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { nanoid } from 'nanoid';
 import { deleteDocumentBlob, storeDocumentBlob } from '@/lib/utils/image-storage';
+import { BrandLogo } from '@/components/brand-logo';
 import { normalizeDocumentMimeType } from '@/lib/document/mime';
 import {
   courseMaterialFingerprint,
@@ -832,9 +833,7 @@ function HomePage() {
       >
         {/* ── Logo ── */}
         <div className="relative" data-pro-morph="lockup">
-          <motion.img
-            src="/logo-horizontal.png"
-            alt="OpenMAIC"
+          <motion.div
             initial={heroEnter({ opacity: 0, scale: 0.9 })}
             animate={{ opacity: 1, scale: 1 }}
             transition={{
@@ -843,8 +842,10 @@ function HomePage() {
               stiffness: 200,
               damping: 20,
             }}
-            className="h-12 md:h-16 mb-2 -ml-2 md:-ml-3"
-          />
+            className="mb-4 flex items-center justify-center"
+          >
+            <BrandLogo size="lg" />
+          </motion.div>
           {workbenchEntryEnabled ? (
             <div
               className="absolute left-full top-0 ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]"
@@ -905,7 +906,7 @@ function HomePage() {
                     setSettingsSection(section);
                     setSettingsOpen(true);
                   }}
-                  courseMaterials={form.courseMaterials}
+                  courseMaterials={form.courseMaterials ?? []}
                   onCourseMaterialsAdd={addCourseMaterials}
                   onCourseMaterialRemove={removeCourseMaterial}
                   onPdfError={setError}
@@ -985,10 +986,10 @@ function HomePage() {
                   )}
                 >
                   <span className="rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal text-cyan-700 dark:bg-cyan-900/45 dark:text-cyan-300">
-                    测试功能
+                    {t('vocational.testFeature')}
                   </span>
                   <Sparkles className="size-3.5" />
-                  <span>职教任务</span>
+                  <span>{t('vocational.vocationalTask')}</span>
                   <span
                     className={cn(
                       'relative h-3.5 w-6 rounded-full transition-colors',
@@ -1005,7 +1006,7 @@ function HomePage() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                从当前输入框提交职教实操训练测试
+                {t('vocational.testFeatureTooltip')}
               </TooltipContent>
             </Tooltip>
           </motion.div>
@@ -1346,7 +1347,7 @@ function HomePage() {
 
       {/* Footer — flows with content, at the very end */}
       <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40">
-        OpenMAIC Open Source Project
+        Kelas KA
       </div>
     </div>
   );

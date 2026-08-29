@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Scene } from '@/lib/types/stage';
+import { useStageStore } from '@/lib/store/stage';
 
 /**
  * Single-slot recycle bin for the Pro mode slide-nav rail's toast-undo.
@@ -22,20 +23,30 @@ interface RecycleEntry {
   readonly stageId: string;
 }
 
+// Alias for v0.3.2-dev compatibility
+export type DeletedSceneEntry = RecycleEntry;
+
 interface DeletedSceneRecycleState {
   pending: RecycleEntry | null;
-  capture: (scene: Scene, index: number) => void;
+  entry: RecycleEntry | null;
+  capture: (scene: Scene, index: number, stageId?: string) => void;
   consume: () => RecycleEntry | null;
   clear: () => void;
 }
 
 export const useDeletedSceneRecycle = create<DeletedSceneRecycleState>()((set, get) => ({
   pending: null,
-  capture: (scene, index) => set({ pending: { scene, index, stageId: scene.stageId } }),
-  consume: () => {
-    const entry = get().pending;
-    if (entry) set({ pending: null });
-    return entry;
+  entry: null,
+  capture: (scene, index, stageId) => {
+    const resolvedStageId =
+      stageId ?? (scene as unknown as { stageId?: string }).stageId ?? useStageStore.getState().stage?.id ?? '';
+    const rec: RecycleEntry = { scene, index, stageId: resolvedStageId };
+    set({ pending: rec, entry: rec });
   },
-  clear: () => set({ pending: null }),
+  consume: () => {
+    const entry = get().pending ?? get().entry;
+    if (entry) set({ pending: null, entry: null });
+    return entry ?? null;
+  },
+  clear: () => set({ pending: null, entry: null }),
 }));

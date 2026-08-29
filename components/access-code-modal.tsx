@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { BrandLogo } from '@/components/brand-logo';
 import { ArrowRight, ShieldCheck, LoaderCircle } from 'lucide-react';
 
 interface AccessCodeModalProps {
@@ -112,14 +113,14 @@ export function AccessCodeModal({ open, onSuccess }: AccessCodeModalProps) {
                 {t('accessCode.title')}
               </motion.h1>
 
-              <motion.p
-                className="mb-6 text-center text-sm text-muted-foreground"
+              <motion.div
+                className="mb-6 flex justify-center text-sm text-muted-foreground"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.25, duration: 0.4 }}
               >
-                OpenMAIC
-              </motion.p>
+                <BrandLogo size="md" />
+              </motion.div>
 
               {/* Form */}
               <motion.form

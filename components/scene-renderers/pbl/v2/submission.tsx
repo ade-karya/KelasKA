@@ -176,7 +176,7 @@ function newClientMessageId(): string {
 }
 
 function submissionReceiptText(submission: PBLSubmission, language?: string): string {
-  const lng = language || 'zh-CN';
+  const lng = language || 'en-US';
   const label =
     submission.kind === 'file' && submission.filename
       ? i18n.t('pbl.v2.submission.receiptFile', { lng, filename: submission.filename })
@@ -257,6 +257,7 @@ export function buildRevisionGuidanceMessage(args: {
 }): PBLChatMessage | null {
   if (!args.instructorId) return null;
   const zh = args.language === 'zh-CN' || args.language === 'zh-TW';
+  const id = args.language === 'id-ID';
   const attempt = Math.max(1, args.revisionAttempt ?? 1);
   const zhOpening =
     attempt <= 1
@@ -264,6 +265,12 @@ export function buildRevisionGuidanceMessage(args: {
       : attempt === 2
         ? '这次还需要再补一轮。'
         : '还需要继续改一下。';
+  const idOpening =
+    attempt <= 1
+      ? 'Mari kita tinjau dulu sebelum melanjutkan.'
+      : attempt === 2
+        ? 'Ini masih perlu satu kali revisi lagi.'
+        : 'Silakan terus perbaiki sebelum kita lanjut.';
   const enOpening =
     attempt <= 1
       ? "Let's pause here before moving on."
@@ -275,6 +282,12 @@ export function buildRevisionGuidanceMessage(args: {
         zhOpening,
         '',
         '先参照上面的任务点评，把最影响下一步的一两处改稳。改好后在右侧重新提交，我再帮你看。',
+      ].join('\n')
+    : id
+    ? [
+        idOpening,
+        '',
+        'Gunakan ulasan tugas di atas untuk memperbaiki satu atau dua poin yang paling memengaruhi langkah berikutnya. Kirim revisi di sebelah kanan, dan saya akan meninjaunya lagi.',
       ].join('\n')
     : [
         enOpening,

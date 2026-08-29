@@ -321,13 +321,13 @@ function detectLegacyLanguage(config: PBLProjectConfig): string {
 }
 
 function legacyCompletionCriteria(language: string): string {
-  return language.startsWith('zh')
-    ? '学习者完成该任务，并能解释自己的解决思路。'
-    : 'The learner completes this task and can explain their reasoning.';
+  if (language.startsWith('zh')) return '学习者完成该任务，并能解释自己的解决思路。';
+  if (language === 'id-ID') return 'Pelajar menyelesaikan tugas ini dan dapat menjelaskan pemikiran mereka.';
+  return 'The learner completes this task and can explain their reasoning.';
 }
 
 function legacyDebrief(language: string): string {
-  return language.startsWith('zh')
-    ? '总结本任务的关键收获，并准备进入下一步。'
-    : 'Summarize the key takeaways from this task and prepare for the next step.';
+  if (language.startsWith('zh')) return '总结本任务的关键收获，并准备进入下一步。';
+  if (language === 'id-ID') return 'Rangkum poin-poin penting dari tugas ini dan bersiap untuk langkah berikutnya.';
+  return 'Summarize the key takeaways from this task and prepare for the next step.';
 }

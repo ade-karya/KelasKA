@@ -86,7 +86,11 @@ describe('thinking config metadata', () => {
     expect(glmModels).not.toContain('glm-4.5-airx');
     expect(glmModels).not.toContain('glm-4.5-flash');
     expect(googleModels).toEqual(
-      expect.arrayContaining(['gemini-3.6-flash', 'gemini-3.5-flash-lite']),
+      expect.arrayContaining([
+        'gemini-3.6-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite',
+      ]),
     );
     expect(googleModels).toContain('gemini-3.1-pro-preview');
     expect(googleModels).not.toContain('gemini-3-pro-preview');
@@ -204,6 +208,7 @@ describe('thinking config normalization', () => {
   it('models the latest Gemini, Kimi, and Grok reasoning controls', () => {
     const geminiFlashThinking = getThinking('google', 'gemini-3.6-flash');
     const geminiLiteThinking = getThinking('google', 'gemini-3.5-flash-lite');
+    const gemini31LiteThinking = getThinking('google', 'gemini-3.1-flash-lite');
     const kimiThinking = getThinking('kimi', 'kimi-k3');
     const grokThinking = getThinking('grok', 'grok-4.5');
 
@@ -212,6 +217,10 @@ describe('thinking config normalization', () => {
       level: 'medium',
     });
     expect(getDefaultThinkingConfig(geminiLiteThinking)).toEqual({
+      mode: 'enabled',
+      level: 'minimal',
+    });
+    expect(getDefaultThinkingConfig(gemini31LiteThinking)).toEqual({
       mode: 'enabled',
       level: 'minimal',
     });

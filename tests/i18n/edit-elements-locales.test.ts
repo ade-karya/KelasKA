@@ -7,10 +7,11 @@ import koKR from '@/lib/i18n/locales/ko-KR.json';
 import ruRU from '@/lib/i18n/locales/ru-RU.json';
 import arSA from '@/lib/i18n/locales/ar-SA.json';
 import ptBR from '@/lib/i18n/locales/pt-BR.json';
+import idID from '@/lib/i18n/locales/id-ID.json';
 import esMX from '@/lib/i18n/locales/es-MX.json';
 
 describe('edit_elements locale coverage', () => {
-  it.each([enUS, zhCN, zhTW, jaJP, koKR, ruRU, arSA, ptBR])(
+  it.each([enUS, zhCN, zhTW, jaJP, koKR, ruRU, arSA, ptBR, idID])(
     'defines the client apply-failure correction',
     (locale) => {
       expect(locale.edit.editElements.applyFailed).toBeTruthy();

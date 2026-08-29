@@ -48,7 +48,6 @@ export function SceneThumbnailContent({
     return (
       <SlideThumbnail
         slide={slideContent.canvas}
-        sceneId={scene.id}
         viewportSize={viewportSize}
         viewportRatio={viewportRatio}
         visible={visible}

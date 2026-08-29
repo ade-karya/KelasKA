@@ -95,6 +95,8 @@ export function taskCompletionReadyText(language: string | undefined): string {
       return 'Эта задача завершена. Если вы готовы и больше нет вопросов, нажмите кнопку «Готово» у текущей задачи слева, чтобы перейти дальше.';
     case 'ar-SA':
       return 'اكتملت هذه المهمة. إذا كنت مستعدًا ولا توجد لديك أسئلة أخرى، فاضغط زر «تم» في المهمة الحالية على اليسار للانتقال إلى الخطوة التالية.';
+    case 'id-ID':
+      return 'Tugas ini telah selesai. Jika Anda sudah siap dan tidak ada pertanyaan lain, klik "Selesai" pada tugas saat ini di bilah sisi kiri untuk melanjutkannya.';
     case 'en-US':
     default:
       return 'This task is complete. When you are ready and have no other questions, click Done on the current task in the left sidebar to move on.';
@@ -102,7 +104,7 @@ export function taskCompletionReadyText(language: string | undefined): string {
 }
 
 const TASK_COMPLETION_READY_TEXTS = new Set(
-  ['zh-CN', 'zh-TW', 'ja-JP', 'ru-RU', 'ar-SA', 'en-US', undefined].map((language) =>
+  ['zh-CN', 'zh-TW', 'ja-JP', 'ru-RU', 'ar-SA', 'id-ID', 'en-US', undefined].map((language) =>
     taskCompletionReadyText(language),
   ),
 );

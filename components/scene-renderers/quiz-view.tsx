@@ -137,8 +137,10 @@ async function gradeShortAnswerQuestion(
       status: 'incorrect',
       earned: Math.round(pts * 0.5),
       aiComment:
-        language === 'zh-CN'
+        language === 'zh-CN' || language === 'zh-TW'
           ? '评分服务暂时不可用，已给予基础分。'
+          : language === 'id-ID'
+          ? 'Layanan penilaian sementara tidak tersedia, nilai dasar telah diberikan.'
           : 'Grading service unavailable. Base score given.',
     };
   }

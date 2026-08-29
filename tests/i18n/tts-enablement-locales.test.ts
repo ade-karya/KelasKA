@@ -6,6 +6,7 @@ import jaJP from '@/lib/i18n/locales/ja-JP.json';
 import ruRU from '@/lib/i18n/locales/ru-RU.json';
 import arSA from '@/lib/i18n/locales/ar-SA.json';
 import ptBR from '@/lib/i18n/locales/pt-BR.json';
+import idID from '@/lib/i18n/locales/id-ID.json';
 
 const locales = {
   'en-US': enUS,
@@ -15,6 +16,7 @@ const locales = {
   'ru-RU': ruRU,
   'ar-SA': arSA,
   'pt-BR': ptBR,
+  'id-ID': idID,
 };
 
 // New keys introduced for the TTS provider-enablement model (#665).

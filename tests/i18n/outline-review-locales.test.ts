@@ -7,6 +7,7 @@ import ruRU from '@/lib/i18n/locales/ru-RU.json';
 import arSA from '@/lib/i18n/locales/ar-SA.json';
 import koKR from '@/lib/i18n/locales/ko-KR.json';
 import ptBR from '@/lib/i18n/locales/pt-BR.json';
+import idID from '@/lib/i18n/locales/id-ID.json';
 
 const locales = {
   'en-US': enUS,
@@ -17,6 +18,7 @@ const locales = {
   'ar-SA': arSA,
   'ko-KR': koKR,
   'pt-BR': ptBR,
+  'id-ID': idID,
 } as const;
 
 const outlineReviewKeys = [

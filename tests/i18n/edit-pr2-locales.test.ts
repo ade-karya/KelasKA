@@ -5,6 +5,7 @@ import zhTW from '@/lib/i18n/locales/zh-TW.json';
 import jaJP from '@/lib/i18n/locales/ja-JP.json';
 import ruRU from '@/lib/i18n/locales/ru-RU.json';
 import arSA from '@/lib/i18n/locales/ar-SA.json';
+import idID from '@/lib/i18n/locales/id-ID.json';
 
 const locales = {
   'en-US': enUS,
@@ -13,6 +14,7 @@ const locales = {
   'ja-JP': jaJP,
   'ru-RU': ruRU,
   'ar-SA': arSA,
+  'id-ID': idID,
 };
 const KEYS = [
   'edit.delete',

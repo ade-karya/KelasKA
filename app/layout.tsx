@@ -7,6 +7,9 @@ import 'animate.css';
 import 'katex/dist/katex.min.css';
 import { ThemeProvider } from '@/lib/hooks/use-theme';
 import { I18nProvider } from '@/lib/hooks/use-i18n';
+import { AuthProvider } from '@/lib/contexts/auth-context';
+import { SupabaseAuthProvider } from '@/lib/contexts/supabase-auth-context';
+import { StudentAuthProvider } from '@/lib/contexts/student-auth-context';
 import { Toaster } from '@/components/ui/sonner';
 import { ServerProvidersInit } from '@/components/server-providers-init';
 import { StorageHealthNotice } from '@/components/storage-health-notice';
@@ -29,9 +32,14 @@ import { ProSwapWatcher } from '@/components/workbench/ProSwapWatcher';
 import '@fontsource-variable/inter';
 
 export const metadata: Metadata = {
-  title: 'OpenMAIC',
+  title: 'Kelas KA',
   description:
-    'The open-source AI interactive classroom. Upload a PDF to instantly generate an immersive, multi-agent learning experience.',
+    'Platform pembelajaran interaktif berbasis AI Kelas KA. Unggah PDF untuk menghasilkan pengalaman belajar imersif secara instan.',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -46,16 +54,22 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ThemeProvider>
-          <I18nProvider>
-            <ServerProvidersInit />
-            <ProSwapWatcher />
-            <AccessCodeGuard>{children}</AccessCodeGuard>
-            <Toaster position="top-center" />
-            {/* After the Toaster: this one raises a toast on mount when
-                persistence is already broken, and a toast raised before its
-                host exists has nowhere to go. */}
-            <StorageHealthNotice />
-          </I18nProvider>
+          <SupabaseAuthProvider>
+            <StudentAuthProvider>
+              <AuthProvider>
+                <I18nProvider>
+                  <ServerProvidersInit />
+                  <ProSwapWatcher />
+                  <AccessCodeGuard>{children}</AccessCodeGuard>
+                  <Toaster position="top-center" />
+                  {/* After the Toaster: this one raises a toast on mount when
+                      persistence is already broken, and a toast raised before its
+                      host exists has nowhere to go. */}
+                  <StorageHealthNotice />
+                </I18nProvider>
+              </AuthProvider>
+            </StudentAuthProvider>
+          </SupabaseAuthProvider>
         </ThemeProvider>
       </body>
     </html>

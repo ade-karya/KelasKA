@@ -30,6 +30,7 @@ import type { AlignmentLineProps } from '@/lib/types/edit';
 import type { ContextmenuItem } from './EditableElement';
 import type { SlideContent } from '@/lib/types/stage';
 import { useCanvasOperations } from '@/lib/hooks/use-canvas-operations';
+import { useI18n } from '@/lib/hooks/use-i18n';
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -180,51 +181,52 @@ export function Canvas(_props: CanvasProps) {
 
   const { pasteElement, selectAllElements, deleteAllElements } = useCanvasOperations();
 
+  const { t } = useI18n();
   const contextmenus = (): ContextmenuItem[] => {
     return [
       {
-        text: '粘贴',
+        text: t('canvas.paste'),
         subText: 'Ctrl + V',
         handler: pasteElement,
       },
       {
-        text: '全选',
+        text: t('canvas.selectAll'),
         subText: 'Ctrl + A',
         handler: selectAllElements,
       },
       {
-        text: '标尺',
+        text: t('canvas.ruler'),
         subText: showRuler ? '√' : '',
         handler: () => setRulerState(!showRuler),
       },
       {
-        text: '网格线',
+        text: t('canvas.gridlines'),
         handler: () => setGridLineSize(gridLineSize ? 0 : 50),
         children: [
           {
-            text: '无',
+            text: t('canvas.gridNone'),
             subText: gridLineSize === 0 ? '√' : '',
             handler: () => setGridLineSize(0),
           },
           {
-            text: '小',
+            text: t('canvas.gridSmall'),
             subText: gridLineSize === 25 ? '√' : '',
             handler: () => setGridLineSize(25),
           },
           {
-            text: '中',
+            text: t('canvas.gridMedium'),
             subText: gridLineSize === 50 ? '√' : '',
             handler: () => setGridLineSize(50),
           },
           {
-            text: '大',
+            text: t('canvas.gridLarge'),
             subText: gridLineSize === 100 ? '√' : '',
             handler: () => setGridLineSize(100),
           },
         ],
       },
       {
-        text: '重置当前页',
+        text: t('canvas.resetPage'),
         handler: deleteAllElements,
       },
     ];

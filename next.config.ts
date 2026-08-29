@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   typescript: {
     tsconfigPath: process.env.NODE_ENV === 'production' ? 'tsconfig.build.json' : 'tsconfig.json',
   },
-  transpilePackages: ['mathml2omml', 'pptxgenjs', '@openmaic/importer'],
+  transpilePackages: ['mathml2omml', 'pptxgenjs', '@openmaic/importer', '@supabase/supabase-js'],
   // These agent packages do a runtime `import(specifier)` with a computed
   // specifier (to lazily load node:fs/os/path without breaking browser/Vite
   // builds). webpack can't statically analyze that and bundling it throws

@@ -628,6 +628,13 @@
     "dock": {
       "elementRefHint": "Referencias de elementos: elige elementos para enviar con tu próximo mensaje",
       "globalTools": "Herramientas globales"
+    },
+    "multiTab": {
+      "conflict": {
+        "title": "Otra pestaña está editando este curso",
+        "body": "La edición está limitada a una sola pestaña para evitar cambios en conflicto. Cierra la otra pestaña (o espera a que su sesión expire) antes de entrar al modo de edición aquí.",
+        "actionDismiss": "Entendido"
+      }
     }
   },
   "classroomComplete": {
@@ -2014,5 +2021,40 @@
         "materialExtraction": null
       }
     }
+  },
+  "canvas": {
+    "paste": "Paste",
+    "selectAll": "Select All",
+    "ruler": "Ruler",
+    "gridlines": "Gridlines",
+    "gridNone": "None",
+    "gridSmall": "Small",
+    "gridMedium": "Medium",
+    "gridLarge": "Large",
+    "resetPage": "Reset Current Page",
+    "unlock": "Unlock",
+    "cut": "Cut",
+    "copy": "Copy",
+    "alignHorizontal": "Align Horizontal",
+    "alignCenter": "Align Center",
+    "alignLeft": "Align Left",
+    "alignRight": "Align Right",
+    "alignVertical": "Align Vertical",
+    "alignTop": "Align Top",
+    "alignBottom": "Align Bottom",
+    "bringToFront": "Bring to Front",
+    "bringForward": "Bring Forward",
+    "sendToBack": "Send to Back",
+    "sendBackward": "Send Backward",
+    "setLink": "Set Link",
+    "group": "Group",
+    "ungroup": "Ungroup",
+    "lock": "Lock",
+    "delete": "Delete"
+  },
+  "vocational": {
+    "testFeature": "Test Feature",
+    "vocationalTask": "Vocational Task",
+    "testFeatureTooltip": "Submit vocational practical training test from current input box"
   }
 }
