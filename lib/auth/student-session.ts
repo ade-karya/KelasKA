@@ -9,6 +9,7 @@ export interface StudentProfile {
   nisn: string | null;
   class_name: string | null;
   avatar_url: string | null;
+  tenant_id?: string | null;
 }
 
 export interface AuthenticatedStudent {
@@ -33,7 +34,7 @@ export async function getAuthenticatedStudent(
 
   const { data, error } = await getSupabaseServer()
     .from('students')
-    .select('id, name, nim, nisn, class_name, avatar_url')
+    .select('id, name, nim, nisn, class_name, avatar_url, tenant_id, average_score')
     .eq('id', payload.sub)
     .maybeSingle();
 

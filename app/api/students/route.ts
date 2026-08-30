@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
+import { getAuthenticatedStudent, extractBearerToken } from '@/lib/auth/student-session';
+import { apiError } from '@/lib/server/api-response';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('students-api');
+const DEFAULT_TENANT = '00000000-0000-0000-0000-000000000001';
 
 const MOCK_STUDENTS = [
   {
@@ -134,9 +140,66 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const className = searchParams.get('className');
   const query = searchParams.get('query')?.toLowerCase();
+  const isProduction = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+
+  // Enterprise guard — Vercel+Supabase: wajib auth (siswa JWT atau guru Supabase)
+  let tenantId: string | null = null;
+  let allowedClasses: string[] | null = null;
+  let isGuru = false;
+  try {
+    const studentAuth: any = await getAuthenticatedStudent(request as any);
+    if (studentAuth?.student) {
+      tenantId = studentAuth.student.tenant_id ?? DEFAULT_TENANT;
+      // siswa hanya boleh lihat kelasnya sendiri? Untuk students list, siswa tidak boleh list semua — batasi ke kelasnya
+      // Tapi untuk MVP, izinkan siswa lihat kelasnya saja
+      allowedClasses = studentAuth.student.class_name ? [studentAuth.student.class_name] : null;
+    } else {
+      const bearer = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim() || extractBearerToken(request as any);
+      if (bearer) {
+        try {
+          const { data: { user } } = await supabaseServer.auth.getUser(bearer);
+          if (user) {
+            const { data: profile } = await supabaseServer.from('profiles').select('tenant_id, role, class_names').eq('id', user.id).maybeSingle();
+            if (profile && ['teacher','admin'].includes((profile as any).role)) {
+              isGuru = true;
+              tenantId = (profile as any).tenant_id;
+              allowedClasses = (profile as any).class_names ?? [];
+              // admin boleh semua kelas di tenant, teacher terbatas
+              if ((profile as any).role === 'admin') allowedClasses = null;
+            } else if (profile) {
+              return apiError('UNAUTHENTICATED', 403, 'Role tidak diizinkan');
+            } else {
+              // guru tanpa profile → single-tenant fallback
+              isGuru = true;
+              tenantId = DEFAULT_TENANT;
+            }
+          }
+        } catch {}
+      }
+      if (!tenantId) {
+        if (isProduction) {
+          return apiError('UNAUTHENTICATED', 401, 'Auth diperlukan');
+        }
+        // dev preview: izinkan tanpa auth, pakai default tenant
+        tenantId = DEFAULT_TENANT;
+        log.warn('students-api: unauthenticated preview (dev only)');
+      }
+    }
+  } catch (e) {
+    log.warn('students-api auth check failed', e);
+    if (isProduction) return apiError('UNAUTHENTICATED', 401, 'Auth diperlukan');
+    tenantId = DEFAULT_TENANT;
+  }
+
+  // Guru non-admin hanya boleh lihat kelas ampu — enforce di query
+  if (isGuru && allowedClasses && allowedClasses.length > 0) {
+    if (className && className !== 'Semua Kelas' && !allowedClasses.includes(className)) {
+      return NextResponse.json({ success: true, data: { metrics: { totalStudents: 0, avgClassScore: 0, avgAttendance: 0, activeAssignments: 0 }, availableClasses: allowedClasses, students: [] } });
+    }
+  }
 
   try {
-    let dbQuery = supabaseServer.from('students').select(`
+    let dbQuery: any = supabaseServer.from('students').select(`
       id,
       name,
       nim,
@@ -146,6 +209,7 @@ export async function GET(request: Request) {
       avatar_url,
       status,
       last_active,
+      tenant_id,
       student_scores (
         subject_name,
         score
@@ -154,6 +218,12 @@ export async function GET(request: Request) {
         note
       )
     `);
+
+    if (tenantId) dbQuery = dbQuery.eq('tenant_id', tenantId);
+    if (allowedClasses && allowedClasses.length > 0) {
+      // jika query className spesifik sudah difilter di atas, ini untuk list all
+      if (!className || className === 'Semua Kelas') dbQuery = dbQuery.in('class_name', allowedClasses);
+    }
 
     if (className && className !== 'Semua Kelas') {
       dbQuery = dbQuery.eq('class_name', className);
@@ -166,8 +236,13 @@ export async function GET(request: Request) {
     const { data: studentsData, error } = await dbQuery;
 
     if (error || !studentsData || studentsData.length === 0) {
+      if (isProduction) {
+        // prod: jangan fallback ke mock (anti bocor lintas tenant)
+        if (error) log.warn('students query failed', error);
+        return NextResponse.json({ success: true, data: { metrics: { totalStudents: 0, avgClassScore: 0, avgAttendance: 0, activeAssignments: 0 }, availableClasses: allowedClasses && allowedClasses.length ? ['Semua Kelas', ...allowedClasses] : ['Semua Kelas', 'KA-101', 'KA-102', 'KA-103'], students: [] } });
+      }
       console.warn('Supabase query fallback to mock:', error?.message);
-      return returnMockFiltered(className, query);
+      return returnMockFiltered(className, query, tenantId, allowedClasses);
     }
 
     // Format Supabase data to fit expected StudentPerformance API response format
@@ -188,8 +263,11 @@ export async function GET(request: Request) {
       teacherNotes: s.teacher_notes?.[0]?.note || 'Belum ada catatan.',
     }));
 
-    // Fetch classes
-    const { data: classesData } = await supabaseServer.from('classes').select('name');
+    // Fetch classes — tenant-scoped
+    let classQuery: any = supabaseServer.from('classes').select('name, tenant_id');
+    if (tenantId) classQuery = classQuery.eq('tenant_id', tenantId);
+    if (allowedClasses && allowedClasses.length > 0) classQuery = classQuery.in('name', allowedClasses);
+    const { data: classesData } = await classQuery;
     const availableClasses = ['Semua Kelas', ...(classesData || []).map((c: any) => c.name)];
 
     const totalStudents = formattedStudents.length;
@@ -212,18 +290,24 @@ export async function GET(request: Request) {
           avgAttendance,
           activeAssignments: 4,
         },
-        availableClasses: availableClasses.length > 1 ? availableClasses : ['Semua Kelas', 'KA-101', 'KA-102', 'KA-103'],
+        availableClasses: availableClasses.length > 1 ? availableClasses : (allowedClasses && allowedClasses.length ? ['Semua Kelas', ...allowedClasses] : ['Semua Kelas', 'KA-101', 'KA-102', 'KA-103']),
         students: formattedStudents,
       },
     });
   } catch (err) {
     console.error('API Error, using mock fallback:', err);
-    return returnMockFiltered(className, query);
+    const isProd = process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+    if (isProd) return NextResponse.json({ success: true, data: { metrics: { totalStudents: 0, avgClassScore: 0, avgAttendance: 0, activeAssignments: 0 }, availableClasses: ['Semua Kelas', 'KA-101', 'KA-102', 'KA-103'], students: [] } });
+    return returnMockFiltered(className, query, null, null);
   }
 }
 
-function returnMockFiltered(className: string | null, query: string | undefined) {
+function returnMockFiltered(className: string | null, query: string | undefined, _tenantId: string | null = null, allowedClassesParam: string[] | null = null) {
   let filteredStudents = [...MOCK_STUDENTS];
+  // enterprise: guru hanya lihat kelas ampu di mock juga
+  if (allowedClassesParam && allowedClassesParam.length > 0) {
+    filteredStudents = filteredStudents.filter((s) => allowedClassesParam.includes(s.className));
+  }
 
   if (className && className !== 'Semua Kelas') {
     filteredStudents = filteredStudents.filter(
@@ -257,7 +341,7 @@ function returnMockFiltered(className: string | null, query: string | undefined)
         avgAttendance,
         activeAssignments: 4,
       },
-      availableClasses: ['Semua Kelas', 'KA-101', 'KA-102', 'KA-103'],
+      availableClasses: allowedClassesParam && allowedClassesParam.length ? ['Semua Kelas', ...allowedClassesParam] : ['Semua Kelas', 'KA-101', 'KA-102', 'KA-103'],
       students: filteredStudents,
     },
   });
