@@ -189,6 +189,74 @@ drop policy if exists "assets no anon" on storage.objects;
 create policy "assets no anon" on storage.objects for all
   using (false) with check (false);
 
+
+-- 8) Classrooms + assignments (PRD v1.1 §10.2) — siklus materi
+create table if not exists public.classrooms (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  created_by uuid references public.profiles(id),
+  title text not null default '',
+  status text not null default 'draft'
+    check (status in ('draft','in_review','published','archived')),
+  stage_payload_path text,
+  language text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  published_at timestamptz
+);
+create index if not exists idx_classrooms_tenant_status on public.classrooms(tenant_id, status);
+create index if not exists idx_classrooms_created_by on public.classrooms(created_by);
+
+create table if not exists public.classroom_assignments (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  classroom_id uuid not null references public.classrooms(id) on delete cascade,
+  class_name text not null,
+  assigned_by uuid references public.profiles(id),
+  assigned_at timestamptz not null default now(),
+  unique (classroom_id, class_name)
+);
+create index if not exists idx_cassign_tenant_class on public.classroom_assignments(tenant_id, class_name);
+create index if not exists idx_cassign_classroom on public.classroom_assignments(classroom_id);
+
+alter table public.classrooms enable row level security;
+alter table public.classroom_assignments enable row level security;
+
+drop policy if exists "tenant classrooms" on public.classrooms;
+create policy "tenant classrooms" on public.classrooms for all
+  using (public.is_same_tenant(tenant_id))
+  with check (public.is_same_tenant(tenant_id));
+
+drop policy if exists "tenant classroom_assignments" on public.classroom_assignments;
+create policy "tenant classroom_assignments" on public.classroom_assignments for all
+  using (public.is_same_tenant(tenant_id))
+  with check (public.is_same_tenant(tenant_id));
+
+-- Storage bucket for classroom stage JSON + media (private)
+insert into storage.buckets (id, name, public) values ('classrooms','classrooms', false)
+on conflict (id) do nothing;
+drop policy if exists "classrooms no anon" on storage.objects;
+create policy "classrooms no anon" on storage.objects for all
+  using (false) with check (false);
+
+-- 8b) Opsional fase 4 — jam belajar jujur (classroom_sessions)
+create table if not exists public.classroom_sessions (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  classroom_id uuid not null references public.classrooms(id),
+  student_id uuid not null references public.students(id),
+  started_at timestamptz not null default now(),
+  ended_at timestamptz,
+  duration_seconds int
+);
+create index if not exists idx_csessions_tenant_student on public.classroom_sessions(tenant_id, student_id);
+alter table public.classroom_sessions enable row level security;
+drop policy if exists "tenant sessions" on public.classroom_sessions;
+create policy "tenant sessions" on public.classroom_sessions for all
+  using (public.is_same_tenant(tenant_id))
+  with check (public.is_same_tenant(tenant_id));
+
+
 -- 7) Setelah verifikasi, aktifkan NOT NULL (jalankan manual setelah cek tidak ada null)
 -- alter table public.students alter column tenant_id set not null;
 -- alter table public.assignments alter column tenant_id set not null;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSupabaseAuth } from "@/lib/contexts/supabase-auth-context";
 import { logUserActivity } from "@/lib/supabase/activity-logger";
@@ -9,6 +9,7 @@ import { Lock, Mail, UserCheck, LogIn, ArrowRight, ShieldCheck, Activity, Gradua
 export default function LoginPage() {
   const router = useRouter();
   const { user, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut, loading } = useSupabaseAuth();
+  useEffect(() => { if (!loading && user) { router.replace("/dashboard"); } }, [user, loading, router]);
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -30,7 +31,7 @@ export default function LoginPage() {
       } else {
         setSuccessMsg("Berhasil masuk! Mengalihkan...");
         setTimeout(() => {
-          router.push("/admin");
+          router.push("/dashboard");
         }, 1200);
       }
     } else {
@@ -77,10 +78,10 @@ export default function LoginPage() {
             <ShieldCheck className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-            Supabase Auth & Activity Tracker
+            Masuk Guru KelasKA
           </h1>
           <p className="text-sm text-slate-400 mt-2">
-            Masuk untuk mengakses dasbor & mencatat aktivitas pengguna secara real-time.
+            Masuk untuk mengajar, membuat kelas, dan mengelola sekolah Anda di KelasKA.
           </p>
         </div>
 
@@ -97,11 +98,11 @@ export default function LoginPage() {
 
             <div className="flex flex-col gap-2 pt-2">
               <button
-                onClick={() => router.push("/admin/activity-logs")}
+                onClick={() => router.push("/dashboard")}
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-medium text-white shadow-lg shadow-indigo-600/30 transition-all text-sm"
               >
                 <Activity className="w-4 h-4" />
-                Lihat Log Aktivitas
+                Buka Dashboard
               </button>
               <button
                 onClick={handleSignOut}
@@ -240,11 +241,11 @@ export default function LoginPage() {
         {/* Footer Link */}
         <div className="mt-8 pt-4 border-t border-slate-800/80 text-center space-y-2">
           <button
-            onClick={() => router.push("/admin/activity-logs")}
+            onClick={() => router.push("/dashboard")}
             className="text-xs text-indigo-400 hover:text-indigo-300 font-medium inline-flex items-center gap-1 transition-colors"
           >
             <Activity className="w-3.5 h-3.5" />
-            Buka Halaman Monitoring Activity Log
+            Masuk Siswa dengan NISN → /login-siswa
           </button>
           <div>
             <button

@@ -32,7 +32,7 @@ import { WorkspaceEntry } from '@/components/workbench/WorkspaceEntry';
 export const dynamic = 'force-dynamic';
 
 export default function WorkspacePage() {
-  if (!isWorkbenchEntryEnabled()) redirect('/');
+  if (!isWorkbenchEntryEnabled()) redirect('/dashboard');
 
   return (
     <Suspense fallback={null}>

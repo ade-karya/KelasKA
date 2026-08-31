@@ -248,8 +248,7 @@ function HomePage() {
   const composerRef = useRef<HTMLDivElement>(null);
 
   const scrollToComposer = () => {
-    composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => textareaRef.current?.focus(), 600);
+    router.push('/masuk');
   };
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -718,25 +717,20 @@ function HomePage() {
               </button>
             </div>
 
-            {workbenchEntryEnabled && (
-              <div className="hidden md:flex mr-1">
-                <ProBadge active={false} onToggle={enterWorkbench} />
-              </div>
-            )}
             <Button
               variant="ghost"
               size="sm"
               className="hidden md:inline-flex rounded-full"
-              onClick={() => router.push('/login-siswa')}
+              onClick={() => router.push('/masuk')}
             >
               Masuk
             </Button>
             <Button
-              onClick={() => router.push('/dashboard')}
+              onClick={() => router.push('/masuk')}
               size="sm"
               className="hidden md:inline-flex rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-500/20 px-5"
             >
-              Dashboard
+              Mulai
               <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Button>
             <button
@@ -760,7 +754,6 @@ function HomePage() {
                   { label: 'Fitur', id: 'fitur' },
                   { label: 'Cara Kerja', id: 'cara-kerja' },
                   { label: 'Untuk Siapa', id: 'untuk-siapa' },
-                  { label: 'Masuk ke Kelas', id: 'composer' },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -771,11 +764,11 @@ function HomePage() {
                   </button>
                 ))}
                 <div className="pt-3 flex gap-2">
-                  <Button variant="outline" className="flex-1 rounded-full" onClick={() => router.push('/login-siswa')}>
-                    Masuk Siswa
+                  <Button variant="outline" className="flex-1 rounded-full" onClick={() => router.push('/masuk')}>
+                    Masuk
                   </Button>
-                  <Button className="flex-1 rounded-full bg-violet-600 hover:bg-violet-500" onClick={() => router.push('/dashboard')}>
-                    Dashboard
+                  <Button className="flex-1 rounded-full bg-violet-600 hover:bg-violet-500" onClick={() => router.push('/masuk')}>
+                    Mulai
                   </Button>
                 </div>
               </div>
@@ -815,9 +808,6 @@ function HomePage() {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 PLATFORM PEMBELAJARAN AI GENERATIF
               </span>
-              <span className="hidden sm:inline-flex items-center gap-1 ml-1 pl-2 border-l border-violet-300/50 dark:border-violet-700/50">
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> 4.9/5 dari 2.000+ guru
-              </span>
             </div>
 
             <motion.h1
@@ -850,27 +840,23 @@ function HomePage() {
               className="mt-6 flex flex-wrap items-center justify-center gap-3 text-xs"
             >
               <button
-                onClick={scrollToComposer}
+                onClick={() => router.push('/masuk')}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold shadow-lg shadow-slate-900/20 hover:shadow-xl hover:-translate-y-px transition-all"
               >
                 <Wand2 className="w-4 h-4" />
-                Coba Buat Kelas Sekarang
+                Masuk untuk Membuat Kelas
                 <ArrowRight className="w-4 h-4" />
               </button>
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/masuk')}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
               >
                 <LayoutDashboardIcon />
-                Masuk Dashboard
+                Masuk
               </button>
-              <button
-                onClick={() => router.push('/login-siswa')}
-                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-3 rounded-full text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-medium"
-              >
-                <GraduationCap className="w-4 h-4" />
-                Login Siswa NISN
-              </button>
+              <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
+                <Shield className="w-3 h-3 text-violet-500" /> Aman untuk sekolah • Review wajib sebelum publish
+              </span>
             </motion.div>
 
             <div className="mt-5 flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-500 dark:text-slate-400">
@@ -881,196 +867,66 @@ function HomePage() {
             </div>
           </motion.div>
 
-          {/* Composer card - retained generation functionality */}
+          {/* Studio preview — non-interactive; CTA ke /masuk */}
           <motion.div
-            id="composer"
-            ref={composerRef}
             initial={heroEnter({ opacity: 0, scale: 0.98 })}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.35 }}
             className="mx-auto mt-10 max-w-[800px]"
           >
-            <div className="rounded-none md:rounded-[24px] md:border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)] overflow-hidden">
-              <div
-                data-pro-morph="composer"
-                className="w-full rounded-2xl md:rounded-none border border-border/60 md:border-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl md:shadow-none shadow-xl shadow-black/[0.03] transition-shadow focus-within:shadow-2xl focus-within:shadow-violet-500/[0.06]"
-              >
-                <div className="relative z-20 flex items-start justify-between">
-                  <GreetingBar />
-                  <div className="pr-3 pt-3.5 shrink-0">
-                    <AgentBar />
-                  </div>
+            <div className="rounded-[24px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.15)] overflow-hidden">
+              <div className="p-5 md:p-6">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                  <Sparkles className="w-3.5 h-3.5 text-violet-500" /> CONTOH COMPOSER STUDIO
+                  <span className="ml-auto px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 text-[10px]">Hanya di /studio setelah login guru</span>
                 </div>
-                <textarea
-                  ref={textareaRef}
-                  placeholder={t('upload.requirementPlaceholder')}
-                  className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none min-h-[140px] max-h-[300px] text-slate-900 dark:text-slate-100"
-                  value={form.requirement}
-                  onChange={(e) => updateForm('requirement', e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  rows={4}
-                />
-                <div className="px-3 pb-3 flex items-end gap-2">
-                  <div className="flex-1 min-w-0">
-                    <GenerationToolbar
-                      webSearch={form.webSearch}
-                      onWebSearchChange={(v) => updateForm('webSearch', v)}
-                      onSettingsOpen={(section) => {
-                        setSettingsSection(section);
-                        setSettingsOpen(true);
-                      }}
-                      courseMaterials={form.courseMaterials ?? []}
-                      onCourseMaterialsAdd={addCourseMaterials}
-                      onCourseMaterialRemove={removeCourseMaterial}
-                      onPdfError={setError}
-                      materialsLocked={preparingGenerate}
-                    />
-                  </div>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <InteractiveModeButton
-                        pressed={form.interactiveMode}
-                        label={t('toolbar.interactiveModeLabel')}
-                        onPressedChange={(pressed) => updateForm('interactiveMode', pressed)}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">
-                      {t('toolbar.interactiveModeHint')}
-                    </TooltipContent>
-                  </Tooltip>
-                  <SpeechButton
-                    size="md"
-                    onTranscription={(text) => {
-                      setForm((prev) => {
-                        const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
-                        updateRequirementCache(next);
-                        return { ...prev, requirement: next };
-                      });
-                    }}
-                  />
-                  <button
-                    onClick={handleGenerate}
-                    disabled={!canGenerate || preparingGenerate}
-                    className={cn(
-                      'shrink-0 h-8 rounded-lg flex items-center justify-center gap-1.5 transition-all px-3',
-                      canGenerate && !preparingGenerate
-                        ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-sm cursor-pointer'
-                        : 'bg-muted text-muted-foreground/40 cursor-not-allowed',
-                    )}
-                  >
-                    <span className="text-xs font-medium">
-                      {preparingGenerate ? t('stage.generating') : t('toolbar.enterClassroom')}
-                    </span>
-                    {preparingGenerate ? (
-                      <Loader2 className="size-3.5 animate-spin" />
-                    ) : (
-                      <ArrowUp className="size-3.5" />
-                    )}
-                  </button>
+                <div className="mt-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-4">
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Tulis kebutuhan mengajar, unggah RPP/PDF, aktifkan Web Search bila perlu.</p>
+                  <p className="text-xs text-slate-500 mt-1">Contoh: “Buatkan kelas Komputer Akuntansi dasar untuk KA-101: jurnal umum dan buku besar dengan simulasi interaktif”</p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button onClick={() => router.push('/masuk')} className="rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900">
+                    <Wand2 className="w-4 h-4" /> Masuk untuk Membuat Kelas
+                  </Button>
+                  <Button variant="outline" onClick={() => router.push('/masuk')} className="rounded-full">Lihat Studio</Button>
                 </div>
               </div>
-              {/* branding row inside card footer */}
-              <div className="hidden md:flex items-center justify-between px-4 py-2.5 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
-                <span className="inline-flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Server siap</span>
-                  <span className="w-px h-3 bg-slate-200 dark:bg-slate-700" />
-                  <span>Mendukung PDF, Word, PPTX, gambar, audio & video</span>
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-                  Powered by OpenMAIC
-                </span>
+              <div className="px-4 py-2.5 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                <span>Satu prompt → outline editable → draft → review → publish → assign</span>
+                <span className="hidden sm:inline">Vercel + Supabase</span>
               </div>
             </div>
-            {showVocationalTestUi && (
-              <div className="mt-2 flex w-full justify-start px-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={form.vocationalTestMode}
-                      onClick={() => updateForm('vocationalTestMode', !form.vocationalTestMode)}
-                      className={cn(
-                        'inline-flex h-7 items-center gap-2 rounded-full border px-2.5 text-[11px] font-medium transition-colors',
-                        form.vocationalTestMode
-                          ? 'border-cyan-400/70 bg-cyan-50 text-cyan-700 shadow-[0_0_10px_rgba(6,182,212,0.16)] dark:bg-cyan-950/40 dark:text-cyan-300'
-                          : 'border-border/70 bg-background/70 text-muted-foreground hover:border-cyan-300/60 hover:text-cyan-700 dark:hover:text-cyan-300',
-                      )}
-                    >
-                      <span className="rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal text-cyan-700 dark:bg-cyan-900/45 dark:text-cyan-300">
-                        {t('vocational.testFeature')}
-                      </span>
-                      <Sparkles className="size-3.5" />
-                      <span>{t('vocational.vocationalTask')}</span>
-                      <span
-                        className={cn(
-                          'relative h-3.5 w-6 rounded-full transition-colors',
-                          form.vocationalTestMode ? 'bg-cyan-500' : 'bg-muted-foreground/25',
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            'absolute left-0.5 top-0.5 size-2.5 rounded-full bg-white transition-transform',
-                            form.vocationalTestMode ? 'translate-x-2.5' : 'translate-x-0',
-                          )}
-                        />
-                      </span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">
-                    {t('vocational.testFeatureTooltip')}
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            )}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-3 w-full p-3 bg-destructive/10 border border-destructive/20 rounded-xl"
-                >
-                  <p className="text-sm text-destructive">{error}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <p className="mt-3 text-center text-[11px] text-slate-400 dark:text-slate-500">
-              Tekan <span className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px]">⌘ + Enter</span> untuk buat kelas • Gratis untuk guru & siswa
-            </p>
+            <p className="mt-3 text-center text-[11px] text-slate-400 dark:text-slate-500">Composer tidak ada di landing. Masuk sebagai guru di <button onClick={() => router.push('/masuk')} className="underline hover:text-slate-600">/masuk</button> untuk membuka Studio.</p>
           </motion.div>
 
-          {/* Logos / trust strip */}
           <div className="mx-auto mt-10 max-w-5xl flex flex-col items-center gap-4">
-            <p className="text-[11px] font-semibold tracking-widest text-slate-400 dark:text-slate-500 uppercase">Dipercaya untuk pembelajaran di</p>
+            <p className="text-[11px] font-semibold tracking-widest text-slate-400 dark:text-slate-500 uppercase">Dibuat untuk SMK</p>
             <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 opacity-60">
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300"><GraduationCap className="w-4 h-4" /> SMA Negeri 1</span>
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300"><BookOpen className="w-4 h-4" /> SMK Pusat Keunggulan</span>
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300"><Users className="w-4 h-4" /> Komunitas Guru</span>
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300"><Award className="w-4 h-4" /> Kemendikdasmen</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="flex -space-x-2">
-                <img src="/avatars/teacher.png" alt="" className="w-7 h-7 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover" />
-                <img src="/avatars/assist.png" alt="" className="w-7 h-7 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover" />
-                <img src="/avatars/thinker.png" alt="" className="w-7 h-7 rounded-full ring-2 ring-white dark:ring-slate-900 object-cover" />
-                <span className="w-7 h-7 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 grid place-items-center text-[10px] font-bold ring-2 ring-white dark:ring-slate-900">+2k</span>
-              </span>
-              <span className="hidden sm:inline">Guru telah membuat <strong className="text-slate-900 dark:text-white">12.000+</strong> kelas dengan Kelas KA</span>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300"><GraduationCap className="w-4 h-4" /> KA-101</span>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300"><BookOpen className="w-4 h-4" /> KA-102</span>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300"><Users className="w-4 h-4" /> KA-103</span>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300"><Award className="w-4 h-4" /> Komputer Akuntansi</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ==================== STATS ==================== */}
+      {/* ==================== CHIP INTRO — kejujuran metrik ==================== */}
+      <section className="mx-auto max-w-[1280px] px-4 md:px-6 mt-6">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-600 dark:text-slate-400">
+          <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Tanpa rating fiktif</span>
+          <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Jam belajar jujur (dari sesi, bukan rumus)</span>
+          <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Ekspor PPTX & HTML/ZIP</span>
+          <span className="inline-flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-violet-500" /> Tenant terisolasi</span>
+        </div>
+      </section>
       <section className="mx-auto max-w-[1280px] px-4 md:px-6 mt-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {[
-            { value: '12K+', label: 'Kelas dibuat', sub: 'oleh guru & siswa', icon: Layers },
-            { value: '98%', label: 'Kepuasan guru', sub: 'dari survei internal', icon: HeartHandshake },
-            { value: '4.9/5', label: 'Rating pengalaman', sub: '2.000+ ulasan', icon: Star },
             { value: '<2 mnt', label: 'Dari ide ke kelas', sub: 'satu prompt jadi', icon: Zap },
+            { value: '4 tipe', label: 'Scene (slide/kuis/interaktif/PBL)', sub: 'pipeline tetap', icon: Layers },
+            { value: 'Vercel', label: '+ Supabase saja', sub: 'tanpa Docker prod', icon: Shield },
+            { value: 'KA-101–103', label: 'Seed kelas vokasi', sub: 'Komputer Akuntansi', icon: GraduationCap },
           ].map((s) => (
             <div key={s.label} className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-4 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 grid place-items-center">
@@ -1136,7 +992,7 @@ function HomePage() {
             {
               icon: Globe,
               title: 'Cari Web & Ekspor Fleksibel',
-              desc: 'Cari informasi terbaru sebelum generate, lalu ekspor ke PPTX yang bisa diedit, HTML interaktif, atau video MP4.',
+              desc: 'Cari informasi terbaru sebelum generate, lalu ekspor ke PPTX yang bisa diedit, HTML interaktif, atau ZIP untuk intranet (MP4 out of scope Vercel).',
               accent: 'from-indigo-500 to-violet-500',
             },
           ].map((f) => (
@@ -1210,12 +1066,12 @@ function HomePage() {
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button onClick={scrollToComposer} className="rounded-full bg-white text-slate-900 hover:bg-slate-100 px-6">
+              <Button onClick={() => router.push('/masuk')} className="rounded-full bg-white text-slate-900 hover:bg-slate-100 px-6">
                 <Wand2 className="w-4 h-4" /> Buat Kelas Pertamamu
               </Button>
               <Button
                 variant="outline"
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/masuk')}
                 className="rounded-full bg-transparent border-white/20 text-white hover:bg-white/10 hover:text-white"
               >
                 Lihat Contoh Kelas <ArrowRight className="w-4 h-4" />
@@ -1252,7 +1108,7 @@ function HomePage() {
               ))}
             </div>
             <div className="mt-5 flex gap-3">
-              <Button onClick={scrollToComposer} size="sm" className="rounded-full">
+              <Button onClick={() => router.push('/masuk')} size="sm" className="rounded-full">
                 Aktifkan Mode Interaktif
               </Button>
               <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
@@ -1273,7 +1129,7 @@ function HomePage() {
                   </div>
                   <p className="mt-3 text-sm font-semibold text-slate-900 dark:text-white">Pratinjau Simulasi Interaktif</p>
                   <p className="text-xs text-slate-500">Seret parameter, lihat perubahan real-time</p>
-                  <Button size="sm" variant="outline" className="mt-4 rounded-full" onClick={scrollToComposer}>
+                  <Button size="sm" variant="outline" className="mt-4 rounded-full" onClick={() => router.push('/masuk')}>
                     Buka di Kelas
                   </Button>
                 </div>
@@ -1325,7 +1181,7 @@ function HomePage() {
               </div>
               <h3 className="mt-4 font-bold">Untuk Guru</h3>
               <p className="mt-1.5 text-[13px] leading-relaxed text-slate-300">
-                Buat materi ajar berkualitas dalam menit, pantau kelas, nilai otomatis, dan kelola kurikulum dengan Pro Workbench.
+                Buat materi ajar berkualitas dalam menit, pantau kelas, nilai otomatis, dan kelola kurikulum di Studio (dalam app).
               </p>
               <ul className="mt-4 space-y-2 text-xs">
                 {['Buat scene AI & kelola kelas', 'Nilai 23+ submission sekaligus', 'Rapor & analitik kelas'].map((li) => (
@@ -1345,251 +1201,9 @@ function HomePage() {
         </div>
       </section>
 
-      {/* ==================== RECENT CLASSROOMS (Existing functionality) ==================== */}
-      <section className="mx-auto max-w-[1280px] px-4 md:px-6 pt-16">
-        <div className="rounded-[20px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <div className="px-5 md:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 grid place-items-center">
-                <Clock className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  Kelas Terbaru
-                  {typeof classrooms !== 'undefined' && (
-                    <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                      {currentFolder ? currentFolderClassrooms.length : classrooms.length}
-                    </span>
-                  )}
-                </h3>
-                <p className="text-xs text-slate-500">Lanjutkan belajar atau kelola koleksimu</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="rounded-full" onClick={triggerImport} disabled={importing}>
-                <Upload className="w-3.5 h-3.5" /> Impor ZIP
-              </Button>
-              {PPTX_IMPORT_ENABLED && (
-                <Button variant="outline" size="sm" className="rounded-full" onClick={triggerPptxFileSelect} disabled={pptxImporting}>
-                  <Presentation className="w-3.5 h-3.5" /> Impor PPTX
-                </Button>
-              )}
-              <Button size="sm" className="rounded-full hidden md:inline-flex" onClick={scrollToComposer}>
-                <Sparkles className="w-3.5 h-3.5" /> Buat Kelas Baru
-              </Button>
-            </div>
-          </div>
+      {/* Recent classrooms moved to /studio — landing has no composer history */}
 
-          {hydrated ? (
-            <div className="p-5 md:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <div className="flex items-center gap-2 text-xs">
-                  <button
-                    onClick={() => {
-                      if (currentFolderId) setCurrentFolderId(undefined);
-                      else persistRecentOpen(!recentOpen);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
-                  >
-                    <Clock className="w-3 h-3" />
-                    {currentFolder ? (
-                      <>
-                        {t('classroom.recentClassrooms')} <ChevronRight className="w-3 h-3 opacity-40" /> <span className="truncate max-w-[160px]">{currentFolder.name}</span>
-                      </>
-                    ) : (
-                      t('classroom.recentClassrooms')
-                    )}
-                    <motion.span animate={{ rotate: recentOpen ? 180 : 0 }} className="ml-1">
-                      <ChevronDown className="w-3 h-3" />
-                    </motion.span>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {!searchOpen ? (
-                      <motion.button
-                        key="search-icon"
-                        ref={searchButtonRef}
-                        onClick={() => {
-                          setSearchOpen(true);
-                          if (!recentOpen) persistRecentOpen(true);
-                          requestAnimationFrame(() => searchInputRef.current?.focus());
-                        }}
-                        className="w-8 h-8 grid place-items-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
-                      >
-                        <Search className="w-3.5 h-3.5" />
-                      </motion.button>
-                    ) : (
-                      <motion.div
-                        key="search-input"
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 200 }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <InputGroup className="h-8 rounded-full bg-slate-100 dark:bg-slate-800 border-transparent">
-                          <InputGroupInput
-                            ref={searchInputRef}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Escape') {
-                                e.preventDefault();
-                                if (searchQuery) setSearchQuery('');
-                                else {
-                                  setSearchOpen(false);
-                                  requestAnimationFrame(() => searchButtonRef.current?.focus());
-                                }
-                              }
-                            }}
-                            onBlur={() => {
-                              if (!searchQuery) setSearchOpen(false);
-                            }}
-                            placeholder={t('classroom.searchPlaceholder')}
-                            className="h-8 pl-3 text-xs"
-                          />
-                          {searchQuery && (
-                            <InputGroupButton
-                              size="icon-xs"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setSearchQuery('');
-                                searchInputRef.current?.focus();
-                              }}
-                            >
-                              <X />
-                            </InputGroupButton>
-                          )}
-                        </InputGroup>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  {!currentFolderId && !isSearching && (
-                    <button
-                      onClick={() => {
-                        if (!recentOpen) persistRecentOpen(true);
-                        setNewFolderOpen(true);
-                      }}
-                      className="w-8 h-8 grid place-items-center rounded-full bg-violet-600 text-white hover:bg-violet-500"
-                      title={t('classroom.newFolderTitle')}
-                    >
-                      <FolderPlus className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-                <div className="text-xs text-slate-500 hidden md:block">
-                  {folders.length > 0 && !isSearching && !currentFolderId
-                    ? `${folders.length} folder · ${classrooms.length} kelas`
-                    : `${filteredClassrooms.length} hasil`}
-                </div>
-              </div>
-
-              <AnimatePresence>
-                {recentOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    {folders.length === 0 && classrooms.length === 0 ? (
-                      <div className="py-12 text-center">
-                        <div className="mx-auto w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-400">
-                          <BookOpen className="w-6 h-6" />
-                        </div>
-                        <p className="mt-3 text-sm font-medium text-slate-700 dark:text-slate-300">{t('classroom.emptyLibraryHint')}</p>
-                        <p className="text-xs text-slate-500 mt-1">Mulai dengan mengetik topik di atas dan tekan Masuk Ruang Kelas.</p>
-                        <Button onClick={scrollToComposer} size="sm" className="mt-4 rounded-full">
-                          Buat Kelas Pertama
-                        </Button>
-                      </div>
-                    ) : !isSearching && currentFolderId && currentFolderClassrooms.length === 0 ? (
-                      <div className="py-12 text-center text-sm text-slate-500">{t('classroom.emptyFolderHint')}</div>
-                    ) : isSearching && filteredClassrooms.length === 0 ? (
-                      <div className="py-12 text-center text-sm text-slate-500">{t('classroom.searchEmpty')}</div>
-                    ) : (
-                      <div className="pt-2">
-                        {isSearching && (
-                          <div className="mb-4 flex items-center gap-1.5 text-xs text-slate-500">
-                            <button onClick={() => { setCurrentFolderId(undefined); setSearchQuery(''); setSearchOpen(false); }} className="hover:text-slate-900 dark:hover:text-white">
-                              {t('classroom.recentClassrooms')}
-                            </button>
-                            <ChevronRight className="w-3 h-3" />
-                            <span className="font-medium text-slate-900 dark:text-white">{t('classroom.searchResults')}</span>
-                            <span className="ml-1">({filteredClassrooms.length})</span>
-                          </div>
-                        )}
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-                          {!isSearching &&
-                            currentFolderId === undefined &&
-                            folders.map((folder, i) => (
-                              <motion.div
-                                key={folder.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.03 }}
-                              >
-                                <FolderCard
-                                  folder={folder}
-                                  courseCount={courseCountByFolder.get(folder.id) ?? 0}
-                                  coverSlides={coverSlidesByFolder.get(folder.id) ?? []}
-                                  onOpen={() => setCurrentFolderId(folder.id)}
-                                  onRename={handleRenameFolder(folder)}
-                                  onDelete={(mode) => confirmDeleteFolder(folder, mode)}
-                                  onDropCourse={(stageId) => handleMoveCourse(stageId, folder.id)}
-                                />
-                              </motion.div>
-                            ))}
-                          {visibleClassrooms.map((classroom, i) => (
-                            <motion.div
-                              key={classroom.id}
-                              initial={{ opacity: 0, y: 8 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: i * 0.03 }}
-                            >
-                              <ClassroomCard
-                                classroom={classroom}
-                                slide={thumbnails[classroom.id]}
-                                formatDate={formatDate}
-                                onDelete={handleDelete}
-                                onRename={handleRename}
-                                confirmingDelete={pendingDeleteId === classroom.id}
-                                onConfirmDelete={() => confirmDelete(classroom.id)}
-                                onCancelDelete={() => setPendingDeleteId(null)}
-                                onClick={() => router.push(`/classroom/${classroom.id}`)}
-                                overlay={
-                                  <>
-                                    <MoveToFolderMenu
-                                      folders={folders}
-                                      currentFolderId={classroom.folderId}
-                                      onMove={(folderId) => handleMoveCourse(classroom.id, folderId)}
-                                      onCreateAndMove={handleCreateAndMove(classroom.id)}
-                                    />
-                                    {isSearching && classroom.folderId && (
-                                      <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-violet-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur">
-                                        <Folder className="w-2.5 h-2.5" />
-                                        {folderNameById.get(classroom.folderId) ?? ''}
-                                      </span>
-                                    )}
-                                  </>
-                                }
-                              />
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <div className="p-10 grid place-items-center">
-              <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ==================== TESTIMONIAL / CTA ==================== */}
+      {/* ==================== CTA — honest ==================== */}
       <section id="cta" className="mx-auto max-w-[1280px] px-4 md:px-6 pt-16 pb-8">
         <div className="rounded-[24px] bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 p-[1px]">
           <div className="rounded-[23px] bg-gradient-to-br from-violet-600 via-indigo-600 to-blue-600 p-6 md:p-10 text-white relative overflow-hidden">
@@ -1598,50 +1212,46 @@ function HomePage() {
             <div className="relative grid lg:grid-cols-2 gap-8 items-center">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/20 text-xs font-semibold">
-                  <Quote className="w-3.5 h-3.5" /> APA KATA GURU
+                  <Rocket className="w-3.5 h-3.5" /> SIAP MEMULAI?
                 </div>
-                <blockquote className="mt-4 text-[18px] md:text-[22px] font-bold leading-tight">
-                  “Sebelumnya butuh seharian menyiapkan deck. Dengan Kelas KA, saya ketik satu kalimat dan kelas interaktif langsung jadi — siswa lebih aktif bertanya!”
-                </blockquote>
-                <div className="mt-4 flex items-center gap-3">
-                  <img src="/avatars/teacher-2.png" alt="" className="w-10 h-10 rounded-full ring-2 ring-white/20 object-cover" />
-                  <div>
-                    <div className="text-sm font-semibold">Bu Ratna, Guru Matematika</div>
-                    <div className="text-xs text-white/70">SMA Negeri 8 Jakarta</div>
-                  </div>
-                  <span className="ml-auto hidden sm:inline-flex items-center gap-1 text-xs bg-white text-violet-700 px-3 py-1 rounded-full font-bold">
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" /> 5.0
-                  </span>
+                <h2 className="mt-4 text-[22px] md:text-[28px] font-black leading-tight">
+                  Satu prompt, satu kelas utuh. Review, publish, assign.
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-white/80">
+                  Studio ada di dalam aplikasi setelah login guru. Outline bisa diedit sebelum full generate. Siswa hanya melihat materi yang sudah Anda publish dan assign.
+                </p>
+                <div className="mt-4 flex items-center gap-2 text-xs text-white/70">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-300" /> Tanpa rating fiktif • Metrik jujur dari data nyata
                 </div>
               </div>
               <div className="bg-white rounded-2xl p-6 text-slate-900">
                 <h3 className="text-lg font-black tracking-tight">Siap mengubah cara mengajar?</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
-                  Buat kelas pertamamu gratis dalam 2 menit. Tidak perlu kartu kredit. Ekspor dan bagikan ke siswa secara offline.
+                  Buat kelas pertamamu dalam 2 menit setelah masuk. Ekspor PPTX/HTML/ZIP untuk intranet. Tidak ada MP4 di Vercel produksi.
                 </p>
                 <div className="mt-5 grid grid-cols-3 gap-2 text-center text-xs">
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-                    <div className="font-black text-slate-900">100%</div>
-                    <div className="text-slate-500">Gratis coba</div>
+                    <div className="font-black text-slate-900">Draft</div>
+                    <div className="text-slate-500">Review wajib</div>
                   </div>
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-                    <div className="font-black text-slate-900">&lt;2 mnt</div>
-                    <div className="text-slate-500">Jadi kelas</div>
+                    <div className="font-black text-slate-900">Publish</div>
+                    <div className="text-slate-500">+ Assign</div>
                   </div>
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
                     <div className="font-black text-slate-900">Offline</div>
-                    <div className="text-slate-500">Bisa diekspor</div>
+                    <div className="text-slate-500">PPTX/HTML/ZIP</div>
                   </div>
                 </div>
                 <div className="mt-5 flex gap-2">
-                  <Button onClick={scrollToComposer} className="flex-1 rounded-full bg-slate-900 hover:bg-slate-800 text-white">
-                    <Rocket className="w-4 h-4" /> Mulai Sekarang
+                  <Button onClick={() => router.push('/masuk')} className="flex-1 rounded-full bg-slate-900 hover:bg-slate-800 text-white">
+                    <Rocket className="w-4 h-4" /> Masuk
                   </Button>
-                  <Button variant="outline" onClick={() => router.push('/dashboard')} className="rounded-full">
-                    Dashboard
+                  <Button variant="outline" onClick={() => router.push('/masuk')} className="rounded-full">
+                    Lihat Studio
                   </Button>
                 </div>
-                <p className="mt-3 text-center text-[11px] text-slate-500">Dengan melanjutkan, kamu menyetujui syarat penggunaan Kelas KA.</p>
+                <p className="mt-3 text-center text-[11px] text-slate-500">Masuk sebagai guru untuk membuat kelas. Siswa login dengan NISN.</p>
               </div>
             </div>
           </div>
@@ -1666,10 +1276,10 @@ function HomePage() {
             <div>
               <h4 className="text-xs font-bold tracking-widest text-slate-900 dark:text-white uppercase">Produk</h4>
               <ul className="mt-3 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                <li><button onClick={scrollToComposer} className="hover:text-slate-900 dark:hover:text-white">Buat Kelas</button></li>
-                <li><button onClick={() => router.push('/dashboard')} className="hover:text-slate-900 dark:hover:text-white">Dashboard</button></li>
-                <li><button onClick={() => router.push('/workspace')} className="hover:text-slate-900 dark:hover:text-white">Pro Workbench</button></li>
-                <li><button onClick={() => router.push('/generation-preview')} className="hover:text-slate-900 dark:hover:text-white">Riwayat Generate</button></li>
+                <li><button onClick={() => router.push('/masuk')} className="hover:text-slate-900 dark:hover:text-white">Buat Kelas (Studio)</button></li>
+                <li><button onClick={() => router.push('/masuk')} className="hover:text-slate-900 dark:hover:text-white">Dashboard</button></li>
+                <li><button onClick={() => router.push('/materi')} className="hover:text-slate-900 dark:hover:text-white">Materi Saya</button></li>
+                <li><button onClick={() => router.push('/masuk')} className="hover:text-slate-900 dark:hover:text-white">Masuk</button></li>
               </ul>
             </div>
             <div>

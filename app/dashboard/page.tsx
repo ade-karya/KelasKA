@@ -215,19 +215,23 @@ export default function DashboardPage() {
   const handleNav = (label: string) => {
     setActiveNav(label);
     setMobileNav(false);
-    const map: Record<string, { action: () => void; toast?: string }> = {
+    const map: Record<string, { action: () => void }> = {
       Beranda: { action: () => {} },
-      "Kursus Saya": { action: () => router.push("/workspace") },
-      "Kelas Saya": { action: () => router.push("/admin") },
+      "Kursus Saya": { action: () => router.push("/materi") },
+      "Kelas Saya": { action: () => router.push("/kelas") },
+      "Materi Saya": { action: () => router.push("/materi") },
+      Studio: { action: () => router.push("/studio") },
       "Tugas & Kuis": { action: () => { document.getElementById("tugas-section")?.scrollIntoView({ behavior: "smooth" }); } },
-      Penilaian: { action: () => router.push("/admin") },
-      Laporan: { action: () => router.push("/admin/activity-logs") },
-      Jadwal: { action: () => toast.info("Fitur Jadwal akan segera hadir — nantikan kalender akademik terintegrasi.", { description: "Saat ini lihat tugas di panel Tugas & Tenggat." }) },
+      Penilaian: { action: () => router.push("/penilaian") },
+      Nilai: { action: () => router.push("/penilaian") },
       Pengaturan: { action: () => setShowSettings(true) },
     };
     const entry = map[label];
     if (entry) entry.action();
-    else toast.info(`${label} — segera hadir`);
+    else {
+      // No toast for missing nav — sidebar only contains live items per PRD §5.2
+      router.push("/dashboard");
+    }
   };
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
@@ -326,6 +330,13 @@ export default function DashboardPage() {
     }
   }, [data, dataLoading]);
 
+  const showAuthGate = !authLoading && !isStudentAuthed && !isGuruAuthed;
+  useEffect(() => {
+    if (showAuthGate) {
+      router.replace('/masuk?next=/dashboard');
+    }
+  }, [showAuthGate, router]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -336,8 +347,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const showAuthGate = !authLoading && !isStudentAuthed && !isGuruAuthed;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 relative overflow-hidden">
@@ -359,14 +368,24 @@ export default function DashboardPage() {
           </div>
 
           <nav className="space-y-1 text-sm flex-1">
-            {[
-              { icon: LayoutDashboard, label: "Beranda" },
-              { icon: BookOpen, label: role === "siswa" ? "Kursus Saya" : "Kelas Saya" },
-              { icon: ClipboardList, label: role === "siswa" ? "Tugas & Kuis" : "Penilaian" },
-              { icon: BarChart3, label: "Laporan" },
-              { icon: CalendarDays, label: "Jadwal" },
-              { icon: Settings, label: "Pengaturan" },
-            ].map((item) => (
+            {(
+              role === "siswa"
+                ? [
+                    { icon: LayoutDashboard, label: "Beranda", href: "/dashboard" },
+                    { icon: BookOpen, label: "Kursus Saya", href: "/materi" },
+                    { icon: ClipboardList, label: "Tugas & Kuis", href: "/penilaian" },
+                    { icon: Trophy, label: "Nilai", href: "/penilaian" },
+                    { icon: Settings, label: "Pengaturan", href: "/dashboard" },
+                  ]
+                : [
+                    { icon: LayoutDashboard, label: "Beranda", href: "/dashboard" },
+                    { icon: Sparkles, label: "Studio", href: "/studio" },
+                    { icon: BookOpen, label: "Materi Saya", href: "/materi" },
+                    { icon: Users, label: "Kelas Saya", href: "/kelas" },
+                    { icon: ClipboardList, label: "Penilaian", href: "/penilaian" },
+                    { icon: Settings, label: "Pengaturan", href: "/dashboard" },
+                  ]
+            ).map((item) => (
               <button
                 key={item.label}
                 onClick={() => handleNav(item.label)}
@@ -432,14 +451,24 @@ export default function DashboardPage() {
                 </button>
               </div>
               <nav className="space-y-1 flex-1">
-                {[
-                  { icon: LayoutDashboard, label: "Beranda" },
-                  { icon: BookOpen, label: role === "siswa" ? "Kursus Saya" : "Kelas Saya" },
-                  { icon: ClipboardList, label: role === "siswa" ? "Tugas & Kuis" : "Penilaian" },
-                  { icon: BarChart3, label: "Laporan" },
-                  { icon: CalendarDays, label: "Jadwal" },
-                  { icon: Settings, label: "Pengaturan" },
-                ].map((item) => (
+                {(
+                  role === "siswa"
+                    ? [
+                        { icon: LayoutDashboard, label: "Beranda" },
+                        { icon: BookOpen, label: "Kursus Saya" },
+                        { icon: ClipboardList, label: "Tugas & Kuis" },
+                        { icon: Trophy, label: "Nilai" },
+                        { icon: Settings, label: "Pengaturan" },
+                      ]
+                    : [
+                        { icon: LayoutDashboard, label: "Beranda" },
+                        { icon: Sparkles, label: "Studio" },
+                        { icon: BookOpen, label: "Materi Saya" },
+                        { icon: Users, label: "Kelas Saya" },
+                        { icon: ClipboardList, label: "Penilaian" },
+                        { icon: Settings, label: "Pengaturan" },
+                      ]
+                ).map((item) => (
                   <button
                     key={item.label}
                     onClick={() => handleNav(item.label)}
@@ -473,7 +502,6 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Auth gate banner for preview */}
           {showAuthGate && (
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex flex-col md:flex-row md:items-center gap-3">
               <div className="flex items-center gap-3 flex-1">
@@ -481,22 +509,16 @@ export default function DashboardPage() {
                   <ShieldCheck className="w-5 h-5 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-amber-200">Mode pratinjau — Anda belum masuk</p>
-                  <p className="text-xs text-amber-200/70">Masuk sebagai siswa (NISN) atau guru (email) untuk melihat data pribadi Anda. Data di bawah adalah data demo/publik.</p>
+                  <p className="text-sm font-semibold text-amber-200">Anda belum masuk</p>
+                  <p className="text-xs text-amber-200/70">Silakan masuk untuk melihat data. Tanpa sesi, dashboard tidak menampilkan data (401). Pilih peran di /masuk.</p>
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
                 <button
-                  onClick={() => router.push("/login-siswa")}
+                  onClick={() => router.push("/masuk")}
                   className="px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white text-xs font-semibold inline-flex items-center gap-1.5"
                 >
-                  <LogIn className="w-3.5 h-3.5" /> Login Siswa
-                </button>
-                <button
-                  onClick={() => router.push("/login")}
-                  className="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs font-semibold"
-                >
-                  Login Guru
+                  <LogIn className="w-3.5 h-3.5" /> Masuk di /masuk
                 </button>
               </div>
             </div>
@@ -668,7 +690,7 @@ export default function DashboardPage() {
                       {q && <span className="text-xs font-normal text-slate-500">— {siswaCourses.length} hasil untuk “{search}”</span>}
                     </h2>
                     <button
-                      onClick={() => router.push("/workspace")}
+                      onClick={() => router.push("/materi")}
                       className="text-xs text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-1"
                     >
                       Lihat semua <ChevronRight className="w-3 h-3" />
@@ -767,7 +789,7 @@ export default function DashboardPage() {
                   Belajar dengan AI Tutor
                 </button>
                 <button
-                  onClick={() => router.push("/workspace")}
+                  onClick={() => router.push("/materi")}
                   className="mt-2 w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium transition-all"
                 >
                   Buka Workspace Belajar
@@ -854,7 +876,7 @@ export default function DashboardPage() {
                 {/* Quick actions */}
                 <section className="grid sm:grid-cols-3 gap-4">
                   {[
-                    { icon: Sparkles, label: "Buat Scene AI", desc: "Generate materi otomatis", accent: "from-indigo-500 to-purple-500", href: "/workbench/new" },
+                    { icon: Sparkles, label: "Buat Scene AI", desc: "Generate materi otomatis", accent: "from-indigo-500 to-purple-500", href: "/studio" },
                     { icon: FileText, label: "Buat Kuis", desc: "Kuis interaktif cepat", accent: "from-emerald-500 to-teal-500", href: "/admin" },
                     { icon: Video, label: "Kelas Live", desc: "Mulai sesi classroom", accent: "from-amber-500 to-orange-500", href: "/admin" },
                   ].map((a) => (

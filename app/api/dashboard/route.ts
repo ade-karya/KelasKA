@@ -189,58 +189,75 @@ export async function GET(req: NextRequest) {
     if (effectiveRole === 'siswa') {
       // siswa-specific aggregation
       const myScores = scoresData ?? [];
-      const kursusAktif = myScores.length || 4;
+      const kursusAktif = myScores.length;
       const filteredAssignments = activeClass ? assignmentsData.filter(a => !activeClass || a.class_name === activeClass) : assignmentsData;
       const now = Date.now();
       const tugasPending = filteredAssignments.filter(a => new Date(a.due_date).getTime() > now).length;
 
-      // rata-rata: prefer student's average_score else compute from scores
-      let rataRata: number | string = 0;
+      // rata-rata jujur: bila belum ada nilai, tampilkan "—" (bukan 87 fiktif)
+      let rataRata: number | string = "—";
       if (activeStudent?.average_score != null) rataRata = Number(activeStudent.average_score);
       else if (myScores.length > 0) rataRata = Number((myScores.reduce((s: number, x: any) => s + Number(x.score || 0), 0) / myScores.length).toFixed(1));
       else {
         const found = studentsData.find(s => s.id === activeStudentId);
-        rataRata = found ? Number(found.average_score) : 87;
+        rataRata = found?.average_score != null ? Number(found.average_score) : "—";
       }
 
-      // jam belajar: 30 min per quiz attempt in last 30 days
-      const recentAttempts = (quizAttemptsData ?? []).filter(a => {
-        const t = new Date(a.created_at || a.submitted_at).getTime();
-        return Date.now() - t < 30 * 24 * 3600 * 1000;
-      });
-      const jamBelajarHours = recentAttempts.length * 0.5 + 8; // base 8h
-      const jamBelajar = `${jamBelajarHours.toFixed(1).replace('.', ',')} j`;
+      // jam belajar Jujur: coba baca classroom_sessions.duration_seconds jika ada; jika tidak, tampilkan "—"
+      let jamBelajar: string = "—";
+      try {
+        const { data: sessions } = await supa
+          .from('classroom_sessions')
+          .select('duration_seconds')
+          .eq('student_id', activeStudentId || '')
+          .eq('tenant_id', tenantId || '');
+        if (sessions && sessions.length > 0) {
+          const totalSec = sessions.reduce((acc: number, s: any) => acc + Number(s.duration_seconds || 0), 0);
+          if (totalSec > 0) jamBelajar = `${(totalSec / 3600).toFixed(1).replace('.', ',')} j`;
+          else jamBelajar = "—";
+        } else {
+          // fallback honest: jika belum ada sesi, tampilkan — (atau jumlah kuis jika ingin alternatif)
+          // Tetap jujur: tidak ada baseline 8h
+          jamBelajar = "—";
+        }
+      } catch {
+        jamBelajar = "—";
+      }
 
-      // weekly activity – count attempts per day for last 7 days, with minutes estimate (count*25)
+      // weekly activity – jujur dari quiz_attempts (tanpa random baseline)
       const days: { day: string; value: number; minutes: number }[] = [];
       for (let i = 6; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
         const key = d.toISOString().slice(0, 10);
         const count = (quizAttemptsData ?? []).filter(a => (a.created_at || a.submitted_at || '').slice(0, 10) === key).length;
-        const minutes = count > 0 ? 20 + count * 25 : (i === 3 ? 90 : i === 1 ? 35 : i === 5 ? 70 : 20 + Math.floor(Math.random() * 20));
-        // cap to 100 for bar height
+        // honest: 0 bila tidak ada aktivitas; value = count*20 capped 100, minutes = count*25
+        const minutes = count * 25;
         const normalized = Math.min(100, minutes);
         days.push({ day: dayLabel(d).slice(0, 3), value: normalized, minutes });
       }
-      // fallback to deterministic mock if no attempts at all
-      const hasAnyActivity = days.some(d => d.minutes > 30);
-      const weeklyActivity = hasAnyActivity ? days : [
-        { day: 'Sen', value: 45, minutes: 45 }, { day: 'Sel', value: 70, minutes: 70 }, { day: 'Rab', value: 55, minutes: 55 }, { day: 'Kam', value: 90, minutes: 90 }, { day: 'Jum', value: 65, minutes: 65 }, { day: 'Sab', value: 30, minutes: 30 }, { day: 'Min', value: 20, minutes: 20 },
-      ];
+      const weeklyActivity = days;
 
-      // courses derived from scores
-      const courses = myScores.length > 0 ? myScores.map((s: any, idx: number) => ({
-        name: s.subject_name,
-        progress: Math.min(100, Math.round(Number(s.score))),
-        teacher: ['Bu Ratna', 'Pak Budi', 'Ms. Anita', 'Pak Dimas'][idx % 4],
-        next: ['Kuis Bab 4', 'Lab Virtual', 'Essay Draft 2', 'Project PBL'][idx % 4],
-      })) : [
-        { name: 'Pemrograman Web — Dasar', progress: 78, teacher: 'Bu Ratna', next: 'Kuis Bab 4' },
-        { name: 'Algoritma & Struktur Data', progress: 62, teacher: 'Pak Budi', next: 'Lab Virtual' },
-        { name: 'Basis Data — Relasional', progress: 91, teacher: 'Ms. Anita', next: 'Essay Draft 2' },
-        { name: 'Matematika Diskrit', progress: 45, teacher: 'Pak Dimas', next: 'Project PBL' },
-      ];
+      // courses jujur: bila belum ada scores/assignments, kembalikan kosong (jangan mock di prod)
+      let courses: { name: string; progress: number; teacher: string; next: string }[] = [];
+      if (myScores.length > 0) {
+        courses = myScores.map((s: any, idx: number) => ({
+          name: s.subject_name,
+          progress: Math.min(100, Math.round(Number(s.score))),
+          teacher: ['Bu Ratna', 'Pak Budi', 'Ms. Anita', 'Pak Dimas'][idx % 4],
+          next: ['Kuis Bab 4', 'Lab Virtual', 'Essay Draft 2', 'Project PBL'][idx % 4],
+        }));
+      } else if (isProduction) {
+        courses = [];
+      } else {
+        // dev preview fallback
+        courses = [
+          { name: 'Pemrograman Web — Dasar', progress: 78, teacher: 'Bu Ratna', next: 'Kuis Bab 4' },
+          { name: 'Algoritma & Struktur Data', progress: 62, teacher: 'Pak Budi', next: 'Lab Virtual' },
+          { name: 'Basis Data — Relasional', progress: 91, teacher: 'Ms. Anita', next: 'Essay Draft 2' },
+          { name: 'Matematika Diskrit', progress: 45, teacher: 'Pak Dimas', next: 'Project PBL' },
+        ];
+      }
 
       // tasks derived from assignments
       const tasks = filteredAssignments.slice(0, 5).map((a: any) => {

@@ -53,8 +53,10 @@ export async function proxy(request: NextRequest) {
   const canInspectServerRuntime = process.env.NEXT_RUNTIME !== 'edge';
   const workbenchEnabled =
     isProWorkbenchEnabled() && (!canInspectServerRuntime || isAgentRuntimeConfigured());
-  if (!workbenchEnabled && (pathname === '/workbench' || pathname.startsWith('/workbench/'))) {
-    return new NextResponse('Not found', { status: 404 });
+  if (!workbenchEnabled && (pathname === '/workbench' || pathname.startsWith('/workbench/') || pathname === '/workspace' || pathname.startsWith('/workspace/'))) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
   }
 
   const accessCode = process.env.ACCESS_CODE;

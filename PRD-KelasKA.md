@@ -1,379 +1,698 @@
 # PRD KelasKA — Product Requirements Document
 
-> **Versi:** 1.0 — 30 Agustus 2026  
-> **Status:** Draft dari reverse-engineering codebase (fork `THU-MAIC/OpenMAIC` v1.0.0)  
+> **Versi:** 1.1 — 31 Agustus 2026  
+> **Status:** Spesifikasi target (normatif). Sistem **wajib mengikuti** dokumen ini.  
+> **Infra wajib:** **Vercel (Next.js) + Supabase (Auth, Postgres, Storage)** saja. Tidak ada Docker, Postgres self-host, `render-service`, atau VM di produksi.  
 > **Repo:** `ade-karya/KelasKA` • Stack: `Next.js 16 / React 19 / Supabase / @openmaic/*`  
-> **Dokumen ini MENGKONSOLIDASI** `README.md`, `supabase_migration.sql`, `package.json`, `app/*`, `lib/types/*`, `packages/@openmaic/dsl/*` menjadi PRD formal. Tidak ada PRD sebelumnya di repo — glob `**/*PRD*` = 0 hasil.
+> **Dokumen terkait:** `PRD-KelasKA-Ringkas.md` (ringkasan), `PRD-KelasKA-Enterprise-Vercel-Supabase.md` (kontrak data, RLS, env, deploy).  
+> **Supersedes:** v1.0 (30 Agustus 2026) yang bersifat reverse-engineering codebase. v1.1 adalah kontrak produk: gap vs kode dicatat di §17, bukan dijadikan kebenaran.
+
+---
+
+## 0. Prinsip produk
+
+1. **Satu aplikasi sekolah, bukan dua produk yang disambung tautan.** Studio generate, dashboard, dan admin memakai **satu app shell** (sidebar + header + tenant + user).
+2. **Landing publik ≠ aplikasi.** `/` hanya pemasaran/onboarding. Generate, nilai, dan kelola kelas hanya setelah login, di dalam shell.
+3. **Pintu masuk per peran, lalu beranda peran.** Siswa → dashboard siswa. Guru → dashboard guru. Admin → dashboard admin. Bukan redirect guru ke CRUD `/admin`.
+4. **Materi punya siklus hidup.** Generate → review guru → publish → assign ke kelas → siswa memutar. Tidak ada “langsung tampil ke siswa” dari composer publik.
+5. **Navigasi hanya ke fitur yang hidup.** Item sidebar yang toast “segera hadir” dilarang. Jadwal tidak masuk nav sampai halaman ada.
+6. **Produksi tanpa mode pratinjau.** Tanpa sesi: 401 / redirect ke `/masuk`. Data mock dan switch peran bebas dilarang di `VERCEL_ENV=production`.
+7. **Jujur pada metrik dan klaim.** Tidak ada rating fiktif, tidak ada jam belajar baseline palsu.
+8. **Infra tidak boleh diakal-akali.** Fitur yang tidak survive serverless Vercel (agent durable, export MP4 Chromium) **out of scope produksi**. Jangan masuk journey primer.
 
 ---
 
 ## 1. Executive Summary
 
-**KelasKA** adalah platform pembelajaran generatif berbasis **multi-agent AI** yang mengubah *satu prompt atau satu dokumen* menjadi **kelas interaktif utuh** (slide + kuis + simulasi + PBL) yang bisa diputar layaknya kelas nyata, diekspor ke PPTX/HTML/MP4, dan dikelola via dashboard siswa/guru.
+**KelasKA** adalah platform pembelajaran generatif untuk SMK/vokasi (seed `KA-101..103` = Komputer Akuntansi). Guru membuat **kelas interaktif utuh** (slide + kuis + simulasi + PBL) dari satu prompt atau dokumen, **mereview lalu mem-publish**, menugaskan ke kelas, dan memantau nilai. Siswa login NISN, memutar materi yang di-assign, mengerjakan kuis, dan melihat hasilnya.
 
-Fork ini melokalkan **OpenMAIC** untuk konteks vokasi Indonesia (seed data `KA-101..103` = Komputer Akuntansi, `supabase_migration.sql:103-107`, locale `id-ID` default, NISN/NIM login). Value proposition di landing `app/page.tsx:828-833`: *“Satu prompt, satu kelas utuh langsung jadi — <2 menit”*.
+Value proposition (landing, tanpa klaim sosial fiktif):
+
+> Satu prompt, satu kelas utuh. Review, publish, assign ke KA-101–103. Diputar siswa di dashboard.
+
+Produk ini fork **OpenMAIC** yang dilokalkan (`id-ID`, NISN, kelas KA). Inti generate (outline → scene → classroom) **tetap**. Yang berubah di v1.1: **arsitektur informasi, shell, auth, dan siklus publish/assign** agar terasa aplikasi enterprise sekolah — tetap di Vercel + Supabase.
 
 ---
 
 ## 2. Visi, Misi & Tujuan
 
 ### 2.1 Visi
-Memungkinkan setiap guru SMK/vokasi membuat kelas digital berkualitas tinggi **tanpa skill desain**, dan setiap siswa belajar secara **aktif & interaktif** (bukan pasif menonton video).
+
+Setiap guru SMK membuat kelas digital berkualitas **tanpa skill desain**, dan setiap siswa belajar **aktif** pada materi yang **sudah direview guru** — bukan menonton video pasif, bukan menelan output AI mentah.
 
 ### 2.2 Misi
-- Turunkan waktu pembuatan materi dari jam → menit.
-- Sediakan tutor & teman sekelas AI yang bisa diskusi, corat-coret whiteboard, dan menilai.
-- Pastikan materi bisa dipakai **offline** / intranet sekolah.
+
+- Turunkan waktu pembuatan materi dari jam → menit, **dengan langkah review wajib**.
+- Sediakan playback kelas (narasi, whiteboard, kuis, widget) yang jalan di browser sekolah.
+- Pastikan data siswa/nilai terisolasi per tenant (sekolah) di Supabase.
+- Tetap deployable di **Vercel Hobby/Pro + satu proyek Supabase**.
 
 ### 2.3 Goals & Success Metrics (KPI)
 
-| Goal | Metric | Target MVP | Sumber |
-|------|--------|------------|--------|
-| Adopsi guru | Kelas dibuat / minggu | ≥ 50 | `quiz_attempts`, `stages` |
-| Kecepatan kreasi | p50 `requirement → classroom ready` | < 2 menit | `generation-preview` |
-| Engagement siswa | Quiz submit & whiteboard action / sesi | ≥ 3 interaksi | `quiz_attempt_answers` |
-| Kepuasan | Rating / survei | ≥ 4.7/5 | Dashboard guru |
-| Reliability | Uptime render + ASR/TTS | 99.5% | `/api/health` |
+| Goal | Metric | Target | Sumber (jujur) |
+|------|--------|--------|----------------|
+| Adopsi guru | Kelas **published** / minggu | ≥ 20 | tabel `classrooms` status=`published` |
+| Kecepatan kreasi | p50 `requirement → draft siap review` | < 2 menit | log generate + `classrooms.created_at` |
+| Mutu | % draft yang di-publish (bukan dibuang) | ≥ 60% | `classrooms` |
+| Engagement siswa | Submit kuis / sesi classroom | ≥ 1 | `quiz_attempts` |
+| Reliability | Uptime app Vercel + Supabase | 99.5% | Vercel + Supabase status |
+| Keamanan | Request dashboard/students tanpa auth | 0 data (401) | e2e + log |
+
+**Dilarang sebagai KPI/AC:** `jamBelajar = attempts*0.5h + 8h baseline`. Jam belajar hanya ditampilkan jika ada durasi sesi nyata; jika belum diukur, tampilkan "—" atau jumlah percobaan kuis, bukan angka fiktif.
+
+**Dilarang di UI pemasaran:** badge “4.9/5 dari 2.000+ guru” sampai ada survei nyata.
 
 ---
 
 ## 3. Stakeholder & Persona
 
 ### P1 — Guru Vokasi (Primary Creator)
-- **Butuh:** Buat modul cepat dari RPP/PDF, atur kelas (KA-101..), nilai tugas.
-- **Pain:** Tidak ada waktu desain slide, variasi soal terbatas.
-- **Journey:** Landing → Dashboard Guru → Workbench/Agent → Atur Agen & Suara → Generate → Masuk Classroom → Ekspor PPTX/Video → Pantau nilai di `/admin`.
+
+- **Butuh:** Buat modul dari RPP/PDF, review, publish, assign ke kelas ampu, lihat nilai.
+- **Pain:** Tidak ada waktu desain; takut AI salah konsep.
+- **Journey (wajib):** `/masuk` → Login guru → **Beranda guru** → **Studio** (generate) → Preview/review → **Publish** → **Assign** ke `class_names` → pantau di Penilaian. Ekspor PPTX/HTML dari materi yang sudah jadi.
 
 ### P2 — Siswa SMK (Primary Learner)
-- **Butuh:** Materi yang hidup, bisa tanya dengan suara, latihan kuis langsung dinilai.
-- **Pain:** Materi membosankan, akses internet tidak stabil.
-- **Journey:** Login NISN (`app/login-siswa`) → Dashboard Siswa → Kursus Saya (progress `lib/types/generation.ts:101-108`) → Classroom playback → Kuis & diskusi → Lihat nilai/jam belajar (`app/api/dashboard/route.ts:120-197`).
+
+- **Butuh:** Materi yang sudah di-assign kelasnya, putar, tanya, kuis dinilai, lihat nilai sendiri.
+- **Pain:** Materi membosankan; internet tidak selalu stabil (mitigasi: ekspor HTML/ZIP, bukan janji native app).
+- **Journey (wajib):** `/masuk` → Login NISN → **Beranda siswa** → **Kursus Saya** (hanya yang di-assign) → Classroom playback → Kuis → Nilai.
 
 ### P3 — Admin Sekolah / Operator
-- **Butuh:** Kelola `classes/students/assignments`, lihat `user_activity_logs`, audit.
-- **Journey:** `/admin` → manajemen kelas → lihat performa per kelas (`ClassPerf` di `app/dashboard/page.tsx:46`).
 
-### P4 — Pengembang / Tim IT (Extender)
-- **Butuh:** Fork & kustom provider/storage, tema, renderer.
-- **Journey:** `skills/openmaic/references/extend.md` + paket `@openmaic/dsl`, `@openmaic/renderer`, `@openmaic/storage`.
+- **Butuh:** Kelola siswa/kelas/tugas, audit log, tidak melihat data sekolah lain.
+- **Journey (wajib):** Login guru dengan `profiles.role=admin` → Beranda admin → Siswa / Kelas / Tugas / Log. Bukan halaman terpisah bergaya “panel lain”.
 
----
+### P4 — Pengembang / Tim IT
 
-## 4. Ruang Lingkup (Scope)
-
-### 4.1 In Scope — MVP (sudah ada di codebase)
-
-| Area | Fitur | Bukti Implementasi |
-|------|-------|-------------------|
-| **Landing & Generasi Cepat** | Composer free-form + upload multi-file (PDF/DOCX/PPTX/TXT/MD/Image/Audio/Video), toggle Web Search & Interactive Mode, draft cache | `app/page.tsx:135-626`, `lib/types/generation.ts:43-108`, `components/generation/generation-toolbar.tsx` |
-| **Dashboard** | Dual mode Siswa/Guru, switch role saat preview, stats, kursus/progress, tugas tenggat, aktivitas mingguan, pencarian, notifikasi, ganti password siswa | `app/dashboard/page.tsx:122-1041`, `app/api/dashboard/route.ts:24-276` |
-| **Auth** | Siswa: NISN+password (bcrypt, JWT), Guru/Admin: Supabase Auth email. RLS enable + fallback mock | `lib/auth/jwt.ts`, `lib/auth/student-session.ts`, `app/login-siswa`, `app/login`, `supabase_migration.sql:72-100,180-194` |
-| **Kelas (Stage/Scene)** | `Stage` + 4 `SceneType`: `slide`, `quiz`, `interactive`, `pbl`; 28+ `Action` (speech, whiteboard 12 jenis, spotlight/laser, discussion, widget) | `packages/@openmaic/dsl/src/stage.ts:22-283`, `packages/@openmaic/dsl/src/action.ts:234-312`, `lib/types/stage.ts:13-148` |
-| **Playback Classroom** | State machine `idle→playing→live`, TTS streaming, whiteboard SVG, roundtable debate, Q&A | `lib/playback/`, `lib/orchestration/director-graph.ts`, `app/classroom/[id]/` |
-| **Interaktif Deep Mode** | 6 widget: `simulation`, `diagram` (flow/mindmap/hierarchy), `code` (py/js/ts/java/cpp + testCases), `game` (quiz/puzzle/strategy/card), `visualization3d` (molecular/solar/anatomy/geometry/physics), `procedural-skill` | `lib/types/widgets.ts:14-206`, `lib/types/generation.ts:116-195` |
-| **PBL v2** | Project topic/description, targetSkills, milestones, instructor/evaluator agents | `lib/pbl/v2/types.ts`, `packages/@openmaic/generation/prompts-pbl/` |
-| **Workbench Pro (Agent)** | Chat-first durable session (lease/heartbeat/resume/steer/cancel), tools: plan, stage read/patch, page gen, material read/search, web_search/fetch_url, image/video gen, voice roster, folder | `app/workbench/`, `lib/server/agent-runtime/`, `app/api/agent/` (34 route) |
-| **Material Pipeline** | Upload → asset pool (`assetId` + `contentDigest` SHA-256) → ekstraksi (MinerU/AliDocMind/local ffmpeg/ffprobe) → reuse | `lib/types/generation.ts:43-82`, `app/api/extract-document/`, `app/api/materials/` |
-| **Penyimpanan Pluggable** | Browser (IndexedDB/Dexie) default; server: Postgres (`DocumentStore`, `RuntimeStore`, `AssetStore`, `KvStore`) + S3 bytes, kolektor asset | `packages/@openmaic/storage/`, `lib/persistence/`, `supabase_migration.sql` |
-| **Ekspor** | PPTX editable, HTML interaktif (inlining KaTeX/Three/Tailwind/Google Fonts), Classroom ZIP (`.maic.zip`), Video MP4 via `render-service` (Hyperframes + Chromium+FFmpeg) | `lib/export/`, `render-service/README.md`, `packages/pptxgenjs` |
-| **Papan Tulis** | 12 aksi `wb_*` (open/draw_text/shape/chart/latex/table/line/code/edit_code/clear/delete/close) koordinat 0-1000×562 | `packages/@openmaic/dsl/src/action.ts:64-164` |
-| **TTS/ASR/Search/Media** | Provider-neutral: LLM (OpenAI/Azure/Anthropic/Bedrock/Gemini/Qwen/Kimi/MiniMax/Ollama/Lemonade), TTS (VoxCPM2/Qwen), ASR (FunASR/Lemonade), Search (Brave/Baidu/Bocha/MiniMax/SearXNG/Claude), Image/Video (MiniMax/OpenAI/ComfyUI) | `lib/ai/`, `lib/audio/`, `lib/media/`, `lib/web-search/`, `.env.example` |
-| **i18n & Tema** | 12 locale, termasuk `id-ID` default; light/dark/system | `app/page.tsx:672-715`, `lib/i18n/` |
-| **Admin** | Kelas, siswa, nilai, attendance, assignments, activity logs | `app/admin/page.tsx`, `app/admin/activity-logs/`, `app/api/students/route.ts` |
-
-### 4.2 Out of Scope MVP
-- Pembayaran/LMS penuh (enrollment, sertifikat) — hanya dashboard nilai.
-- Mobile native — responsive web only.
-- Kolaborasi real-time multi-siswa pada 1 stage (saat ini single-learner playback).
-- SCORM/xAPI.
-
-### 4.3 Asumsi & Dependensi
-- Minimal 1 LLM provider key terkonfigurasi (`hasUsableLLMProvider` di `app/page.tsx:194` gate `canGenerate`).
-- `ffmpeg/ffprobe` opsional untuk ekstraksi lokal; tanpa ini fallback ke AliDocMind/MinerU (`README.md:210-214`).
-- `DATABASE_URL` + `PERSISTENCE_DEV_TOKEN` wajib jika `NEXT_PUBLIC_PERSISTENCE=1` atau `OPENMAIC_AGENT_RUNTIME_ENABLED=true`.
+- **Butuh:** Env Vercel + SQL Supabase; tanpa k8s.
+- **Journey:** `PRD-KelasKA-Enterprise-Vercel-Supabase.md` + `.env` Vercel.
 
 ---
 
-## 5. User Stories & Acceptance Criteria
+## 4. Batasan infrastruktur (non-negotiable)
 
-### EPIC 1 — Generasi Kelas (Core Loop)
+Produksi **hanya**:
 
-**US-1.1** Sebagai guru, saya ingin mengetik kebutuhan bebas (“Ajarkan limit fungsi untuk SMK KA-101, 30 menit, gaya santai”) dan mendapatkan outline yang bisa diedit sebelum generate.
-- **AC1:** `UserRequirements.requirement` wajib; `webSearch`/`interactiveMode`/`taskEngineMode` opsional (`generation.ts:101-108`).
-- **AC2:** Pipeline 2 tahap: `scene-outlines-stream` → preview editable → `scene-content` + `scene-actions`.
-- **AC3:** Bahasa output infer dari requirement (`requirements-to-outlines/system.md:14`).
+```
+Vercel (Next.js 16, serverless/edge)
+  ├─ Halaman: landing publik + app shell terautentikasi
+  ├─ /api/*  maxDuration 300 (butuh plan yang mendukung; Hobby 10s → pecah SSE)
+  └─ Env: LLM keys, AUTH_JWT_SECRET, Supabase URL/anon/service_role
 
-**US-1.2** Sebagai guru, saya ingin unggah RPP (PDF/DOCX/PPTX) + gambar lab dan AI memakai isinya.
-- **AC:** `SelectedCourseMaterial` dedup via `courseMaterialFingerprint` (`app/page.tsx:484-504`), simpan via `storeDocumentBlob` IndexedDB / asset pool (`assetId`+`contentDigest` di `generation.ts:51-58`). Ekstraksi via `/api/extract-document` (MinerU/AliDocMind) dengan fallback lokal ffmpeg.
+Supabase
+  ├─ Auth     guru/admin (email, Google)
+  ├─ Postgres tenant, profiles, siswa, classrooms, assignments, quiz, logs
+  ├─ Storage  bucket `assets` + `classrooms` (stage JSON + media)
+  └─ RLS      jaring pengaman; enforcement primer Pola A (cek tenant di server)
+```
 
-**US-1.3** Sebagai guru, saya ingin hasil berupa slide yang bisa diedit (drag/resize/rotate) dan kuis yang dinilai AI.
-- **AC:** Slide schema `SlideContent` (`stage.ts:184-189`), editor `@openmaic/editor`; kuis `QuizContent` (`stage.ts:208-214`) dengan tipe `single|multiple|short_answer` + `answer`/`analysis`/`commentPrompt`.
+**Dimatikan di produksi Vercel (wajib `false` / kosong):**
 
-### EPIC 2 — Pembelajaran (Playback)
+| Flag / layanan | Alasan | Pengganti di produk |
+|----------------|--------|---------------------|
+| `OPENMAIC_AGENT_RUNTIME_ENABLED` | Durable lease/heartbeat tidak survive freeze serverless | Tidak ada Workbench Pro di UI |
+| `NEXT_PUBLIC_PRO_WORKBENCH_ENABLED` | Entry `/workspace` 404/redirect | Sembunyikan badge Pro |
+| `RENDER_SERVICE_URL` | Chromium 8GB tidak ada di Vercel | Ekspor PPTX/HTML/ZIP; MP4 out of scope |
+| `DATABASE_URL` Postgres langsung | Tidak ada container Postgres | Supabase JS + pooler hanya jika perlu |
+| Mode pratinjau dashboard | Bocor data + UX tidak enterprise | 401 + `/masuk` |
 
-**US-2.1** Sebagai siswa, saya ingin kelas diputar dengan narasi suara guru AI, spotlight/laser, dan papan tulis yang menggambar rumus.
-- **AC:** Urutan `Action` dieksekusi `lib/action/`; `speech` tunggu TTS selesai, `wb_draw_*` tunggu render; spotlight/laser `FIRE_AND_FORGET`.
-
-**US-2.2** Sebagai siswa, saya ingin bertanya via ketik/suara dan berdiskusi dengan beberapa agen.
-- **AC:** `DiscussionAction` (`action.ts:195-201`) → `director-graph.ts` (LangGraph) atur giliran; ASR via FunASR/Lemonade (`ASR_FUNASR_BASE_URL`).
-
-**US-2.3** Sebagai siswa, saya ingin simulasi interaktif (misal ubah variabel kapasitor) dan mini-game.
-- **AC:** Scene `type: 'interactive'` wajib `widgetType+widgetOutline` (`generation.ts:192-194`); 6 widget config ter-typed (`widgets.ts:202-206`).
-
-### EPIC 3 — Dashboard & Kelas
-
-**US-3.1** Sebagai siswa, saya melihat `kursusAktif, tugasPending, rataRata, jamBelajar` dan grafik mingguan.
-- **AC:** `GET /api/dashboard?role=siswa&studentId` hitung dari `student_scores` + `assignments` + `quiz_attempts` (`route.ts:110-197`); `jamBelajar = attempts*0.5h + 8h baseline`.
-
-**US-3.2** Sebagai guru, saya melihat per-kelas `avgScore, submitted/total, attendance` dan top 5 siswa.
-- **AC:** Aggregasi `studentsData` per `class_name` (`route.ts:198-271`).
-
-**US-3.3** Sebagai siswa, saya login dengan NISN.
-- **AC:** `POST /api/auth/student-login` cek `password_hash` (bcrypt), terbit JWT, `student-session.ts` verifikasi Bearer tiap `dashboard` call.
-
-### EPIC 4 — Ekspor & Offline
-
-**US-4.1** Sebagai guru, saya ekspor PPTX yang bisa diedit di PowerPoint (rumus LaTeX tetap).
-- **AC:** `lib/export/pptx` via `pptxgenjs` + `mathml2omml`; aset inline atau reference `assetId`.
-
-**US-4.2** Sebagai operator sekolah, saya ekspor HTML yang jalan offline di intranet.
-- **AC:** Inlining KaTeX/Three/Tailwind/Fonts jadi `data:` URI; aset host CORS fallback dilaporkan.
-
-### EPIC 5 — Workbench Pro (Opsional, gated)
-
-**US-5.1** Sebagai guru power-user, saya chat dengan agen untuk “buat kurikulum 5 pertemuan + revisi halaman 3”.
-- **AC:** Flag `NEXT_PUBLIC_PRO_WORKBENCH_ENABLED` + `OPENMAIC_AGENT_RUNTIME_ENABLED` + `DATABASE_URL`; endpoint `/api/agent/sessions*` 404 jika off (`app/page.tsx:158-182`). Sesi durable: lease/heartbeat, cancel, steer follow-up.
-
-### EPIC 6 — Admin & Kepatuhan
-
-**US-6.1** Sebagai admin, saya lihat log aktivitas dan kelola data siswa.
-- **AC:** `GET /api/students?className&query` (`app/api/students/route.ts:139-156`) + RLS `user_activity_logs`/`quiz_attempts`.
+**Implikasi produk:** Journey guru **tidak** boleh menyebut Workbench/Agent chat. Studio = composer generate yang sudah ada, dipindah ke dalam shell.
 
 ---
 
-## 6. Persyaratan Fungsional Terperinci (by Module)
+## 5. Arsitektur informasi & sitemap
 
-### 6.1 Halaman & Rute
-| Rute | Fungsi | File |
-|------|--------|------|
-| `/` | Landing + composer + folder/riwayat kelas + mode pro toggle | `app/page.tsx` |
-| `/generation-preview` | Edit outline sebelum full gen | `app/generation-preview/` |
-| `/classroom/[id]` | Playback stage | `app/classroom/[id]/` |
-| `/workspace` | Workbench listing | `app/workspace/` |
-| `/workbench/new` | Chat agen | `app/workbench/new/` |
-| `/dashboard` | Siswa/Guru dashboard | `app/dashboard/page.tsx` |
-| `/admin`, `/admin/activity-logs` | Manajemen | `app/admin/` |
-| `/login-siswa`, `/login` | Auth | `app/login-*` |
-| `/api/*` (34 grup) | Lihat `app/api/` — generate, agent, stages, materials, dashboard, students, quiz-grade, dll | `app/api/` |
+### 5.1 Peta rute target
 
-### 6.2 Model Data (Kontrak)
+```
+Publik (tanpa sesi)
+  /                      Landing pemasaran + CTA Masuk. TANPA composer generate.
+  /masuk                 Pemilih peran: Siswa | Guru & Operator
+  /login-siswa           NISN + kata sandi
+  /login                 Email/Google (Supabase Auth)
 
-**Stage** (`dsl/stage.ts:141-174`): `id, name, description, createdAt, updatedAt, languageDirective, style, whiteboard[], videoManifest, agentIds, generatedAgentConfigs, interactiveMode, taskEngineMode`
+App (wajib sesi; satu shell)
+  /dashboard             Beranda sesuai peran (siswa | guru | admin)
+  /studio                Generate kelas (guru, admin). Composer pindahan dari `/`.
+  /generation-preview    Edit outline sebelum full gen (guru)
+  /classroom/[id]        Playback. Siswa: hanya jika assigned+published.
+                         Guru: draft milik sendiri atau assigned.
+  /materi                Daftar draft / in_review / published milik guru
+  /kelas                 Ringkasan kelas ampu (guru) — bukan CRUD mentah
+  /penilaian             Nilai & kuis (guru)
+  /admin                 CRUD siswa/kelas/tugas (admin; guru terbatas kelas ampu)
+  /admin/activity-logs   Audit (admin)
 
-**Scene** (`stage.ts:248-283` ∪ `lib/types/stage.ts:99-111`): `id, stageId, title, order, actions?: Action[], whiteboards?, multiAgent?, content: Slide|Quiz|Interactive|PBL`
+Dilarang di produksi
+  /workspace, /workbench/*   Out of scope Vercel → redirect `/dashboard`
+  /dashboard tanpa auth      Redirect `/masuk`
+  Switch peran bebas         Hanya dari JWT / profiles.role
+```
 
-**SceneOutline** (`generation.ts:151-195`): `id, type, title, description, keyPoints[3-5], teachingObjective, estimatedDuration, languageNote, suggestedImageIds, mediaGenerations, quizConfig, widgetType/widgetOutline, pblConfig`
+### 5.2 App shell (satu chrome)
 
-**Asset** (`storage.ts`): `assetId` (allocated), `contentDigest` SHA-256, `oss_key` (server), `AssetRef` di `audioId`/`videoManifest`.
+Setelah login, **semua rute app** memakai layout yang sama:
 
-**Supabase** (10 tabel, `supabase_migration.sql:5-235`): `classes, subjects, students(id, nim unique, nisn unique, password_hash bcrypt, class_name, attendance_rate, average_score), student_scores, attendance, assignments, teacher_notes, user_activity_logs, quiz_attempts(id, student_id, stage_id, scene_id, attempt_id unique, score...), quiz_attempt_answers`
+- **Header:** logo KelasKA + nama tenant (sekolah), search (opsional, hanya jika hasilnya nyata), notifikasi dari tugas/kuis nyata, user chip, tema, keluar.
+- **Sidebar kiri (desktop) / drawer (mobile):** item **per peran**, hanya yang hidup.
+- **Content:** halaman modul.
+- **Footer shell:** tidak wajib; jangan tautan “Kembali ke Dashboard Utama” ke `/`.
 
-**UserRequirements** (`generation.ts:101-108`): `requirement(*) + userNickname + userBio + webSearch? + interactiveMode? + taskEngineMode?`
+**Sidebar siswa**
 
-### 6.3 Generasi Pipeline (Kontrak `@openmaic/generation`)
+| Item | Tujuan | Status |
+|------|--------|--------|
+| Beranda | `/dashboard` | hidup |
+| Kursus Saya | daftar `classroom_assignments` untuk `class_name` siswa | hidup |
+| Tugas & Kuis | assignments + kuis pending | hidup |
+| Nilai | skor sendiri | hidup |
+| Pengaturan | ganti kata sandi | hidup |
 
-1. **Outline** (`POST /api/generate/scene-outlines-stream` SSE): dari `UserRequirements` + `SessionDocumentSource[]` + web search → `SceneOutline[]`.
-2. **Estimasi durasi & bahasa** di outline → `courseTitle` ringkas.
-3. **Content** (`POST /api/generate/scene-content`): per outline `type` → `GeneratedSlideContent | GeneratedQuizContent | GeneratedInteractiveContent | GeneratedPBLContent`.
-4. **Actions** (`POST /api/generate/scene-actions`): per scene → `Action[]` (speech whiteboard etc.).
-5. **TTS** (`POST /api/generate/tts`): `speech.text` → `audioId` (AssetRef).
-6. **Image/Video** (`POST /api/generate/image|video`): prompt → `assetId`.
+**Sidebar guru**
 
-Provider gagal → fail-loud, bukan fallback tebak vendor (`README.md:565-567`).
+| Item | Tujuan | Status |
+|------|--------|--------|
+| Beranda | `/dashboard` | hidup |
+| Studio | `/studio` | hidup |
+| Materi Saya | `/materi` | hidup |
+| Kelas Saya | `/kelas` | hidup |
+| Penilaian | `/penilaian` | hidup |
+| Pengaturan | profil | hidup |
 
-### 6.4 Widget Interaktif (Ultra Mode)
+**Sidebar admin** = guru + Siswa, Kelas, Tugas, Log aktivitas (`/admin`, `/admin/activity-logs`).
 
-| Widget | Konfigurasi kunci | File |
-|--------|-------------------|------|
-| simulation | `variables[{name,label,min,max,default,unit}] + presets` | `widgets.ts:13-31` |
-| diagram | `diagramType + nodes[] + edges[] + revealOrder` | `32-58` |
-| code | `language + starterCode + testCases[] + hints + solution` | `61-78` |
-| game | `gameType + questions[] + scoring + achievements` | `82-110` |
-| visualization3d | `visualizationType + objects[] + interactions[] + camera/lighting` | `113-179` |
-| procedural-skill | `task + tools + steps[] + successCriteria` | `183-198` |
+**Tidak masuk sidebar sampai halaman ada:** Jadwal, Marketplace, Workbench, Laporan terpisah (pakai Penilaian + Log).
 
-### 6.5 Pencarian, Media, Audio
-- Web search provider switch `SEARCH_<PREFIX>_ENABLED=false` force-off.
-- Image/Video/TTS/ASR resolve dari `server-providers.yml` + env `IMAGE_*/TTS_*/ASR_*_BASE_URL` (`lib/media/types`).
+### 5.3 Redirect auth (kontrak)
+
+| Kondisi | Aksi |
+|---------|------|
+| Buka `/dashboard`, `/studio`, `/admin`, `/materi`, … tanpa sesi | 302 `/masuk?next=…` |
+| Siswa sudah login buka `/login-siswa` | 302 `/dashboard` |
+| Guru sudah login buka `/login` | 302 `/dashboard` (bukan `/admin`) |
+| Siswa buka `/studio` atau `/admin` | 403 halaman “Tidak diizinkan” di dalam shell |
+| Guru `role=teacher` buka log audit | 403 kecuali `role=admin` |
+| `profiles.role=admin` | boleh `/admin` dari sidebar |
+| Produksi + query `?role=` / `?studentId=` spoof | diabaikan; identitas dari JWT/session |
+
+Copy login guru: **“Masuk Guru KelasKA”**. Dilarang: “Supabase Auth & Activity Tracker”.
 
 ---
 
-## 7. Persyaratan Non-Fungsional
+## 6. UX / UI Requirements (tampilan enterprise)
+
+### 6.1 Design system — satu, bukan tiga
+
+| Token | Nilai |
+|-------|--------|
+| Fondasi | Tailwind 4 + shadcn/ui + Radix (sudah ada) |
+| Font | Inter (UI), JetBrains Mono (kode), Literata (materi panjang) |
+| Warna app | `slate-950` background, `slate-900` surface, `indigo-600` aksen primer, `violet-600` aksen generate |
+| Radius | `xl` / `2xl` konsisten (kartu 16–24px, tombol 12px) |
+| Density | Dashboard/admin: tabel + form, bukan kartu marketing |
+| Landing publik | Boleh lebih “marketing”, **token warna & logo sama** |
+| Admin | **Bukan skin terpisah.** Pakai app shell yang sama dengan dashboard |
+
+**Dilarang:** `alert()` / `confirm()` / `prompt()` di alur admin. Wajib dialog shadcn (`AlertDialog`) + toast `sonner`.
+
+**Form siswa:** field kosong; **jangan** default `average_score=85`, `attendance_rate=100`, `status=Good`.
+
+### 6.2 Landing publik (`/`)
+
+- Navbar: Fitur, Cara Kerja, Untuk Siapa, **Masuk** (ke `/masuk`). Tidak ada tombol Dashboard yang membuka data tanpa login.
+- Hero: janji produk tanpa rating fiktif. CTA primer: **Masuk**. CTA sekunder guru: “Masuk sebagai guru untuk membuat kelas”.
+- **Composer generate tidak ada di `/`.** Cuplikan UI (gambar/GIF) boleh, interaktif tidak.
+- Testimoni: hanya jika kutipan nyata; jika tidak, hapus seksi.
+
+### 6.3 Halaman `/masuk`
+
+Dua kartu setara: **Siswa (NISN)** dan **Guru & Operator (email)**. Bukan dua URL tersembunyi dari navbar yang hanya mengarah ke siswa.
+
+### 6.4 Aksesibilitas
+
+- WCAG AA: kontras di dark shell, fokus ring, label `sr-only`, `aria-pressed` pada toggle.
+- Keyboard: generate `Cmd/Ctrl+Enter` di studio; classroom punya kontrol play yang bisa di-tab.
+- Jangan andalkan warna saja untuk status (draft/published): pakai badge teks.
+
+### 6.5 Empty, error, loading
+
+Setiap daftar (kursus, materi, siswa) punya empty state + CTA. Error API: toast + tombol coba lagi. Loading: skeleton di dalam shell, bukan halaman blank.
+
+---
+
+## 7. Alur pengguna (wajib logis)
+
+### 7.1 Siswa
+
+```
+/masuk → Siswa → /login-siswa (NISN)
+     → /dashboard
+          ├─ Kartu: kursus di-assign, tugas pending, rata-rata nilai nyata
+          ├─ Kursus Saya → hanya classroom published+assigned ke class_name
+          │                 klik → /classroom/[id]
+          │                 playback: speech, whiteboard, widget, kuis
+          │                 submit kuis → quiz_attempts (tenant_id + student_id dari JWT)
+          └─ Nilai → daftar percobaan sendiri
+```
+
+Tidak ada generate, tidak ada admin, tidak ada data kelas lain.
+
+### 7.2 Guru
+
+```
+/masuk → Guru → /login (Supabase Auth)
+     → /dashboard (ringkasan kelas ampu, draft belum di-publish, tugas menunggu)
+          → Studio
+               ketik kebutuhan + upload PDF/PPTX/gambar/audio/video
+               toggle Web Search / Interactive Mode
+               Generate (SSE outline)
+               → /generation-preview (edit outline)
+               → full gen content + actions + TTS/image
+               → status = draft, simpan ke Supabase Storage + row classrooms
+          → Review di /classroom/[id] (guru)
+               setujui → status in_review → published
+               atau kembalikan ke draft
+          → Assign: pilih class_names ⊆ profiles.class_names
+               tulis classroom_assignments
+          → Siswa kelas itu melihat di Kursus Saya
+          → Penilaian: kuis/tugas kelas ampu
+          → Ekspor PPTX / HTML / ZIP (bukan MP4)
+```
+
+### 7.3 Admin
+
+```
+Login role=admin → /dashboard
+     → /admin Siswa | Kelas | Tugas
+     → /admin/activity-logs (append-only)
+     → tidak bisa lihat tenant_id lain
+```
+
+CRUD memakai dialog konfirmasi, bukan `window.confirm`.
+
+### 7.4 Siklus hidup materi (inti v1.1)
+
+```
+draft ──review guru──► in_review ──publish──► published ──assign──► terlihat siswa
+  ▲                         │                      │
+  └──── tolak / revisi ─────┘                      └── archive
+```
+
+- Siswa **hanya** melihat `published` yang punya baris `classroom_assignments` untuk `class_name`-nya dan `tenant_id` sama.
+- Guru melihat draft miliknya (`created_by`) plus published yang di-assign ke kelas ampu.
+- Generate gagal (LLM) = fail-loud, draft tidak auto-publish.
+
+---
+
+## 8. Ruang lingkup
+
+### 8.1 In scope — produksi Vercel + Supabase
+
+| Area | Fitur |
+|------|--------|
+| **Auth** | Siswa NISN+bcrypt+JWT (`tenant_id` di payload). Guru/admin Supabase Auth + `profiles`. Pemilih peran `/masuk`. |
+| **Shell** | Layout app satu, sidebar per peran, header tenant. |
+| **Studio** | Composer free-form + upload (PDF/DOCX/PPTX/TXT/MD/Image/Audio/Video), Web Search, Interactive Mode, pipeline outline→content→actions. |
+| **Review/Publish/Assign** | Status classroom + assign ke kelas. |
+| **Playback** | Stage 4 tipe `slide\|quiz\|interactive\|pbl`, aksi speech/whiteboard/spotlight, widget interaktif, Q&A jika ASR dikonfigurasi. |
+| **Dashboard** | Siswa: kursus assigned, tugas, nilai. Guru: performa kelas ampu. Tanpa mock di prod. |
+| **Admin** | Siswa, kelas, tugas, log — dalam shell yang sama. |
+| **Ekspor** | PPTX editable, HTML inlining, ZIP `.maic.zip`. |
+| **i18n & tema** | `id-ID` default, light/dark/system. |
+| **Observability** | `user_activity_logs` append-only, `/api/health`, Vercel Logs. |
+
+### 8.2 Out of scope produksi (jangan di-nav, jangan di journey)
+
+- Workbench Pro / agent durable (`/workspace`, `/workbench`, `/api/agent/sessions*`).
+- Export MP4 / `render-service`.
+- Mode pratinjau dashboard + `MOCK_STUDENTS` di production.
+- Pembayaran, sertifikat, LMS enrollment penuh, SCORM/xAPI.
+- Kolaborasi real-time multi-siswa pada satu stage.
+- Mobile native; PWA push (fase nanti).
+- Kalender Jadwal (sampai halaman dibangun).
+- Multi-tenant UI penuh (fase 4); **kolom `tenant_id` tetap wajib** dari sekarang (single-tenant default UUID).
+
+### 8.3 Asumsi
+
+- ≥1 LLM provider key di env Vercel.
+- `ffmpeg` tidak dijamin di serverless; ekstraksi PDF via MinerU/AliDocMind cloud, bukan janji ffmpeg lokal.
+- Upload besar: **direct ke Supabase Storage (signed URL)**, bukan body 4.5MB Vercel.
+- Generate panjang: SSE streaming; plan Vercel harus mendukung `maxDuration` yang dipakai.
+
+---
+
+## 9. User Stories & Acceptance Criteria
+
+### EPIC 0 — Pintu masuk & shell
+
+**US-0.1** Sebagai pengunjung, saya memilih Siswa atau Guru di `/masuk`, bukan menebak URL.
+
+- **AC1:** Navbar “Masuk” → `/masuk`.
+- **AC2:** `/` tidak merender composer dan tidak menautkan `/dashboard` tanpa sesi.
+
+**US-0.2** Sebagai pengguna, setelah login saya selalu masuk ke `/dashboard` di dalam app shell.
+
+- **AC1:** Guru tidak di-redirect ke `/admin`.
+- **AC2:** Produksi tanpa cookie/JWT: semua rute app → `/masuk`.
+- **AC3:** Sidebar hanya item §5.2; tidak ada “Jadwal”.
+
+**US-0.3** Sebagai operator, saya tidak melihat copy internal.
+
+- **AC:** Judul `/login` = “Masuk Guru KelasKA”. Subtitle menjelaskan akses mengajar & admin sekolah.
+
+### EPIC 1 — Generasi kelas (Studio)
+
+**US-1.1** Sebagai guru, saya mengetik kebutuhan bebas dan mendapat outline editable sebelum full generate.
+
+- **AC1:** `UserRequirements.requirement` wajib; `webSearch` / `interactiveMode` opsional.
+- **AC2:** Pipeline: `scene-outlines-stream` → preview → `scene-content` + `scene-actions`.
+- **AC3:** Hasil tersimpan `classrooms.status='draft'`, `created_by=profiles.id`, `tenant_id` dari profil.
+
+**US-1.2** Sebagai guru, saya unggah RPP (PDF/DOCX/PPTX) + gambar; AI memakai isinya.
+
+- **AC:** Dedup materi via fingerprint; file besar via signed URL Supabase Storage; ekstraksi `/api/extract-document`.
+
+**US-1.3** Sebagai guru, saya mengedit slide dan menyiapkan kuis.
+
+- **AC:** Schema `SlideContent` / `QuizContent` (`single\|multiple\|short_answer`) tidak berubah.
+
+### EPIC 2 — Review, publish, assign
+
+**US-2.1** Sebagai guru, saya memutar draft sendiri sebelum siswa melihatnya.
+
+- **AC:** `/classroom/[id]` untuk draft hanya `created_by` atau admin tenant. Siswa dapat 403.
+
+**US-2.2** Sebagai guru, saya publish lalu assign ke kelas ampu.
+
+- **AC1:** Publish hanya dari `in_review` atau dari draft dengan konfirmasi dialog (“Siswa belum melihat sampai Anda assign”).
+- **AC2:** Assign hanya `class_names` yang ada di `profiles.class_names` (admin: semua kelas tenant).
+- **AC3:** Siswa kelas lain tidak melihat materi.
+
+**US-2.3** Sebagai guru, saya archive materi; siswa tidak lagi melihatnya.
+
+- **AC:** `status=archived` menghapus visibilitas siswa; data kuis lama tetap untuk audit.
+
+### EPIC 3 — Pembelajaran (Playback)
+
+**US-3.1** Sebagai siswa, saya memutar kelas assigned: narasi, spotlight/laser, whiteboard.
+
+- **AC:** Urutan `Action` dieksekusi; `speech` menunggu TTS; whiteboard koordinat 0–1000×562.
+
+**US-3.2** Sebagai siswa, saya submit kuis dan melihat skor saya.
+
+- **AC:** `quiz_attempts.student_id` dari JWT, bukan query string. `tenant_id` diisi server.
+
+**US-3.3** Sebagai siswa, saya memakai widget interaktif jika scene `interactive`.
+
+- **AC:** 6 widget typed (`simulation|diagram|code|game|visualization3d|procedural-skill`).
+
+### EPIC 4 — Dashboard & admin
+
+**US-4.1** Sebagai siswa, saya melihat kursus assigned, tugas pending, rata-rata nilai.
+
+- **AC:** `GET /api/dashboard` mengabaikan `?studentId=` jika JWT ada. Tanpa JWT di prod: 401.
+- **AC jam belajar:** hanya jika `classroom_sessions.duration_seconds` ada; else jangan fabrikasi.
+
+**US-4.2** Sebagai guru, saya melihat per kelas ampu: avg skor, submitted/total.
+
+- **AC:** Filter `tenant_id` + `class_name IN profiles.class_names`.
+
+**US-4.3** Sebagai admin, saya CRUD siswa/kelas/tugas dengan dialog, bukan `alert`.
+
+- **AC:** Form siswa tanpa nilai default 85. Hapus siswa = `AlertDialog`. Error = toast.
+
+### EPIC 5 — Ekspor (tanpa MP4)
+
+**US-5.1** Guru mengekspor PPTX (LaTeX tetap) dan HTML/ZIP untuk intranet.
+
+- **AC:** MP4 tidak ditawarkan di UI produksi jika `RENDER_SERVICE_URL` kosong (jangan tombol rusak).
+
+### EPIC 6 — Kepatuhan
+
+**US-6.1** Admin melihat log append-only.
+
+- **AC:** Tidak ada update/delete `user_activity_logs` dari klien.
+
+---
+
+## 10. Persyaratan fungsional (modul)
+
+### 10.1 Halaman & rute — mapping dari kode sekarang
+
+| Sekarang | Target | Catatan implementasi |
+|----------|--------|----------------------|
+| `/` composer + landing | `/` landing saja; composer → `/studio` | Pindahkan UI generate |
+| `/login` judul Supabase Auth; redirect `/admin` | Copy guru; redirect `/dashboard` | |
+| Navbar Masuk → `/login-siswa` | → `/masuk` | Tambah halaman pemilih |
+| `/dashboard` preview + switch peran | Auth wajib; peran dari sesi | Hapus mock prod |
+| Sidebar “Kursus Saya” → `/workspace` | Daftar assigned classrooms | |
+| Sidebar “Kelas Saya”/“Penilaian” → `/admin` | `/kelas`, `/penilaian` (boleh reuse query admin, UI beda) | |
+| Sidebar “Jadwal” toast | Hapus item | |
+| `/admin` skin terpisah; link ke `/` | Layout shell; back → `/dashboard` | |
+| `/workspace`, `/workbench/new` | Redirect `/dashboard` di prod | Flag off |
+| `/classroom/[id]` terbuka | Gate published+assigned untuk siswa | |
+
+### 10.2 Model data tambahan (Supabase)
+
+Selain 10 tabel existing + `tenants`/`profiles` (lihat addendum):
+
+**classrooms**
+
+| Kolom | Arti |
+|-------|------|
+| `id` uuid PK | |
+| `tenant_id` uuid not null | isolasi sekolah |
+| `created_by` uuid | `profiles.id` |
+| `title` text | |
+| `status` text | `draft \| in_review \| published \| archived` |
+| `stage_payload_path` text | path Supabase Storage (JSON stage) |
+| `language` text | |
+| `created_at`, `updated_at`, `published_at` | |
+
+**classroom_assignments**
+
+| Kolom | Arti |
+|-------|------|
+| `id` uuid PK | |
+| `tenant_id` uuid not null | |
+| `classroom_id` uuid FK | |
+| `class_name` text | mis. `KA-101` |
+| `assigned_by` uuid | |
+| `assigned_at` timestamptz | |
+
+Unique `(classroom_id, class_name)`.
+
+**classroom_sessions** (opsional fase 2, untuk jam belajar jujur)
+
+`student_id`, `classroom_id`, `started_at`, `ended_at`, `duration_seconds`.
+
+Sampai tabel ini ada: **jangan tampilkan jam belajar fiktif.**
+
+### 10.3 Pipeline generate (tetap)
+
+1. Outline SSE `POST /api/generate/scene-outlines-stream`
+2. Content `POST /api/generate/scene-content`
+3. Actions `POST /api/generate/scene-actions`
+4. TTS/image `POST /api/generate/tts|image` (video gen boleh gagal-loud; tidak wajib di Vercel)
+
+Provider gagal → fail-loud, bukan tebak vendor.
+
+Setelah sukses: persist draft ke Storage + `classrooms`.
+
+### 10.4 Widget interaktif
+
+Tidak berubah: `simulation`, `diagram`, `code`, `game`, `visualization3d`, `procedural-skill` (`lib/types/widgets.ts`).
+
+### 10.5 API auth (kontrak)
+
+- `GET /api/dashboard`, `GET /api/students`, mutate admin: **wajib** Bearer siswa **atau** sesi guru.
+- Identitas siswa **hanya** dari JWT, bukan `?studentId=`.
+- Semua query: `.eq('tenant_id', tenantId)`.
+- Guru: `.in('class_name', profile.class_names)` kecuali admin.
+- Produksi: tidak ada cabang `MOCK_STUDENTS`.
+
+---
+
+## 11. Persyaratan non-fungsional
 
 | Kategori | Requirement | Metrik |
 |----------|-------------|--------|
-| **Performa** | p50 generasi <2m, p95 <5m; render slide 60fps, lazy scene fetch via `per-scene revision` triggers (`CHANGELOG 1.0.0 #1214`) | Lighthouse, `quiz_attempts.created_at` |
-| **Skalabilitas** | Stateless app; Postgres + S3 elastic; `render-service` concurrency `RENDER_MAX_CONCURRENCY` | k8s HPA |
-| **Keamanan** | JWT siswa (jose), bcrypt, RLS Supabase, `ACCESS_CODE` guard, SSRF hardening di `fetch_url` trust gate (`lib/server/agent-runtime/`) | OWASP |
-| **Reliabilitas** | Durable session resume setelah crash; SSE retry; fallback mock dashboard jika Supabase down (`api/dashboard/route.ts:97-108`) | 99.5% |
-| **Offline** | Ekspor HTML inlining; Classroom ZIP import | Manual QA intranet |
-| **Aksesibilitas** | WCAG AA, keyboard shortcut, kontras, i18n 12 locale | axe |
-| **Kualitas Data** | `contentDigest` SHA-256 untruncated; ETag/Last-Modified dilarang di asset bytes (`storage/docs/asset-http-contract.md:9`) | Contract test |
-| **Observability** | Logger `createLogger`, `user_activity_logs` indexed (`idx_*`), `/api/health` | Grafana |
+| **Performa** | p50 draft siap review <2m; slide 60fps | Vercel logs, observasi |
+| **Payload** | Upload >4.5MB via signed URL Storage | E2E upload 10MB PDF |
+| **Keamanan** | JWT siswa, bcrypt, tenant check, ACCESS_CODE opsional | OWASP; e2e 401 |
+| **Reliabilitas** | SSE retry; fail-loud LLM | 99.5% |
+| **Offline** | HTML/ZIP inlining untuk intranet | QA manual |
+| **A11y** | WCAG AA pada shell + login + dashboard | axe |
+| **Observability** | Vercel Logs + `user_activity_logs` | |
+| **Klaim UI** | Tidak ada angka pemasaran tanpa sumber | Review copy |
 
 ---
 
-## 8. Keamanan, Privasi & Kepatuhan
+## 12. Keamanan, privasi & kepatuhan
 
-- **Auth:** Siswa `nim/nisn + password_hash` (`$2b$10$...`), JWT 7 hari (`jwt.ts`), Guru via Supabase Auth (`supabase-auth-context`).
-- **RLS:** Semua 10 tabel `ENABLE ROW LEVEL SECURITY` + policy `Allow public read/all` saat ini — **risiko**: sebelum produksi wajib ganti `server-auth.ts` jadi session real & `x-learner-key` isolation (`README.md:383-391`).
-- **RLS TODO (P0 pre-prod):** Ganti policy `FOR ALL USING (true)` jadi role-based; `quiz_attempts.student_id` hanya owner/guru kelas.
-- **Asset:** Bytes share cross-principal, hanya `Content-Length` boleh bocor; `Last-Modified/Age/ETag` disabled.
-- **URL trust gate:** Per-session `fetch_url` whitelist (`agent-runtime/.../trust-gate`).
-- **Data retention:** `ASSET_COLLECTION_GRACE_MS` default 1 jam; `ASSET_COLLECTION_INTERVAL_MS` 15 menit (`README.md:408-416`).
+- Siswa: `nisn` + `password_hash` bcrypt, JWT berisi `studentId`, `class_name`, `tenant_id`, TTL 7 hari.
+- Guru: Supabase Auth; `profiles.role` ∈ `{teacher, admin}`.
+- Enforcement primer **Pola A:** server `service_role` + cek tenant/role di kode (wajib, karena service_role bypass RLS).
+- RLS tenant = jaring pengaman (Pola B kapan client anon dipakai).
+- Policy `FOR ALL USING (true)` **harus dihapus** sebelum produksi (migrasi enterprise).
+- Asset bytes di Supabase Storage; signed URL; tidak lewat body Vercel untuk file besar.
+- Log aktivitas append-only.
 
----
-
-## 9. UX / UI Requirements
-
-- **Design system:** Tailwind 4 + shadcn/ui + Radix (`package.json:143,32-33`), font Inter/JetBrains/Literata, animasi `motion`.
-- **Landing (`app/page.tsx:648-1063`):** Navbar sticky, hero gradient, badge 4.9/5, composer card (textarea 140-300px, toolbar webSearch/interactiveMode, SpeechButton, generate), stats 4 kartu, fitur 6 kartu, cara kerja timeline, testimoni.
-- **Composer states:** Disabled jika `!requirement.trim() || !hasUsableProvider`; `Cmd+Enter` generate; error toast `PERSISTENCE_UNAVAILABLE`.
-- **Dashboard (`app/dashboard/page.tsx:342-950`):** Tema slate-950 dark, sidebar desktop + overlay mobile, dual header, pencarian debounced, notifikasi urgency, stat cards gradient, kursus progress bar, klasemen top 5.
-- **Classroom:** Canvas `@openmaic/renderer`, editing via `@openmaic/editor` (drag/resize/rotate/multi-select), TTS preview single-flight, timeline.
-- **Aksesibilitas:** Fokus ring, `aria-pressed` pada toggle, `sr-only` labels.
+Detail SQL/env: `PRD-KelasKA-Enterprise-Vercel-Supabase.md`.
 
 ---
 
-## 10. Analitik & Event
+## 13. Analitik & event
 
 | Event | Payload | Tabel |
 |-------|---------|-------|
-| `classroom.generate.start` | `requirement length, webSearch, doc count` | `user_activity_logs` |
-| `classroom.generate.complete` | `stageId, sceneCount, duration` | `user_activity_logs` |
-| `quiz.submit` | `attempt_id, score, retry_number` | `quiz_attempts` + `quiz_attempt_answers` |
-| `whiteboard.draw` | `type, sceneId` | `user_activity_logs` |
-| `export.pptx/html/mp4` | `stageId, format` | `user_activity_logs` |
+| `auth.login` | role, tenant_id | `user_activity_logs` |
+| `classroom.generate.start/complete` | sceneCount, duration | logs |
+| `classroom.publish` | classroom_id | logs + `published_at` |
+| `classroom.assign` | class_name | `classroom_assignments` |
+| `quiz.submit` | attempt_id, score | `quiz_attempts` |
+| `export.pptx/html/zip` | classroom_id, format | logs |
 
-Dashboard query `avgClassScore = avg(average_score)`, `avgAttendance = avg(attendance_rate)` (`api/students/route.ts:195-203`).
+Tidak ada event dummy untuk mengisi grafik.
 
 ---
 
-## 11. Integrasi & Konfigurasi
+## 14. Integrasi & konfigurasi (Vercel)
 
-**Env utama (`.env.example` + `README.md:119-476`):**
+Env produksi (ringkas; lengkap di addendum):
 
 ```
-# LLM (≥1 wajib)
-OPENAI_API_KEY / ANTHROPIC_API_KEY / GOOGLE_API_KEY / BEDROCK_REGION ...
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+AUTH_JWT_SECRET=          # openssl rand -hex 32
 DEFAULT_MODEL=google:gemini-3-flash-preview
-MODEL_ROUTES='{"maic-agent-driver":{"model":"openai:gpt-5.5","api":"openai-completions"}}'
+OPENAI_API_KEY=           # atau provider lain; ≥1 wajib
 
-# Fitur opsional
-IMAGE_MINIMAX_API_KEY / VIDEO_MINIMAX_API_KEY
-TTS_MINIMAX_API_KEY / TTS_VOXCPM_BASE_URL
-ASR_FUNASR_BASE_URL / ASR_LEMONADE_BASE_URL
-PDF_MINERU_BASE_URL (+ API_KEY)
-SEARCH_* (Brave/Baidu/Bocha/MiniMax/SearXNG)
-
-# Persistensi + Agent
-DATABASE_URL=postgres://openmaic:openmaic-dev@postgres:5432/openmaic
-PERSISTENCE_DEV_TOKEN=openmaic-local-dev
-NEXT_PUBLIC_PERSISTENCE=1 (build-time)
-NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=true
-OPENMAIC_AGENT_RUNTIME_ENABLED=true
-RENDER_SERVICE_URL=http://render-service:3001
+OPENMAIC_AGENT_RUNTIME_ENABLED=false
+NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=false
+RENDER_SERVICE_URL=
 ```
 
-**Mode jalan:** `pnpm dev` (browser-only) | `docker compose --profile server-persistence up` | `+ video-export`.
+Mode jalan produksi: **Vercel deploy**. Lokal: `pnpm dev` + Supabase cloud (bukan docker-compose sebagai target prod).
 
 ---
 
-## 12. Peta Endpoint (Ringkas)
+## 15. Roadmap implementasi (mengikuti PRD ini)
 
-- `POST /api/generate/scene-outlines-stream` — SSE outlines
-- `POST /api/generate/scene-content` + `/scene-actions` — per scene
-- `POST /api/generate/tts|image|video` — media
-- `GET /api/stages, /api/stages/:id, /api/folders` — CRUD kelas/folder
-- `POST /api/extract-document, /api/parse-pdf` — ekstraksi
-- `GET/POST /api/agent/sessions*` — durable workbench (gated 404 jika off)
-- `GET /api/dashboard?role=siswa|guru&studentId` — ringkasan (`route.ts:24-276`)
-- `GET /api/students?className&query` — daftar siswa (`route.ts:133-223`)
-- `POST /api/auth/student-login, /api/auth/change-password` — auth siswa
-- `GET /api/health` — probe
+### Fase 1 — Shell & pintu (P0, 3–5 hari)
+
+- [ ] Halaman `/masuk`
+- [ ] Pindah composer `/` → `/studio`
+- [ ] Layout app shell; admin memakai shell yang sama
+- [ ] Redirect login guru → `/dashboard`
+- [ ] Hapus preview/mock di production; 401 API
+- [ ] Hapus nav Jadwal; perbaiki tujuan Kursus/Kelas/Penilaian
+- [ ] Copy login guru; ganti `alert`/`confirm`; form siswa tanpa default nilai
+- [ ] Sembunyikan Workbench/Pro/MP4 di prod
+
+### Fase 2 — Siklus materi (P0, 4–7 hari)
+
+- [ ] Tabel `classrooms` + `classroom_assignments` + Storage
+- [ ] Persist draft setelah generate
+- [ ] Gate playback siswa
+- [ ] UI Publish + Assign
+- [ ] Dashboard siswa baca assignment, bukan mock
+
+### Fase 3 — Hardening tenant (P0, 2–4 hari)
+
+- [ ] Jalankan `supabase_migration_enterprise_vercel.sql`
+- [ ] Patch `dashboard` + `students` + admin queries: tenant + class scope
+- [ ] Rate limit generate (tabel `rate_limits` atau Vercel KV)
+- [ ] Audit append-only
+
+### Fase 4 — Fitur guru lanjutan (4–8 minggu)
+
+- [ ] CRUD assignments lengkap dari `/penilaian`
+- [ ] Penilaian esai AI + konfirmasi guru
+- [ ] `classroom_sessions` → jam belajar jujur
+- [ ] Kalender Jadwal **baru boleh** masuk nav
+
+### Fase 5 — Skala
+
+- [ ] Multi-tenant UI (slug sekolah)
+- [ ] SSO
+- [ ] PWA
 
 ---
 
-## 13. Roadmap
-
-### Fase 1 — MVP Stabil (Done, v1.0.0)
-Landing→Generate→Classroom→Export + Dashboard dual + Auth NISN + Supabase seed KA-101..103.
-
-### Fase 2 — Hardening (P0, 2-4 minggu)
-- [ ] Ganti RLS `FOR ALL USING (true)` → RBAC nyata (guru hanya kelasnya).
-- [ ] Tambah `quiz_attempts.stage_id` FK + index `scene_id`.
-- [ ] Rate limit generate + upload size cap (`import_pptx` sudah #1268).
-- [ ] Audit SSRF/CORS asset redirect (`ASSET_BYTE_EGRESS=redirect` prereq `s3:ListBucket`).
-
-### Fase 3 — Fitur Guru (4-8 minggu)
-- [ ] CRUD `assignments` dari UI (saat ini read-only, fallback mock).
-- [ ] Penilaian kuis esai AI (`quiz-grade`) tampil di dashboard guru.
-- [ ] Kalender `Jadwal` (saat ini toast “segera hadir” `dashboard/page.tsx:225`).
-
-### Fase 4 — Skala & Ekosistem
-- [ ] Multi-tenant sekolah, SSO Kemendik.
-- [ ] Mobile PWA + notif push tugas.
-- [ ] Marketplace template kurikulum Merdeka.
-
----
-
-## 14. Risiko & Mitigasi
+## 16. Risiko
 
 | Risiko | Dampak | Mitigasi |
 |--------|--------|----------|
-| Biaya LLM melambung | Burn rate | Cache outline, `MODEL_ROUTES` pilih model murah default, limit per user |
-| Halusinasi materi | Miskonsepsi siswa | Wajib webSearch + prompt “media-safety”, review guru sebelum publish |
-| RLS longgar | Kebocoran nilai | P0 hardening di 13 Fase 2 |
-| Supabase down | Dashboard blank | Fallback mock sudah ada (`route.ts:99-108,225-263`) + toast retry |
-| Ekspor offline gagal (CORS) | Sekolah intranet tidak jalan | Laporkan host gagal fetch, re-eksport setelah allowlist |
+| Timeout generate di Vercel Hobby (10s) | Gagal create | SSE + pecah scene; dokumentasikan butuh Pro untuk 300s |
+| Payload 4.5MB | Upload RPP gagal | Signed URL Storage |
+| Halusinasi materi | Miskonsepsi | Review wajib sebelum publish; webSearch disarankan |
+| `service_role` bypass RLS | Bocor jika lupa cek tenant | Checklist code review + e2e lintas tenant |
+| Workbench “kelihatan” di UI | Tombol 404 | Flag off + redirect |
+| MP4 dijanjikan | Tombol rusak | Sembunyikan jika tidak ada render-service |
 
 ---
 
-## 15. Acceptance Criteria Rilis (Definition of Done)
+## 17. Gap vs kode sekarang (wajib ditutup)
 
-- [ ] Semua 5 Epic US-*.1 lolos E2E `playwright` (`playwright.config.ts`) + `vitest run` (1425 test di v1.0.0).
-- [ ] `pnpm build` tanpa type error (`tsconfig.build.json` scoped prod).
-- [ ] Lighthouse performa ≥90, aksesibilitas ≥90.
-- [ ] Ekspor PPTX/HTML/MP4 + import `.maic.zip` round-trip lolos di intranet simulasi (tanpa CDN).
-- [ ] Dashboard siswa/guru dengan Supabase hidup & mati (fallback) tampil tanpa crash.
+Dokumen v1.0 mendeskripsikan *apa yang ada*. Ini *apa yang harus diubah*:
 
----
-
-## 16. Lampiran — Jejak File Sumber
-
-- `README.md:45-1038` — overview, fitur, quick start, arsitektur
-- `package.json:2-33` — deps & scripts
-- `app/page.tsx:135-1144` — landing + composer + folder
-- `app/dashboard/page.tsx:122-1041` + `app/api/dashboard/route.ts:24-276` — dashboard
-- `app/api/students/route.ts:133-223` — siswa
-- `app/classroom/[id]/` — playback
-- `app/workbench/new/` + `lib/server/agent-runtime/` — agent workbench
-- `packages/@openmaic/dsl/src/stage.ts:22-311`, `action.ts:18-340`, `storage.ts` — kontrak Stage/Scene/Action/Asset
-- `lib/types/generation.ts:101-278`, `lib/types/stage.ts:13-148`, `lib/types/widgets.ts:14-206` — tipe app
-- `supabase_migration.sql:1-236` — skema 10 tabel + seed
-- `lib/auth/jwt.ts`, `lib/auth/student-session.ts` — auth
-- `vitest.config.ts`, `playwright.config.ts` — testing
+| ID | Sekarang | Target PRD |
+|----|----------|------------|
+| G1 | `/` = landing + generate | Generate hanya `/studio` |
+| G2 | Login guru → `/admin`, copy “Supabase Auth…” | → `/dashboard`, copy produk |
+| G3 | Dashboard bisa tanpa login (preview + mock) | Prod 401 / `/masuk` |
+| G4 | Nav ke `/workspace`, toast Jadwal, admin via shortcut | Nav §5.2 |
+| G5 | Tidak ada publish/assign | `classrooms` + assignments |
+| G6 | Tiga skin visual | Satu shell |
+| G7 | `alert`/`confirm`; default nilai 85 | Dialog + form kosong |
+| G8 | `jamBelajar` formula +8h; badge 4.9/5 | Hapus |
+| G9 | Workbench di journey guru | Out of scope Vercel |
+| G10 | RLS `USING(true)` | Migrasi enterprise + cek tenant di API |
+| G11 | Admin “kembali” ke `/` | ke `/dashboard` |
 
 ---
 
-## 17. Pertanyaan Terbuka (butuh keputusan Produk)
+## 18. Definition of Done (rilis enterprise Vercel)
 
-1. Apakah kebijakan RLS final: guru boleh lintas kelas atau hanya kelas ampu?
-2. Apakah nilai AI untuk esai bersifat final atau butuh konfirmasi guru?
-3. Apakah NISN sebagai username final (saat ini `nim` unik, `nisn` unik terpisah) — unifikasi?
-4. Batas kuota asset per user/sekolah?
-5. Model default untuk produksi Indonesia (biaya vs mutu bahasa Indonesia) — `google:gemini-3-flash` vs `minimax` vs lokal Lemonade?
+- [ ] Semua AC Epic 0–2 dan US-4.1 lolos Playwright (auth gate, assign visibility, no mock prod).
+- [ ] `pnpm build` hijau.
+- [ ] Lighthouse a11y ≥90 pada `/masuk`, `/login-siswa`, `/dashboard`.
+- [ ] `curl /api/dashboard` tanpa `Authorization` → **401**, bukan JSON demo.
+- [ ] Guru KA-101 tidak menerima siswa/materi tenant lain.
+- [ ] Siswa tidak membuka draft.
+- [ ] UI produksi tanpa Workbench, tanpa MP4, tanpa Jadwal, tanpa rating fiktif.
+- [ ] Ekspor PPTX/HTML/ZIP berhasil; MP4 tidak ditawarkan.
+- [ ] Migrasi enterprise terpasang di proyek Supabase.
 
 ---
 
-> **Cara pakai dokumen ini:** Jadikan `PRD-KelasKA.md` sebagai sumber kebenaran. Tiap perubahan fitur wajib update baris “Bukti Implementasi” + `CHANGELOG.md`. Jalankan `graphify update .` setelah edit kode agar graf pengetahuan sinkron.
+## 19. Pertanyaan terbuka (produk)
+
+1. Tenant slug: per sekolah (rekomendasi) atau per jurusan? Kelas tetap `KA-101..` di dalam tenant.
+2. Nilai kuis AI: final otomatis atau wajib konfirmasi guru? Rekomendasi: objektif auto, esai konfirmasi.
+3. Unifikasi login siswa ke `nisn` saja (`nim` legacy).
+4. Kuota generate per tenant / bulan (rekomendasi: 100, enforce `rate_limits`).
+5. Model default ID: biaya vs mutu bahasa Indonesia.
+
+---
+
+## 20. Lampiran — jejak file
+
+- `app/page.tsx` — landing (harus kehilangan composer)
+- `app/dashboard/page.tsx`, `app/api/dashboard/route.ts`
+- `app/login/page.tsx`, `app/login-siswa/page.tsx`
+- `app/admin/page.tsx`, `app/admin/activity-logs/`
+- `app/classroom/[id]/`, `app/generation-preview/`
+- `app/workspace/`, `app/workbench/` — out of scope prod
+- `packages/@openmaic/dsl/src/stage.ts`, `action.ts`
+- `lib/types/generation.ts`, `lib/types/widgets.ts`
+- `lib/auth/jwt.ts`, `lib/auth/student-session.ts`
+- `supabase_migration.sql`, `supabase_migration_enterprise_vercel.sql`
+- `vercel.json` (`maxDuration` 300)
+
+---
+
+> **Cara pakai:** `PRD-KelasKA.md` adalah sumber kebenaran produk. Implementasi yang bertentangan dengan §0, §4, §5, §7 dianggap bug. Perubahan fitur wajib update dokumen ini + `CHANGELOG.md`. Addendum infra: `PRD-KelasKA-Enterprise-Vercel-Supabase.md`.

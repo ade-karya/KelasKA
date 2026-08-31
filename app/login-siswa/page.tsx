@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useStudentAuth } from "@/lib/contexts/student-auth-context";
 import { GraduationCap, Hash, Lock, LogIn, ArrowRight, UserCheck, ShieldCheck } from "lucide-react";
@@ -8,6 +8,7 @@ import { GraduationCap, Hash, Lock, LogIn, ArrowRight, UserCheck, ShieldCheck } 
 export default function StudentLoginPage() {
   const router = useRouter();
   const { student, login, logout, loading } = useStudentAuth();
+  useEffect(() => { if (!loading && student) { router.replace("/dashboard"); } }, [student, loading, router]);
 
   const [nisn, setNisn] = useState("");
   const [password, setPassword] = useState("");
