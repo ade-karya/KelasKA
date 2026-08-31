@@ -32,11 +32,30 @@ export async function getAuthenticatedStudent(
   const payload: StudentTokenPayload | null = await verifyStudentToken(token);
   if (!payload) return null;
 
-  const { data, error } = await getSupabaseServer()
-    .from('students')
-    .select('id, name, nim, nisn, class_name, avatar_url, tenant_id, average_score')
-    .eq('id', payload.sub)
-    .maybeSingle();
+  // tahan terhadap projek yang belum menjalankan migrasi enterprise (kolom tenant_id belum ada)
+  let data: any = null;
+  let error: any = null;
+  try {
+    const res = await getSupabaseServer()
+      .from('students')
+      .select('id, name, nim, nisn, class_name, avatar_url, tenant_id, average_score')
+      .eq('id', payload.sub)
+      .maybeSingle();
+    data = res.data;
+    error = res.error;
+    if (error && String(error.message || '').includes('tenant_id')) {
+      const fallback = await getSupabaseServer()
+        .from('students')
+        .select('id, name, nim, nisn, class_name, avatar_url, average_score')
+        .eq('id', payload.sub)
+        .maybeSingle();
+      data = fallback.data;
+      error = fallback.error;
+      if (data) (data as any).tenant_id = '00000000-0000-0000-0000-000000000001';
+    }
+  } catch {
+    return null;
+  }
 
   if (error || !data) return null;
   return { token, student: data as unknown as StudentProfile };
