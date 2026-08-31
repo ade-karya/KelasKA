@@ -20,6 +20,6 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
   if(!['draft','in_review'].includes((room as any).status)) return apiError('INVALID_REQUEST',400,'Hanya draft/in_review yang bisa publish');
   const {data,error}=await supa.from('classrooms').update({status:'published', published_at:new Date().toISOString(), updated_at:new Date().toISOString()}).eq('id',id).select().single();
   if(error) return apiError('INTERNAL_ERROR',500,error.message);
-  await supa.from('user_activity_logs').insert([{tenant_id:auth.tenantId, user_id:auth.user.id, action:'classroom.publish', details:{classroom_id:id}}]).catch(()=>{});
+  try { await supa.from('user_activity_logs').insert([{tenant_id:auth.tenantId, user_id:auth.user.id, action:'classroom.publish', details:{classroom_id:id}}]); } catch {}
   return apiSuccess({classroom:data});
 }

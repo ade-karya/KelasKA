@@ -28,7 +28,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
   const rows = classNames.map(c=>({ tenant_id: auth.tenantId, classroom_id: id, class_name: c, assigned_by: auth.user.id }));
   const { error } = await supa.from('classroom_assignments').upsert(rows, { onConflict:'classroom_id,class_name', ignoreDuplicates:false });
   if(error) return apiError('INTERNAL_ERROR',500,error.message);
-  await supa.from('user_activity_logs').insert([{tenant_id:auth.tenantId, user_id:auth.user.id, action:'classroom.assign', details:{classroom_id:id, class_names:classNames}}]).catch(()=>{});
+  try { await supa.from('user_activity_logs').insert([{tenant_id:auth.tenantId, user_id:auth.user.id, action:'classroom.assign', details:{classroom_id:id, class_names:classNames}}]); } catch {}
   return apiSuccess({ assigned: classNames });
 }
 export async function GET(req:NextRequest,{params}:{params:Promise<{id:string}>}){

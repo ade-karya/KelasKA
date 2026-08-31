@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
       stage_payload_path: body.stage_payload_path || null,
     }]).select().single();
     if (error) throw error;
-    await supa.from('user_activity_logs').insert([{ tenant_id: auth.tenantId, user_id: (auth as any).user?.id, action: 'classroom.create', details: { classroom_id: (data as any).id, title } }]).then(()=>{}).catch(()=>{});
+    try { await supa.from('user_activity_logs').insert([{ tenant_id: auth.tenantId, user_id: (auth as any).user?.id, action: 'classroom.create', details: { classroom_id: (data as any).id, title } }]); } catch {}
     return apiSuccess({ classroom: data }, 201);
   } catch (e:any) {
     log.error('classrooms POST failed', e);
