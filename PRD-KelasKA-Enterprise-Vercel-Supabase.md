@@ -77,93 +77,100 @@ Total P0 (shell + materi + tenant): kira-kira **2 minggu kerja**, tanpa pindah i
 
 Jalankan **setelah** `supabase_migration.sql`, file dasar tenant sudah ada di `supabase_migration_enterprise_vercel.sql`. **Tambahan v1.1** (siklus materi) harus ditambahkan ke migrasi yang sama atau file follow-up; kontrak di bawah ini normatif.
 
-### 3.1 Sudah di `supabase_migration_enterprise_vercel.sql`
+### 3.1 Sudah di `supabase_migration_enterprise_vercel.sql` — ringkas vs SQL authoritative
 
-- `tenants (id, slug, name)`
-- `profiles (id→auth.users, tenant_id, role teacher|admin, class_names text[])`
-- `tenant_id` pada `classes`, `students`, `assignments`, `quiz_attempts`, `user_activity_logs`
-- helper `is_same_tenant(uuid)`
-- hapus policy publik `USING(true)`
-- bucket Storage `assets`
+> **Catatan:** SQL di `supabase_migration_enterprise_vercel.sql` adalah sumber kebenaran. Ringkasan di bawah ini **sinkron 100%** dengan file tersebut per 31 Agustus 2026. Jika ada drift, jalankan file SQL, bukan edit PRD.
 
-### 3.2 Wajib baru — classrooms
+**§0–1 Tenant & Profiles (§1–2 SQL):**
 
 ```sql
-create table if not exists public.classrooms (
+create extension if not exists "pgcrypto";
+create table public.tenants (id uuid primary key default gen_random_uuid(),
+  slug text unique not null, name text not null, created_at timestamptz default now());
+insert into public.tenants values ('00000000-0000-0000-0000-000000000001','default','SMK Default');
+
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  tenant_id uuid not null references public.tenants(id),
+  role text check (role in ('teacher','admin')), class_names text[] default '{}',
+  created_at timestamptz default now()
+);
+-- index idx_profiles_tenant, RLS self read/upsert only
+```
+
+**§3 tenant_id backfill (§3 SQL):** kolom `tenant_id` default `000...001` ditambahkan ke `classes`, `students`, `subjects`, `assignments`, `quiz_attempts`, `user_activity_logs` (+ backfill `where null`, index `idx_*_tenant*`).
+
+**§4 helper (§4 SQL):** `is_same_tenant(uuid)` — `exists(select 1 from profiles where id=auth.uid() and tenant_id=tid)` security definer.
+
+**§5 RLS tenant-scoped (§5 SQL):** semua `Allow public ... USING(true)` dihapus. `classes`/`subjects`/`students`/`student_scores` (via `students` FK)/`attendance`/`assignments`/`teacher_notes`/`user_activity_logs` (append-only `select`+`insert`)/`quiz_attempts`/`quiz_attempt_answers` (via `quiz_attempts` FK) diganti `tenant *` policy via `is_same_tenant`. `service_role` bypass otomatis (`lib/supabase/server.ts`).
+
+**§6 Rate limit (§6 SQL):**
+
+```sql
+create table public.rate_limits (
+  tenant_id uuid not null references public.tenants(id),
+  key text not null, window_start timestamptz default now(),
+  count int default 1, primary key (tenant_id, key, window_start)
+);
+-- RLS deny-by-default using(false); service_role bypass
+```
+
+**Storage §6–8 (§6 & §8 SQL):** bucket `assets` + `classrooms` private, `storage.objects` policy `using(false)` (anon deny, signed URL via `service_role`).
+
+### 3.2 Wajib baru — classrooms (SQL §8, PRD §7.4/10.2)
+
+```sql
+create table public.classrooms (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id),
   created_by uuid references public.profiles(id),
   title text not null default '',
-  status text not null default 'draft'
-    check (status in ('draft','in_review','published','archived')),
-  stage_payload_path text, -- storage path JSON OpenMAIC Stage
-  language text,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
+  status text not null default 'draft' check (status in ('draft','in_review','published','archived')),
+  stage_payload_path text, language text,
+  created_at timestamptz default now(), updated_at timestamptz default now(),
   published_at timestamptz
 );
-create index if not exists idx_classrooms_tenant_status
-  on public.classrooms(tenant_id, status);
-create index if not exists idx_classrooms_created_by
-  on public.classrooms(created_by);
+create index idx_classrooms_tenant_status on public.classrooms(tenant_id, status);
+create index idx_classrooms_created_by on public.classrooms(created_by);
 
-create table if not exists public.classroom_assignments (
+create table public.classroom_assignments (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id),
   classroom_id uuid not null references public.classrooms(id) on delete cascade,
-  class_name text not null,
-  assigned_by uuid references public.profiles(id),
-  assigned_at timestamptz not null default now(),
-  unique (classroom_id, class_name)
+  class_name text not null, assigned_by uuid references public.profiles(id),
+  assigned_at timestamptz default now(), unique (classroom_id, class_name)
 );
-create index if not exists idx_cassign_tenant_class
-  on public.classroom_assignments(tenant_id, class_name);
-
+create index idx_cassign_tenant_class on public.classroom_assignments(tenant_id, class_name);
+create index idx_cassign_classroom on public.classroom_assignments(classroom_id);
 alter table public.classrooms enable row level security;
 alter table public.classroom_assignments enable row level security;
-
-create policy "tenant classrooms"
-  on public.classrooms for all
-  using (public.is_same_tenant(tenant_id))
-  with check (public.is_same_tenant(tenant_id));
-
-create policy "tenant classroom_assignments"
-  on public.classroom_assignments for all
-  using (public.is_same_tenant(tenant_id))
-  with check (public.is_same_tenant(tenant_id));
+create policy "tenant classrooms" on public.classrooms for all using (is_same_tenant(tenant_id)) with check (is_same_tenant(tenant_id));
+create policy "tenant classroom_assignments" on public.classroom_assignments for all using (is_same_tenant(tenant_id)) with check (is_same_tenant(tenant_id));
+-- bucket classrooms private, path {tenant_id}/{classroom_id}/stage.json
 ```
 
-Storage: bucket `classrooms` (private). Path: `{tenant_id}/{classroom_id}/stage.json` + media.
-
-### 3.3 Opsional fase 4 — jam belajar jujur
+### 3.3 Opsional fase 4 — jam belajar jujur (SQL §8b)
 
 ```sql
-create table if not exists public.classroom_sessions (
+create table public.classroom_sessions (
   id uuid primary key default gen_random_uuid(),
   tenant_id uuid not null references public.tenants(id),
   classroom_id uuid not null references public.classrooms(id),
   student_id uuid not null references public.students(id),
-  started_at timestamptz not null default now(),
-  ended_at timestamptz,
-  duration_seconds int
+  started_at timestamptz default now(), ended_at timestamptz, duration_seconds int
 );
+create index idx_csessions_tenant_student on public.classroom_sessions(tenant_id, student_id);
+-- RLS tenant sessions via is_same_tenant
 ```
 
-Sampai ini ada: UI **tidak** menampilkan jam belajar fiktif.
+Sampai tabel ini ada: UI **wajib** `jamBelajar = "—"` (jangan `attempts*0.5+8`).
 
-### 3.4 Rate limit (tanpa Redis)
+### 3.4 Rate limit detail
 
 ```sql
-create table if not exists public.rate_limits (
-  tenant_id uuid not null,
-  key text not null, -- mis. 'generate' | ip
-  window_start timestamptz not null,
-  count int not null default 0,
-  primary key (tenant_id, key, window_start)
-);
+-- sudah di §6 SQL; alternatif Vercel KV:
+-- incr rl:{tenant}:{path}:{window}
 ```
-
-Atau Vercel KV: `incr rl:{tenant}:{path}:{window}`.
 
 ---
 

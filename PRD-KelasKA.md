@@ -453,41 +453,95 @@ draft ──review guru──► in_review ──publish──► published ─�
 | `/workspace`, `/workbench/new` | Redirect `/dashboard` di prod | Flag off |
 | `/classroom/[id]` terbuka | Gate published+assigned untuk siswa | |
 
-### 10.2 Model data tambahan (Supabase)
+### 10.2 Model data — Supabase enterprise (Vercel)
 
-Selain 10 tabel existing + `tenants`/`profiles` (lihat addendum):
+> **Sumber kebenaran:** `supabase_migration.sql` (base 10 tabel) + `supabase_migration_enterprise_vercel.sql` (enterprise hardening). PRD ini merefleksikan SQL enterprise **apa adanya** per 31 Agustus 2026. Jika ada drift, jalankan SQL enterprise, bukan ubah PRD.
 
-**classrooms**
+**Base (10 tabel, `supabase_migration.sql`):** `classes`, `subjects`, `students`, `student_scores`, `attendance`, `assignments`, `teacher_notes`, `user_activity_logs`, `quiz_attempts`, `quiz_attempt_answers`. Seed `KA-101..103` + 7 siswa (password bcrypt). RLS awal `USING(true)` **wajib dihapus** oleh migrasi enterprise (G10).
 
-| Kolom | Arti |
-|-------|------|
-| `id` uuid PK | |
-| `tenant_id` uuid not null | isolasi sekolah |
-| `created_by` uuid | `profiles.id` |
-| `title` text | |
-| `status` text | `draft \| in_review \| published \| archived` |
-| `stage_payload_path` text | path Supabase Storage (JSON stage) |
-| `language` text | |
-| `created_at`, `updated_at`, `published_at` | |
+**Enterprise — tenant & RBAC (`supabase_migration_enterprise_vercel.sql` §1–5):**
 
-**classroom_assignments**
+```sql
+-- tenants (sekolah)
+create table public.tenants (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null, name text not null,
+  created_at timestamptz not null default now()
+);
+insert into public.tenants values ('00000000-0000-0000-0000-000000000001','default','SMK Default');
 
-| Kolom | Arti |
-|-------|------|
-| `id` uuid PK | |
-| `tenant_id` uuid not null | |
-| `classroom_id` uuid FK | |
-| `class_name` text | mis. `KA-101` |
-| `assigned_by` uuid | |
-| `assigned_at` timestamptz | |
+-- profiles (guru/admin → auth.users)
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  tenant_id uuid not null references public.tenants(id),
+  role text not null check (role in ('teacher','admin')),
+  class_names text[] not null default '{}',
+  created_at timestamptz not null default now()
+);
+-- RLS: self read/upsert only; service_role bypass
+```
 
-Unique `(classroom_id, class_name)`.
+Kolom `tenant_id` (default `000...001`, backfill `where null`) ditambahkan ke: `classes`, `students`, `subjects`, `assignments`, `quiz_attempts`, `user_activity_logs` — plus index `idx_*_tenant*`. Helper RLS:
 
-**classroom_sessions** (opsional fase 2, untuk jam belajar jujur)
+```sql
+create or replace function public.is_same_tenant(tid uuid) returns boolean
+  language sql stable security definer as $$
+  select exists(select 1 from public.profiles where id = auth.uid() and tenant_id = tid);
+$$;
+```
 
-`student_id`, `classroom_id`, `started_at`, `ended_at`, `duration_seconds`.
+Semua policy `USING(true)` diganti tenant-scoped (`is_same_tenant(tenant_id)` atau via `students`/`quiz_attempts` FK), `user_activity_logs` jadi append-only (`select` + `insert` saja, no `update/delete`).
 
-Sampai tabel ini ada: **jangan tampilkan jam belajar fiktif.**
+**Siklus materi — classrooms (PRD v1.1 §7.4, SQL §8):**
+
+```sql
+create table public.classrooms (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  created_by uuid references public.profiles(id),
+  title text not null default '',
+  status text not null default 'draft' check (status in ('draft','in_review','published','archived')),
+  stage_payload_path text, -- storage path JSON OpenMAIC Stage
+  language text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  published_at timestamptz
+);
+create index idx_classrooms_tenant_status on public.classrooms(tenant_id, status);
+create index idx_classrooms_created_by on public.classrooms(created_by);
+
+create table public.classroom_assignments (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  classroom_id uuid not null references public.classrooms(id) on delete cascade,
+  class_name text not null, -- KA-101..103
+  assigned_by uuid references public.profiles(id),
+  assigned_at timestamptz not null default now(),
+  unique (classroom_id, class_name)
+);
+create index idx_cassign_tenant_class on public.classroom_assignments(tenant_id, class_name);
+```
+
+RLS `tenant classrooms/assignments` via `is_same_tenant`. Storage bucket `classrooms` private path `{tenant_id}/{classroom_id}/stage.json` + media; bucket `assets` private untuk upload besar via signed URL (body Vercel 4.5MB tidak dipakai).
+
+**Jam belajar jujur — classroom_sessions (opsional fase 4, SQL §8b):**
+
+```sql
+create table public.classroom_sessions (
+  id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id),
+  classroom_id uuid not null references public.classrooms(id),
+  student_id uuid not null references public.students(id),
+  started_at timestamptz not null default now(),
+  ended_at timestamptz, duration_seconds int
+);
+```
+
+Sampai tabel ini ada: **UI wajib tampilkan "—"** untuk jam belajar, jangan `attempts*0.5+8` fiktif.
+
+**Rate limit (tanpa Redis, SQL §6):** `rate_limits(tenant_id, key, window_start, count)` PK `(tenant_id,key,window_start)`, RLS deny-by-default (`using(false)`), akses hanya `service_role`.
+
+**Storage:** bucket `assets` + `classrooms` private, policy `storage.objects` `using(false)` (anon deny, upload via signed URL server, `service_role` bypass).
 
 ### 10.3 Pipeline generate (tetap)
 
