@@ -36,18 +36,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const supa = getSupabaseServer();
   const { data: room, error } = await supa.from('classrooms').select('*').eq('id', id).maybeSingle();
   if (error || !room) return apiError('INVALID_REQUEST', 404, 'Classroom tidak ditemukan');
-  if ((room as any).tenant_id !== auth.tenantId) return apiError('FORBIDDEN', 403, 'Tidak diizinkan: tenant berbeda');
+  if ((room as any).tenant_id !== auth.tenantId) return apiError('UNAUTHENTICATED', 403, 'Tidak diizinkan: tenant berbeda');
   // gate: siswa hanya published + assigned
   if (auth.role === 'siswa') {
-    if ((room as any).status !== 'published') return apiError('FORBIDDEN', 403, 'Materi belum dipublish');
+    if ((room as any).status !== 'published') return apiError('UNAUTHENTICATED', 403, 'Materi belum dipublish');
     const { data: assign } = await supa.from('classroom_assignments').select('id').eq('classroom_id', id).eq('class_name', (auth as any).className || '').eq('tenant_id', auth.tenantId).maybeSingle();
-    if (!assign) return apiError('FORBIDDEN', 403, 'Tidak diizinkan: kelas Anda tidak di-assign materi ini');
+    if (!assign) return apiError('UNAUTHENTICATED', 403, 'Tidak diizinkan: kelas Anda tidak di-assign materi ini');
   } else {
     // guru: boleh lihat draft miliknya atau published assigned ke kelas ampu
     if ((room as any).status === 'draft' || (room as any).status === 'in_review') {
       const isOwner = (room as any).created_by === (auth as any).user?.id;
       const isAdmin = auth.role === 'admin';
-      if (!isOwner && !isAdmin) return apiError('FORBIDDEN', 403, 'Hanya pemilik draft atau admin yang dapat melihat');
+      if (!isOwner && !isAdmin) return apiError('UNAUTHENTICATED', 403, 'Hanya pemilik draft atau admin yang dapat melihat');
     }
     if ((room as any).status === 'published' && auth.role === 'guru') {
       const allowed = (auth as any).profile?.class_names || [];
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         const assignedClasses = (assigns || []).map((a:any)=>a.class_name);
         const hasOverlap = assignedClasses.some((c:string)=> allowed.includes(c));
         const isOwner = (room as any).created_by === (auth as any).user?.id;
-        if (!hasOverlap && !isOwner) return apiError('FORBIDDEN', 403, 'Tidak diizinkan: bukan kelas ampu Anda');
+        if (!hasOverlap && !isOwner) return apiError('UNAUTHENTICATED', 403, 'Tidak diizinkan: bukan kelas ampu Anda');
       }
     }
   }
@@ -73,7 +73,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { data: room } = await supa.from('classrooms').select('*').eq('id', id).maybeSingle();
   if (!room || (room as any).tenant_id !== auth.tenantId) return apiError('INVALID_REQUEST',404,'Tidak ditemukan');
   const isOwner = (room as any).created_by === (auth as any).user?.id;
-  if (!isOwner && auth.role !== 'admin') return apiError('FORBIDDEN',403,'Hanya pemilik');
+  if (!isOwner && auth.role !== 'admin') return apiError('UNAUTHENTICATED',403,'Hanya pemilik');
   const updates:any = {};
   if (typeof body.title === 'string') updates.title = body.title.trim();
   if (typeof body.status === 'string' && ['draft','in_review','published','archived'].includes(body.status)) {

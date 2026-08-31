@@ -16,7 +16,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
   const supa=getSupabaseServer();
   const {data:room}=await supa.from('classrooms').select('*').eq('id',id).maybeSingle();
   if(!room||(room as any).tenant_id!==auth.tenantId) return apiError('INVALID_REQUEST',404,'Tidak ditemukan');
-  if((room as any).created_by !== auth.user.id && auth.role!=='admin') return apiError('FORBIDDEN',403,'Hanya pemilik');
+  if((room as any).created_by !== auth.user.id && auth.role!=='admin') return apiError('UNAUTHENTICATED',403,'Hanya pemilik');
   if(!['draft','in_review'].includes((room as any).status)) return apiError('INVALID_REQUEST',400,'Hanya draft/in_review yang bisa publish');
   const {data,error}=await supa.from('classrooms').update({status:'published', published_at:new Date().toISOString(), updated_at:new Date().toISOString()}).eq('id',id).select().single();
   if(error) return apiError('INTERNAL_ERROR',500,error.message);

@@ -23,7 +23,7 @@ export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>
   // enforce class_names subset of teacher's allowed (admin boleh semua)
   if(auth.role==='guru'){
     const allowed = new Set(auth.profile?.class_names || []);
-    for(const c of classNames){ if(!allowed.has(c)) return apiError('FORBIDDEN',403,`Kelas ${c} bukan kelas ampu Anda`); }
+    for(const c of classNames){ if(!allowed.has(c)) return apiError('UNAUTHENTICATED',403,`Kelas ${c} bukan kelas ampu Anda`); }
   }
   const rows = classNames.map(c=>({ tenant_id: auth.tenantId, classroom_id: id, class_name: c, assigned_by: auth.user.id }));
   const { error } = await supa.from('classroom_assignments').upsert(rows, { onConflict:'classroom_id,class_name', ignoreDuplicates:false });
