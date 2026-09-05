@@ -55,6 +55,8 @@ export async function POST(req: NextRequest) {
         thinking: m.thinking,
         inputTokenLimit: m.inputTokenLimit,
         outputTokenLimit: m.outputTokenLimit,
+        reasoning: m.reasoning,
+        contextLength: m.contextLength,
       })),
       total: models.length,
       filtered: models.length - chatModels.length,

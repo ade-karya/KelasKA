@@ -633,6 +633,30 @@ describe('OpenAI provider defaults', () => {
       { reasoning: { enabled: true, effort: 'high' } },
     ],
     [
+      'openrouter',
+      'deepseek/deepseek-v4-pro',
+      { mode: 'enabled' },
+      { reasoning: { enabled: true, effort: 'medium' } },
+    ],
+    [
+      'openrouter',
+      'deepseek/deepseek-v4-pro',
+      { mode: 'disabled' },
+      { reasoning: { enabled: false } },
+    ],
+    [
+      'openrouter',
+      'deepseek/deepseek-v4-pro',
+      { mode: 'enabled', effort: 'xhigh' },
+      { reasoning: { enabled: true, effort: 'medium' } },
+    ],
+    [
+      'openrouter',
+      'deepseek/deepseek-v4-pro',
+      { mode: 'enabled', effort: 'low', excludeReasoningOutput: true },
+      { reasoning: { enabled: true, effort: 'low', exclude: true } },
+    ],
+    [
       'tencent-hunyuan',
       'hy3-preview',
       { mode: 'enabled', effort: 'high' },

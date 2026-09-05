@@ -196,12 +196,16 @@ export function ProviderConfigPanel({
             thinking?: boolean;
             inputTokenLimit?: number;
             outputTokenLimit?: number;
+            contextLength?: number;
+            reasoning?: ProbedModelDetails['reasoning'];
           }) => ({
             id: m.id,
             displayName: m.displayName,
             thinking: m.thinking,
             inputTokenLimit: m.inputTokenLimit,
             outputTokenLimit: m.outputTokenLimit,
+            contextLength: m.contextLength,
+            reasoning: m.reasoning,
           }),
         );
         const added = onModelsFetched?.(probed) ?? 0;

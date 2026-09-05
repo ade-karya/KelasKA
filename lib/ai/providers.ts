@@ -1717,11 +1717,23 @@ function getCompatThinkingBodyParams(
     }
 
     case 'openrouter': {
+      // Unified `reasoning` object per
+      // https://openrouter.ai/docs/guides/best-practices/reasoning-tokens:
+      // `effort` is translated by the gateway for both effort-native models
+      // (OpenAI, Grok) and `max_tokens`-native models (Anthropic, Gemini
+      // thinking, Qwen), so it is always preferred over `max_tokens` — the
+      // two must not be sent together. `effort: "none"` disables reasoning;
+      // mandatory models never list it, so it can never be sent to them.
       const reasoning: Record<string, unknown> = {};
-      if (mode === 'disabled') reasoning.enabled = false;
+      const allowed = capability.effortValues;
+      const requested =
+        config.effort && allowed?.includes(config.effort) ? config.effort : undefined;
+      const effort =
+        requested ?? (mode === 'enabled' ? capability.defaultEffort : undefined);
+      if (effort) reasoning.effort = effort;
+      if (mode === 'disabled' && !effort) reasoning.enabled = false;
       if (mode === 'enabled') reasoning.enabled = true;
-      if (config.effort) reasoning.effort = config.effort;
-      if (budget !== undefined) reasoning.max_tokens = budget;
+      if (budget !== undefined && budget > 0) reasoning.max_tokens = budget;
       if (typeof config.excludeReasoningOutput === 'boolean') {
         reasoning.exclude = config.excludeReasoningOutput;
       }

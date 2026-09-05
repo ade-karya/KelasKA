@@ -5,7 +5,8 @@ import type {
   ThinkingCapability,
 } from '@/lib/types/provider';
 import type { ProviderSettings } from '@/lib/types/settings';
-import { getCatalogThinkingCapability } from '@/lib/ai/model-metadata';
+import { getCatalogThinkingCapability, openRouterReasoningCapability } from '@/lib/ai/model-metadata';
+import type { OpenRouterReasoningMeta } from '@/lib/ai/model-metadata';
 
 /** Heuristic: model ids matching this are treated as vision-capable. */
 const VISION_MODEL_PATTERN = /vision|vl|omni|4o|gpt-5|gemini|claude/i;
@@ -16,6 +17,10 @@ export interface ProbedModelDetails {
   thinking?: boolean;
   inputTokenLimit?: number;
   outputTokenLimit?: number;
+  /** OpenRouter `context_length` (preferred over `inputTokenLimit` when set). */
+  contextLength?: number;
+  /** OpenRouter per-model `reasoning` descriptor (`GET /api/v1/models`). */
+  reasoning?: OpenRouterReasoningMeta | null;
 }
 
 /**
@@ -56,18 +61,26 @@ export function modelInfoFromId(
   const catalogThinking = providerId
     ? getCatalogThinkingCapability(providerId, id)
     : undefined;
+  // OpenRouter fallback: build an effort control from the probe's per-model
+  // `reasoning` descriptor so freshly fetched models expose the effort
+  // selector immediately. Catalog entries always win when present.
+  const probedThinking =
+    !catalogThinking && providerId === 'openrouter'
+      ? openRouterReasoningCapability(details?.reasoning)
+      : undefined;
   // Gemini fallback: every fetched model that isn't explicitly non-thinking
   // gets a thinking-*level* control (Gemini 3 `thinkingLevel`). Catalog entries
   // (e.g. 2.5 budget variants) always win when present.
   const thinking =
     catalogThinking ??
+    probedThinking ??
     (providerId === 'google' && details?.thinking !== false
       ? DEFAULT_GEMINI_LEVEL_THINKING
       : undefined);
   return {
     id,
     name: details?.displayName || id,
-    contextWindow: details?.inputTokenLimit,
+    contextWindow: details?.contextLength ?? details?.inputTokenLimit,
     outputWindow: details?.outputTokenLimit,
     capabilities: {
       streaming: true,

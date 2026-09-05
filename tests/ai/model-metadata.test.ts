@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { PROVIDERS } from '@/lib/ai/providers';
-import { getCatalogThinkingCapability, getModelMetadataKey } from '@/lib/ai/model-metadata';
+import {
+  getCatalogThinkingCapability,
+  getModelMetadataKey,
+  openRouterReasoningCapability,
+} from '@/lib/ai/model-metadata';
 import type { ProviderConfig, ProviderId } from '@/lib/types/provider';
 
 // These models intentionally do not expose a configurable thinking control.
@@ -78,5 +82,78 @@ describe('model metadata thinking capabilities', () => {
     expect(getCatalogThinkingCapability('openai', 'gpt-5.6-sol')).toEqual(
       getCatalogThinkingCapability('openai', 'gpt-5.6'),
     );
+  });
+});
+
+describe('openRouterReasoningCapability', () => {
+  it('builds an effort control from supported_efforts + default_effort', () => {
+    expect(
+      openRouterReasoningCapability({
+        supported_efforts: ['high', 'medium', 'low', 'minimal'],
+        default_effort: 'medium',
+        default_enabled: true,
+      }),
+    ).toEqual({
+      control: 'effort',
+      requestAdapter: 'openrouter',
+      effortValues: ['high', 'medium', 'low', 'minimal'],
+      defaultEffort: 'medium',
+      defaultMode: 'enabled',
+      toggleable: false,
+      budgetAdjustable: true,
+      defaultEnabled: true,
+    });
+  });
+
+  it('treats default_effort "none" as off by default', () => {
+    const cap = openRouterReasoningCapability({
+      supported_efforts: ['high', 'medium', 'low', 'none'],
+      default_effort: 'none',
+      default_enabled: false,
+    });
+    expect(cap).toMatchObject({
+      control: 'effort',
+      requestAdapter: 'openrouter',
+      defaultEffort: 'none',
+      defaultMode: 'disabled',
+      defaultEnabled: false,
+      toggleable: true,
+    });
+  });
+
+  it('hides the disable toggle for mandatory models', () => {
+    const cap = openRouterReasoningCapability({
+      supported_efforts: ['high', 'medium', 'low'],
+      default_effort: 'medium',
+      default_enabled: true,
+      mandatory: true,
+    });
+    expect(cap).toMatchObject({ toggleable: false, defaultEnabled: true });
+  });
+
+  it('accepts all gateway efforts when supported_efforts is null', () => {
+    const cap = openRouterReasoningCapability({
+      supported_efforts: null,
+      default_enabled: true,
+    });
+    expect(cap?.effortValues).toEqual(['max', 'xhigh', 'high', 'medium', 'low', 'minimal', 'none']);
+    expect(cap?.defaultEffort).toBe('medium');
+  });
+
+  it('returns undefined when the model exposes no effort selection', () => {
+    expect(openRouterReasoningCapability(undefined)).toBeUndefined();
+    expect(openRouterReasoningCapability(null)).toBeUndefined();
+    expect(openRouterReasoningCapability({})).toBeUndefined();
+    expect(openRouterReasoningCapability({ supported_efforts: [] })).toBeUndefined();
+  });
+
+  it('drops unknown effort values and falls back to a sane default', () => {
+    const cap = openRouterReasoningCapability({
+      supported_efforts: ['high', 'turbo-9000', 'low'],
+      default_effort: 'turbo-9000',
+    });
+    expect(cap?.effortValues).toEqual(['high', 'low']);
+    // 'medium' not listed → first (descending = highest) effort wins.
+    expect(cap?.defaultEffort).toBe('high');
   });
 });

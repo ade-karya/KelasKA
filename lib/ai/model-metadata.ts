@@ -103,6 +103,94 @@ const fixedThinkingCapability: ThinkingCapability = {
   defaultEnabled: true,
 };
 
+/**
+ * OpenRouter per-model reasoning descriptor from `GET /api/v1/models`.
+ * Mirrors https://openrouter.ai/docs/guides/best-practices/reasoning-tokens.
+ */
+export interface OpenRouterReasoningMeta {
+  supported_efforts?: string[] | null;
+  default_effort?: string | null;
+  default_enabled?: boolean | null;
+  mandatory?: boolean | null;
+  supports_max_tokens?: boolean | null;
+}
+
+/** All effort values the OpenRouter gateway accepts. */
+const OPENROUTER_GATEWAY_EFFORTS: ThinkingEffort[] = [
+  'max',
+  'xhigh',
+  'high',
+  'medium',
+  'low',
+  'minimal',
+  'none',
+];
+
+function isThinkingEffort(value: unknown): value is ThinkingEffort {
+  return (
+    typeof value === 'string' &&
+    (OPENROUTER_GATEWAY_EFFORTS as string[]).includes(value)
+  );
+}
+
+/**
+ * Builds an effort-based thinking capability from OpenRouter's per-model
+ * `reasoning` descriptor (captured at probe time by `GET /api/v1/models`).
+ *
+ * Mapping rules (per OpenRouter docs):
+ * - `supported_efforts` populates the effort selector (already descending).
+ *   `null` = all gateway efforts accepted; omitted/empty = the model does not
+ *   expose effort selection → `undefined` (no thinking control).
+ * - `default_effort: "none"` (or `default_enabled: false`) = reasoning off by
+ *   default.
+ * - `mandatory: true` = the model rejects `effort: "none"`, so the disable
+ *   toggle is hidden (`toggleable: false`).
+ *
+ * `reasoning.effort` is sent for every level because OpenRouter translates it
+ * for both effort-native models and `max_tokens`-native models (Anthropic,
+ * Gemini thinking, Qwen), so no token-budget range is attached here — the
+ * unified `reasoning` object takes either `effort` or `max_tokens`, not both.
+ */
+export function openRouterReasoningCapability(
+  reasoning: OpenRouterReasoningMeta | null | undefined,
+): ThinkingCapability | undefined {
+  if (!reasoning || typeof reasoning !== 'object') return undefined;
+
+  const raw = reasoning.supported_efforts;
+  const listed = Array.isArray(raw)
+    ? raw.filter(isThinkingEffort)
+    : raw === null
+      ? [...OPENROUTER_GATEWAY_EFFORTS]
+      : [];
+  const effortValues = [...new Set(listed)];
+  if (effortValues.length === 0) return undefined;
+
+  const declaredDefault =
+    isThinkingEffort(reasoning.default_effort) &&
+    effortValues.includes(reasoning.default_effort)
+      ? reasoning.default_effort
+      : undefined;
+  const offByDefault = reasoning.default_enabled === false || declaredDefault === 'none';
+  const defaultEffort =
+    declaredDefault ??
+    (offByDefault && effortValues.includes('none')
+      ? 'none'
+      : effortValues.includes('medium')
+        ? 'medium'
+        : effortValues[0]);
+
+  return {
+    control: 'effort',
+    requestAdapter: 'openrouter',
+    effortValues,
+    defaultEffort,
+    defaultMode: offByDefault ? 'disabled' : 'enabled',
+    toggleable: effortValues.includes('none') && reasoning.mandatory !== true,
+    budgetAdjustable: true,
+    defaultEnabled: !offByDefault,
+  };
+}
+
 const anthropicManualBudgetByEffort: Partial<Record<ThinkingEffort, number>> = {
   low: 4096,
   medium: 10240,

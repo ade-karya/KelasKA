@@ -29,6 +29,29 @@ export interface FetchedModel {
   inputTokenLimit?: number;
   outputTokenLimit?: number;
   supportedGenerationMethods?: string[];
+  /**
+   * OpenRouter per-model reasoning descriptor (`GET /api/v1/models` → each
+   * entry's `reasoning` object, https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
+   * Absent for other providers.
+   */
+  reasoning?: OpenRouterReasoningMeta;
+  /** OpenRouter `context_length`. Absent for other providers. */
+  contextLength?: number;
+}
+
+/**
+ * OpenRouter per-model reasoning descriptor from `GET /api/v1/models`.
+ * - `supported_efforts`: effort selector values (descending). `null` = all
+ *   gateway efforts accepted; omitted = no effort selection exposed.
+ * - `default_effort: "none"` = reasoning off by default.
+ * - `mandatory: true` = cannot be disabled, never send `effort: "none"`.
+ */
+export interface OpenRouterReasoningMeta {
+  supported_efforts?: string[] | null;
+  default_effort?: string | null;
+  default_enabled?: boolean | null;
+  mandatory?: boolean | null;
+  supports_max_tokens?: boolean | null;
 }
 
 export interface FetchModelsOptions {
@@ -123,7 +146,13 @@ export function buildModelsUrlCandidates(
 }
 
 interface ModelsApiResponse {
-  data?: Array<{ id: string; owned_by?: string }>;
+  data?: Array<{
+    id: string;
+    owned_by?: string;
+    name?: string;
+    context_length?: number;
+    reasoning?: OpenRouterReasoningMeta;
+  }>;
   // Gemini-native list shape (GET /v1beta/models).
   models?: Array<{
     name?: string;
@@ -234,7 +263,13 @@ async function fetchGeminiModels(
     // Some proxies serve the OpenAI-compatible shape even under a Google host.
     if (Array.isArray(body.data)) {
       return body.data
-        .map((m) => ({ id: m.id, ownedBy: m.owned_by }))
+        .map((m) => ({
+          id: m.id,
+          ownedBy: m.owned_by,
+          displayName: m.name || undefined,
+          reasoning: m.reasoning,
+          contextLength: typeof m.context_length === 'number' ? m.context_length : undefined,
+        }))
         .sort((a, b) => a.id.localeCompare(b.id));
     }
 
@@ -320,7 +355,13 @@ export async function fetchModels(
     if (res.ok) {
       const body = (await res.json()) as ModelsApiResponse;
       return (body.data ?? [])
-        .map((m) => ({ id: m.id, ownedBy: m.owned_by }))
+        .map((m) => ({
+          id: m.id,
+          ownedBy: m.owned_by,
+          displayName: m.name || undefined,
+          reasoning: m.reasoning,
+          contextLength: typeof m.context_length === 'number' ? m.context_length : undefined,
+        }))
         .sort((a, b) => a.id.localeCompare(b.id));
     }
 

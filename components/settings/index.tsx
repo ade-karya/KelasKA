@@ -406,8 +406,9 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
   // (after the user changes base URL / API key) REPLACES the stale set instead
   // of accumulating dead ids. Catalog and manually-added models are preserved.
   // `modelInfoFromId(id, pid, details)` keeps built-in thinking capability (and
-  // for Gemini, guarantees a thinking-*level* control plus token limits) so the
-  // thinking control isn't silently hidden for fetched models.
+  // for Gemini, guarantees a thinking-*level* control plus token limits; for
+  // OpenRouter, builds an effort control from the probe's `reasoning`
+  // descriptor) so the thinking control isn't silently hidden for fetched models.
   const handleModelsFetched = (
     pid: ProviderId,
     fetched: Array<{ id: string } & ProbedModelDetails>,
@@ -423,6 +424,8 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
           thinking: m.thinking,
           inputTokenLimit: m.inputTokenLimit,
           outputTokenLimit: m.outputTokenLimit,
+          contextLength: m.contextLength,
+          reasoning: m.reasoning,
         }),
         source: 'probed' as const,
       }));

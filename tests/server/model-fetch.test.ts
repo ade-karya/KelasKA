@@ -178,4 +178,57 @@ describe('fetchModels', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(text).toHaveBeenCalledTimes(1);
   });
+
+  it('captures OpenRouter reasoning metadata, display names, and context lengths', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: 'google/gemini-3.5-flash',
+            name: 'Gemini 3.5 Flash',
+            context_length: 1048576,
+            reasoning: {
+              supported_efforts: ['high', 'medium', 'low', 'minimal'],
+              default_effort: 'medium',
+              default_enabled: true,
+            },
+          },
+          { id: 'openrouter/auto', name: 'Auto Router' },
+        ],
+      }),
+    } as unknown as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      fetchModels('https://openrouter.ai/api/v1', 'test-key', { providerId: 'openrouter' }),
+    ).resolves.toEqual([
+      {
+        id: 'google/gemini-3.5-flash',
+        ownedBy: undefined,
+        displayName: 'Gemini 3.5 Flash',
+        reasoning: {
+          supported_efforts: ['high', 'medium', 'low', 'minimal'],
+          default_effort: 'medium',
+          default_enabled: true,
+        },
+        contextLength: 1048576,
+      },
+      {
+        id: 'openrouter/auto',
+        ownedBy: undefined,
+        displayName: 'Auto Router',
+        reasoning: undefined,
+        contextLength: undefined,
+      },
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://openrouter.ai/api/v1/models',
+      expect.objectContaining({
+        method: 'GET',
+        headers: { Authorization: 'Bearer test-key' },
+      }),
+    );
+  });
 });
