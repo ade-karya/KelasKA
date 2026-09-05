@@ -1,10 +1,16 @@
 /**
- * Model-list fetching for OpenAI-compatible providers.
+ * Model-list fetching for OpenAI-compatible providers + Google Gemini.
  *
  * Ported from cc-switch `src-tauri/src/services/model_fetch.rs`. The core value
  * is `buildModelsUrlCandidates`: token-plan / aggregator base URLs come in many
  * shapes, so we generate an ordered candidate list (with an Anthropic-compat
  * suffix-strip fallback) and try each until one returns a model list.
+ *
+ * Gemini-native path (`GET /v1beta/models`, https://ai.google.dev/api/models):
+ * the OpenAI-compatible `{base}/v1/models` + `Bearer` shape does NOT apply —
+ * Gemini's default base URL already ends in `/v1beta`, authentication is
+ * `?key=` / `x-goog-api-key`, and the payload is `{ models: [...] }` with a
+ * `thinking` boolean per model plus pagination via `nextPageToken`.
  */
 
 import { fetchWithTimeout } from './fetch-with-timeout';
@@ -13,6 +19,23 @@ import { fetchWithTimeout } from './fetch-with-timeout';
 export interface FetchedModel {
   id: string;
   ownedBy?: string;
+  /** Gemini `displayName` (e.g. "Gemini 2.5 Flash"). Absent for OpenAI-compatible probes. */
+  displayName?: string;
+  /**
+   * Gemini `thinking` flag — whether the model supports thinking
+   * (https://ai.google.dev/api/models#Model). Absent for OpenAI-compatible probes.
+   */
+  thinking?: boolean;
+  inputTokenLimit?: number;
+  outputTokenLimit?: number;
+  supportedGenerationMethods?: string[];
+}
+
+export interface FetchModelsOptions {
+  modelsUrlOverride?: string;
+  /** When set (e.g. `'google'`), selects the Gemini-native list path. */
+  providerId?: string;
+  providerType?: string;
 }
 
 /**
@@ -101,6 +124,150 @@ export function buildModelsUrlCandidates(
 
 interface ModelsApiResponse {
   data?: Array<{ id: string; owned_by?: string }>;
+  // Gemini-native list shape (GET /v1beta/models).
+  models?: Array<{
+    name?: string;
+    baseModelId?: string;
+    version?: string;
+    displayName?: string;
+    description?: string;
+    inputTokenLimit?: number;
+    outputTokenLimit?: number;
+    supportedGenerationMethods?: string[];
+    thinking?: boolean;
+  }>;
+  nextPageToken?: string;
+  next_page_token?: string;
+}
+
+/** True when this probe should use the Gemini-native list path. */
+export function isGeminiModelsRequest(
+  baseUrl: string,
+  opts: FetchModelsOptions = {},
+): boolean {
+  if (opts.providerId === 'google' || opts.providerType === 'google') return true;
+  return /generativelanguage\.googleapis\.com/i.test(baseUrl);
+}
+
+/**
+ * Builds the Gemini-native list URL (`GET /v1beta/models`).
+ *
+ * Normalizes the many base-URL shapes callers use:
+ * - `https://generativelanguage.googleapis.com/v1beta` → `…/v1beta/models`
+ * - `https://generativelanguage.googleapis.com` → `…/v1beta/models`
+ * - `…/v1beta/openai` (OpenAI-compat override) → `…/v1beta/models`
+ * - already ending in `/models` → used as-is
+ */
+export function buildGeminiModelsUrl(
+  baseUrl: string,
+  opts: Pick<FetchModelsOptions, 'modelsUrlOverride'> = {},
+): string {
+  const override = opts.modelsUrlOverride?.trim();
+  if (override) return override;
+
+  const trimmed = baseUrl.trim().replace(/\/+$/, '');
+  if (!trimmed) throw new Error('Base URL is empty');
+
+  if (/\/models\/?$/.test(trimmed)) return trimmed;
+  if (trimmed.includes('/v1beta')) {
+    return `${trimmed.replace(/\/openai\/?$/, '')}/models`;
+  }
+  return `${trimmed}/v1beta/models`;
+}
+
+/** Strip the `models/` resource prefix; prefer `baseModelId` when present. */
+function geminiModelId(m: NonNullable<ModelsApiResponse['models']>[number]): string | null {
+  const base = m.baseModelId?.trim();
+  if (base) return base;
+  const name = m.name?.trim();
+  if (!name) return null;
+  if (name.startsWith('tunedModels/')) return null;
+  return name.startsWith('models/') ? name.slice('models/'.length) : name;
+}
+
+async function fetchGeminiModels(
+  baseUrl: string,
+  apiKey: string,
+  opts: FetchModelsOptions,
+): Promise<FetchedModel[]> {
+  const listUrl = buildGeminiModelsUrl(baseUrl, opts);
+  const out: FetchedModel[] = [];
+  let pageToken: string | undefined;
+  // The API caps at 1000/page; 100 keeps payloads small while paginating.
+  const MAX_PAGES = 10;
+
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const url = new URL(listUrl);
+    url.searchParams.set('pageSize', '100');
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+    // Direct Google auth is `?key=`; many proxies accept `x-goog-api-key`.
+    // Send both in one request so direct + proxied bases work without a retry.
+    if (apiKey && !url.searchParams.has('key')) url.searchParams.set('key', apiKey);
+
+    const res = await fetchWithTimeout(
+      url.toString(),
+      {
+        method: 'GET',
+        headers: apiKey ? { 'x-goog-api-key': apiKey } : {},
+        redirect: 'manual',
+      },
+      FETCH_TIMEOUT_MS,
+    );
+
+    if (res.status >= 300 && res.status < 400) {
+      throw new ModelFetchError(res.status, 'Redirects are not allowed');
+    }
+
+    if (!res.ok) {
+      // Wrong native path on a proxy → let the caller fall back to the
+      // OpenAI-compatible candidates instead of hard-failing (unless the
+      // caller pinned an explicit override URL, which must surface as 404).
+      if (res.status === 404 || res.status === 405) {
+        throw new ModelFetchError(404, `No Gemini /models endpoint at ${listUrl}`);
+      }
+      const text = await res.text().catch(() => '');
+      throw new ModelFetchError(res.status, `HTTP ${res.status}: ${text.slice(0, 512)}`);
+    }
+
+    const body = (await res.json()) as ModelsApiResponse;
+
+    // Some proxies serve the OpenAI-compatible shape even under a Google host.
+    if (Array.isArray(body.data)) {
+      return body.data
+        .map((m) => ({ id: m.id, ownedBy: m.owned_by }))
+        .sort((a, b) => a.id.localeCompare(b.id));
+    }
+
+    for (const m of body.models ?? []) {
+      const id = geminiModelId(m);
+      if (!id) continue;
+      // Keep only generative (chat) models — embedding/tts/image models expose
+      // other methods (e.g. `embedContent`) and are filtered here per the
+      // `supportedGenerationMethods` contract. Entries without the field
+      // (older proxies) are kept; the route's NON_CHAT_PATTERN still applies.
+      if (
+        Array.isArray(m.supportedGenerationMethods) &&
+        !m.supportedGenerationMethods.includes('generateContent')
+      ) {
+        continue;
+      }
+      out.push({
+        id,
+        ownedBy: m.version ? `v${m.version}` : undefined,
+        displayName: m.displayName || undefined,
+        thinking: typeof m.thinking === 'boolean' ? m.thinking : undefined,
+        inputTokenLimit: typeof m.inputTokenLimit === 'number' ? m.inputTokenLimit : undefined,
+        outputTokenLimit:
+          typeof m.outputTokenLimit === 'number' ? m.outputTokenLimit : undefined,
+        supportedGenerationMethods: m.supportedGenerationMethods,
+      });
+    }
+
+    pageToken = body.nextPageToken ?? body.next_page_token ?? undefined;
+    if (!pageToken) break;
+  }
+
+  return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 /**
@@ -108,14 +275,31 @@ interface ModelsApiResponse {
  * "wrong path" and moves on to the next candidate; any other non-2xx is returned
  * as an error immediately (e.g. 401 = bad key, surfaced to the caller verbatim).
  *
+ * Gemini-native bases (`providerId/Type === 'google'` or a
+ * `generativelanguage.googleapis.com` host) use `GET /v1beta/models`
+ * (auth via `?key=` + `x-goog-api-key`, paginated) and fall back to the
+ * OpenAI-compatible candidates only when the native path 404s (proxy without
+ * a native list endpoint).
+ *
  * Throws on network failure or when all candidates 404. The caller (probe route)
  * is responsible for SSRF validation of `baseUrl` before calling this.
  */
 export async function fetchModels(
   baseUrl: string,
   apiKey: string,
-  opts: { modelsUrlOverride?: string } = {},
+  opts: FetchModelsOptions = {},
 ): Promise<FetchedModel[]> {
+  if (isGeminiModelsRequest(baseUrl, opts)) {
+    try {
+      return await fetchGeminiModels(baseUrl, apiKey, opts);
+    } catch (error) {
+      // Native path missing on this host (proxy) → fall through to the
+      // OpenAI-compatible candidates below. Auth/redirect errors propagate.
+      if (!(error instanceof ModelFetchError && error.status === 404)) throw error;
+      if (opts.modelsUrlOverride) throw error;
+    }
+  }
+
   const candidates = buildModelsUrlCandidates(baseUrl, opts);
 
   for (const url of candidates) {

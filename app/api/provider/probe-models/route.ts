@@ -12,17 +12,22 @@ const NON_CHAT_PATTERN = /(tts|asr|whisper|embedding|rerank|mineru|image|video|v
 /**
  * POST /api/provider/probe-models
  *
- * Discovers the chat models a base URL + key exposes, via the OpenAI-compatible
- * /models endpoint (with multi-candidate fallback). Returns the lit-up list, or
- * a typed status so the UI can fall back to manual model entry.
+ * Discovers the chat models a base URL + key exposes. OpenAI-compatible
+ * providers use the `/models` endpoint (with multi-candidate fallback);
+ * Google Gemini uses the native `GET /v1beta/models` list method
+ * (https://ai.google.dev/api/models) with `?key=` / `x-goog-api-key` auth,
+ * pagination, and `generateContent` + `thinking` metadata. Returns the lit-up
+ * list, or a typed status so the UI can fall back to manual model entry.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { baseUrl, apiKey, modelsUrl } = body as {
+    const { baseUrl, apiKey, modelsUrl, providerId, providerType } = body as {
       baseUrl?: string;
       apiKey?: string;
       modelsUrl?: string;
+      providerId?: string;
+      providerType?: string;
     };
 
     if (!baseUrl) {
@@ -35,11 +40,22 @@ export async function POST(req: NextRequest) {
       if (ssrfError) return apiError('INVALID_REQUEST', 400, ssrfError);
     }
 
-    const models = await fetchModels(baseUrl, apiKey || '', { modelsUrlOverride: modelsUrl });
+    const models = await fetchModels(baseUrl, apiKey || '', {
+      modelsUrlOverride: modelsUrl,
+      providerId,
+      providerType,
+    });
     const chatModels = models.filter((m) => !NON_CHAT_PATTERN.test(m.id));
 
     return apiSuccess({
-      models: chatModels.map((m) => ({ id: m.id, ownedBy: m.ownedBy })),
+      models: chatModels.map((m) => ({
+        id: m.id,
+        ownedBy: m.ownedBy,
+        displayName: m.displayName,
+        thinking: m.thinking,
+        inputTokenLimit: m.inputTokenLimit,
+        outputTokenLimit: m.outputTokenLimit,
+      })),
       total: models.length,
       filtered: models.length - chatModels.length,
     });

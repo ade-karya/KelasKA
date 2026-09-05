@@ -1,9 +1,39 @@
-import type { ProviderId, ProviderType, ModelInfo } from '@/lib/types/provider';
+import type {
+  ProviderId,
+  ProviderType,
+  ModelInfo,
+  ThinkingCapability,
+} from '@/lib/types/provider';
 import type { ProviderSettings } from '@/lib/types/settings';
 import { getCatalogThinkingCapability } from '@/lib/ai/model-metadata';
 
 /** Heuristic: model ids matching this are treated as vision-capable. */
 const VISION_MODEL_PATTERN = /vision|vl|omni|4o|gpt-5|gemini|claude/i;
+
+/** Extra metadata a model probe may return (Gemini `GET /v1beta/models`). */
+export interface ProbedModelDetails {
+  displayName?: string;
+  thinking?: boolean;
+  inputTokenLimit?: number;
+  outputTokenLimit?: number;
+}
+
+/**
+ * Default thinking-level capability for Gemini models unknown to the catalog.
+ * Mirrors the Gemini 3 `thinkingLevel` contract (`minimal/low/medium/high`,
+ * https://ai.google.dev/api/models + thinking docs) so freshly fetched models
+ * always expose the level control instead of silently losing it.
+ */
+const DEFAULT_GEMINI_LEVEL_THINKING: ThinkingCapability = {
+  control: 'level',
+  requestAdapter: 'google',
+  levelValues: ['minimal', 'low', 'medium', 'high'],
+  defaultLevel: 'medium',
+  defaultMode: 'enabled',
+  toggleable: false,
+  budgetAdjustable: true,
+  defaultEnabled: true,
+};
 
 /**
  * Builds a default ModelInfo from a probed model id. Vision capability is
@@ -13,13 +43,32 @@ const VISION_MODEL_PATTERN = /vision|vl|omni|4o|gpt-5|gemini|claude/i;
  * When `providerId` is given, the built-in thinking capability for that
  * (provider, model) pair is overlaid — so a model that supports configurable
  * thinking keeps its `capabilities.thinking` instead of silently losing it
- * (which would hide InlineThinkingControl). Unknown pairs are unaffected.
+ * (which would hide InlineThinkingControl). Unknown pairs are unaffected,
+ * except Gemini (`google`): unless the list API explicitly reports
+ * `thinking: false`, a freshly fetched model gets the default thinking-*level*
+ * capability so the level selector is available immediately.
  */
-export function modelInfoFromId(id: string, providerId?: string): ModelInfo {
-  const thinking = providerId ? getCatalogThinkingCapability(providerId, id) : undefined;
+export function modelInfoFromId(
+  id: string,
+  providerId?: string,
+  details?: ProbedModelDetails,
+): ModelInfo {
+  const catalogThinking = providerId
+    ? getCatalogThinkingCapability(providerId, id)
+    : undefined;
+  // Gemini fallback: every fetched model that isn't explicitly non-thinking
+  // gets a thinking-*level* control (Gemini 3 `thinkingLevel`). Catalog entries
+  // (e.g. 2.5 budget variants) always win when present.
+  const thinking =
+    catalogThinking ??
+    (providerId === 'google' && details?.thinking !== false
+      ? DEFAULT_GEMINI_LEVEL_THINKING
+      : undefined);
   return {
     id,
-    name: id,
+    name: details?.displayName || id,
+    contextWindow: details?.inputTokenLimit,
+    outputWindow: details?.outputTokenLimit,
     capabilities: {
       streaming: true,
       tools: true,
