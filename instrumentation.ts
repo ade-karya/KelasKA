@@ -94,6 +94,8 @@ export async function register(): Promise<void> {
     return shutdownPromise;
   };
 
-  process.once('SIGTERM', () => void shutdown());
-  process.once('SIGINT', () => void shutdown());
+  // Imported dynamically so the Edge bundle never pulls in `process.once`
+  // (a Node.js API Turbopack flags as unsupported in the Edge Runtime).
+  const { installShutdownHooks } = await import('@/lib/server/shutdown-hooks');
+  installShutdownHooks(() => void shutdown());
 }

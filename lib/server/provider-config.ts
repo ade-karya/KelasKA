@@ -206,7 +206,12 @@ type YamlData = Partial<{
 
 function loadYamlFile(filename: string): YamlData {
   try {
-    const filePath = path.join(process.cwd(), filename);
+    // Statically unanalyzable by design (the filename is a parameter), so opt
+    // out of Turbopack's file-tracing here. Without this, NFT treats the read
+    // as "very dynamic", traces the whole project into every server route that
+    // imports this module, and warns about `next.config.ts` in the NFT list.
+    // The only production caller passes DEFAULT_FILENAME ('server-providers.yml').
+    const filePath = path.join(/*turbopackIgnore: true*/ process.cwd(), filename);
     if (!fs.existsSync(filePath)) return {};
     const raw = fs.readFileSync(filePath, 'utf-8');
     const parsed = yaml.load(raw) as Record<string, unknown> | null;

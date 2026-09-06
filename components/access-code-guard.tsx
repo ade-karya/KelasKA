@@ -45,7 +45,7 @@ export function AccessCodeGuard({ children }: { children: ReactNode }) {
           onSuccess={() => {
             setStatus((s) => ({ ...s, authenticated: true }));
             // ServerProvidersInit runs on mount, which on an ACCESS_CODE-gated
-            // deployment is before any access cookie exists: the middleware
+            // deployment is before any access cookie exists: the proxy
             // answers 401 and the store silently keeps its blank defaults.
             // Nothing re-fetches afterwards, so every server-configured
             // provider reads as unconfigured until a manual reload. Re-fetch

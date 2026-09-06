@@ -14,7 +14,7 @@ function bufToHex(buf: ArrayBuffer): string {
     .join('');
 }
 
-/** Verify an HMAC-signed token using Web Crypto API (Edge-compatible) */
+/** Verify an HMAC-signed token using Web Crypto API */
 async function verifyToken(token: string, accessCode: string): Promise<boolean> {
   const dotIndex = token.indexOf('.');
   if (dotIndex === -1) return false;
@@ -43,16 +43,13 @@ async function verifyToken(token: string, accessCode: string): Promise<boolean> 
   return mismatch === 0;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Return an actual server-side 404 when either half of the workbench is off.
-  // Edge middleware cannot reliably inspect server-only deployment variables,
-  // so it enforces the public gate and leaves the complete runtime/database
-  // check to Node. A Node-hosted middleware uses the same gate as startup.
-  const canInspectServerRuntime = process.env.NEXT_RUNTIME !== 'edge';
-  const workbenchEnabled =
-    isProWorkbenchEnabled() && (!canInspectServerRuntime || isAgentRuntimeConfigured());
+  // The proxy runs on the Node.js runtime (Next 16), so both the public flag
+  // and the server runtime/database gate are enforced here, matching startup.
+  const workbenchEnabled = isProWorkbenchEnabled() && isAgentRuntimeConfigured();
   if (!workbenchEnabled && (pathname === '/workbench' || pathname.startsWith('/workbench/'))) {
     return new NextResponse('Not found', { status: 404 });
   }
