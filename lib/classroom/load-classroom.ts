@@ -88,6 +88,13 @@ export interface RunClassroomLoadArgs<TMediaTasks = unknown> {
   restoreAgentSelection: typeof restoreAgentSelection;
   setError: (message: string) => void;
   setLoading: (loading: boolean) => void;
+  /**
+   * Fired once the document (stage+scenes) is in the store and safe to paint,
+   * BEFORE media/roster/agent-selection finish. Callers clear their spinner
+   * here for instant local paint; the final `setLoading(false)` stays as the
+   * terminal signal. Optional so existing callers/tests keep working.
+   */
+  onDocumentReady?: () => void;
   log: Logger;
 }
 
@@ -127,8 +134,20 @@ export async function runClassroomLoad<TMediaTasks = unknown>({
   restoreAgentSelection: restoreSelection,
   setError,
   setLoading,
+  onDocumentReady,
   log,
 }: RunClassroomLoadArgs<TMediaTasks>): Promise<void> {
+  let documentReadyFired = false;
+  const markDocumentReady = () => {
+    if (documentReadyFired || !isCurrent()) return;
+    if (getCurrentStage()?.id !== classroomId) return;
+    documentReadyFired = true;
+    try {
+      onDocumentReady?.();
+    } catch (error) {
+      log.warn('Classroom onDocumentReady threw:', error);
+    }
+  };
   try {
     await loadFromStorage(classroomId, loadToken);
     if (!isCurrent()) return;
@@ -158,6 +177,12 @@ export async function runClassroomLoad<TMediaTasks = unknown>({
     }
 
     if (!isCurrent()) return;
+    // Document-first paint: the stage+scenes are already in the store here,
+    // so let the caller drop its spinner immediately. Media/roster/agent work
+    // below continues in the same flow but no longer blocks first paint.
+    // A caller without onDocumentReady keeps the old behavior (spinner until
+    // the very end) — the terminal setLoading(false) still runs.
+    markDocumentReady();
     // Metadata-only on the critical path: the default loader defers object-URL
     // creation for non-priority blobs, so this await is a table read, not a
     // full media hydration (the rest hydrates in the background after apply).
@@ -244,7 +269,12 @@ export async function runClassroomLoad<TMediaTasks = unknown>({
   } catch (error) {
     log.error('Failed to load classroom:', error);
     if (isCurrent()) {
-      setError(error instanceof Error ? error.message : 'Failed to load classroom');
+      // Document-first paint already showed the classroom: a background-phase
+      // failure (media/roster) must not replace it with a full-page error.
+      // Only surface the error when there is still nothing to paint.
+      if (!documentReadyFired || getCurrentStage()?.id !== classroomId) {
+        setError(error instanceof Error ? error.message : 'Failed to load classroom');
+      }
     }
   } finally {
     if (isCurrent()) {

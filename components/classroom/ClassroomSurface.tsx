@@ -47,6 +47,7 @@ import {
   defaultClassroomLoadDeps,
   runClassroomLoad,
 } from '@/lib/classroom/load-classroom';
+import { isStageDeleted } from '@/lib/utils/deleted-stages';
 import {
   paneAvailabilityRetryDelay,
   shouldResumeClassroomGeneration,
@@ -77,7 +78,14 @@ export function ClassroomSurface({
     notFoundMessageRef.current = t('classroom.notFound');
   }, [t]);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    const s = useStageStore.getState();
+    return !(
+      s.stage?.id === classroomId &&
+      s.scenes.length > 0 &&
+      !isStageDeleted(classroomId)
+    );
+  });
   const [error, setError] = useState<string | null>(null);
   /**
    * The load resolved and no source has this course. A TERMINAL state, kept
@@ -129,6 +137,9 @@ export function ClassroomSurface({
           restoreAgentSelection: defaultClassroomLoadDeps.restoreAgentSelection,
           setError,
           setLoading,
+          onDocumentReady: () => {
+            if (isCurrent()) setLoading(false);
+          },
           log,
         });
         if (!isCurrent()) return 'cancelled';
@@ -159,10 +170,17 @@ export function ClassroomSurface({
   );
 
   useEffect(() => {
-    // Reset loading state on course switch to unmount Stage during transition,
-    // preventing stale data from syncing back to the new course
+    // Only unmount Stage + clear per-classroom caches on an actual switch.
+    // A remount of the SAME classroom keeps its warm store/tasks visible while
+    // the load revalidates in the background (stale-while-revalidate).
+    const isWarm = (() => {
+      const s = useStageStore.getState();
+      return (
+        s.stage?.id === classroomId && s.scenes.length > 0 && !isStageDeleted(classroomId)
+      );
+    })();
     /* eslint-disable react-hooks/set-state-in-effect -- Course switch must hide stale Stage before async load */
-    setLoading(true);
+    if (!isWarm) setLoading(true);
     setError(null);
     setNotFound(false);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -171,17 +189,20 @@ export function ClassroomSurface({
     // Clear previous classroom's media tasks to prevent cross-classroom contamination.
     // Placeholder IDs (gen_img_1, gen_vid_1) are NOT globally unique across stages,
     // so stale tasks from a previous classroom would shadow the new one's.
-    const mediaStore = useMediaGenerationStore.getState();
-    mediaStore.revokeObjectUrls();
-    useMediaGenerationStore.setState({ tasks: {} });
+    // Skipped for a warm remount of the same classroom to avoid flashing media away.
+    if (!isWarm) {
+      const mediaStore = useMediaGenerationStore.getState();
+      mediaStore.revokeObjectUrls();
+      useMediaGenerationStore.setState({ tasks: {} });
 
-    // Clear whiteboard history to prevent snapshots from a previous course leaking in.
-    useWhiteboardHistoryStore.getState().clearHistory();
+      // Clear whiteboard history to prevent snapshots from a previous course leaking in.
+      useWhiteboardHistoryStore.getState().clearHistory();
 
-    // Reset edit-time canvas selection/scale: the classroom load paths set
-    // mode:'playback' via raw setState (not setMode), so an unfinished Pro-mode
-    // session in the previous course wouldn't otherwise clear its canvas state.
-    useCanvasStore.getState().resetCanvasState();
+      // Reset edit-time canvas selection/scale: the classroom load paths set
+      // mode:'playback' via raw setState (not setMode), so an unfinished Pro-mode
+      // session in the previous course wouldn't otherwise clear its canvas state.
+      useCanvasStore.getState().resetCanvasState();
+    }
 
     let cancelled = false;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;

@@ -17,6 +17,7 @@ import { generateMediaForOutlines } from '@/lib/media/media-orchestrator';
 import { useAgentRegistry } from '@/lib/orchestration/registry/store';
 import { fetchStageMeta } from '@/lib/classroom/stage-meta-client';
 import { noteStageOwnership } from '@/lib/classroom/stage-ownership-signal';
+import { isStageDeleted } from '@/lib/utils/deleted-stages';
 import {
   applyClassroomStageAndScenes,
   defaultClassroomLoadDeps,
@@ -31,7 +32,17 @@ export default function ClassroomDetailPage() {
 
   const { loadFromStorage } = useStageStore();
 
-  const [loading, setLoading] = useState(true);
+  // Warm fast-path: the store may already hold this classroom (SPA navigation,
+  // remount, Back). Start painted instead of flashing "Loading classroom..."
+  // while IndexedDB/media revalidate in the background.
+  const [loading, setLoading] = useState(() => {
+    const s = useStageStore.getState();
+    return !(
+      s.stage?.id === classroomId &&
+      s.scenes.length > 0 &&
+      !isStageDeleted(classroomId)
+    );
+  });
   const [error, setError] = useState<string | null>(null);
 
   const generationStartedRef = useRef(false);
@@ -72,6 +83,11 @@ export default function ClassroomDetailPage() {
         restoreAgentSelection: defaultClassroomLoadDeps.restoreAgentSelection,
         setError,
         setLoading,
+        // Document-first paint: drop the spinner as soon as stage+scenes land,
+        // media/roster continue in the background (see load-classroom.ts).
+        onDocumentReady: () => {
+          if (isCurrent()) setLoading(false);
+        },
         log,
       });
 
@@ -110,10 +126,17 @@ export default function ClassroomDetailPage() {
   );
 
   useEffect(() => {
-    // Reset loading state on course switch to unmount Stage during transition,
-    // preventing stale data from syncing back to the new course
+    // Only unmount Stage + clear per-classroom caches on an actual switch.
+    // A remount of the SAME classroom keeps its warm store/tasks visible while
+    // the load revalidates in the background (stale-while-revalidate).
+    const isWarm = (() => {
+      const s = useStageStore.getState();
+      return (
+        s.stage?.id === classroomId && s.scenes.length > 0 && !isStageDeleted(classroomId)
+      );
+    })();
     /* eslint-disable react-hooks/set-state-in-effect -- Course switch must hide stale Stage before async load */
-    setLoading(true);
+    if (!isWarm) setLoading(true);
     setError(null);
     /* eslint-enable react-hooks/set-state-in-effect */
     generationStartedRef.current = false;
@@ -121,12 +144,15 @@ export default function ClassroomDetailPage() {
     // Clear previous classroom's media tasks to prevent cross-classroom contamination.
     // Placeholder IDs (gen_img_1, gen_vid_1) are NOT globally unique across stages,
     // so stale tasks from a previous classroom would shadow the new one's.
-    const mediaStore = useMediaGenerationStore.getState();
-    mediaStore.revokeObjectUrls();
-    useMediaGenerationStore.setState({ tasks: {} });
+    // Skipped for a warm remount of the same classroom to avoid flashing media away.
+    if (!isWarm) {
+      const mediaStore = useMediaGenerationStore.getState();
+      mediaStore.revokeObjectUrls();
+      useMediaGenerationStore.setState({ tasks: {} });
 
-    // Clear whiteboard history to prevent snapshots from a previous course leaking in.
-    useWhiteboardHistoryStore.getState().clearHistory();
+      // Clear whiteboard history to prevent snapshots from a previous course leaking in.
+      useWhiteboardHistoryStore.getState().clearHistory();
+    }
 
     let cancelled = false;
     loadClassroom(() => !cancelled);
