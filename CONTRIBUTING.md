@@ -24,7 +24,7 @@ To avoid duplicate effort, please **comment on an issue** to claim it before you
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) >= 22.19.0
+- [Node.js](https://nodejs.org/) >= 24
 - [pnpm](https://pnpm.io/) (latest)
 - A copy of `.env.local` — see [`.env.example`](.env.example) for reference
 

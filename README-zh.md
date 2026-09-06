@@ -92,7 +92,7 @@ https://github.com/user-attachments/assets/f4a2f1be-6615-4330-aea1-b86ccf42045e
 
 ### 环境要求
 
-- **Node.js** >= 22.19
+- **Node.js** >= 24
 - **pnpm** >= 10
 
 ### 1. 克隆 & 安装
@@ -322,7 +322,7 @@ docker build \
 ```
 
 这些参数不会加速 Docker Hub 拉取，包括 Dockerfile frontend 和
-`node:22-alpine` 基础镜像。若这些步骤较慢，需要单独配置 Docker daemon 的
+`node:24-alpine` 基础镜像。若这些步骤较慢，需要单独配置 Docker daemon 的
 registry mirror。同一个 BuildKit builder 会在常规缓存清理前跨构建复用 pnpm
 store；缓存只用于提升性能，不是正确完成构建的必要条件。
 

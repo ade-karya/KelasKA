@@ -53,7 +53,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - name: Package version bumps
@@ -200,7 +200,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           # render-service is its own npm package (own lockfile, Node-only deps),
           # excluded from the root eslint/tsc/pnpm workspace — so it gets its own
           # install + quality gate here rather than riding on the `check` job.
@@ -233,7 +233,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile

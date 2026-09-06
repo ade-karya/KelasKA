@@ -104,7 +104,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       # ci.yml is a separate workflow, so its copy of the version check cannot
@@ -261,7 +261,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
 
       - name: Download validated package tarballs
@@ -435,7 +435,7 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Write missing release markers
         env:

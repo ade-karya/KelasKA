@@ -2,3 +2,25 @@ packages:
   - "packages/*"
   - "packages/@openmaic/*"
   - "!packages/docs" # standalone docs sub-app: own lockfile, build, deploy
+
+# Postinstall policy (pnpm v10 blocks dependency scripts by default).
+# `false` = silently skip: none of these scripts are needed — they are
+# no-ops in this repo (alicloud select-version, msw, core-js/es5-ext/protobufjs
+# messages, genai preinstall echo), dev-only binaries (biome, esbuild via
+# optional deps, onnxruntime-node via dev-only hyperframes, canvas optional
+# peer), or telemetry (@scarf/scarf must stay off). Deciding each entry keeps
+# `pnpm install` free of the "Ignored build scripts" warning; anything new
+# with scripts will warn again by design (secure default). This is what
+# `pnpm approve-builds` would persist for all-rejected.
+allowBuilds:
+  '@alicloud/openapi-core': false
+  '@biomejs/biome': false
+  '@google/genai': false
+  '@scarf/scarf': false
+  canvas: false
+  core-js: false
+  es5-ext: false
+  esbuild: false
+  msw: false
+  onnxruntime-node: false
+  protobufjs: false

@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Stage 1: Base ----
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 
 ARG ALPINE_MIRROR=""
 ARG NPM_REGISTRY=""
@@ -79,7 +79,7 @@ COPY --from=deps /app/public/vendor ./public/vendor
 RUN pnpm build
 
 # ---- Stage 4: Runner ----
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 
 ARG ALPINE_MIRROR=""
 
