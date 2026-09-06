@@ -21,6 +21,8 @@ import {
   Moon,
   Monitor,
   ChevronUp,
+  CloudDownload,
+  CloudUpload,
   Upload,
   Sparkles,
   Atom,
@@ -70,6 +72,7 @@ import {
   type DeleteFolderMode,
 } from '@/lib/utils/stage-storage';
 import type { FolderRecord } from '@/lib/utils/database';
+import { downloadClassroomFromServer, uploadClassroomToServer } from '@/lib/classroom/server-sync';
 import { displayNameWidth, FOLDER_NAME_MAX_WIDTH } from '@/lib/utils/folder-name-validation';
 import { FolderCard } from '@/components/discovery/folder-card';
 import { NewFolderDialog } from '@/components/discovery/folder-dialogs';
@@ -233,6 +236,11 @@ function HomePage() {
   const [classrooms, setClassrooms] = useState<StageListItem[]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [pendingDownloadId, setPendingDownloadId] = useState<string | null>(null);
+  const [syncBusy, setSyncBusy] = useState<{
+    id: string;
+    direction: 'upload' | 'download';
+  } | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -364,6 +372,49 @@ function HomePage() {
     } catch (err) {
       log.error('Failed to delete classroom:', err);
       toast.error('Failed to delete classroom');
+    }
+  };
+
+  const syncErrorMessage = (err: unknown) =>
+    t('classroom.syncFailed', {
+      message: err instanceof Error ? err.message : String(err),
+    });
+
+  const handleUpload = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (syncBusy) return;
+    setSyncBusy({ id, direction: 'upload' });
+    try {
+      const result = await uploadClassroomToServer(id);
+      toast.success(t('classroom.uploadSucceeded', { scenes: result.scenes, chats: result.chats }));
+    } catch (err) {
+      log.error('Failed to upload classroom:', err);
+      toast.error(syncErrorMessage(err));
+    } finally {
+      setSyncBusy(null);
+    }
+  };
+
+  const handleDownloadRequest = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPendingDownloadId(id);
+  };
+
+  const confirmDownload = async (id: string) => {
+    setPendingDownloadId(null);
+    if (syncBusy) return;
+    setSyncBusy({ id, direction: 'download' });
+    try {
+      const result = await downloadClassroomFromServer(id);
+      toast.success(
+        t('classroom.downloadSucceeded', { scenes: result.scenes, chats: result.chats }),
+      );
+      await loadClassrooms();
+    } catch (err) {
+      log.error('Failed to download classroom:', err);
+      toast.error(syncErrorMessage(err));
+    } finally {
+      setSyncBusy(null);
     }
   };
 
@@ -1301,6 +1352,14 @@ function HomePage() {
                               confirmingDelete={pendingDeleteId === classroom.id}
                               onConfirmDelete={() => confirmDelete(classroom.id)}
                               onCancelDelete={() => setPendingDeleteId(null)}
+                              onUpload={handleUpload}
+                              onDownloadRequest={handleDownloadRequest}
+                              confirmingDownload={pendingDownloadId === classroom.id}
+                              onConfirmDownload={() => confirmDownload(classroom.id)}
+                              onCancelDownload={() => setPendingDownloadId(null)}
+                              syncBusyDirection={
+                                syncBusy?.id === classroom.id ? syncBusy.direction : undefined
+                              }
                               onClick={() => router.push(`/classroom/${classroom.id}`)}
                               overlay={
                                 <>
@@ -1648,6 +1707,12 @@ function ClassroomCard({
   confirmingDelete,
   onConfirmDelete,
   onCancelDelete,
+  onUpload,
+  onDownloadRequest,
+  confirmingDownload,
+  onConfirmDownload,
+  onCancelDownload,
+  syncBusyDirection,
   onClick,
 }: {
   classroom: StageListItem;
@@ -1660,6 +1725,12 @@ function ClassroomCard({
   confirmingDelete: boolean;
   onConfirmDelete: () => void;
   onCancelDelete: () => void;
+  onUpload: (id: string, e: React.MouseEvent) => void;
+  onDownloadRequest: (id: string, e: React.MouseEvent) => void;
+  confirmingDownload: boolean;
+  onConfirmDownload: () => void;
+  onCancelDownload: () => void;
+  syncBusyDirection?: 'upload' | 'download';
   onClick: () => void;
 }) {
   const { t } = useI18n();
@@ -1703,11 +1774,13 @@ function ClassroomCard({
     setEditing(false);
   };
 
+  const confirming = confirmingDelete || confirmingDownload;
+
   return (
     <div
       className="group cursor-pointer"
-      onClick={confirmingDelete ? undefined : onClick}
-      draggable={!confirmingDelete && !editing}
+      onClick={confirming ? undefined : onClick}
+      draggable={!confirming && !editing}
       onDragStart={(e) => {
         e.dataTransfer.setData('text/stage-id', classroom.id);
         e.dataTransfer.effectAllowed = 'move';
@@ -1768,9 +1841,9 @@ function ClassroomCard({
           </Tooltip>
         )}
 
-        {/* Delete — top-right, only on hover */}
+        {/* Hover actions — top-right, same row as delete/rename */}
         <AnimatePresence>
-          {!confirmingDelete && (
+          {!confirming && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1795,6 +1868,42 @@ function ClassroomCard({
                 onClick={startRename}
               >
                 <Pencil className="size-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                title={t('classroom.uploadToServer')}
+                aria-label={t('classroom.uploadToServer')}
+                disabled={syncBusyDirection !== undefined}
+                className="absolute top-2 right-29 size-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 hover:bg-black/50 text-white hover:text-white backdrop-blur-sm rounded-full disabled:opacity-60"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpload(classroom.id, e);
+                }}
+              >
+                {syncBusyDirection === 'upload' ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <CloudUpload className="size-3.5" />
+                )}
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                title={t('classroom.downloadFromServer')}
+                aria-label={t('classroom.downloadFromServer')}
+                disabled={syncBusyDirection !== undefined}
+                className="absolute top-2 right-38 size-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 hover:bg-black/50 text-white hover:text-white backdrop-blur-sm rounded-full disabled:opacity-60"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDownloadRequest(classroom.id, e);
+                }}
+              >
+                {syncBusyDirection === 'download' ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <CloudDownload className="size-3.5" />
+                )}
               </Button>
               {overlay}
             </motion.div>
@@ -1827,6 +1936,38 @@ function ClassroomCard({
                   onClick={onConfirmDelete}
                 >
                   {t('classroom.delete')}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Inline download confirmation overlay — downloading overwrites local */}
+        <AnimatePresence>
+          {confirmingDownload && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/50 backdrop-blur-[6px] px-4 text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="text-[13px] font-medium text-white/90">
+                {t('classroom.downloadConfirmTitle')}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  className="px-3.5 py-1 rounded-lg text-[12px] font-medium bg-white/15 text-white/80 hover:bg-white/25 backdrop-blur-sm transition-colors"
+                  onClick={onCancelDownload}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  className="px-3.5 py-1 rounded-lg text-[12px] font-medium bg-sky-500/90 text-white hover:bg-sky-500 transition-colors"
+                  onClick={onConfirmDownload}
+                >
+                  {t('classroom.download')}
                 </button>
               </div>
             </motion.div>

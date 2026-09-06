@@ -1008,7 +1008,14 @@
     "ungrouped": "Non classés",
     "notFound": "Cours introuvable",
     "notFoundDesc": "Ce cours n’existe pas ou a été supprimé.",
-    "backToHome": "Retour à l’accueil"
+    "backToHome": "Retour à l’accueil",
+    "uploadToServer": "Upload to Supabase",
+    "downloadFromServer": "Download from Supabase",
+    "downloadConfirmTitle": "Download from Supabase? This replaces the local version.",
+    "download": "Download",
+    "uploadSucceeded": "Uploaded to Supabase ({{scenes}} slides, {{chats}} chats)",
+    "downloadSucceeded": "Downloaded from Supabase ({{scenes}} slides, {{chats}} chats)",
+    "syncFailed": "Sync failed: {{message}}"
   },
   "upload": {
     "pdfSizeLimit": "Accepte les fichiers PDF jusqu’à 50 Mo",

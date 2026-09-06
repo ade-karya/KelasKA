@@ -1008,7 +1008,14 @@
     "deleteFolderConfirmRemove": "Папка и её курсы (включая историю чата) будут удалены.",
     "notFound": "Курс не найден",
     "notFoundDesc": "Этот курс не существует или был удалён.",
-    "backToHome": "На главную"
+    "backToHome": "На главную",
+    "uploadToServer": "Upload to Supabase",
+    "downloadFromServer": "Download from Supabase",
+    "downloadConfirmTitle": "Download from Supabase? This replaces the local version.",
+    "download": "Download",
+    "uploadSucceeded": "Uploaded to Supabase ({{scenes}} slides, {{chats}} chats)",
+    "downloadSucceeded": "Downloaded from Supabase ({{scenes}} slides, {{chats}} chats)",
+    "syncFailed": "Sync failed: {{message}}"
   },
   "upload": {
     "pdfSizeLimit": "Поддержка PDF до 50 МБ",

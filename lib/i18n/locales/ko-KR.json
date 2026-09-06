@@ -1008,7 +1008,14 @@
     "deleteFolderAndCourses_other": "폴더와 강의 {{count}}개 삭제",
     "notFound": "강의를 찾을 수 없습니다",
     "notFoundDesc": "해당 강의가 존재하지 않거나 이미 삭제되었습니다.",
-    "backToHome": "홈으로 돌아가기"
+    "backToHome": "홈으로 돌아가기",
+    "uploadToServer": "Upload to Supabase",
+    "downloadFromServer": "Download from Supabase",
+    "downloadConfirmTitle": "Download from Supabase? This replaces the local version.",
+    "download": "Download",
+    "uploadSucceeded": "Uploaded to Supabase ({{scenes}} slides, {{chats}} chats)",
+    "downloadSucceeded": "Downloaded from Supabase ({{scenes}} slides, {{chats}} chats)",
+    "syncFailed": "Sync failed: {{message}}"
   },
   "upload": {
     "pdfSizeLimit": "최대 50MB PDF 파일을 지원합니다",

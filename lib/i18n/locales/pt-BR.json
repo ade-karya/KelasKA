@@ -1008,7 +1008,14 @@
     "deleteFolderConfirmRemove": "Isto remove a pasta e seus cursos, incluindo o histórico de chat.",
     "notFound": "Curso não encontrado",
     "notFoundDesc": "Este curso não existe ou foi excluído.",
-    "backToHome": "Voltar ao início"
+    "backToHome": "Voltar ao início",
+    "uploadToServer": "Upload to Supabase",
+    "downloadFromServer": "Download from Supabase",
+    "downloadConfirmTitle": "Download from Supabase? This replaces the local version.",
+    "download": "Download",
+    "uploadSucceeded": "Uploaded to Supabase ({{scenes}} slides, {{chats}} chats)",
+    "downloadSucceeded": "Downloaded from Supabase ({{scenes}} slides, {{chats}} chats)",
+    "syncFailed": "Sync failed: {{message}}"
   },
   "upload": {
     "pdfSizeLimit": "Suporta arquivos PDF de até 50 MB",
