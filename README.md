@@ -872,7 +872,7 @@ Optional config in `~/.openclaw/openclaw.json`:
 - **Web Search** — Agents search the web for up-to-date information during class
 - **Provider controls** — Server-side capability discovery, model resolution, force-off switches, and fail-loud routing keep deployments explicit
 - **Course freshness** — Database-triggered per-scene revision counters, freshness events, and targeted scene fetches keep workbench views synchronized
-- **i18n** — Interface supports 12 locales across 11 languages: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, Russian, Arabic, Portuguese (Brazil), Spanish (Mexico), French, Vietnamese, and German
+- **i18n** — Interface supports 13 locales across 12 languages: Simplified Chinese, Traditional Chinese, English, Japanese, Korean, Russian, Arabic, Portuguese (Brazil), Spanish (Mexico), French, Vietnamese, German, and Indonesian
 - **Dark Mode** — Easy on the eyes for late-night study sessions
 
 ---
@@ -953,7 +953,7 @@ OpenMAIC/
 │   ├── server/agent-runtime/   #   Durable runner, skills, materials, and course-building tools
 │   ├── export/                 #   PPTX & HTML export
 │   ├── hooks/                  #   React custom hooks (55+)
-│   ├── i18n/                   #   Internationalization (zh-CN, zh-TW, en-US, ja-JP, ko-KR, ru-RU, ar-SA, pt-BR, es-MX, fr-FR, vi-VN, de-DE)
+│   ├── i18n/                   #   Internationalization (zh-CN, zh-TW, en-US, ja-JP, ko-KR, ru-RU, ar-SA, pt-BR, es-MX, fr-FR, vi-VN, de-DE, id-ID)
 │   └── ...                     #   prosemirror, storage, pdf, web-search, utils
 │
 ├── components/                 # React UI components

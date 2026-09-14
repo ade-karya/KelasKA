@@ -753,7 +753,7 @@ OpenMAIC/
 │   ├── media/                  #   图片 & 视频生成服务商
 │   ├── export/                 #   PPTX & HTML 导出
 │   ├── hooks/                  #   React 自定义 Hooks（55+）
-│   ├── i18n/                   #   国际化（zh-CN, zh-TW, en-US, ja-JP, ko-KR, ru-RU, ar-SA, pt-BR, es-MX, fr-FR, vi-VN, de-DE）
+│   ├── i18n/                   #   国际化（zh-CN, zh-TW, en-US, ja-JP, ko-KR, ru-RU, ar-SA, pt-BR, es-MX, fr-FR, vi-VN, de-DE, id-ID）
 │   └── ...                     #   prosemirror, storage, pdf, web-search, utils
 │
 ├── components/                 # React UI 组件

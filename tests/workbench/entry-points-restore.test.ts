@@ -182,6 +182,7 @@ describe('entry point 2 — the composer attach control', () => {
       'en-US': 'Attach material',
       'es-MX': 'Adjuntar material',
       'fr-FR': 'Joindre un support',
+      'id-ID': 'Lampirkan materi',
       'ja-JP': '教材を添付',
       'ko-KR': '자료 첨부',
       'pt-BR': 'Anexar material',
