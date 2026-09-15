@@ -112,18 +112,21 @@ function methodNotAllowed(): Response {
   );
 }
 
+type ApiHandlerFn = (
+  req: NextRequest,
+  ctx: { params: Promise<Record<string, string | string[]>> },
+) => Promise<Response> | Response;
+
 async function callHandler(
   req: NextRequest,
   method: string,
   mod: Record<string, unknown>,
   params: Record<string, string | string[]>,
 ): Promise<Response> {
-  let fn = mod[method] as
-    | ((req: NextRequest, ctx: { params: Promise<Record<string, string | string[]>> }) => Promise<Response> | Response)
-    | undefined;
+  let fn = mod[method] as ApiHandlerFn | undefined;
   // Next.js serves HEAD via GET when only GET exists.
   if (!fn && method === 'HEAD' && typeof mod.GET === 'function') {
-    fn = mod.GET as typeof fn;
+    fn = mod.GET as unknown as ApiHandlerFn;
   }
   if (!fn) return methodNotAllowed();
   return fn(req, { params: Promise.resolve(params) });
