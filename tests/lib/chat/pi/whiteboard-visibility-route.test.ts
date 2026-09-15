@@ -32,7 +32,7 @@ describe('whiteboard visibility callback route', () => {
       },
     });
     await vi.waitFor(() => expect(queryId).not.toBe(''));
-    const { POST } = await import('@/app/api/chat/pi/whiteboard-visibility/route');
+    const { POST } = await import('@/app/api/chat/pi/whiteboard-visibility/handler');
 
     expect(
       (

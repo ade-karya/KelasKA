@@ -22,7 +22,7 @@ vi.mock('@/lib/server/agent-runtime/owner-scoped-documents', () => ({
   getOwnerScopedDocumentStore: async () => mocks.fakeStore!.store,
 }));
 
-import { DELETE, GET, PATCH, PUT } from '@/app/api/stages/[id]/route';
+import { DELETE, GET, PATCH, PUT } from '@/app/api/stages/[id]/handler';
 
 const STAGE_ID = 'stage-1';
 

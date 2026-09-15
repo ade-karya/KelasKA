@@ -90,7 +90,7 @@ describe('scene API retry boundary', () => {
       return { elements: [], remark: 'ok' };
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(mockRequest());
     const body = await response.json();
 
@@ -113,7 +113,7 @@ describe('scene API retry boundary', () => {
       actions: [],
     });
 
-    const { POST } = await import('@/app/api/generate/scene-actions/route');
+    const { POST } = await import('@/app/api/generate/scene-actions/handler');
     const response = await POST(
       mockRequest({
         content: { elements: [], remark: 'ok' },
@@ -146,7 +146,7 @@ describe('scene API retry boundary', () => {
       };
     });
 
-    const { POST } = await import('@/app/api/generate/scene-actions/route');
+    const { POST } = await import('@/app/api/generate/scene-actions/handler');
     const response = await POST(
       mockRequest({
         outline: pblOutline,
@@ -188,7 +188,7 @@ describe('scene API retry boundary', () => {
     const damagedHybrid = structuredClone(legacyPBLSceneFixture.content);
     Reflect.set(damagedHybrid, 'projectV2', { title: 'broken' });
 
-    const { POST } = await import('@/app/api/generate/scene-actions/route');
+    const { POST } = await import('@/app/api/generate/scene-actions/handler');
     const response = await POST(
       mockRequest({
         outline: pblOutline,
@@ -226,7 +226,7 @@ describe('scene API retry boundary', () => {
     projectConfig.chat.messages = [];
     projectConfig.selectedRole = null;
 
-    const { POST } = await import('@/app/api/generate/scene-actions/route');
+    const { POST } = await import('@/app/api/generate/scene-actions/handler');
     const response = await POST(
       mockRequest({
         outline: pblOutline,
@@ -253,7 +253,7 @@ describe('scene API retry boundary', () => {
     });
     mocks.callLLM.mockRejectedValueOnce(unauthorized);
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(mockRequest());
     const body = await response.json();
 
@@ -274,7 +274,7 @@ describe('scene API retry boundary', () => {
     });
     mocks.callLLM.mockRejectedValueOnce(unavailable);
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(mockRequest());
     const body = await response.json();
 
@@ -297,7 +297,7 @@ describe('scene API retry boundary', () => {
       }),
     );
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(mockRequest({ outline: pblOutline, allOutlines: [pblOutline] }));
     const body = await response.json();
 
@@ -318,7 +318,7 @@ describe('scene API retry boundary', () => {
     });
     mocks.callLLM.mockRejectedValueOnce(unauthorized);
 
-    const { POST } = await import('@/app/api/generate/scene-actions/route');
+    const { POST } = await import('@/app/api/generate/scene-actions/handler');
     const response = await POST(mockRequest({ content: { elements: [], remark: 'ok' } }));
     const body = await response.json();
 
@@ -339,7 +339,7 @@ describe('scene API retry boundary', () => {
     });
     mocks.callLLM.mockRejectedValueOnce(unavailable);
 
-    const { POST } = await import('@/app/api/generate/scene-actions/route');
+    const { POST } = await import('@/app/api/generate/scene-actions/handler');
     const response = await POST(mockRequest({ content: { elements: [], remark: 'ok' } }));
     const body = await response.json();
 
@@ -361,5 +361,5 @@ function mockRequest(extraBody: Record<string, unknown> = {}) {
       stageInfo: { name: 'Retry Course' },
       ...extraBody,
     }),
-  } as unknown as Parameters<typeof import('@/app/api/generate/scene-content/route').POST>[0];
+  } as unknown as Parameters<typeof import('@/app/api/generate/scene-content/handler').POST>[0];
 }

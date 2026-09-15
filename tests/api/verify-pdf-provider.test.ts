@@ -30,7 +30,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 async function postVerifyPdfProvider(body: Record<string, unknown>) {
-  const { POST } = await import('@/app/api/verify-pdf-provider/route');
+  const { POST } = await import('@/app/api/verify-pdf-provider/handler');
   const request = new Request('http://localhost/api/verify-pdf-provider', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

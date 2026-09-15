@@ -57,7 +57,7 @@ describe('PBL v2 runtime routes forward MODEL_ROUTES stages', () => {
   });
 
   it('instructor route forwards its runtime stage', async () => {
-    const { POST } = await import('@/app/api/pbl/v2/instructor/route');
+    const { POST } = await import('@/app/api/pbl/v2/instructor/handler');
     await POST(makeRequest({ project: { id: 'p' }, userMessage: 'hi' }));
     expect(mocks.resolveModelFromRequest).toHaveBeenCalledWith(
       expect.anything(),
@@ -67,7 +67,7 @@ describe('PBL v2 runtime routes forward MODEL_ROUTES stages', () => {
   });
 
   it('evaluate route forwards its runtime stage', async () => {
-    const { POST } = await import('@/app/api/pbl/v2/evaluate/route');
+    const { POST } = await import('@/app/api/pbl/v2/evaluate/handler');
     await POST(makeRequest({ project: { id: 'p' }, kind: 'final' }));
     expect(mocks.resolveModelFromRequest).toHaveBeenCalledWith(
       expect.anything(),
@@ -77,7 +77,7 @@ describe('PBL v2 runtime routes forward MODEL_ROUTES stages', () => {
   });
 
   it('open-task route forwards its runtime stage', async () => {
-    const { POST } = await import('@/app/api/pbl/v2/open-task/route');
+    const { POST } = await import('@/app/api/pbl/v2/open-task/handler');
     await POST(makeRequest({ project: { id: 'p' }, phase: 'greeting' }));
     expect(mocks.resolveModelFromRequest).toHaveBeenCalledWith(
       expect.anything(),
@@ -87,7 +87,7 @@ describe('PBL v2 runtime routes forward MODEL_ROUTES stages', () => {
   });
 
   it('simulator route forwards its runtime stage', async () => {
-    const { POST } = await import('@/app/api/pbl/v2/simulator/route');
+    const { POST } = await import('@/app/api/pbl/v2/simulator/handler');
     await POST(makeRequest({ project: { id: 'p' }, userMessage: 'hi' }));
     expect(mocks.resolveModelFromRequest).toHaveBeenCalledWith(
       expect.anything(),

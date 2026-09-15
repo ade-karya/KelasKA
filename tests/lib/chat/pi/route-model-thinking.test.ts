@@ -126,7 +126,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
 
   it('returns 404 without invoking the runtime when the feature flag is disabled', async () => {
     delete process.env[PI_CHAT_FLAG];
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(makeBody()));
 
     expect(response.status).toBe(404);
@@ -142,7 +142,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
   it('returns 400 for a malformed agentIds value before resolving a model', async () => {
     const body = makeBody();
     body.config.agentIds = 'default-1' as never;
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(body));
 
     expect(response.status).toBe(400);
@@ -158,7 +158,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
   it('returns 400 when only some requested agent IDs resolve', async () => {
     const body = makeBody();
     body.config.agentIds.push('missing-agent');
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(body));
 
     expect(response.status).toBe(400);
@@ -171,7 +171,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
   });
 
   it('resolves through chat-adapter and passes the resolved thinking config into Pi runtime', async () => {
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(makeBody()));
     await response.text();
 
@@ -195,7 +195,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
 
   it('keeps ordinary Pi chat available but rejects references when their gate is disabled', async () => {
     process.env[COURSEWARE_REFERENCE_FLAG] = 'false';
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
 
     const ordinaryResponse = await POST(makeRequest(makeBody()));
     await ordinaryResponse.text();
@@ -243,7 +243,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
       },
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(body));
     await response.text();
 
@@ -283,7 +283,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
       },
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(body));
     await response.text();
 
@@ -326,7 +326,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
       },
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(body));
     await response.text();
 
@@ -382,7 +382,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
         },
       });
 
-      const { POST } = await import('@/app/api/chat/pi/route');
+      const { POST } = await import('@/app/api/chat/pi/handler');
       const response = await POST(makeRequest(body));
       await response.text();
 
@@ -420,7 +420,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
       },
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(body));
 
     expect(response.status).toBe(400);
@@ -458,7 +458,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
       },
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(body));
 
     expect(response.status).toBe(400);
@@ -538,7 +538,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
       },
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(body));
 
     expect(response.status).toBe(400);
@@ -563,7 +563,7 @@ describe('POST /api/chat/pi model and thinking resolution', () => {
       },
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest(body));
 
     expect(response.status).toBe(400);

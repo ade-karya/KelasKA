@@ -44,7 +44,7 @@ describe('scene-content vocational gate', () => {
       text: htmlForWidget('diagram'),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest(createProceduralSkillOutline(), { taskEngineMode: true }),
     );
@@ -65,7 +65,7 @@ describe('scene-content vocational gate', () => {
       text: htmlForWidget('diagram'),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(mockRequest(createProceduralSkillOutline()));
     const body = await response.json();
 
@@ -81,7 +81,7 @@ describe('scene-content vocational gate', () => {
       text: htmlForWidget('procedural-skill'),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest(createProceduralSkillOutline(), { taskEngineMode: true }),
     );
@@ -104,7 +104,7 @@ function mockRequest(outline: SceneOutline, requirements?: { taskEngineMode?: bo
       stageInfo: { name: 'Test Stage' },
       requirements,
     }),
-  } as unknown as Parameters<typeof import('@/app/api/generate/scene-content/route').POST>[0];
+  } as unknown as Parameters<typeof import('@/app/api/generate/scene-content/handler').POST>[0];
 }
 
 function createProceduralSkillOutline(): SceneOutline {

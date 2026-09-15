@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-import { POST } from '@/app/api/generate/voice/route';
+import { POST } from '@/app/api/generate/voice/handler';
 import { clearQwenVoiceRegistrationMemoForTests } from '@/lib/audio/qwen-voice-clone-registration';
 
 function request(referenceAudioBase64 = 'unused-when-voice-exists'): NextRequest {

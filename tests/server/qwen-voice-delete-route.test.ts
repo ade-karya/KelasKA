@@ -24,7 +24,7 @@ describe('Qwen voice deletion authorization', () => {
   it('is local-only when the provider uses a server-managed key', async () => {
     vi.stubEnv('TTS_QWEN_API_KEY', 'server-managed-key');
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const { POST } = await import('@/app/api/generate/voice/route');
+    const { POST } = await import('@/app/api/generate/voice/handler');
 
     const response = await POST(deleteRequest());
     expect(response.status).toBe(200);
@@ -42,7 +42,7 @@ describe('Qwen voice deletion authorization', () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response(JSON.stringify({ output: { voice: 'exported-vendor-id' } })));
-    const { POST } = await import('@/app/api/generate/voice/route');
+    const { POST } = await import('@/app/api/generate/voice/handler');
 
     const response = await POST(deleteRequest('caller-owned-key'));
     expect(response.status).toBe(200);

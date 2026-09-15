@@ -182,7 +182,7 @@ describe('task-engine outline route', () => {
       })(),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-outlines-stream/route');
+    const { POST } = await import('@/app/api/generate/scene-outlines-stream/handler');
     const response = await POST(
       mockRequest({
         requirement: 'NEV-A12 新能源车动力电池包更换前安全确认',
@@ -298,7 +298,7 @@ describe('task-engine outline route', () => {
       })(),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-outlines-stream/route');
+    const { POST } = await import('@/app/api/generate/scene-outlines-stream/handler');
     const response = await POST(
       mockRequest({
         requirement: 'Teach motion with interaction',
@@ -357,7 +357,7 @@ describe('task-engine outline route', () => {
       })(),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-outlines-stream/route');
+    const { POST } = await import('@/app/api/generate/scene-outlines-stream/handler');
     const response = await POST(
       mockRequest({
         requirement: 'Teach a process interactively',
@@ -422,7 +422,7 @@ describe('task-engine outline route', () => {
       })(),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-outlines-stream/route');
+    const { POST } = await import('@/app/api/generate/scene-outlines-stream/handler');
     const response = await POST(
       mockRequest({
         requirement: '生成一个情景模拟 PBL，练习安慰压力很大的朋友',
@@ -480,7 +480,7 @@ describe('task-engine outline route', () => {
       })(),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-outlines-stream/route');
+    const { POST } = await import('@/app/api/generate/scene-outlines-stream/handler');
     const response = await POST(
       mockRequest({
         requirement: 'Teach a topic',
@@ -529,7 +529,7 @@ describe('task-engine outline route', () => {
       })(),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-outlines-stream/route');
+    const { POST } = await import('@/app/api/generate/scene-outlines-stream/handler');
     const response = await POST(
       mockRequest({
         requirement: 'Explain the Pythagorean theorem',

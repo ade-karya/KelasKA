@@ -30,7 +30,7 @@ vi.mock('@/lib/server/agent-runtime/user-skills', () => ({
   UserSkillError: mocks.UserSkillError,
 }));
 
-import { DELETE, GET } from '@/app/api/agent/skills/[id]/route';
+import { DELETE, GET } from '@/app/api/agent/skills/[id]/handler';
 
 const request = () => new NextRequest('http://localhost/api/agent/skills/usk_1');
 const context = { params: Promise.resolve({ id: 'usk_1' }) };

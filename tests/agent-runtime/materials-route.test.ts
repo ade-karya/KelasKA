@@ -60,7 +60,7 @@ vi.mock('@/lib/persistence/owner-materials', async (importOriginal) => {
   };
 });
 
-import { GET, POST } from '@/app/api/materials/route';
+import { GET, POST } from '@/app/api/materials/handler';
 import { agentRuntimeConfig } from '@/lib/server/agent-runtime/config';
 
 const SESSION_ID = 'session-1';

@@ -76,7 +76,7 @@ describe('POST /api/classroom — DSL shape validation', () => {
   });
 
   it('rejects a body whose scenes is not an array with a 400 and never persists', async () => {
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
 
     const res = await POST(postClassroom({ stage, scenes: 'not-an-array' }));
     const json = await res.json();
@@ -91,7 +91,7 @@ describe('POST /api/classroom — DSL shape validation', () => {
   });
 
   it('rejects a scene that does not have the shape the DSL declares with a 400', async () => {
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
 
     const res = await POST(
       postClassroom({
@@ -112,7 +112,7 @@ describe('POST /api/classroom — DSL shape validation', () => {
   });
 
   it('rejects an unknown scene type with a 400', async () => {
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
 
     const res = await POST(
       postClassroom({
@@ -153,7 +153,7 @@ describe('POST /api/classroom — sanitization before persistence', () => {
   });
 
   it('persists sanitized element content: no handler survives, markup stays', async () => {
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
 
     const res = await POST(
       postClassroom({
@@ -221,7 +221,7 @@ describe('GET /api/classroom — legacy stored content is cleaned on the way out
       ],
     });
 
-    const { GET } = await import('@/app/api/classroom/route');
+    const { GET } = await import('@/app/api/classroom/handler');
     const request = new NextRequest('http://localhost/api/classroom?id=abc-123_XY');
     const res = await GET(request);
     const json = await res.json();

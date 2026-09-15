@@ -21,7 +21,7 @@ vi.mock('@/lib/server/agent-runtime/owner-scoped-documents', () => ({
   getOwnerScopedDocumentStore: async () => mocks.fakeStore!.store,
 }));
 
-import { GET, POST } from '@/app/api/stages/route';
+import { GET, POST } from '@/app/api/stages/handler';
 
 const now = 1_700_000_000_000;
 

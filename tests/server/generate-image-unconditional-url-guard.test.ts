@@ -66,7 +66,7 @@ describe('generate image — client-supplied base URL guard applies in every env
 
   it('rejects a private-network base URL when NODE_ENV is not production', async () => {
     vi.stubEnv('NODE_ENV', 'development');
-    const { POST } = await import('@/app/api/generate/image/route');
+    const { POST } = await import('@/app/api/generate/image/handler');
 
     const res = await POST(
       imageRequest({
@@ -86,7 +86,7 @@ describe('generate image — client-supplied base URL guard applies in every env
   it('still allows a private-network base URL when ALLOW_LOCAL_NETWORKS=true', async () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubEnv('ALLOW_LOCAL_NETWORKS', 'true');
-    const { POST } = await import('@/app/api/generate/image/route');
+    const { POST } = await import('@/app/api/generate/image/handler');
 
     const res = await POST(
       imageRequest({

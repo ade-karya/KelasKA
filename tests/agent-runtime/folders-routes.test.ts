@@ -19,9 +19,9 @@ vi.mock('@/lib/server/agent-runtime/owner-scoped-documents', () => ({
   getOwnerScopedDocumentStore: async () => mocks.fakeStore!.store,
 }));
 
-import { GET, POST } from '@/app/api/folders/route';
-import { DELETE, PATCH } from '@/app/api/folders/[id]/route';
-import { POST as postMembers } from '@/app/api/folders/members/route';
+import { GET, POST } from '@/app/api/folders/handler';
+import { DELETE, PATCH } from '@/app/api/folders/[id]/handler';
+import { POST as postMembers } from '@/app/api/folders/members/handler';
 
 function routeRequest(
   url: string,

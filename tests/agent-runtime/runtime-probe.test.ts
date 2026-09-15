@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 // `isAgentRuntimeEnabled()` predicates. The suite runs without `.env.local`
 // (see tests/setup-env.ts), so "no DATABASE_URL in the environment at all"
 // is the default state here.
-import { GET } from '@/app/api/agent/runtime/route';
+import { GET } from '@/app/api/agent/runtime/handler';
 
 const ENV_KEYS = ['OPENMAIC_AGENT_RUNTIME_ENABLED', 'DATABASE_URL'] as const;
 

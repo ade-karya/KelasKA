@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { proxyFetch } = vi.hoisted(() => ({ proxyFetch: vi.fn() }));
 vi.mock('@/lib/server/proxy-fetch', () => ({ proxyFetch }));
-import { GET } from '@/app/api/export-video/capability/route';
+import { GET } from '@/app/api/export-video/capability/handler';
 
 beforeEach(() => {
   vi.stubEnv('RENDER_SERVICE_URL', 'http://render-service:9000/');

@@ -40,7 +40,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 async function postTranscription(baseUrl: string) {
-  const { POST } = await import('@/app/api/transcription/route');
+  const { POST } = await import('@/app/api/transcription/handler');
   const formData = new FormData();
   formData.append('audio', new File([new Uint8Array([1, 2, 3])], 'clip.mp3'), 'clip.mp3');
   formData.append('providerId', 'openai');

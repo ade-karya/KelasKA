@@ -64,7 +64,7 @@ describe('scene-content route — asset-id image transport', () => {
       }),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest({
         outline: slideOutline(),
@@ -124,7 +124,7 @@ describe('scene-content route — asset-id image transport', () => {
       }),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest({
         outline: slideOutline(),
@@ -175,7 +175,7 @@ describe('scene-content route — asset-id image transport', () => {
       }),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest({
         outline: slideOutline(['img_1', 'img_2']),
@@ -242,7 +242,7 @@ describe('scene-content route — asset-id image transport', () => {
       }),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest({
         outline: slideOutline(['img_1', 'img_2']),
@@ -290,7 +290,7 @@ describe('scene-content route — asset-id image transport', () => {
       }),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest({
         outline: slideOutline(ids),
@@ -352,7 +352,7 @@ describe('scene-content route — asset-id image transport', () => {
     });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest({ outline: slideOutline(ids), pdfImages, imageMapping }),
     );
@@ -390,7 +390,7 @@ describe('scene-content route — asset-id image transport', () => {
     });
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const responsePromise = POST(
       mockRequest({ outline: slideOutline(ids), pdfImages, imageMapping }),
     );
@@ -433,7 +433,7 @@ describe('scene-content route — asset-id image transport', () => {
       }),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest({
         outline: slideOutline(['img_1', 'img_2']),
@@ -472,7 +472,7 @@ describe('scene-content route — asset-id image transport', () => {
       }),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-content/route');
+    const { POST } = await import('@/app/api/generate/scene-content/handler');
     const response = await POST(
       mockRequest({
         outline: slideOutline(ids),
@@ -526,7 +526,7 @@ function mockRequest(body: {
     headers: {
       get: () => null,
     },
-  } as unknown as Parameters<typeof import('@/app/api/generate/scene-content/route').POST>[0];
+  } as unknown as Parameters<typeof import('@/app/api/generate/scene-content/handler').POST>[0];
 }
 
 function slideOutline(suggestedImageIds: string[] = ['img_1']): SceneOutline {

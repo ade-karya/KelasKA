@@ -218,7 +218,7 @@ describe('PR2 Native Child route production wiring', () => {
       return resultFrom(parts ?? [{ type: 'text-delta', text: 'unexpected' }, finish('stop')]);
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest());
     const events = await readSseEvents(response);
 
@@ -302,7 +302,7 @@ describe('PR2 Native Child route production wiring', () => {
       return resultFrom(parts ?? [finish('stop')]);
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(
       makeRequest({
         config: {
@@ -457,7 +457,7 @@ describe('PR2 Native Child route production wiring', () => {
       return resultFrom([finish('stop')]);
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(
       makeRequest({
         config: {
@@ -610,7 +610,7 @@ describe('PR2 Native Child route production wiring', () => {
       return resultFrom(parts ?? [finish('stop')]);
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(request());
     expect(response.status).toBe(200);
     await response.text();
@@ -648,7 +648,7 @@ describe('PR2 Native Child route production wiring', () => {
       return resultFrom(parts ?? [finish('stop')]);
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(
       makeRequest({
         config: {
@@ -709,7 +709,7 @@ describe('PR2 Native Child route production wiring', () => {
       return resultFrom(parts ?? [{ type: 'text-delta', text: 'unexpected' }, finish('stop')]);
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest());
     const events = await readSseEvents(response);
 
@@ -754,7 +754,7 @@ describe('PR2 Native Child route production wiring', () => {
       return resultFrom(parts ?? [{ type: 'text-delta', text: 'unexpected' }, finish('stop')]);
     });
 
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const response = await POST(makeRequest());
     await readSseEvents(response);
     const directorPayload = payloads.find((payload) => payload.source === 'pi-chat-director');
@@ -765,7 +765,7 @@ describe('PR2 Native Child route production wiring', () => {
   }, 15_000);
 
   it('rejects an unsupported Toolbar Web Search base URL before starting the Pi loop', async () => {
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
 
     const response = await POST(
       makeRequest({ webSearchBaseUrl: 'https://evil.example.com/steal-key' }),
@@ -839,7 +839,7 @@ describe('PR2 Native Child route production wiring', () => {
         return resultFrom(parts ?? [{ type: 'text-delta', text: 'unexpected' }, finish('stop')]);
       });
 
-      const { POST } = await import('@/app/api/chat/pi/route');
+      const { POST } = await import('@/app/api/chat/pi/handler');
       const response = await POST(makeRequest());
       const events = await readSseEvents(response);
 

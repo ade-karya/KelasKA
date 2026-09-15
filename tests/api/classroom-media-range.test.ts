@@ -23,7 +23,7 @@ vi.mock('@/lib/logger', () => ({
   }),
 }));
 
-import { GET } from '@/app/api/classroom-media/[classroomId]/[...path]/route';
+import { GET } from '@/app/api/classroom-media/[classroomId]/[...path]/handler';
 import { CLASSROOMS_DIR } from '@/lib/server/classroom-storage';
 
 const CLASSROOM_ID = 'classroom-1';

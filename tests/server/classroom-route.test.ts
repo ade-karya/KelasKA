@@ -64,7 +64,7 @@ describe('POST /api/classroom — server-generated id', () => {
   });
 
   it('ignores a traversal-style stage id and persists under a server-generated id', async () => {
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
 
     const res = await POST(
       postClassroom({
@@ -88,7 +88,7 @@ describe('POST /api/classroom — server-generated id', () => {
   });
 
   it('accepts an omitted stage id and persists with a generated id', async () => {
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
 
     const res = await POST(
       postClassroom(
@@ -115,7 +115,7 @@ describe('POST /api/classroom — server-generated id', () => {
   });
 
   it('ignores an ordinary allowlisted client id and mints a different one', async () => {
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
 
     const res = await POST(
       postClassroom({ id: 'abc-123_XY', title: 'Lesson' }, [slideScene('abc-123_XY')]),

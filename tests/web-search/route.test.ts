@@ -34,7 +34,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 async function postWebSearch(body: Record<string, unknown>) {
-  const { POST } = await import('@/app/api/web-search/route');
+  const { POST } = await import('@/app/api/web-search/handler');
   const request = new Request('http://localhost/api/web-search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

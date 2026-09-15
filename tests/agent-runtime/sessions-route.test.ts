@@ -47,7 +47,7 @@ vi.mock('@/lib/server/agent-runtime/conversation-title-task', () => ({
   scheduleConversationTitle: mocks.scheduleConversationTitle,
 }));
 
-import { GET, POST } from '@/app/api/agent/sessions/route';
+import { GET, POST } from '@/app/api/agent/sessions/handler';
 import { MAX_SESSION_TEXT_LENGTH } from '@/lib/server/agent-runtime/limits';
 
 function post(body: unknown, headers?: HeadersInit) {

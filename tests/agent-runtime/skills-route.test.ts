@@ -23,7 +23,7 @@ vi.mock('@/lib/server/agent-runtime/user-skills', async () => {
   return { ...actual, createUserSkill: mocks.createUserSkill };
 });
 
-import { GET, POST } from '@/app/api/agent/skills/route';
+import { GET, POST } from '@/app/api/agent/skills/handler';
 
 const request = () => new NextRequest('http://localhost/api/agent/skills');
 

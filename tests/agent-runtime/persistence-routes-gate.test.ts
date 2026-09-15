@@ -73,26 +73,26 @@ vi.mock('@/lib/server/agent-runtime/session-materials', async (importOriginal) =
   };
 });
 
-import { GET as getStages, POST as postStages } from '@/app/api/stages/route';
+import { GET as getStages, POST as postStages } from '@/app/api/stages/handler';
 import {
   DELETE as deleteStage,
   GET as getStage,
   PATCH as patchStage,
   PUT as putStage,
-} from '@/app/api/stages/[id]/route';
-import { GET as getScenes } from '@/app/api/stages/[id]/scenes/route';
-import { GET as getManifest } from '@/app/api/stages/[id]/manifest/route';
-import { GET as getFreshness } from '@/app/api/stages/[id]/freshness/route';
-import { GET as getMaterials, POST as postMaterials } from '@/app/api/materials/route';
-import { GET as getMaterial } from '@/app/api/materials/[id]/route';
-import { GET as getFolders, POST as postFolders } from '@/app/api/folders/route';
-import { DELETE as deleteFolder, PATCH as patchFolder } from '@/app/api/folders/[id]/route';
-import { POST as postFolderMembers } from '@/app/api/folders/members/route';
-import { GET as getStageMeta } from '@/app/api/stage-meta/[stageId]/route';
-import { GET as getStageStatus } from '@/app/api/stages/[id]/status/route';
-import { POST as postGenerationComplete } from '@/app/api/stages/[id]/generation-complete/route';
-import { POST as postPublish } from '@/app/api/stages/[id]/publish/route';
-import { POST as postUnpublish } from '@/app/api/stages/[id]/unpublish/route';
+} from '@/app/api/stages/[id]/handler';
+import { GET as getScenes } from '@/app/api/stages/[id]/scenes/handler';
+import { GET as getManifest } from '@/app/api/stages/[id]/manifest/handler';
+import { GET as getFreshness } from '@/app/api/stages/[id]/freshness/handler';
+import { GET as getMaterials, POST as postMaterials } from '@/app/api/materials/handler';
+import { GET as getMaterial } from '@/app/api/materials/[id]/handler';
+import { GET as getFolders, POST as postFolders } from '@/app/api/folders/handler';
+import { DELETE as deleteFolder, PATCH as patchFolder } from '@/app/api/folders/[id]/handler';
+import { POST as postFolderMembers } from '@/app/api/folders/members/handler';
+import { GET as getStageMeta } from '@/app/api/stage-meta/[stageId]/handler';
+import { GET as getStageStatus } from '@/app/api/stages/[id]/status/handler';
+import { POST as postGenerationComplete } from '@/app/api/stages/[id]/generation-complete/handler';
+import { POST as postPublish } from '@/app/api/stages/[id]/publish/handler';
+import { POST as postUnpublish } from '@/app/api/stages/[id]/unpublish/handler';
 
 interface RouteCase {
   name: string;

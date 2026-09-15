@@ -70,7 +70,7 @@ describe('scene-outlines-stream route — standard branch prompt parity on a dro
       })(),
     });
 
-    const { POST } = await import('@/app/api/generate/scene-outlines-stream/route');
+    const { POST } = await import('@/app/api/generate/scene-outlines-stream/handler');
     const response = await POST(
       mockRequest({
         pdfImages: [
@@ -134,6 +134,6 @@ function mockRequest(body: {
       get: () => null,
     },
   } as unknown as Parameters<
-    typeof import('@/app/api/generate/scene-outlines-stream/route').POST
+    typeof import('@/app/api/generate/scene-outlines-stream/handler').POST
   >[0];
 }

@@ -17,7 +17,7 @@ vi.mock('@/lib/server/agent-runtime/store', () => ({
   getAgentSessionStore: async () => ({ listSessionsByOwner: mocks.listSessionsByOwner }),
 }));
 
-import { GET } from '@/app/api/agent/sessions/status/route';
+import { GET } from '@/app/api/agent/sessions/status/handler';
 
 beforeEach(() => {
   vi.clearAllMocks();

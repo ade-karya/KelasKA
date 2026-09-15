@@ -305,7 +305,7 @@ describe('PPT element reference Route → Director → real call_agent L2', () =
 
   it('grounds the Legacy Child through the full server orchestration chain', async () => {
     installAgentShell('Legacy grounded answer.');
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
 
     const response = await POST(makeRequest(makeBody()));
     const stream = await response.text();
@@ -325,7 +325,7 @@ describe('PPT element reference Route → Director → real call_agent L2', () =
     installAgentShell('unused legacy answer');
     const { isPiNativeChildRuntimeEnabled } = await import('@/lib/config/feature-flags');
     expect(isPiNativeChildRuntimeEnabled()).toBe(true);
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
 
     const response = await POST(makeRequest(makeBody()));
     const stream = await response.text();
@@ -344,7 +344,7 @@ describe('PPT element reference Route → Director → real call_agent L2', () =
       delegations: 2,
       failFirstLegacy: true,
     });
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
 
     const response = await POST(makeRequest(makeBody()));
     const stream = await response.text();
@@ -363,7 +363,7 @@ describe('PPT element reference Route → Director → real call_agent L2', () =
   it('shares request-scoped evidence with every Native Child delegation', async () => {
     process.env[nativeFlag] = 'true';
     installAgentShell('unused legacy answer', 'Native grounded answer.', { delegations: 2 });
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
 
     const response = await POST(makeRequest(makeBody()));
     const stream = await response.text();
@@ -388,7 +388,7 @@ describe('PPT element reference Route → Director → real call_agent L2', () =
       if (native) process.env[nativeFlag] = 'true';
       const answer = 'The slider source default is 45 degrees; current runtime state is unknown.';
       installAgentShell(answer, answer, { delegations: 2 });
-      const { POST } = await import('@/app/api/chat/pi/route');
+      const { POST } = await import('@/app/api/chat/pi/handler');
 
       const response = await POST(makeRequest(makeInteractiveBody()));
       const stream = await response.text();
@@ -415,7 +415,7 @@ describe('PPT element reference Route → Director → real call_agent L2', () =
 
   it('routes Chart series values through the Director summary and real Child evidence', async () => {
     installAgentShell('The values decrease from 180 to 88.');
-    const { POST } = await import('@/app/api/chat/pi/route');
+    const { POST } = await import('@/app/api/chat/pi/handler');
     const chart = {
       id: 'chart-1',
       type: 'chart',

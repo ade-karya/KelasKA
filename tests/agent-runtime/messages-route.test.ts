@@ -33,7 +33,7 @@ vi.mock('@/lib/server/agent-runtime/conversation-title-task', () => ({
   scheduleConversationTitle: mocks.scheduleConversationTitle,
 }));
 
-import { POST } from '@/app/api/agent/sessions/[id]/messages/route';
+import { POST } from '@/app/api/agent/sessions/[id]/messages/handler';
 import { MAX_SESSION_TEXT_LENGTH } from '@/lib/server/agent-runtime/limits';
 import { SessionMaterialBindingError } from '@/lib/server/agent-runtime/session-materials';
 

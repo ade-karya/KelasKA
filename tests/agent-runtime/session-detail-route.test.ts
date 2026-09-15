@@ -24,7 +24,7 @@ vi.mock('@/lib/server/agent-runtime/store', () => ({
   }),
 }));
 
-import { GET, PATCH } from '@/app/api/agent/sessions/[id]/route';
+import { GET, PATCH } from '@/app/api/agent/sessions/[id]/handler';
 
 function call() {
   return GET(new NextRequest('http://localhost/api/agent/sessions/session-1'), {

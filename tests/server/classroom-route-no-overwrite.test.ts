@@ -85,7 +85,7 @@ beforeEach(() => {
 
 describe('POST /api/classroom — create never overwrites', () => {
   it('leaves the incumbent classroom unchanged when a second POST carries its id', async () => {
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
 
     const first = await POST(makeRequest({ title: 'Original' }, [slideScene('client-a', 'a')]));
     const firstJson = (await first.json()) as { id: string };
@@ -266,7 +266,7 @@ describe('POST /api/classroom — create never overwrites', () => {
       .mockReturnValueOnce(collideId)
       .mockReturnValueOnce('freshid001');
 
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
     const res = await POST(makeRequest({ title: 'Newcomer' }, [slideScene('client-x', 'x')]));
     const json = (await res.json()) as { id: string };
 
@@ -287,7 +287,7 @@ describe('POST /api/classroom — create never overwrites', () => {
     );
     mocks.generateClassroomId.mockReturnValue(collideId);
 
-    const { POST } = await import('@/app/api/classroom/route');
+    const { POST } = await import('@/app/api/classroom/handler');
     const res = await POST(makeRequest({ title: 'Newcomer' }, [slideScene('client-y', 'y')]));
     const json = (await res.json()) as { success: boolean; error: string };
 

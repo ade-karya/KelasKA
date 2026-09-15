@@ -8,7 +8,7 @@ vi.mock('@/lib/audio/tts-providers', async (importOriginal) => {
   return { ...actual, generateTTS: mocks.generateTTS };
 });
 
-import { POST } from '@/app/api/generate/tts/route';
+import { POST } from '@/app/api/generate/tts/handler';
 import { QWEN_TTS_VOICE_CLONE_MODEL } from '@/lib/audio/constants';
 
 function request(voice: string, modelId: string, speed = 1.25): NextRequest {

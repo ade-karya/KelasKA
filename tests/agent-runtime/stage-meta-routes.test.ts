@@ -37,11 +37,11 @@ vi.mock('@/lib/persistence/server-provider', () => ({
   }),
 }));
 
-import { GET as getStageMeta } from '@/app/api/stage-meta/[stageId]/route';
-import { GET as getStatus } from '@/app/api/stages/[id]/status/route';
-import { POST as postGenerationComplete } from '@/app/api/stages/[id]/generation-complete/route';
-import { POST as postPublish } from '@/app/api/stages/[id]/publish/route';
-import { POST as postUnpublish } from '@/app/api/stages/[id]/unpublish/route';
+import { GET as getStageMeta } from '@/app/api/stage-meta/[stageId]/handler';
+import { GET as getStatus } from '@/app/api/stages/[id]/status/handler';
+import { POST as postGenerationComplete } from '@/app/api/stages/[id]/generation-complete/handler';
+import { POST as postPublish } from '@/app/api/stages/[id]/publish/handler';
+import { POST as postUnpublish } from '@/app/api/stages/[id]/unpublish/handler';
 
 const STAGE_ID = 'stage-1';
 const stageMetaParams = (stageId: string) => ({ params: Promise.resolve({ stageId }) });

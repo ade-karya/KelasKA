@@ -79,7 +79,7 @@ describe('POST /api/generate/tts missing-key contract (#665)', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('returns 400 MISSING_API_KEY for a keyed provider with no key (server or client)', async () => {
-    const { POST } = await import('@/app/api/generate/tts/route');
+    const { POST } = await import('@/app/api/generate/tts/handler');
     const res = await POST(ttsRequest({ ttsProviderId: 'openai-tts', ttsVoice: 'alloy' }));
     const json = await res.json();
 
@@ -95,7 +95,7 @@ describe('POST /api/generate/tts missing-key contract (#665)', () => {
     // Regression guard: before the pre-flight guard, the library threw
     // "API key required for TTS provider: ..." which the route's catch mapped
     // to 500 GENERATION_FAILED. The contract is now a client error.
-    const { POST } = await import('@/app/api/generate/tts/route');
+    const { POST } = await import('@/app/api/generate/tts/handler');
     const res = await POST(ttsRequest({ ttsProviderId: 'qwen-tts', ttsVoice: 'Cherry' }));
     const json = await res.json();
 
@@ -106,7 +106,7 @@ describe('POST /api/generate/tts missing-key contract (#665)', () => {
 
   it('uses a server-configured key (managed provider) so no client key is needed', async () => {
     yamlOverride = 'tts:\n  openai-tts:\n    apiKey: sk-server\n';
-    const { POST } = await import('@/app/api/generate/tts/route');
+    const { POST } = await import('@/app/api/generate/tts/handler');
     const res = await POST(ttsRequest({ ttsProviderId: 'openai-tts', ttsVoice: 'alloy' }));
 
     expect(res.status).toBe(200);
@@ -117,7 +117,7 @@ describe('POST /api/generate/tts missing-key contract (#665)', () => {
   });
 
   it('accepts a client-supplied key for an unmanaged keyed provider', async () => {
-    const { POST } = await import('@/app/api/generate/tts/route');
+    const { POST } = await import('@/app/api/generate/tts/handler');
     const res = await POST(
       ttsRequest({
         ttsProviderId: 'openai-tts',
@@ -137,7 +137,7 @@ describe('POST /api/generate/tts missing-key contract (#665)', () => {
     // The local base URL is the provider's credential path; the key guard must
     // not fire for a keyless provider (and localhost needs the self-host flag).
     vi.stubEnv('ALLOW_LOCAL_NETWORKS', 'true');
-    const { POST } = await import('@/app/api/generate/tts/route');
+    const { POST } = await import('@/app/api/generate/tts/handler');
     const res = await POST(
       ttsRequest({
         ttsProviderId: 'voxcpm-tts',
@@ -154,7 +154,7 @@ describe('POST /api/generate/tts missing-key contract (#665)', () => {
     // Only the missing-key case moved to 400; genuine downstream failures keep
     // the existing server-error contract.
     mocks.generateTTS.mockRejectedValueOnce(new Error('upstream exploded'));
-    const { POST } = await import('@/app/api/generate/tts/route');
+    const { POST } = await import('@/app/api/generate/tts/handler');
     const res = await POST(
       ttsRequest({
         ttsProviderId: 'openai-tts',

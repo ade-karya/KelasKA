@@ -17,7 +17,7 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 async function postProbeModels(body: Record<string, unknown>) {
-  const { POST } = await import('@/app/api/provider/probe-models/route');
+  const { POST } = await import('@/app/api/provider/probe-models/handler');
   const request = new Request('http://localhost/api/provider/probe-models', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

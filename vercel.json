@@ -4,7 +4,7 @@
   "installCommand": "pnpm install",
   "buildCommand": "pnpm build",
   "functions": {
-    "app/api/**/*.ts": {
+    "app/api/[[...path]]/route.ts": {
       "maxDuration": 300
     }
   }

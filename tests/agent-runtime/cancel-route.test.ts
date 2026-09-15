@@ -20,7 +20,7 @@ vi.mock('@/lib/server/agent-runtime/store', () => ({
   }),
 }));
 
-import { POST } from '@/app/api/agent/sessions/[id]/cancel/route';
+import { POST } from '@/app/api/agent/sessions/[id]/cancel/handler';
 
 function call() {
   return POST(new NextRequest('http://localhost/api/agent/sessions/session-1/cancel'), {

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { describe, expect, it, vi } from 'vitest';
-import { GET } from '@/app/api/usage/route';
+import { GET } from '@/app/api/usage/handler';
 import { readUsageRecords, type UsageRecord } from '@/lib/server/usage-storage';
 
 vi.mock('@/lib/server/usage-storage', async (importOriginal) => {

@@ -16,7 +16,7 @@ vi.mock('@/lib/server/resolve-model', () => ({
   }),
 }));
 
-import { POST } from '@/app/api/generate/agent-profiles/route';
+import { POST } from '@/app/api/generate/agent-profiles/handler';
 
 function makeRequest(extra: Record<string, unknown> = {}): NextRequest {
   return new NextRequest('http://localhost/api/generate/agent-profiles', {

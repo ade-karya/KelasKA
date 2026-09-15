@@ -26,7 +26,7 @@ vi.mock('@/lib/server/agent-runtime/session-materials', async (importOriginal) =
   };
 });
 
-import { GET } from '@/app/api/materials/[id]/route';
+import { GET } from '@/app/api/materials/[id]/handler';
 
 const SESSION_ID = 'session-1';
 const MATERIAL_ID = 'mat_00000000000000000000000000';

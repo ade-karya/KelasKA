@@ -249,7 +249,7 @@ describe('POST /api/generate/tts route handling of invalid responses (#1395)', (
 
   it('surfaces 502 TTS_INVALID_RESPONSE and never records billing usage on invalid response', async () => {
     const { NextRequest } = await import('next/server');
-    const { POST } = await import('@/app/api/generate/tts/route');
+    const { POST } = await import('@/app/api/generate/tts/handler');
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -286,7 +286,7 @@ describe('POST /api/generate/tts route handling of invalid responses (#1395)', (
 
   it('records billing usage only when audio generation succeeds (200)', async () => {
     const { NextRequest } = await import('next/server');
-    const { POST } = await import('@/app/api/generate/tts/route');
+    const { POST } = await import('@/app/api/generate/tts/handler');
 
     const audioData = wavBytes();
     mockFetch.mockResolvedValueOnce({
