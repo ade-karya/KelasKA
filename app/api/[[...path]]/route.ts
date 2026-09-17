@@ -18,7 +18,7 @@ import type { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 import * as accessCodeStatus from '@/app/api/access-code/status/handler';
 import * as accessCodeVerify from '@/app/api/access-code/verify/handler';
