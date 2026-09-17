@@ -44,7 +44,10 @@
     "ttsPreview": "Прослушать",
     "ttsPreviewing": "Воспроизведение...",
     "interactiveModeHint": "Включить интерактивный режим для более практического контента",
-    "interactiveModeLabel": "Интерактивный режим"
+    "interactiveModeLabel": "Интерактивный режим",
+    "vocationalTestBadge": "Тестовая функция",
+    "vocationalTask": "Профессиональное задание",
+    "vocationalTestHint": "Отправить практический тест из текущего ввода"
   },
   "export": {
     "pptx": "Экспорт PPTX",

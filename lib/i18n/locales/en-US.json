@@ -44,7 +44,10 @@
     "ttsPreview": "Preview",
     "ttsPreviewing": "Playing...",
     "interactiveModeHint": "Enable interactive-first mode for more hands-on content",
-    "interactiveModeLabel": "Interactive Mode"
+    "interactiveModeLabel": "Interactive Mode",
+    "vocationalTestBadge": "Test Feature",
+    "vocationalTask": "Vocational Task",
+    "vocationalTestHint": "Submit a vocational hands-on training test from the current input"
   },
   "export": {
     "pptx": "Export PPTX",

@@ -44,7 +44,10 @@
     "ttsPreview": "试听",
     "ttsPreviewing": "播放中...",
     "interactiveModeHint": "开启深度交互模式，生成更多互动内容",
-    "interactiveModeLabel": "深度交互"
+    "interactiveModeLabel": "深度交互",
+    "vocationalTestBadge": "测试功能",
+    "vocationalTask": "职教任务",
+    "vocationalTestHint": "从当前输入框提交职教实操训练测试"
   },
   "export": {
     "pptx": "导出 PPTX",

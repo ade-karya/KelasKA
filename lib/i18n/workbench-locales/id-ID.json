@@ -77,6 +77,7 @@
     "title": {
       "build-personal-skill": "Buat Skill pribadi",
       "curriculum-planner": "Perencanaan seri",
+      "zone-of-proximal-development": "Latihan Soal (Zona Perkembangan Proksimal)",
       "stage-dsl": "Struktur dokumen kelas",
       "deep-interactive": "Interaktif mendalam",
       "deep-research": "Riset mendalam",
@@ -95,7 +96,7 @@
       "stage-design": "Desain kelas",
       "style-clone": "Klon gaya deck",
       "teacher-style-clone": "Gaya guru",
-      "understanding-by-design": "Understanding by Design (UbD)",
+      "understanding-by-design": "Desain Berbasis Pemahaman (UbD)",
       "vocational": "Pelatihan vokasi",
       "workshop-style": "Lokakarya interaktif"
     }

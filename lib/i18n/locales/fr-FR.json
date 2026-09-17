@@ -44,7 +44,10 @@
     "ttsPreview": "Écouter",
     "ttsPreviewing": "Lecture…",
     "interactiveModeHint": "Activez le mode interactif pour obtenir un contenu plus pratique",
-    "interactiveModeLabel": "Mode interactif"
+    "interactiveModeLabel": "Mode interactif",
+    "vocationalTestBadge": "Fonction test",
+    "vocationalTask": "Tâche professionnelle",
+    "vocationalTestHint": "Soumettre un test pratique professionnel depuis la saisie actuelle"
   },
   "export": {
     "pptx": "Exporter en PPTX",

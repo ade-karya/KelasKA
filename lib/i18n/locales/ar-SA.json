@@ -44,7 +44,10 @@
     "ttsTitle": "تحويل النص إلى كلام",
     "ttsHint": "اختر صوتًا للمعلم الذكي",
     "ttsPreview": "معاينة",
-    "ttsPreviewing": "جارٍ التشغيل..."
+    "ttsPreviewing": "جارٍ التشغيل...",
+    "vocationalTestBadge": "ميزة تجريبية",
+    "vocationalTask": "مهمة مهنية",
+    "vocationalTestHint": "إرسال اختبار تدريب عملي مهني من الإدخال الحالي"
   },
   "export": {
     "pptx": "تصدير PPTX",

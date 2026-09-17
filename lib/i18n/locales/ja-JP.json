@@ -44,7 +44,10 @@
     "ttsPreview": "プレビュー",
     "ttsPreviewing": "再生中...",
     "interactiveModeHint": "インタラクティブ優先モードを有効にして、より実践的なコンテンツを生成",
-    "interactiveModeLabel": "インタラクティブモード"
+    "interactiveModeLabel": "インタラクティブモード",
+    "vocationalTestBadge": "テスト機能",
+    "vocationalTask": "職業タスク",
+    "vocationalTestHint": "現在の入力欄から職業実践トレーニングのテストを送信"
   },
   "export": {
     "pptx": "PPTXエクスポート",

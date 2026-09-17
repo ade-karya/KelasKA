@@ -44,7 +44,10 @@
     "ttsPreview": "Nghe thử",
     "ttsPreviewing": "Đang phát…",
     "interactiveModeHint": "Bật chế độ ưu tiên tương tác để có nhiều nội dung thực hành hơn",
-    "interactiveModeLabel": "Chế độ tương tác"
+    "interactiveModeLabel": "Chế độ tương tác",
+    "vocationalTestBadge": "Tính năng thử nghiệm",
+    "vocationalTask": "Nhiệm vụ nghề",
+    "vocationalTestHint": "Gửi bài kiểm tra thực hành nghề từ ô nhập hiện tại"
   },
   "export": {
     "pptx": "Xuất PPTX",

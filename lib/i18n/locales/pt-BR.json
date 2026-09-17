@@ -44,7 +44,10 @@
     "ttsPreview": "Pré-visualizar",
     "ttsPreviewing": "Reproduzindo...",
     "interactiveModeHint": "Ative o modo interativo para conteúdos mais práticos",
-    "interactiveModeLabel": "Modo Interativo"
+    "interactiveModeLabel": "Modo Interativo",
+    "vocationalTestBadge": "Função de teste",
+    "vocationalTask": "Tarefa vocacional",
+    "vocationalTestHint": "Enviar teste prático vocacional da entrada atual"
   },
   "export": {
     "pptx": "Exportar PPTX",

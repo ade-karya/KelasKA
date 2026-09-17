@@ -44,7 +44,10 @@
     "ttsPreview": "Pratinjau",
     "ttsPreviewing": "Memutar...",
     "interactiveModeHint": "Aktifkan mode interaktif-utama untuk konten yang lebih praktis",
-    "interactiveModeLabel": "Mode Interaktif"
+    "interactiveModeLabel": "Mode Interaktif",
+    "vocationalTestBadge": "Fitur Uji",
+    "vocationalTask": "Tugas Vokasi",
+    "vocationalTestHint": "Kirim uji pelatihan praktik vokasi dari kolom input saat ini"
   },
   "export": {
     "pptx": "Ekspor PPTX",
@@ -1011,6 +1014,8 @@
     "deleteFolderConfirmRemove": "Ini menghapus folder dan kursusnya, termasuk riwayat obrolan.",
     "notFound": "Kursus tidak ditemukan",
     "notFoundDesc": "Kursus ini tidak ada, atau telah dihapus.",
+    "loadUnavailable": "Kursus ini sementara tidak dapat dimuat",
+    "loadUnavailableDesc": "Tidak dapat mengambil kursus. Periksa akses Anda atau coba lagi.",
     "backToHome": "Kembali ke beranda"
   },
   "upload": {

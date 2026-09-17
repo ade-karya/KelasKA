@@ -44,7 +44,10 @@
     "ttsPreview": "Probar",
     "ttsPreviewing": "Reproduciendo...",
     "interactiveModeHint": "Activa el modo interactivo para obtener contenido más práctico",
-    "interactiveModeLabel": "Modo interactivo"
+    "interactiveModeLabel": "Modo interactivo",
+    "vocationalTestBadge": "Función de prueba",
+    "vocationalTask": "Tarea vocacional",
+    "vocationalTestHint": "Enviar prueba práctica vocacional desde la entrada actual"
   },
   "export": {
     "pptx": "Exportar PPTX",
