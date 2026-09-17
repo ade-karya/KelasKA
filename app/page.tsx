@@ -89,6 +89,7 @@ import {
 } from '@/lib/config/feature-flags';
 import { useImportPptx } from '@/lib/import/use-import-pptx';
 import { InteractiveModeButton } from '@/components/generation/interactive-mode-button';
+import { BrandLogo } from '@/components/brand-logo';
 import { ProBadge } from '@/components/workbench/ProBadge';
 import { arrivedByProSwap, startProSwap } from '@/lib/workbench/pro-swap';
 import {
@@ -830,11 +831,9 @@ function HomePage() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className={cn('relative z-20 w-full max-w-[800px] flex flex-col items-center mt-[10vh]')}
       >
-        {/* ── Logo ── */}
+        {/* ── Logo: Kemendikdasmen + DPRD Riau + Kelas KA ── */}
         <div className="relative" data-pro-morph="lockup">
-          <motion.img
-            src="/logo-horizontal.png"
-            alt="OpenMAIC"
+          <motion.div
             initial={heroEnter({ opacity: 0, scale: 0.9 })}
             animate={{ opacity: 1, scale: 1 }}
             transition={{
@@ -843,8 +842,10 @@ function HomePage() {
               stiffness: 200,
               damping: 20,
             }}
-            className="h-12 md:h-16 mb-2 -ml-2 md:-ml-3"
-          />
+            className="mb-2"
+          >
+            <BrandLogo size="lg" />
+          </motion.div>
           {workbenchEntryEnabled ? (
             <div
               className="absolute left-full top-0 ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]"
