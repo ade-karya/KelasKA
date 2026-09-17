@@ -32,6 +32,11 @@ export const metadata: Metadata = {
   title: 'Kelas KA',
   description:
     'Platform pembelajaran interaktif berbasis AI Kelas KA. Unggah PDF untuk menghasilkan pengalaman belajar imersif secara instan.',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
 };
 
 export default function RootLayout({
@@ -40,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning>
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}
         suppressHydrationWarning
