@@ -53,7 +53,7 @@
       "upload": "Unggah skill",
       "uploadZip": "Unggah arsip zip",
       "uploadFolder": "Unggah folder",
-      "officialDownload": "Skill resmi OpenMAIC",
+      "officialDownload": "Skill resmi KelasKA",
       "officialDownloadDesc": "SOP berpemandu agen: impor skill ini ke ruang kerja agen lain untuk mendapatkan pembuatan kelas Live Demo, deployment lokal, konfigurasi kunci, pembuatan kelas, dan pengembangan lanjutan.",
       "errNotZip": "Hanya arsip zip yang dapat diunggah",
       "errNoSkillMdZip": "Tidak ada SKILL.md dalam arsip",
