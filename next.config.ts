@@ -3,6 +3,10 @@ import type { NextConfig } from 'next';
 const isVercelBuild = Boolean(process.env.VERCEL);
 
 const nextConfig: NextConfig = {
+  // Dev-only origin allow-list: Next blocks hydration/HMR for hosts that do
+  // not match the server origin (127.0.0.1, tunnel publik, dsb). Tanpa ini
+  // halaman hanya menampilkan HTML SSR (hero opacity-0 = layar putih).
+  allowedDevOrigins: ['127.0.0.1', 'localhost', '*.trycloudflare.com', '*.lhr.life', '*.localhost.run', '*.loca.lt'],
   output: process.env.VERCEL ? undefined : 'standalone',
   outputFileTracingIncludes: {
     '/*': [

@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "engines": {
-    "node": ">=22.19.0 <25"
+    "node": ">=24.21.0 <25"
   },
   "scripts": {
     "postinstall": "cd packages/mathml2omml && npm run build && cd ../pptxgenjs && npm run build && cd ../@openmaic/dsl && pnpm run build && cd ../generation && pnpm run build && cd ../storage && pnpm run build && cd ../importer && pnpm run build && cd ../renderer && pnpm run build && cd ../editor && pnpm run build && cd ../../.. && node scripts/sync-maic-importer.mjs",
@@ -118,7 +118,7 @@
     "mitt": "^3.0.1",
     "motion": "^12.27.5",
     "nanoid": "5.1.16",
-    "next": "16.3.3",
+    "next": "16.3.5",
     "next-themes": "^0.4.6",
     "openai": "^4.104.0",
     "parse-srcset": "^1.0.2",
@@ -186,7 +186,7 @@
     "@types/sanitize-html": "^2.16.1",
     "@types/tinycolor2": "^1.4.6",
     "eslint": "^9",
-    "eslint-config-next": "16.2.11",
+    "eslint-config-next": "16.3.5",
     "fake-indexeddb": "^6.2.5",
     "fontkit": "2.0.4",
     "gsap": "^3.15.0",
