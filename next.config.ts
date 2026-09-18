@@ -28,6 +28,13 @@ const nextConfig: NextConfig = {
         : []),
     ],
   },
+  outputFileTracingExcludes: {
+    // The Turbopack warnings about "dynamic filesystem access causes tracing
+    // of the whole project" end here as whole `public/` payloads inside every
+    // server function. Static assets are served from the CDN, never read from
+    // the function bundle, so keep them (and sourcemaps) out of the trace.
+    '/*': ['public/vendor/**', 'public/**/*.map', '**/*.map'],
+  },
   typescript: {
     tsconfigPath: process.env.NODE_ENV === 'production' ? 'tsconfig.build.json' : 'tsconfig.json',
   },
@@ -53,7 +60,10 @@ const nextConfig: NextConfig = {
     '@vercel/blob',
   ],
   experimental: {
-    proxyClientMaxBodySize: '200mb',
+    // Vercel Functions reject request bodies above ~4.5 MB at the platform
+    // edge before the app runs, so a 200mb allowance there is misleading and
+    // only valid for self-hosted/Docker. Omit it on Vercel builds.
+    ...(!isVercelBuild ? { proxyClientMaxBodySize: '200mb' } : {}),
   },
   async headers() {
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();

@@ -581,7 +581,8 @@ export const NATIVE_READ_DEFAULT_LINE_LIMIT = 2000;
  */
 export async function readSkillFileText(skill: LoadedSkill): Promise<string> {
   if (skill.source === 'user') return skill.virtualFileContent ?? skill.content;
-  return readFile(skill.filePath, 'utf8');
+  // Skill-bounded read: keep the tracer from including the whole project.
+  return readFile(/*turbopackIgnore: true*/ skill.filePath, 'utf8');
 }
 
 /**
@@ -639,7 +640,8 @@ export function createNativeSkillReadTool(
       }
       const canonical = await assertAllowed(resolve(skillsDir, params.path));
       await access(canonical, constants.R_OK);
-      const text = await readFile(canonical, 'utf8');
+      // Skill-bounded read: keep the tracer from including the whole project.
+      const text = await readFile(/*turbopackIgnore: true*/ canonical, 'utf8');
       const lines = text.split(/\r?\n/);
       const offset = Math.max(1, Math.floor(params.offset ?? 1));
       const limit = Math.max(1, Math.floor(params.limit ?? NATIVE_READ_DEFAULT_LINE_LIMIT));

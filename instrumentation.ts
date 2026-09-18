@@ -112,6 +112,17 @@ export async function register(): Promise<void> {
     return shutdownPromise;
   };
 
-  process.once('SIGTERM', () => void shutdown());
-  process.once('SIGINT', () => void shutdown());
+  // Signal handlers are Node-only. Reach `process` through `globalThis` (and
+  // re-check the runtime) so the Edge bundle never statically binds the
+  // Node.js `process.once` API flagged in Vercel build warnings. By this
+  // point `register` has already returned early for non-nodejs runtimes, so
+  // this is strictly a bundler-visibility guard, not a behavior change.
+  const nodeProcess =
+    process.env.NEXT_RUNTIME === 'nodejs'
+      ? (globalThis as { process?: NodeJS.Process }).process
+      : undefined;
+  if (typeof nodeProcess?.once === 'function') {
+    nodeProcess.once('SIGTERM', () => void shutdown());
+    nodeProcess.once('SIGINT', () => void shutdown());
+  }
 }

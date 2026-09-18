@@ -209,7 +209,9 @@ type YamlData = Partial<{
 
 function loadYamlFile(filename: string): YamlData {
   try {
-    const filePath = path.join(process.cwd(), filename);
+    // Single config file next to the project root: never let the output
+    // tracer expand this into a whole-project include.
+    const filePath = path.join(/*turbopackIgnore: true*/ process.cwd(), filename);
     if (!fs.existsSync(filePath)) return {};
     const raw = fs.readFileSync(filePath, 'utf-8');
     const parsed = yaml.load(raw) as Record<string, unknown> | null;

@@ -179,7 +179,9 @@ export async function readUsageRecords(opts: ReadOptions = {}): Promise<UsageRec
   const dir = usageDir(opts.baseDir);
   let files: string[];
   try {
-    files = (await fs.readdir(dir)).filter((f) => f.endsWith('.jsonl'));
+    // Usage-log dir only: never let the output tracer expand this into a
+    // whole-project include (Vercel function size blowup).
+    files = (await fs.readdir(/*turbopackIgnore: true*/ dir)).filter((f) => f.endsWith('.jsonl'));
   } catch {
     return [];
   }
@@ -191,7 +193,7 @@ export async function readUsageRecords(opts: ReadOptions = {}): Promise<UsageRec
   for (const file of files.sort()) {
     let content: string;
     try {
-      content = await fs.readFile(path.join(dir, file), 'utf-8');
+      content = await fs.readFile(path.join(/*turbopackIgnore: true*/ dir, file), 'utf-8');
     } catch {
       continue;
     }
