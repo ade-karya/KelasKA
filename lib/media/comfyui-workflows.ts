@@ -78,13 +78,18 @@ export async function listComfyuiWorkflows(): Promise<ComfyuiWorkflowEntry[]> {
     try {
       const fs = await import('fs');
       const path = await import('path');
-      const publicDir = path.join(process.cwd(), 'public');
+      // Scoped to the workflow JSONs: without the ignore the tracer pulls
+      // the whole public/ dir into every server function (Vercel bloat).
+      // The committed workflow file is pinned via outputFileTracingIncludes.
+      const publicDir = path.join(/*turbopackIgnore: true*/ process.cwd(), 'public');
       if (!fs.existsSync(publicDir)) return [];
 
       return fs
-        .readdirSync(publicDir)
+        .readdirSync(/*turbopackIgnore: true*/ publicDir)
         .filter(
-          (f) => isComfyuiWorkflowFilename(f) && fs.statSync(path.join(publicDir, f)).isFile(),
+          (f) =>
+            isComfyuiWorkflowFilename(f) &&
+            fs.statSync(path.join(/*turbopackIgnore: true*/ publicDir, f)).isFile(),
         )
         .map((filename) => ({ id: filename, name: filenameToDisplayName(filename) }))
         .sort((a, b) => a.name.localeCompare(b.name));

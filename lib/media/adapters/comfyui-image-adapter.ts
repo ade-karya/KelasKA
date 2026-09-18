@@ -164,8 +164,11 @@ async function loadWorkflow(
       log.info(`No workflow specified — defaulting to first available: "${filename}"`);
     }
 
-    const publicDir = path.join(process.cwd(), 'public');
-    const filePath = path.join(publicDir, filename);
+    // Scoped to the single workflow file: without the ignore the tracer
+    // pulls the whole public/ dir into every server function (Vercel bloat).
+    // The committed workflow file is pinned via outputFileTracingIncludes.
+    const publicDir = path.join(/*turbopackIgnore: true*/ process.cwd(), 'public');
+    const filePath = path.join(/*turbopackIgnore: true*/ publicDir, filename);
 
     // Defense in depth: even after the allowlist check above, verify the
     // resolved path is still inside public/ before reading it. path.join

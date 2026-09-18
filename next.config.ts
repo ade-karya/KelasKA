@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
       'lib/server/agent-runtime/import-pptx-worker.mjs',
       'skills/openmaic/**',
       'skills/agent-runtime/**',
+      // The ComfyUI workflow lister/loader reads public/ through
+      // turbopackIgnore-scoped joins (see lib/media/comfyui-workflows.ts),
+      // so the tracer no longer sees it: pin the one committed workflow
+      // file explicitly instead of shipping all of public/ in functions.
+      'public/comfyui-workflow.json',
       // Loaded through a runtime-only `import('undici')` (see the LLM
       // dispatcher in lib/ai/providers.ts and the Google proxy transport), so
       // the output tracer never sees it and standalone builds ship without it.
