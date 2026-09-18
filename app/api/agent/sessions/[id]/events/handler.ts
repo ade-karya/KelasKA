@@ -37,6 +37,7 @@ import type { NextRequest } from 'next/server';
 import { HOST_AGENT_LIFECYCLE as LIFECYCLE } from '@/lib/agent-runtime/lifecycle';
 import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
 import { subscribeAgentEventWakeup } from '@/lib/server/agent-runtime/event-notify-bus';
+import { startRedisWakePoll } from '@/lib/server/agent-runtime/redis-wakeup';
 import { resolveRequestOwnerId } from '@/lib/server/agent-runtime/owner';
 import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
 
@@ -92,6 +93,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let unsubscribeWakeup: (() => void) | null = null;
+  // Redis fast-path poll (~1s) alongside LISTEN and the 5s PG fallback poll.
+  // Null when Redis is unconfigured; cleared on every close path with the
+  // other timers.
+  let redisWakeTimer: ReturnType<typeof setInterval> | null = null;
   // Hoisted so cancel() can stop an in-flight-then-scheduled poll, not just
   // the timer: after a client disconnect, `closed` makes every later poll a
   // no-op and `write` a dead end.
@@ -100,8 +105,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const clearTimers = () => {
     if (pollTimer) clearTimeout(pollTimer);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
+    if (redisWakeTimer) clearInterval(redisWakeTimer);
     pollTimer = null;
     heartbeatTimer = null;
+    redisWakeTimer = null;
     unsubscribeWakeup?.();
     unsubscribeWakeup = null;
   };
@@ -280,6 +287,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       // exhaustion cannot fall into the 5s fallback window. The callback is
       // removed on every stream close path together with both timers.
       unsubscribeWakeup = subscribeAgentEventWakeup({ kind: 'session', sessionId: id }, () => {
+        void requestPoll();
+      });
+      // Same serialized gate: a Redis wake just requests a poll, so a wake
+      // racing the LISTEN callback or the 5s timer coalesces instead of
+      // starting a second concurrent read.
+      redisWakeTimer = startRedisWakePoll({ kind: 'session', sessionId: id }, () => {
         void requestPoll();
       });
       await drainBacklog();

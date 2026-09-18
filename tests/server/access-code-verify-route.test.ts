@@ -21,10 +21,10 @@ const MAX_FAILURES = ATTEMPT_LIMIT_MAX_FAILURES;
 
 type VerifyPost = (request: Request) => Promise<Response>;
 
-/** Re-import the route so each test gets a fresh in-process limiter. */
+/** Re-import the handler so each test gets a fresh in-process limiter. */
 async function loadPost(): Promise<VerifyPost> {
   vi.resetModules();
-  const { POST } = await import('@/app/api/access-code/verify/route');
+  const { POST } = await import('@/app/api/access-code/verify/handler');
   return POST;
 }
 

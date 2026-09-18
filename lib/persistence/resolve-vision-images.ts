@@ -30,7 +30,7 @@
  * `resolveServerAsset` dependency chain is Node-only).
  */
 import { createLogger } from '@/lib/logger';
-import { MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES } from '@/lib/constants/generation';
+import { resolveExtractDocumentFileLimitBytes } from '@/lib/constants/generation';
 
 import { resolveServerAsset } from './resolve-server-asset';
 
@@ -72,7 +72,7 @@ export async function resolveVisionImagesForPrompt(
       resolution = await resolveServerAsset(
         image.src,
         headers,
-        MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES,
+        resolveExtractDocumentFileLimitBytes(),
       );
     } catch (error) {
       // A store failure must never surface raw error text to the caller; log

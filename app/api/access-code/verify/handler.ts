@@ -5,6 +5,10 @@ import { ACCESS_TOKEN_MAX_AGE_SECONDS } from '@/lib/server/access-token-shared';
 import { createAccessToken } from '@/lib/server/access-token';
 import { accessCodeAttemptLimiter } from '@/lib/server/attempt-limiter';
 import { clientIdentity, isTrustedProxyIdentity } from '@/lib/server/client-identity';
+import {
+  clearGlobalAccessCodeAttempt,
+  consumeGlobalAccessCodeAttempt,
+} from '@/lib/server/global-attempt-limiter';
 import { warnIfAccessCodeIsShort } from '@/lib/server/access-code-warning';
 
 /**
@@ -38,6 +42,21 @@ export async function POST(request: Request) {
     return response;
   }
 
+  // Global budget across instances for trusted identities: the local limiter
+  // above reserves per-process, so without this a deployment with N instances
+  // effectively allows N times the attempts. Runs after the local reservation
+  // (the Redis INCR serializes the distributed burst); untrusted callers skip
+  // it entirely and store nothing. Redis unavailable degrades to the local
+  // limiter alone.
+  if (trusted) {
+    const global = await consumeGlobalAccessCodeAttempt(identity);
+    if (global.limited) {
+      const response = apiError('RATE_LIMITED', 429, 'Too many access-code attempts');
+      response.headers.set('Retry-After', String(global.retryAfterSeconds));
+      return response;
+    }
+  }
+
   // The reservation (trusted identities only) is taken before the body is
   // parsed, so even a malformed body consumes a slot. That is intentional.
   let body: unknown;
@@ -65,6 +84,7 @@ export async function POST(request: Request) {
   // For a trusted per-client identity a success clears that client's history.
   // Untrusted callers stored nothing, so this is a no-op for them.
   accessCodeAttemptLimiter.recordSuccess(identity, trusted);
+  if (trusted) await clearGlobalAccessCodeAttempt(identity);
 
   const token = createAccessToken(accessCode);
   const cookieStore = await cookies();

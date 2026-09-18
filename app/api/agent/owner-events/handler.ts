@@ -12,6 +12,7 @@ import type { NextRequest } from 'next/server';
 
 import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
 import { subscribeAgentEventWakeup } from '@/lib/server/agent-runtime/event-notify-bus';
+import { startRedisWakePoll } from '@/lib/server/agent-runtime/redis-wakeup';
 import { resolveRequestOwnerId } from '@/lib/server/agent-runtime/owner';
 import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
 
@@ -57,13 +58,19 @@ export async function GET(req: NextRequest) {
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let unsubscribeWakeup: (() => void) | null = null;
+  // Redis fast-path poll (~1s) alongside LISTEN and the 30s PG fallback poll.
+  // Null when Redis is unconfigured; cleared on every close path with the
+  // other timers.
+  let redisWakeTimer: ReturnType<typeof setInterval> | null = null;
   let closed = false;
 
   const clearTimers = () => {
     if (pollTimer) clearTimeout(pollTimer);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
+    if (redisWakeTimer) clearInterval(redisWakeTimer);
     pollTimer = null;
     heartbeatTimer = null;
+    redisWakeTimer = null;
     unsubscribeWakeup?.();
     unsubscribeWakeup = null;
   };
@@ -303,6 +310,10 @@ export async function GET(req: NextRequest) {
       // exhaustion cannot fall into the 30s fallback window. The callback is
       // removed on every stream close path together with both timers.
       unsubscribeWakeup = subscribeAgentEventWakeup({ kind: 'owner', ownerId }, () => {
+        void requestPoll();
+      });
+      // Same serialized gate as above: a Redis wake just requests a poll.
+      redisWakeTimer = startRedisWakePoll({ kind: 'owner', ownerId }, () => {
         void requestPoll();
       });
       await drainBacklog();

@@ -19,6 +19,8 @@ import { Client, type Notification } from 'pg';
 
 import { createLogger } from '@/lib/logger';
 
+import { publishRedisWakeup } from './redis-wakeup';
+
 /** The minimal query surface a transaction handle must expose for pg_notify. */
 export interface NotifyQueryable {
   query<TRow extends Record<string, unknown> = Record<string, unknown>>(
@@ -424,4 +426,9 @@ export async function notifyDurableAgentEvent(
     return;
   }
   await db.query('SELECT pg_notify($1, $2)', [AGENT_EVENT_NOTIFY_CHANNEL, message]);
+  // Best-effort Redis wake for consumers without a LISTEN connection
+  // (PgBouncer-pooled databases, frozen serverless instances). Same lossy
+  // semantics as NOTIFY: fire-and-forget, coalesced, and never load-bearing —
+  // every stream keeps its fallback poll.
+  publishRedisWakeup(route);
 }

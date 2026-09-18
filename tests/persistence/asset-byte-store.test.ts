@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { PgAssetStore, ensureAssetSchema, type Queryable } from '@openmaic/storage/asset/pg';
 
-import { lazyAssetByteStore } from '@/lib/persistence/asset-byte-store';
+import { configuredBlobStore, lazyAssetByteStore } from '@/lib/persistence/asset-byte-store';
 
 /**
  * The registry's own duck-type predicate for a transaction-pinned byte writer
@@ -63,6 +63,25 @@ describe('lazyAssetByteStore transactional capability', () => {
     expect(typeof (wrapped as { signReadUrl?: unknown }).signReadUrl).toBe('function');
   });
 
+  it('keeps the Blob case free of transactional methods with a non-signing probe', () => {
+    vi.stubEnv('BLOB_STORE_ID', 'store_test123');
+    try {
+      const db = new PGlite();
+      const wrapped = lazyAssetByteStore(undefined, db);
+
+      // Same shape as S3 (bytes outside the registry database, no
+      // transaction-pinned methods); the signReadUrl probe stays a function
+      // on the wrapper but resolves to undefined because the Blob layer
+      // omits signing (private objects, direct egress).
+      expect(hasTransactionalWriter(wrapped)).toBe(false);
+      expect('readWith' in wrapped).toBe(false);
+      expect(wrapped.writesOutsideRegistryDatabase).toBe(true);
+      expect(typeof (wrapped as { signReadUrl?: unknown }).signReadUrl).toBe('function');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it('routes put() and resolve() byte traffic through the registry transaction when no bucket is configured', async () => {
     const db = new PGlite();
     await db.waitReady;
@@ -98,5 +117,48 @@ describe('lazyAssetByteStore transactional capability', () => {
     expect(statements.map((sql) => sql.split(' ')[0])).toEqual(['SELECT', 'SELECT', 'SELECT']);
     expect(statements[2]).toContain('SELECT bytes FROM asset_blobs');
     await db.close();
+  });
+});
+
+describe('configuredBlobStore selection', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('forces Blob with ASSET_STORE=blob even without Blob credentials', () => {
+    vi.stubEnv('ASSET_STORE', 'blob');
+    expect(configuredBlobStore()).toBe(true);
+  });
+
+  it.each(['s3', 'pg', 'postgres'])('forces non-Blob with ASSET_STORE=%s', (value) => {
+    vi.stubEnv('ASSET_STORE', value);
+    vi.stubEnv('BLOB_STORE_ID', 'store_test123');
+    vi.stubEnv('BLOB_READ_WRITE_TOKEN', 'token_test123');
+    expect(configuredBlobStore()).toBe(false);
+  });
+
+  it('auto-detects Blob from Vercel-injected variables', () => {
+    vi.stubEnv('BLOB_STORE_ID', 'store_test123');
+    expect(configuredBlobStore()).toBe(true);
+  });
+
+  it('auto-detects Blob from a read-write token alone', () => {
+    vi.stubEnv('BLOB_READ_WRITE_TOKEN', 'token_test123');
+    expect(configuredBlobStore()).toBe(true);
+  });
+
+  it('stays on S3/PostgreSQL without any Blob signal', () => {
+    expect(configuredBlobStore()).toBe(false);
+  });
+
+  it('warns and falls back to auto-detect on an unrecognized ASSET_STORE', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      vi.stubEnv('ASSET_STORE', 'gcs');
+      expect(configuredBlobStore()).toBe(false);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('ASSET_STORE'));
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

@@ -24,7 +24,7 @@ import {
 } from '@/lib/persistence/resolve-server-asset';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
-import { MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES } from '@/lib/constants/generation';
+import { resolveExtractDocumentFileLimitBytes } from '@/lib/constants/generation';
 
 // The asset-id path resolves bytes from the server asset store, which lives in
 // the PostgreSQL persistence backend; it needs the Node runtime, not the edge.
@@ -445,6 +445,7 @@ export async function POST(req: NextRequest) {
   let isAssetIdForm = false;
   try {
     const contentType = req.headers.get('content-type') || '';
+    const uploadLimit = resolveExtractDocumentFileLimitBytes();
     let source: ExtractSource;
     let requestConfig: ExtractRequestConfig;
 
@@ -478,12 +479,12 @@ export async function POST(req: NextRequest) {
           `Unsupported course material type for "${documentFile.name}"`,
         );
       }
-      if (documentFile.size > MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES) {
+      if (documentFile.size > uploadLimit) {
         return apiError(
           'INVALID_REQUEST',
           413,
-          `Course material file is too large. Maximum size is ${Math.floor(
-            MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES / 1024 / 1024,
+          `Course material file is too large. Maximum size is ${Math.round(
+            uploadLimit / 1024 / 1024,
           )}MB.`,
         );
       }
@@ -533,7 +534,7 @@ export async function POST(req: NextRequest) {
         resolution = await resolveServerAsset(
           body.assetId,
           req.headers,
-          MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES,
+          uploadLimit,
         );
       } catch (error) {
         // A failure from the server asset store (DB outage, registry failure)
@@ -573,8 +574,8 @@ export async function POST(req: NextRequest) {
         return apiError(
           'INVALID_REQUEST',
           413,
-          `Course material file is too large. Maximum size is ${Math.floor(
-            MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES / 1024 / 1024,
+          `Course material file is too large. Maximum size is ${Math.round(
+            uploadLimit / 1024 / 1024,
           )}MB.`,
         );
       }
@@ -599,12 +600,12 @@ export async function POST(req: NextRequest) {
       // `validateJsonPathProvider`); multipart keeps its behavior exactly.
       const providerValidationError = validateJsonPathProvider(body.providerId, mimeType);
       if (providerValidationError) return providerValidationError;
-      if (resolution.buffer.length > MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES) {
+      if (resolution.buffer.length > uploadLimit) {
         return apiError(
           'INVALID_REQUEST',
           413,
-          `Course material file is too large. Maximum size is ${Math.floor(
-            MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES / 1024 / 1024,
+          `Course material file is too large. Maximum size is ${Math.round(
+            uploadLimit / 1024 / 1024,
           )}MB.`,
         );
       }

@@ -4,21 +4,22 @@
  * Shared rather than owned by the persistence route, because the offline
  * collector must reclaim through the *same* byte layer the route wrote
  * through. A collector holding a PostgreSQL byte store while the route writes
- * to S3 would drop the blob row and leave the object behind forever, which is
+ * to Blob would drop the blob row and leave the object behind forever, which is
  * the leak the collector exists to close.
  */
 import { PgAssetByteStore } from '@openmaic/storage/asset/pg-bytes';
 import type { AssetByteStore, Queryable } from '@openmaic/storage/asset/pg';
 
 // Tracing anchors for the standalone build. The store implementations below
-// reach both packages through deliberately untraced dynamic imports (they
+// reach their SDKs through deliberately untraced dynamic imports (they
 // are optional peers of the storage package), so without a literal reference
 // here the shipped image cannot resolve them. The thunks are never called:
-// module resolution still happens only on first S3 use, and both packages
+// module resolution still happens only on first Blob/S3 use, and the packages
 // are server-external, so nothing is bundled either.
 const _assetSdkTraceAnchors = {
   client: () => import('@aws-sdk/client-s3'),
   presigner: () => import('@aws-sdk/s3-request-presigner'),
+  blob: () => import('@vercel/blob'),
 };
 void _assetSdkTraceAnchors;
 
@@ -37,6 +38,33 @@ interface PgForwardedByteStore extends AssetByteStore {
   writeWith: PgAssetByteStore['writeWith'];
   readWith: PgAssetByteStore['readWith'];
   deleteWith: PgAssetByteStore['deleteWith'];
+}
+
+/**
+ * Whether asset bytes go to Vercel Blob instead of S3/PostgreSQL.
+ *
+ * Selection is explicit first, automatic second:
+ * - `ASSET_STORE=blob` forces Blob; `ASSET_STORE=s3` or `ASSET_STORE=pg`
+ *   forces that layer (the S3 branch still needs a valid `ASSET_S3_BUCKET`).
+ * - Unset (or any other value, with a warning), the presence of the
+ *   Vercel-injected `BLOB_STORE_ID` or a `BLOB_READ_WRITE_TOKEN` opts in:
+ *   connecting a Blob store to the project is itself the intent signal, and
+ *   it keeps Hobby deployments working with zero extra configuration.
+ *
+ * Precedence when several layers are configured: Blob > S3 > PostgreSQL, with
+ * a warning when Blob wins over an explicitly set `ASSET_S3_BUCKET` so the
+ * shadowing is never silent.
+ */
+export function configuredBlobStore(): boolean {
+  const explicit = process.env.ASSET_STORE?.trim().toLowerCase();
+  if (explicit === 'blob') return true;
+  if (explicit === 's3' || explicit === 'pg' || explicit === 'postgres') return false;
+  if (explicit) {
+    console.warn(
+      `ASSET_STORE=${process.env.ASSET_STORE} is not recognized; using automatic byte-layer selection`,
+    );
+  }
+  return Boolean(process.env.BLOB_STORE_ID?.trim() || process.env.BLOB_READ_WRITE_TOKEN?.trim());
 }
 
 /**
@@ -68,17 +96,28 @@ export function configuredS3Bucket(value: string | undefined): string | undefine
 }
 
 /**
- * The byte store for a configured bucket, or the PostgreSQL byte layer.
+ * The byte store for the configured layer: Vercel Blob, a configured S3
+ * bucket, or the PostgreSQL byte layer.
  *
- * This is the only optional import path. The storage package owns both the SDK
+ * This is the only optional import path. Each storage backend owns its SDK
  * dependency and its ignored native import, so resolution happens from the
- * package that declares the peer rather than from this app — and only when a
- * bucket is actually configured.
+ * package that declares the peer rather than from this app — and only when
+ * that backend is actually selected.
  */
 export async function createAssetByteStore(
   bucket: string | undefined,
   queryable: Queryable,
 ): Promise<AssetByteStore> {
+  if (configuredBlobStore()) {
+    if (bucket) {
+      console.warn(
+        'Both Vercel Blob and ASSET_S3_BUCKET are configured; Blob takes precedence and the S3 bucket is ignored. ' +
+          'Set ASSET_STORE=s3 to use S3, or unset the Blob variables to silence this warning.',
+      );
+    }
+    const storage = await import('@openmaic/storage/asset/blob-bytes');
+    return storage.loadBlobAssetByteStore();
+  }
   if (!bucket) return new PgAssetByteStore(queryable);
   const storage = await import('@openmaic/storage/asset/s3-bytes');
   return storage.loadS3AssetByteStore(bucket);
@@ -89,9 +128,9 @@ export async function createAssetByteStore(
  *
  * The asset backend is optional, so its configuration must not gate the rest
  * of persistence. Awaiting createAssetByteStore during handler initialization
- * would let an invalid ASSET_S3_BUCKET, or an AWS SDK that cannot be resolved,
- * reject the shared handler and take document and runtime traffic down with
- * it. With this wrapper, installed instead, handler initialization never
+ * would let an invalid ASSET_S3_BUCKET, or an AWS/Blob SDK that cannot be
+ * resolved, reject the shared handler and take document and runtime traffic
+ * down with it. With this wrapper, installed instead, handler initialization never
  * touches asset configuration: a misconfiguration fails asset requests and
  * only asset requests. A failed construction is not cached, so the next asset
  * request retries — the same no-poisoned-singleton rule the route applies to
@@ -118,9 +157,10 @@ export function lazyAssetByteStore(
   // anyway would make resolveIndirect take its ownership query and blob-row
   // lock before declining, then repeat them in resolve -- on every cold GET.
   // With no bucket configured the layer is known now, so the method is
-  // simply absent. With a bucket, lazy validation is preserved: the wrapper
-  // answers `undefined` when the resolved layer turns out not to sign.
-  if (!bucketValue?.trim()) {
+  // simply absent. With a bucket (or Blob), lazy validation is preserved: the
+  // wrapper answers `undefined` when the resolved layer turns out not to sign
+  // (Blob objects are private and always served through the read route).
+  if (!bucketValue?.trim() && !configuredBlobStore()) {
     // No bucket means the layer is statically PgAssetByteStore, whose bytes
     // live in the registry's own PostgreSQL. Its transaction-pinned
     // writeWith/readWith/deleteWith MUST be forwarded: without them the
@@ -142,10 +182,10 @@ export function lazyAssetByteStore(
   }
   return {
     ...base,
-    // S3 objects never live in the registry's database, so the registry may
-    // run the plain write inside its transaction (see
-    // AssetByteStore.writesOutsideRegistryDatabase). S3 has no transactional
-    // writer, so nothing is forwarded here, exactly as before.
+    // S3 and Blob objects never live in the registry's database, so the
+    // registry may run the plain write inside its transaction (see
+    // AssetByteStore.writesOutsideRegistryDatabase). Neither has a
+    // transactional writer, so nothing is forwarded here, exactly as before.
     writesOutsideRegistryDatabase: true as const,
     signReadUrl: async (hash, headers) => {
       const store = await resolve();

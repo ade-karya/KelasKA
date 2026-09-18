@@ -59,6 +59,10 @@
       "types": "./dist/asset/s3-bytes.d.ts",
       "import": "./dist/asset/s3-bytes.js"
     },
+    "./asset/blob-bytes": {
+      "types": "./dist/asset/blob-bytes.d.ts",
+      "import": "./dist/asset/blob-bytes.js"
+    },
     "./asset/collector": {
       "types": "./dist/asset/collector.d.ts",
       "import": "./dist/asset/collector.js"
@@ -113,7 +117,8 @@
   },
   "peerDependencies": {
     "@aws-sdk/client-s3": "^3.0.0",
-    "@aws-sdk/s3-request-presigner": "^3.0.0"
+    "@aws-sdk/s3-request-presigner": "^3.0.0",
+    "@vercel/blob": "^2.0.0"
   },
   "peerDependenciesMeta": {
     "@aws-sdk/client-s3": {
@@ -121,11 +126,15 @@
     },
     "@aws-sdk/s3-request-presigner": {
       "optional": true
+    },
+    "@vercel/blob": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1048.0",
     "@aws-sdk/s3-request-presigner": "^3.1048.0",
+    "@vercel/blob": "^2.8.0",
     "@electric-sql/pglite": "^0.3.14",
     "@types/pg": "^8.15.5",
     "fake-indexeddb": "^6.0.0",

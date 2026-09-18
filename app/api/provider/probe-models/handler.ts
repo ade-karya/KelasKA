@@ -3,6 +3,7 @@ import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 import { fetchModels, ModelFetchError } from '@/lib/server/model-fetch';
+import { getCachedProbeModels, setCachedProbeModels } from '@/lib/server/model-probe-cache';
 
 const log = createLogger('ProbeModels');
 
@@ -35,7 +36,12 @@ export async function POST(req: NextRequest) {
       if (ssrfError) return apiError('INVALID_REQUEST', 400, ssrfError);
     }
 
-    const models = await fetchModels(baseUrl, apiKey || '', { modelsUrlOverride: modelsUrl });
+    // Short-TTL Redis cache (successes only): the SSRF gate above always
+    // runs, but a warm cache skips the multi-candidate upstream discovery.
+    const cached = await getCachedProbeModels(baseUrl, modelsUrl, apiKey || '');
+    const models =
+      cached ?? (await fetchModels(baseUrl, apiKey || '', { modelsUrlOverride: modelsUrl }));
+    if (!cached) await setCachedProbeModels(baseUrl, modelsUrl, apiKey || '', models);
     const chatModels = models.filter((m) => !NON_CHAT_PATTERN.test(m.id));
 
     return apiSuccess({
