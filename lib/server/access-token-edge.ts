@@ -6,7 +6,7 @@ import {
 /**
  * Edge-compatible verifier for HMAC-signed access tokens.
  *
- * This lives outside `middleware.ts` so it can be unit tested without loading
+ * This lives outside `proxy.ts` so it can be unit tested without loading
  * the Next.js middleware entrypoint, and it deliberately uses only the Web
  * Crypto API (no `node:crypto`) so Edge middleware can import it.
  */
