@@ -49,6 +49,7 @@ vi.mock('@/lib/server/agent-runtime/conversation-title-task', () => ({
 
 import { GET, POST } from '@/app/api/agent/sessions/route';
 import { MAX_SESSION_TEXT_LENGTH } from '@/lib/server/agent-runtime/limits';
+import { resetAgentRequestLimitState } from '@/lib/server/agent-runtime/request-limits';
 
 function post(body: unknown, headers?: HeadersInit) {
   return POST(
@@ -62,6 +63,9 @@ function post(body: unknown, headers?: HeadersInit) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The route enforces per-owner creation budgets: reset the in-memory
+  // windows so each test starts with a full budget.
+  resetAgentRequestLimitState();
   mocks.runtimeEnabled = true;
   mocks.resolveRequestOwnerId.mockImplementation(
     (_request: NextRequest, responseHeaders: Headers) => {
@@ -359,5 +363,37 @@ describe('agent session collection route', () => {
     expect((await post({ prompt: 'Build' })).status).toBe(404);
     expect((await GET(new NextRequest('http://localhost/api/agent/sessions'))).status).toBe(404);
     expect(mocks.resolveRequestOwnerId).not.toHaveBeenCalled();
+  });
+});
+
+describe('agent session creation budgets', () => {
+  it('returns 429 with Retry-After when the hourly session budget is spent', async () => {
+    process.env.AGENT_SESSIONS_PER_HOUR_PER_USER = '1';
+    try {
+      expect((await post({ prompt: 'Build a course' })).status).toBe(202);
+      const limited = await post({ prompt: 'Build another course' });
+      expect(limited.status).toBe(429);
+      expect(limited.headers.get('Retry-After')).toBeTruthy();
+      expect(await limited.json()).toMatchObject({ success: false, errorCode: 'RATE_LIMITED' });
+      expect(mocks.createSession).toHaveBeenCalledTimes(1);
+    } finally {
+      delete process.env.AGENT_SESSIONS_PER_HOUR_PER_USER;
+    }
+  });
+
+  it('returns 429 without creating when the owner already has 3 active sessions', async () => {
+    process.env.AGENT_MAX_ACTIVE_SESSIONS_PER_USER = '3';
+    try {
+      mocks.listSessionsByOwner.mockResolvedValue([
+        { id: 'a', status: 'queued' },
+        { id: 'b', status: 'running' },
+        { id: 'c', status: 'running' },
+      ]);
+      const response = await post({ prompt: 'Build a course' });
+      expect(response.status).toBe(429);
+      expect(mocks.createSession).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.AGENT_MAX_ACTIVE_SESSIONS_PER_USER;
+    }
   });
 });

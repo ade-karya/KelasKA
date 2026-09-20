@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import { anonymousCookieSecure } from '@/lib/server/agent-runtime/owner';
 import { resolveSharedOwnerId } from '@/lib/server/agent-runtime/shared-owner';
+import { getAuthenticatedOwnerId } from '@/lib/server/auth/session';
 import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
 
 /**
@@ -24,6 +25,18 @@ async function currentOwnerId(): Promise<string> {
   if (sharedOwnerId) return sharedOwnerId;
 
   const cookieStore = await cookies();
+  // Authenticated users must act as `user:<id>` — the same partition the
+  // agent routes use — otherwise mutations of their own sessions (e.g.
+  // delete) fail the owner check. A server action has no `Request`, so relay
+  // the cookies through a synthetic header bag.
+  const headerBag = new Headers({
+    cookie: cookieStore
+      .getAll()
+      .map((entry) => `${entry.name}=${entry.value}`)
+      .join('; '),
+  });
+  const authenticated = await getAuthenticatedOwnerId({ headers: headerBag } as Request);
+  if (authenticated) return authenticated;
   const existing = cookieStore.get(ANONYMOUS_COOKIE)?.value;
   if (existing && UUID_V4.test(existing)) return `anon:${existing}`;
   const minted = crypto.randomUUID();

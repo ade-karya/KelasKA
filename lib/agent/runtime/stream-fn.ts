@@ -246,6 +246,117 @@ export function createPartMapper(
   return { handle, finalize };
 }
 
+/** True when the resolved model is the same-machine OpenCode stub. */
+export function isOpencodeLanguageModel(model: unknown): boolean {
+  return (
+    !!model &&
+    typeof model === 'object' &&
+    (model as { provider?: unknown }).provider === 'opencode'
+  );
+}
+
+function opencodeModelId(model: unknown): string {
+  if (model && typeof model === 'object') {
+    const id = (model as { modelId?: unknown }).modelId;
+    if (typeof id === 'string' && id) return id;
+  }
+  return 'default';
+}
+
+function toOpencodeTranscriptLines(messages: PiMessage[]): string[] {
+  const lines: string[] = [];
+  for (const message of messages) {
+    if (message.role === 'user') {
+      const text =
+        typeof message.content === 'string'
+          ? message.content
+          : message.content
+              .map((c) => (c.type === 'text' ? c.text : ''))
+              .filter(Boolean)
+              .join('\n');
+      lines.push(`user: ${text}`);
+    } else if (message.role === 'assistant') {
+      const parts: string[] = [];
+      for (const c of message.content) {
+        if (c.type === 'text') parts.push(c.text);
+        else if (c.type === 'thinking') parts.push(`[thinking] ${c.thinking}`);
+        else if (c.type === 'toolCall')
+          parts.push(`[tool-call ${c.name} ${JSON.stringify(c.arguments)}]`);
+      }
+      if (parts.join('').trim()) lines.push(`assistant: ${parts.join('\n')}`);
+    } else if (message.role === 'toolResult') {
+      const text = message.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
+      lines.push(`tool-result ${message.toolName} (${message.toolCallId}): ${text}`);
+    }
+  }
+  return lines;
+}
+
+/**
+ * Single opencode turn: spawn the CLI (server-only dynamic import so the
+ * shared stream-fn module never bundles node:child_process), then replay the
+ * result through the standard part mapper. Pi still executes tools.
+ */
+async function pumpOpencodeTurn(
+  stream: LocalAssistantEventStream,
+  context: PiContext,
+  opts: CallLlmStreamFnOptions,
+  mapper: ReturnType<typeof createPartMapper>,
+  control: {
+    settleFinish: (
+      finishReason: FinishReason | undefined,
+      totalUsage: LanguageModelUsage | undefined,
+    ) => boolean;
+    settleError: (reason: 'error' | 'aborted', error: unknown) => boolean;
+    settled: () => boolean;
+    abortSignal: AbortSignal | undefined;
+  },
+): Promise<void> {
+  try {
+    const { runOpencodeTurn } = await import(
+      '@/lib/server/agent-runtime/opencode-transport'
+    );
+    const tools = (context.tools ?? []).map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: (tool as unknown as { parameters: unknown }).parameters ?? {},
+    }));
+    const outcome = await runOpencodeTurn({
+      systemPrompt: context.systemPrompt ?? '',
+      transcriptLines: toOpencodeTranscriptLines(context.messages),
+      tools,
+      modelId: opencodeModelId(opts.languageModel),
+      // Stateless per turn on purpose: pi history already carries memory.
+      // Native `-s` resume is a future prefix-cache optimization, not needed
+      // for correctness because durability lives in Postgres.
+      resumeSessionId: undefined,
+      abortSignal: control.abortSignal,
+    });
+    if (control.settled()) return;
+    if (outcome.text) {
+      mapper.handle({ type: 'text-delta', text: outcome.text });
+    }
+    if (outcome.toolCall) {
+      mapper.handle({
+        type: 'tool-call',
+        toolCallId: outcome.toolCall.id,
+        toolName: outcome.toolCall.name,
+        input: outcome.toolCall.args,
+      });
+    }
+    const hasToolCall = Boolean(outcome.toolCall);
+    control.settleFinish(hasToolCall ? 'tool-calls' : 'stop', {
+      inputTokens: outcome.usage?.inputTokens ?? 0,
+      outputTokens: outcome.usage?.outputTokens ?? 0,
+    } as LanguageModelUsage);
+    if (!hasToolCall && !outcome.text) {
+      control.settleError('error', 'opencode returned empty text without a tool call');
+    }
+  } catch (error) {
+    control.settleError('error', error);
+  }
+}
+
 /** Build a pi `StreamFn` that calls OpenMAIC's connector instead of pi-ai providers. */
 export function createCallLlmStreamFn(opts: CallLlmStreamFnOptions): StreamFn {
   return ((_piModel, context: PiContext, streamOptions?: SimpleStreamOptions) => {
@@ -397,6 +508,18 @@ async function pump(
       : opts.maxOutputTokens && requestedMaxTokens
         ? Math.min(opts.maxOutputTokens, requestedMaxTokens)
         : (requestedMaxTokens ?? opts.maxOutputTokens);
+    // Same-machine OpenCode engine: the stub model carries
+    // `provider === 'opencode'` (see lib/ai/providers.ts `opencode-cli` case).
+    // Spawn `opencode run` instead of streamText; the pi loop still owns tools.
+    if (isOpencodeLanguageModel(opts.languageModel)) {
+      await pumpOpencodeTurn(stream, context, opts, mapper, {
+        settleFinish,
+        settleError,
+        settled: () => settled,
+        abortSignal: combinedAbort.signal,
+      });
+      return;
+    }
     const result = await streamLLM(
       {
         model: opts.languageModel,

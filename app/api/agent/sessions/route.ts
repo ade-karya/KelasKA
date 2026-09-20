@@ -18,10 +18,29 @@ import {
   SessionMaterialBindingError,
 } from '@/lib/server/agent-runtime/session-materials';
 import { withRequestOwnerId } from '@/lib/server/agent-runtime/with-owner';
+import {
+  checkAgentRateLimit,
+  isOwnerAtSessionCap,
+} from '@/lib/server/agent-runtime/request-limits';
 import { buildRequestOrigin, isValidClassroomId } from '@/lib/server/classroom-storage';
 import { decodeCourseRefs } from '@/lib/workbench/course-refs';
 
 export const runtime = 'nodejs';
+
+/** 429 with Retry-After, preserving the owner Set-Cookie headers. */
+function rateLimited(responseHeaders: Headers, retryAfterSeconds?: number): Response {
+  const headers = new Headers(responseHeaders);
+  headers.set('Content-Type', 'application/json');
+  headers.set('Retry-After', String(retryAfterSeconds ?? 60));
+  return new Response(
+    JSON.stringify({
+      success: false as const,
+      errorCode: 'RATE_LIMITED',
+      error: 'Too many requests, please retry later',
+    }),
+    { status: 429, headers },
+  );
+}
 
 interface CreateSessionBody {
   prompt?: string;
@@ -91,6 +110,19 @@ export async function POST(req: NextRequest) {
   }
 
   return withRequestOwnerId(req, async (ownerId, responseHeaders) => {
+    // Per-user creation budget first (no DB touch), then the active-session
+    // cap: a user with 3 queued/running sessions waits for one to finish.
+    const creationBudget = checkAgentRateLimit(ownerId, 'session');
+    if (!creationBudget.allowed) {
+      return rateLimited(responseHeaders, creationBudget.retryAfterSeconds);
+    }
+    const gateStore = await getAgentSessionStore();
+    const activeSessions = (await gateStore.listSessionsByOwner(ownerId)).filter(
+      (session) => session.status === 'queued' || session.status === 'running',
+    );
+    if (isOwnerAtSessionCap(activeSessions.length)) {
+      return rateLimited(responseHeaders, 60);
+    }
     // An EXPLICIT skill — a `?skill=` launch link, not composer UI — is
     // rejected here rather than at claim time: a session created with a typo'd
     // skill would otherwise sit queued and then quietly build an ordinary
@@ -135,7 +167,8 @@ export async function POST(req: NextRequest) {
     // sessions validate only the identifier format here. Full existence and
     // ownership validation is deferred until a later slice consumes stageId —
     // the upstream document store has no owner partition yet.
-    const store = await getAgentSessionStore();
+    // Reuses the store fetched for the creation gate above.
+    const store = gateStore;
     const hasOpeningContext = materialIds.length > 0 || decodedCourseRefs.refs.length > 0;
     const meta = await store.createSession({
       ownerId,

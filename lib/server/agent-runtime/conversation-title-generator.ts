@@ -59,6 +59,20 @@ export async function generateConversationTitle(visibleUserText: string): Promis
       ? await resolveModel({ stage: STAGE })
       : (await resolveAgentDriverModel()).connection;
     const thinking = route?.thinking ?? DISABLED_THINKING;
+    // Same-machine OpenCode engine: the resolved model is an identity stub
+    // that cannot run through generateText — use the CLI text turn instead.
+    if (connection.providerId === 'opencode') {
+      const { runOpencodeText } = await import('./opencode-transport');
+      // Generous budget: title is best-effort background work and a cold
+      // opencode spawn alone can take several seconds under load.
+      const text = await runOpencodeText({
+        systemPrompt: SYSTEM_PROMPT,
+        prompt: input,
+        modelId: connection.modelId,
+        timeoutMs: 60_000,
+      });
+      return normalizeTitle(text);
+    }
     const result = await callLLM(
       {
         model: connection.model,

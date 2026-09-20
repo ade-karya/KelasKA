@@ -314,6 +314,131 @@ function recordUsageSafe(
   })();
 }
 
+// ---------------------------------------------------------------------------
+// Same-machine OpenCode engine (additive seam).
+//
+// When the resolved model is the opencode stub (`provider === 'opencode'`,
+// see the `opencode-cli` case in providers.ts), both entry points below run
+// one `opencode run` turn instead of generateText/streamText. The pi agent
+// loop (stream-fn.ts) intercepts earlier and never reaches here; this branch
+// serves every OTHER caller (scene-content, outlines, actions, quiz-grade,
+// pbl agents, classroom generation, ...), so class creation works with no
+// vendor API keys as long as the stage (or DEFAULT_MODEL) routes to
+// `opencode:*`. Single-turn semantics: at most one tool call per invocation;
+// multi-step tool loops stay owned by the pi agent loop.
+// The transport module is imported dynamically so llm.ts stays safe to bundle
+// wherever it is transitively imported.
+// ---------------------------------------------------------------------------
+
+function isOpencodeLanguageModel(model: unknown): boolean {
+  return (
+    !!model &&
+    typeof model === 'object' &&
+    (model as { provider?: unknown }).provider === 'opencode'
+  );
+}
+
+function opencodeModelIdOf(model: unknown): string {
+  const id = (model as { modelId?: unknown } | null)?.modelId;
+  return typeof id === 'string' && id ? id : 'default';
+}
+
+/** AI SDK ModelMessage[] -> plain transcript lines for the CLI prompt. */
+function opencodeTranscriptLines(messages: unknown): string[] {
+  if (!Array.isArray(messages)) return [];
+  const lines: string[] = [];
+  for (const message of messages) {
+    if (!message || typeof message !== 'object') continue;
+    const record = message as Record<string, unknown>;
+    const role = typeof record.role === 'string' ? record.role : 'user';
+    const content = record.content;
+    if (typeof content === 'string') {
+      if (content.trim()) lines.push(`${role}: ${content}`);
+      continue;
+    }
+    if (!Array.isArray(content)) continue;
+    const parts: string[] = [];
+    for (const part of content) {
+      if (!part || typeof part !== 'object') continue;
+      const partRecord = part as Record<string, unknown>;
+      const type = partRecord.type as string | undefined;
+      if (type === 'text' && typeof partRecord.text === 'string' && partRecord.text.trim()) {
+        parts.push(partRecord.text);
+      } else if (
+        (type === 'tool-call' || type === 'toolCall') &&
+        typeof partRecord.toolName === 'string'
+      ) {
+        parts.push(
+          `[tool-call ${partRecord.toolName} ${JSON.stringify(partRecord.input ?? partRecord.args ?? {})}]`,
+        );
+      } else if (type === 'tool-result' || type === 'toolResult') {
+        parts.push(`[tool-result ${JSON.stringify(partRecord.output ?? '')}]`.slice(0, 2000));
+      } else if (type === 'reasoning' && typeof partRecord.text === 'string' && partRecord.text) {
+        parts.push(`[thinking] ${partRecord.text}`);
+      }
+    }
+    if (parts.length > 0) lines.push(`${role}: ${parts.join('\n')}`);
+  }
+  return lines;
+}
+
+/** AI SDK ToolSet -> {name, description, parameters} (best-effort schema). */
+function opencodeToolSchemas(tools: unknown): Array<{
+  name: string;
+  description?: string;
+  parameters: unknown;
+}> {
+  if (!tools || typeof tools !== 'object') return [];
+  const out: Array<{ name: string; description?: string; parameters: unknown }> = [];
+  for (const [name, tool] of Object.entries(tools as Record<string, unknown>)) {
+    if (!tool || typeof tool !== 'object') continue;
+    const record = tool as Record<string, unknown>;
+    const description = typeof record.description === 'string' ? record.description : undefined;
+    const inputSchema = record.inputSchema as Record<string, unknown> | undefined;
+    const parameters =
+      inputSchema && typeof inputSchema === 'object'
+        ? ((inputSchema.jsonSchema ?? inputSchema._def ?? inputSchema) as unknown)
+        : {};
+    out.push({ name, description, parameters });
+  }
+  return out;
+}
+
+function stringParam(value: unknown): string | undefined {
+  return typeof value === 'string' && value ? value : undefined;
+}
+
+async function runOpencodeGenerateTurn(params: {
+  modelId: string;
+  system?: string;
+  prompt?: string;
+  messages?: unknown;
+  tools?: unknown;
+  abortSignal?: AbortSignal;
+  timeoutMs?: number;
+}): Promise<{ text: string; toolCall: { id: string; name: string; args: Record<string, unknown> } | null; usage: { inputTokens: number; outputTokens: number } | null }> {
+  const { runOpencodeTurn } = await import(
+    '@/lib/server/agent-runtime/opencode-transport'
+  );
+  const transcript =
+    params.messages !== undefined
+      ? opencodeTranscriptLines(params.messages)
+      : params.prompt !== undefined
+        ? [`user: ${params.prompt}`]
+        : [];
+  const outcome = await runOpencodeTurn({
+    systemPrompt: params.system ?? '',
+    transcriptLines: transcript,
+    tools: opencodeToolSchemas(params.tools),
+    modelId: params.modelId,
+    // Stateless per call on purpose; multi-turn memory is the caller's job.
+    resumeSessionId: undefined,
+    abortSignal: params.abortSignal,
+    timeoutMs: params.timeoutMs,
+  });
+  return outcome;
+}
+
 /**
  * Unified wrapper around `generateText`.
  *
@@ -321,7 +446,81 @@ function recordUsageSafe(
  * @param source - A short label for log grouping (e.g. 'scene-stream', 'pbl-chat')
  * @param retryOptions - Optional retry-on-validation-failure settings
  * @param thinking - Optional per-call thinking config (overrides global LLM_THINKING_DISABLED)
- */
+ */function streamOpencodeTurn<T extends StreamTextParams>(
+  params: T,
+  source: string,
+): {
+  fullStream: AsyncIterable<Record<string, unknown>>;
+  text: Promise<string>;
+  usage: Promise<{ inputTokens: number; outputTokens: number }>;
+  totalUsage: Promise<{ inputTokens: number; outputTokens: number }>;
+} {  const usageMeta = buildUsageMeta(params, source);
+  const callerOnFinish = (params as Record<string, unknown>).onFinish as
+    | ((event: { totalUsage?: unknown; usage?: unknown }) => void | Promise<void>)
+    | undefined;
+  const record = params as Record<string, unknown>;
+
+  let settled:
+    | {
+        text: string;
+        totalUsage: { inputTokens: number; outputTokens: number };
+        toolCall: { id: string; name: string; args: Record<string, unknown> } | null;
+      }
+    | undefined;
+  let finishNotified = false;
+
+  const run = async () => {
+    if (settled) return settled;
+    const outcome = await runOpencodeGenerateTurn({
+      modelId: opencodeModelIdOf(params.model),
+      system: stringParam(record.system),
+      prompt: stringParam(record.prompt),
+      messages: record.messages,
+      tools: record.tools,
+      abortSignal: record.abortSignal as AbortSignal | undefined,
+    });
+    settled = {
+      text: outcome.text,
+      totalUsage: {
+        inputTokens: outcome.usage?.inputTokens ?? 0,
+        outputTokens: outcome.usage?.outputTokens ?? 0,
+      },
+      toolCall: outcome.toolCall,
+    };
+    return settled;
+  };
+
+  async function* fullStream(): AsyncGenerator<Record<string, unknown>> {
+    const done = await run();
+    if (done.text) yield { type: 'text-delta', text: done.text };
+    if (done.toolCall) {
+      yield {
+        type: 'tool-call',
+        toolCallId: done.toolCall.id,
+        toolName: done.toolCall.name,
+        input: done.toolCall.args,
+      };
+    }
+    yield {
+      type: 'finish',
+      finishReason: done.toolCall ? 'tool-calls' : 'stop',
+      totalUsage: done.totalUsage,
+    };
+    if (!finishNotified) {
+      finishNotified = true;
+      recordUsageSafe(done.totalUsage, usageMeta);
+      if (callerOnFinish) await callerOnFinish({ totalUsage: done.totalUsage });
+    }
+  }
+
+  return {
+    fullStream: fullStream(),
+    text: run().then((done) => done.text),
+    usage: run().then((done) => done.totalUsage),
+    totalUsage: run().then((done) => done.totalUsage),
+  };
+}
+
 export async function callLLM<T extends GenerateTextParams>(
   params: T,
   source: string,
@@ -338,6 +537,55 @@ export async function callLLM<T extends GenerateTextParams>(
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      // Same-machine OpenCode engine: one CLI turn instead of generateText.
+      // Thinking injection is skipped — opencode uses its active model's own
+      // defaults. Usage is recorded with the same meta shape as other paths.
+      if (isOpencodeLanguageModel(params.model)) {
+        const record = params as Record<string, unknown>;
+        const outcome = await runOpencodeGenerateTurn({
+          modelId: opencodeModelIdOf(params.model),
+          system: stringParam(record.system),
+          prompt: stringParam(record.prompt),
+          messages: record.messages,
+          tools: record.tools,
+          abortSignal: record.abortSignal as AbortSignal | undefined,
+        });
+        const totalUsage = {
+          inputTokens: outcome.usage?.inputTokens ?? 0,
+          outputTokens: outcome.usage?.outputTokens ?? 0,
+        };
+        recordUsageSafe(totalUsage, buildUsageMeta(params, source));
+        const toolCalls = outcome.toolCall
+          ? [
+              {
+                toolCallId: outcome.toolCall.id,
+                toolName: outcome.toolCall.name,
+                input: outcome.toolCall.args,
+              },
+            ]
+          : [];
+        const result = {
+          text: outcome.text,
+          toolCalls,
+          finishReason: (outcome.toolCall ? 'tool-calls' : 'stop') as 'tool-calls' | 'stop',
+          usage: totalUsage,
+          totalUsage,
+          warnings: [],
+          steps: [],
+          toolResults: [],
+        } as unknown as GenerateTextResult<any, any>;
+
+        if (validate && !validate(result.text)) {
+          log.warn(
+            `[${source}] Validation failed (attempt ${attempt}/${maxAttempts}), ${attempt < maxAttempts ? 'retrying...' : 'giving up'}`,
+          );
+          lastResult = result;
+          continue;
+        }
+
+        return result;
+      }
+
       // Resolve effective thinking config: per-call > global env > undefined
       const effectiveThinking = thinking ?? getGlobalThinkingConfig();
       const injectedParams = injectProviderOptions(params, effectiveThinking);
@@ -400,6 +648,14 @@ export function streamLLM<T extends StreamTextParams>(
   thinking?: ThinkingConfig,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): StreamTextResult<any, any> {
+  // Same-machine OpenCode engine: synthesize the stream from one CLI turn.
+  // The turn runs lazily on first fullStream iteration, mirroring real
+  // streaming (usage + caller onFinish fire exactly once, after the finish
+  // part — same contract as the wrapped streamText path below).
+  if (isOpencodeLanguageModel(params.model)) {
+    return streamOpencodeTurn(params, source) as unknown as StreamTextResult<any, any>;
+  }
+
   // Resolve effective thinking config and wrap in thinkingContext
   const effectiveThinking = thinking ?? getGlobalThinkingConfig();
 

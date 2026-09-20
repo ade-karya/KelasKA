@@ -9,6 +9,7 @@ import { MAX_SESSION_TEXT_LENGTH } from '@/lib/server/agent-runtime/limits';
 import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
 import { scheduleConversationTitle } from '@/lib/server/agent-runtime/conversation-title-task';
 import { withRequestOwnerId } from '@/lib/server/agent-runtime/with-owner';
+import { checkAgentRateLimit } from '@/lib/server/agent-runtime/request-limits';
 import { decodeElementRefs } from '@/lib/workbench/element-refs';
 import { decodeCourseRefs } from '@/lib/workbench/course-refs';
 import {
@@ -24,6 +25,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   return withRequestOwnerId(req, async (ownerId, responseHeaders) => {
+    // Per-minute turn budget first: rejects abusive loops before any DB read.
+    const turnBudget = checkAgentRateLimit(ownerId, 'turn');
+    if (!turnBudget.allowed) {
+      const headers = new Headers(responseHeaders);
+      headers.set('Content-Type', 'application/json');
+      headers.set('Retry-After', String(turnBudget.retryAfterSeconds ?? 60));
+      return new Response(
+        JSON.stringify({
+          success: false as const,
+          errorCode: 'RATE_LIMITED',
+          error: 'Too many requests, please retry later',
+        }),
+        { status: 429, headers },
+      );
+    }
     const { id } = await params;
     const store = await getAgentSessionStore();
     const meta = await store.getSession(id);

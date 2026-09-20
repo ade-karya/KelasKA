@@ -35,6 +35,7 @@ vi.mock('@/lib/server/agent-runtime/conversation-title-task', () => ({
 
 import { POST } from '@/app/api/agent/sessions/[id]/messages/route';
 import { MAX_SESSION_TEXT_LENGTH } from '@/lib/server/agent-runtime/limits';
+import { resetAgentRequestLimitState } from '@/lib/server/agent-runtime/request-limits';
 import { SessionMaterialBindingError } from '@/lib/server/agent-runtime/session-materials';
 
 function call(body: unknown) {
@@ -48,6 +49,9 @@ function call(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // The route enforces a per-owner turn budget: reset the in-memory windows
+  // so each test starts with a full budget.
+  resetAgentRequestLimitState();
   mocks.getSession.mockResolvedValue({ id: 'session-1', ownerId: 'owner-1', status: 'succeeded' });
   mocks.postUserMessage.mockResolvedValue({ seq: 4, delivery: 'queued', requeued: true });
   mocks.bindOwnerMaterialsToSession.mockResolvedValue([]);

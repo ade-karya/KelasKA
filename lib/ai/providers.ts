@@ -1685,6 +1685,29 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
       },
     ],
   },
+
+  opencode: {
+    id: 'opencode',
+    name: 'OpenCode',
+    type: 'opencode-cli',
+    requiresApiKey: false,
+    models: [
+      {
+        id: 'default',
+        name: 'OpenCode active model',
+        contextWindow: 128000,
+        outputWindow: 8192,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'opencode/muse-spark-1.3-contributor-free',
+        name: 'Muse Spark 1.3 (free)',
+        contextWindow: 128000,
+        outputWindow: 8192,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+    ],
+  },
 };
 
 applyModelMetadata(PROVIDERS);
@@ -2579,6 +2602,32 @@ export function getModel(config: ModelConfig): ModelWithInfo {
       }
       const google = createGoogleGenerativeAI(googleOptions);
       model = google.chat(config.modelId);
+      break;
+    }
+
+    case 'opencode-cli': {
+      // OpenCode runs on the same machine via `opencode run --format json`.
+      // No HTTP client is built here: lib/agent/runtime/stream-fn.ts detects
+      // `provider === 'opencode'` and spawns the CLI instead of calling
+      // streamText. This stub only carries identity so resolveModel +
+      // agent-driver wiring can flow through the standard path.
+      // `default` means "whatever model is active in opencode" (omit -m).
+      model = {
+        specificationVersion: 'v2',
+        provider: 'opencode',
+        modelId: config.modelId,
+        supportedUrls: {},
+        doGenerate: async () => {
+          throw new Error(
+            'opencode-cli models must run through the opencode transport (stream-fn), not direct generate.',
+          );
+        },
+        doStream: async () => {
+          throw new Error(
+            'opencode-cli models must run through the opencode transport (stream-fn), not direct stream.',
+          );
+        },
+      } as unknown as LanguageModel;
       break;
     }
 

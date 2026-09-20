@@ -1,0 +1,41 @@
+[Unit]
+Description=KelasKA (Next.js standalone server)
+Documentation=https://github.com/anomalyco/opencode
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+# Checkout produksi di host ini (repo /content/KelasKA).
+# Trade-off User: data/node_modules/.env.local milik root:root (.env.local 600)
+# dan user 'kelaska' belum ada; build pnpm juga jalan sebagai root.
+# Memakai User=kelaska sekarang akan gagal (UserUnknown + EACCES .env.local).
+# Keputusan: jalan sebagai root sementara; hardening NoNewPrivileges/PrivateTmp
+# tetap aktif. TODO: buat user kelaska + chown -R + chmod 640 .env.local,
+# lalu ganti ke User=kelaska Group=kelaska.
+User=root
+Group=root
+WorkingDirectory=/content/KelasKA
+# Next standalone server (next.config.ts: output 'standalone' saat non-VERCEL)
+# mendengarkan PORT/HOSTNAME berikut. Setara `pnpm start` (`next start`)
+# untuk build non-standalone; unit ini memakai artefak standalone yang ramping.
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+# opencode hanya ada di /root/.opencode/bin (bukan /usr/local/bin);
+# systemd punya PATH minimal, jadi tambahkan eksplisit agar agent runtime bisa spawn.
+Environment=PATH=/root/.opencode/bin:/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin:/tools/node/bin
+# DATABASE_URL dan knobs runtime dibaca dari .env.local repo ini (chmod 600, root-only).
+# File wajib ada — tanpa dash agar unit gagal eksplisit bila hilang.
+EnvironmentFile=/content/KelasKA/.env.local
+ExecStart=/usr/local/bin/node /content/KelasKA/.next/standalone/server.js
+KillSignal=SIGTERM
+TimeoutStopSec=60
+Restart=always
+RestartSec=5
+# Hardening ringan (longgarkan bila build butuh akses di luar path ini).
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

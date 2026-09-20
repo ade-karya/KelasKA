@@ -15,6 +15,25 @@ export const agentRuntimeConfig = {
   leaseTtlMs: numberFromEnv(process.env.OPENMAIC_AGENT_RUNTIME_LEASE_TTL_MS, 10_000),
   /** Maximum sessions one application instance runs concurrently. */
   maxConcurrent: numberFromEnv(process.env.OPENMAIC_AGENT_RUNTIME_MAX_CONCURRENT, 2),
+  /**
+   * Spawn gate for the same-machine `opencode run` transport
+   * (lib/server/agent-runtime/opencode-transport.ts). Bounds concurrent
+   * `opencode run` children globally (FIFO queue with queue timeout) plus a
+   * per-owner cap so one greedy owner cannot monopolize the pool. Read lazily
+   * by the transport so operators can tune without a rebuild.
+   *
+   * NOTE: maxConcurrent=2 above stays the default — raising it for 20-50
+   * concurrent chats is the operator's call (bersama pool DB, mis.
+   * pool 25-30 untuk 8-12 runner slots; lihat .env.example "Contoh tuning").
+   */
+  opencodeSpawns: {
+    /** Global concurrent `opencode run` spawns (OPENCODE_MAX_CONCURRENT_SPAWNS, default 8). */
+    maxConcurrentSpawns: numberFromEnv(process.env.OPENCODE_MAX_CONCURRENT_SPAWNS, 8),
+    /** Concurrent spawns per ownerId (OPENCODE_MAX_SPAWNS_PER_OWNER, default 2). */
+    maxSpawnsPerOwner: numberFromEnv(process.env.OPENCODE_MAX_SPAWNS_PER_OWNER, 2),
+    /** FIFO queue wait budget per turn in ms (OPENCODE_SPAWN_QUEUE_TIMEOUT_MS, default 120000). */
+    spawnQueueTimeoutMs: numberFromEnv(process.env.OPENCODE_SPAWN_QUEUE_TIMEOUT_MS, 120_000),
+  },
   /** Maximum consecutive unattended starts or resumptions. */
   maxAttempts: numberFromEnv(process.env.OPENMAIC_AGENT_RUNTIME_MAX_ATTEMPTS, 5),
   /**

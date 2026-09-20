@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { isAgentRuntimeConfigured, isProWorkbenchEnabled } from '@/lib/config/feature-flags';
+import {
+  isAgentRuntimeConfigured,
+  isProWorkbenchEnabled,
+  isUserAuthEnabled,
+} from '@/lib/config/feature-flags';
 import { verifyAccessTokenEdge } from '@/lib/server/access-token-edge';
+
+// Edge-safe duplicate of SESSION_COOKIE from lib/server/auth/session.ts.
+// session.ts uses node:crypto and must not be imported in Edge middleware.
+const USER_SESSION_COOKIE = 'openmaic_session';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,30 +26,51 @@ export async function middleware(request: NextRequest) {
   }
 
   const accessCode = process.env.ACCESS_CODE;
-  if (!accessCode) {
-    return NextResponse.next();
+  if (accessCode) {
+    // Whitelist: access-code endpoints, health check
+    const isAccessWhitelisted =
+      pathname.startsWith('/api/access-code/') || pathname === '/api/health';
+    if (!isAccessWhitelisted) {
+      // Check cookie — validate HMAC signature, not just existence
+      const cookie = request.cookies.get('openmaic_access');
+      if (cookie?.value && (await verifyAccessTokenEdge(cookie.value, accessCode))) {
+        // Valid access cookie: fall through to the user-auth gate below.
+      } else if (pathname.startsWith('/api/')) {
+        // API requests without valid cookie → 401
+        return NextResponse.json(
+          { success: false, errorCode: 'INVALID_REQUEST', error: 'Access code required' },
+          { status: 401 },
+        );
+      } else {
+        // Page requests → let through, frontend shows modal
+        return NextResponse.next();
+      }
+    }
   }
 
-  // Whitelist: access-code endpoints, health check
-  if (pathname.startsWith('/api/access-code/') || pathname === '/api/health') {
-    return NextResponse.next();
+  // Username+password gate. Edge middleware cannot do the DB-backed session
+  // lookup, so it enforces presence only; routes validate expiry/ownership via
+  // getAuthenticatedOwnerId(). Pages are let through — the frontend redirects
+  // to /login on API 401 (full global guard is a follow-up, see app/login).
+  if (isUserAuthEnabled()) {
+    if (
+      pathname.startsWith('/api/auth/') ||
+      pathname.startsWith('/api/access-code/') ||
+      pathname === '/api/health'
+    ) {
+      return NextResponse.next();
+    }
+    if (pathname.startsWith('/api/')) {
+      const sessionCookie = request.cookies.get(USER_SESSION_COOKIE)?.value;
+      if (!sessionCookie) {
+        return NextResponse.json(
+          { success: false, errorCode: 'UNAUTHENTICATED', error: 'Authentication required' },
+          { status: 401 },
+        );
+      }
+    }
   }
 
-  // Check cookie — validate HMAC signature, not just existence
-  const cookie = request.cookies.get('openmaic_access');
-  if (cookie?.value && (await verifyAccessTokenEdge(cookie.value, accessCode))) {
-    return NextResponse.next();
-  }
-
-  // API requests without valid cookie → 401
-  if (pathname.startsWith('/api/')) {
-    return NextResponse.json(
-      { success: false, errorCode: 'INVALID_REQUEST', error: 'Access code required' },
-      { status: 401 },
-    );
-  }
-
-  // Page requests → let through, frontend shows modal
   return NextResponse.next();
 }
 

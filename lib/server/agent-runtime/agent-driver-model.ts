@@ -7,15 +7,40 @@ export const AGENT_DRIVER_STAGE = 'maic-agent-driver' as const;
 export const UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS = 8_192;
 // The driver route owns the model choice. This adapter only enforces its transport
 // contract: a resolvable provider prefix, no thinking effort, and an explicit
-// OpenAI-compatible pi api/dialect. The actual HTTP transport is selected by
-// lib/ai/providers.ts.
+// pi api/dialect (OpenAI-compatible) or the same-machine opencode CLI.
+// The actual HTTP transport is selected by
+// lib/ai/providers.ts; opencode turns are spawned by opencode-transport.ts.
 const OPENAI_PI_APIS = new Set<Api>(['openai-completions', 'openai-responses']);
+const OPENCODE_PI_API = 'opencode-cli';
 
 export function buildPiDriverModel(
   connection: ResolvedModel,
   configuredApi?: string,
   routeContextWindow?: number,
 ): Model<Api> {
+  // Same-machine OpenCode engine: `opencode:default` (or an explicit
+  // `opencode:provider/model`) runs through the CLI transport, not HTTP.
+  // The pi loop still owns tools; opencode only emits one tool call per turn.
+  if (configuredApi === OPENCODE_PI_API) {
+    if (connection.providerId !== 'opencode') {
+      throw new Error(
+        `MODEL_ROUTES stage "${AGENT_DRIVER_STAGE}" uses api ${JSON.stringify(configuredApi)} ` +
+          `which requires an opencode provider model (e.g. "opencode:default").`,
+      );
+    }
+    return {
+      id: connection.modelId,
+      name: connection.modelId,
+      api: 'openai-completions',
+      provider: connection.providerId,
+      baseUrl: connection.baseUrl ?? '',
+      reasoning: true,
+      input: ['text', 'image'],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: routeContextWindow ?? connection.modelInfo?.contextWindow ?? 128_000,
+      maxTokens: connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
+    } as Model<Api>;
+  }
   if (!configuredApi || !OPENAI_PI_APIS.has(configuredApi)) {
     throw new Error(
       `MODEL_ROUTES stage "${AGENT_DRIVER_STAGE}" has unsupported pi api/dialect ` +

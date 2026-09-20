@@ -41,8 +41,13 @@ describe('agent runtime probe', () => {
       // `enabled` is usability: it must be true only when the runtime can
       // actually serve a request. `runtimeEnabled` is the raw intent flag, so
       // "off by choice" (false/false) is distinguishable from "on but
-      // unusable" (false/true).
-      await expect((await GET()).json()).resolves.toEqual({ enabled, runtimeEnabled });
+      // unusable" (false/true). `opencode` is the best-effort same-machine
+      // probe (shape only — availability depends on the host).
+      await expect((await GET()).json()).resolves.toEqual({
+        enabled,
+        runtimeEnabled,
+        opencode: expect.objectContaining({ available: expect.any(Boolean) }),
+      });
     },
   );
 });

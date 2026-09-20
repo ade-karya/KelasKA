@@ -247,3 +247,19 @@ export {
   type AgentSessionMaterialTableNames,
   type PgAgentSessionMaterialStoreOptions,
 } from './material/pg.js';
+
+export {
+  AUTH_PG_SCHEMA,
+  AuthError,
+  createUser,
+  createUserSession,
+  deleteUserSession,
+  deleteUserSessions,
+  ensureAuthSchema,
+  findUserByUsername,
+  findUserSession,
+  normalizeUsername,
+  type AuthErrorCode,
+  type AuthUser,
+  type AuthUserSession,
+} from './auth/pg.js';

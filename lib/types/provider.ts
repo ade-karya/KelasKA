@@ -25,7 +25,8 @@ export type BuiltInProviderId =
   | 'xiaomi'
   | 'tokendance'
   | 'lemonade'
-  | 'ollama';
+  | 'ollama'
+  | 'opencode';
 
 /**
  * Provider ID (built-in or custom)
@@ -36,7 +37,7 @@ export type ProviderId = BuiltInProviderId | `custom-${string}`;
 /**
  * Provider API types
  */
-export type ProviderType = 'openai' | 'azure' | 'anthropic' | 'bedrock' | 'google';
+export type ProviderType = 'openai' | 'azure' | 'anthropic' | 'bedrock' | 'google' | 'opencode-cli';
 
 export type ThinkingControlType =
   | 'none'

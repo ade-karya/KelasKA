@@ -158,3 +158,13 @@ export function isVideoExportEnabled(): boolean {
 export function isPptxImportEnabled(): boolean {
   return readBoolean(process.env.NEXT_PUBLIC_ENABLE_PPTX_IMPORT);
 }
+
+/**
+ * Server-only gate for username+password login (`USER_AUTH_ENABLED`).
+ * Default OFF. When enabled, API routes without a valid `openmaic_session`
+ * answer 401 and owner resolution prefers the authenticated `user:<id>`
+ * identity over the anonymous cookie.
+ */
+export function isUserAuthEnabled(): boolean {
+  return readBoolean(process.env.USER_AUTH_ENABLED);
+}
