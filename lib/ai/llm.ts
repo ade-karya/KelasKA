@@ -451,6 +451,7 @@ async function runOpencodeGenerateTurn(params: {
   source: string,
 ): {
   fullStream: AsyncIterable<Record<string, unknown>>;
+  textStream: AsyncIterable<string>;
   text: Promise<string>;
   usage: Promise<{ inputTokens: number; outputTokens: number }>;
   totalUsage: Promise<{ inputTokens: number; outputTokens: number }>;
@@ -513,8 +514,14 @@ async function runOpencodeGenerateTurn(params: {
     }
   }
 
+  async function* textStream(): AsyncGenerator<string> {
+    const done = await run();
+    if (done.text) yield done.text;
+  }
+
   return {
     fullStream: fullStream(),
+    textStream: textStream(),
     text: run().then((done) => done.text),
     usage: run().then((done) => done.totalUsage),
     totalUsage: run().then((done) => done.totalUsage),
