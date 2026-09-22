@@ -316,6 +316,7 @@ export function composeOpencodePrompt(input: OpencodeTurnInput): string {
     lines.push('{"tool_call": {"id": "<unique-id>", "name": "<tool-name>", "arguments": {}}}');
     lines.push('```');
     lines.push('- One tool per turn. Arguments must match the parameters schema.');
+    lines.push('- The workbench `read` tool takes `path` (not `filePath`).');
     lines.push(
       '- Do NOT use any file, shell, browser, or computer tools of your own ' +
         'for this task: you have no filesystem access and must not attempt ' +
@@ -486,6 +487,33 @@ export function accumulateOpencodeStdout(stdout: string): {
 
 const TOOL_CALL_FENCE = /```json\s*(\{[\s\S]*?"tool_call"[\s\S]*?\})\s*```/;
 
+/**
+ * Schema bridge opencode → pi for the one colliding tool name.
+ *
+ * Both runtimes expose a tool literally named `read`, but with different
+ * parameter names: opencode's native `read` sends `filePath`, while the
+ * workbench skill reader (pi `NativeReadParams`, see
+ * lib/server/agent-runtime/skills.ts) requires `path`. The model regularly
+ * emits the native spelling — especially after opencode's own tool
+ * definitions dominate a long context — which fails pi validation with
+ * "must have required property path" and stalls class creation.
+ * Normalize here (one choke point covering fenced + native events) instead
+ * of widening the runner contract: `offset`/`limit` already match.
+ */
+export function normalizeOpencodeToolCall(call: {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+} | null): { id: string; name: string; args: Record<string, unknown> } | null {
+  if (!call) return null;
+  if (call.name !== 'read') return call;
+  const args = call.args;
+  if (typeof args.path === 'string' && args.path) return call;
+  const filePath = (args as Record<string, unknown>).filePath;
+  if (typeof filePath !== 'string' || !filePath) return call;
+  return { ...call, args: { ...args, path: filePath } };
+}
+
 export function extractFencedToolCall(text: string): {
   text: string;
   toolCall: { id: string; name: string; args: Record<string, unknown> } | null;
@@ -637,7 +665,7 @@ async function runOnce(
         ok: true,
         value: {
           text: fenced.text,
-          toolCall: acc.structuredToolCall ?? fenced.toolCall,
+          toolCall: normalizeOpencodeToolCall(acc.structuredToolCall ?? fenced.toolCall),
           sessionId: acc.sessionId,
           rawModel: acc.rawModel,
           usage: acc.usage,
