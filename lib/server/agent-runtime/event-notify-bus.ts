@@ -241,10 +241,15 @@ async function connect(generation: number): Promise<void> {
   // never come from getPool() and must never be created per SSE stream. The
   // process-wide state above gives one application instance exactly one live
   // LISTEN connection and fans notifications out in memory.
+  // Supabase pooler (transaction mode) degrades LISTEN to fallback polling —
+  // the self-check probe below warns, correctness is preserved via polling.
+  const { resolvePgSsl } = await import('@/lib/persistence/pg-ssl');
+  const ssl = resolvePgSsl(connectionString);
   const client = new Client({
     connectionString,
     application_name: AGENT_EVENT_NOTIFY_APPLICATION_NAME,
     connectionTimeoutMillis: 10_000,
+    ...(ssl ? { ssl } : {}),
   });
   state.client = client;
   client.on('notification', (notification) => {

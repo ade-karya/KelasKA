@@ -39,6 +39,7 @@ import { Pool } from 'pg';
 import { resolveAssetCollectionGraceMs } from '@/lib/persistence/asset-collection-grace';
 import { configuredS3Bucket, createAssetByteStore } from '@/lib/persistence/asset-byte-store';
 import { getServerPersistenceProvider } from '@/lib/persistence/server-provider';
+import { resolvePgSsl } from '@/lib/persistence/pg-ssl';
 
 /**
  * Fifteen minutes. Short enough that a deleted asset's bytes go the same day,
@@ -130,9 +131,13 @@ export function startAssetCollectorSchedule(
   // indirect byte egress safely.
   const graceMs = resolveAssetCollectionGraceMs();
 
-  const pool = (deps.poolFactory ?? ((value) => new Pool({ connectionString: value, max: 2 })))(
-    connectionString,
-  );
+  const pool = (
+    deps.poolFactory ??
+    ((value) => {
+      const ssl = resolvePgSsl(value);
+      return new Pool({ connectionString: value, max: 2, ...(ssl ? { ssl } : {}) });
+    })
+  )(connectionString,);
   const queryable = pool as unknown as ConnectableQueryable;
 
   // Built on first use rather than now: PostgreSQL may still be starting (the
