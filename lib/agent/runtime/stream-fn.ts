@@ -263,6 +263,11 @@ function opencodeModelId(model: unknown): string {
   return 'default';
 }
 
+/** Cap per-line transcript bulk so one skill read (~5k tokens of SKILL.md)
+ *  does not drown every later turn. Small free-tier models degrade fast past
+ *  ~10k context; the stageId/url proof in the head of each result survives. */
+const OPENCODE_TRANSCRIPT_TOOL_RESULT_MAX = 1500;
+
 function toOpencodeTranscriptLines(messages: PiMessage[]): string[] {
   const lines: string[] = [];
   for (const message of messages) {
@@ -285,8 +290,14 @@ function toOpencodeTranscriptLines(messages: PiMessage[]): string[] {
       }
       if (parts.join('').trim()) lines.push(`assistant: ${parts.join('\n')}`);
     } else if (message.role === 'toolResult') {
-      const text = message.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
-      lines.push(`tool-result ${message.toolName} (${message.toolCallId}): ${text}`);
+      const full = message.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
+      const text =
+        full.length > OPENCODE_TRANSCRIPT_TOOL_RESULT_MAX
+          ? `${full.slice(0, OPENCODE_TRANSCRIPT_TOOL_RESULT_MAX)}…[truncated ${full.length - OPENCODE_TRANSCRIPT_TOOL_RESULT_MAX} chars]`
+          : full;
+      lines.push(
+        `TRUSTED tool-result ${message.toolName} (${message.toolCallId}): ${text}`,
+      );
     }
   }
   return lines;

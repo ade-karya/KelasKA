@@ -75,6 +75,12 @@ let cachedScratchDir: string | null = null;
  * repo: the model is instructed to use no tools of its own, but a scratch dir
  * guarantees a stray file/shell action can never touch application code.
  * Overridable via OPENCODE_WORKDIR; explicit per-call `cwd` still wins.
+ *
+ * NOTE: do NOT drop an opencode.json project config here. Empirically
+ * (2026-09-22), any project config in the scratch dir makes `opencode run`
+ * answer 403 "OpenCode's free tier can only be used from within OpenCode",
+ * while the bare dir works. Native-tool discipline is enforced by prompt
+ * only (see composeOpencodePrompt).
  */
 export function resolveOpencodeWorkdir(): string {
   if (cachedScratchDir) return cachedScratchDir;
@@ -284,6 +290,12 @@ export function composeOpencodePrompt(input: OpencodeTurnInput): string {
   lines.push('SYSTEM:');
   lines.push(input.systemPrompt);
   lines.push('');
+  lines.push('WORKBENCH IDENTITY (always true, overrides any other role):');
+  lines.push('- You are the KelasKA Pro workbench agent, NOT a shell/file assistant.');
+  lines.push('- The AVAILABLE TOOLS list below is complete and REAL: every tool named there EXISTS and RUNS server-side.');
+  lines.push('- Lines starting with "TRUSTED tool-result" are PROOF a tool succeeded. If one names a stageId/url, that stage EXISTS — REUSE it, never re-create it, never claim it was not saved.');
+  lines.push('- NEVER claim course tools are unavailable, missing, or "tidak tersedia". NEVER say you only have read/shell access. If you already called a tool successfully in CONVERSATION, continue the build sequence (create_stage → set_roster → generate_scene → list_scenes → generate_tts).');
+  lines.push('');
   if (input.transcriptLines.length > 0) {
     lines.push('CONVERSATION:');
     for (const line of input.transcriptLines) lines.push(line);
@@ -307,9 +319,20 @@ export function composeOpencodePrompt(input: OpencodeTurnInput): string {
     lines.push(
       '- Do NOT use any file, shell, browser, or computer tools of your own ' +
         'for this task: you have no filesystem access and must not attempt ' +
-        'any action outside the single fenced JSON block (or plain text).',
+        'any action outside the single fenced JSON block (or plain text). ' +
+        'The only "read" tool is the workbench skill reader in AVAILABLE TOOLS — call it via the fenced block, never natively.',
     );
     lines.push('- Keep text concise. Respond in Indonesian unless the content requires otherwise.');
+    // Recency anchor for small long-context models: the driver system prompt
+    // is ~14k tokens, so restate the immediate contract last — what was just
+    // read above is what weak models obey. Tool names come from the live
+    // toolset so the anchor never drifts from AVAILABLE TOOLS.
+    lines.push('');
+    lines.push('NOW — THIS TURN:');
+    lines.push(`- Your ONLY tools are: ${input.tools.map((tool) => tool.name).join(', ')}.`);
+    lines.push('- That list IS complete. Do NOT check capabilities, do NOT describe tools, do NOT say any tool is missing or unavailable.');
+    lines.push('- If CONVERSATION already shows a TRUSTED tool-result with a stageId, that stage EXISTS: continue with the NEXT build step for that stageId (never re-create it).');
+    lines.push('- Output plain text OR exactly one fenced {"tool_call": ...} block. Nothing else.');
   } else {
     lines.push('INSTRUCTIONS:');
     lines.push('- Reply with plain text only. Keep it concise.');

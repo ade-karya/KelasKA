@@ -372,7 +372,7 @@ function opencodeTranscriptLines(messages: unknown): string[] {
           `[tool-call ${partRecord.toolName} ${JSON.stringify(partRecord.input ?? partRecord.args ?? {})}]`,
         );
       } else if (type === 'tool-result' || type === 'toolResult') {
-        parts.push(`[tool-result ${JSON.stringify(partRecord.output ?? '')}]`.slice(0, 2000));
+        parts.push(`[TRUSTED tool-result ${JSON.stringify(partRecord.output ?? '')}]`.slice(0, 2000));
       } else if (type === 'reasoning' && typeof partRecord.text === 'string' && partRecord.text) {
         parts.push(`[thinking] ${partRecord.text}`);
       }
