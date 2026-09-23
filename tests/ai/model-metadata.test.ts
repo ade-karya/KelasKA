@@ -36,6 +36,16 @@ const MODELS_WITHOUT_CONFIGURABLE_THINKING = new Set<string>([
   'ollama:llama3.3',
   'ollama:gemma3',
   'ollama:deepseek-r1',
+  // OpenCode CLI models can reason, but the `opencode run` transport exposes
+  // no thinking controls (no effort/budget flags) — the CLI owns the request
+  // and thinking stays at the model default.
+  'opencode:muse-spark-1.3-contributor-free',
+  'opencode:muse-spark-1.2-contributor-free',
+  'opencode:mimo-v2.6-flash-free',
+  'opencode:ling-3.0-flash-fin-free',
+  'opencode:nemotron-3.5-lightning-free',
+  'opencode:nemotron-3-ultra-free',
+  'opencode:big-pickle',
 ]);
 
 function findDriftedModels(providers: Record<ProviderId, ProviderConfig>): string[] {

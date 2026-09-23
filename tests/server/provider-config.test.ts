@@ -26,6 +26,7 @@ const ENV_PREFIXES_TO_CLEAR = [
   'MIMO',
   'TOKENDANCE',
   'HY3',
+  'OPENCODE',
   'OLLAMA',
   'BEDROCK',
   'TTS_OPENAI',
@@ -98,12 +99,23 @@ vi.mock('fs', async (importOriginal) => {
   };
 });
 
+// The opencode provider auto-manages itself when the CLI binary is present,
+// which would leak host-machine state into these tests. Gate availability
+// behind a flag so each test decides deterministically.
+const opencodeCliMock = vi.hoisted(() => ({ available: false }));
+
+vi.mock('@/lib/ai/opencode-cli', () => ({
+  OPENCODE_PROVIDER_ID: 'opencode',
+  isOpencodeCliAvailable: () => opencodeCliMock.available,
+}));
+
 describe('provider-config', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
     clearProviderEnv();
     yamlOverride = null;
+    opencodeCliMock.available = false;
   });
 
   describe('resolveApiKey', () => {
@@ -237,6 +249,29 @@ providers:
     it('returns empty object when no providers configured', async () => {
       const { getServerProviders } = await import('@/lib/server/provider-config');
       expect(getServerProviders()).toEqual({});
+    });
+
+    it('auto-manages the opencode provider when the CLI is available', async () => {
+      opencodeCliMock.available = true;
+      const { getServerProviders, isServerConfiguredProvider } =
+        await import('@/lib/server/provider-config');
+      const providers = getServerProviders();
+      expect(providers.opencode).toBeDefined();
+      // Managed without a model pin: every catalog model is allowed, and no
+      // credential material leaks to the client.
+      expect(providers.opencode.models).toBeUndefined();
+      expect((providers.opencode as Record<string, unknown>).apiKey).toBeUndefined();
+      expect((providers.opencode as Record<string, unknown>).baseUrl).toBeUndefined();
+      expect(isServerConfiguredProvider('providers', 'opencode')).toBe(true);
+    });
+
+    it('opts out of opencode auto-management with OPENCODE_ENABLED=false', async () => {
+      opencodeCliMock.available = true;
+      vi.stubEnv('OPENCODE_ENABLED', 'false');
+      const { getServerProviders, isServerConfiguredProvider } =
+        await import('@/lib/server/provider-config');
+      expect(getServerProviders().opencode).toBeUndefined();
+      expect(isServerConfiguredProvider('providers', 'opencode')).toBe(false);
     });
 
     it('returns allowed models but never the API key or base URL', async () => {

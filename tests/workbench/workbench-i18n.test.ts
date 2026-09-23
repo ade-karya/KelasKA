@@ -37,7 +37,7 @@ const interpolations = (value: string): string[] =>
   [...value.matchAll(/\{\{(\w+)\}\}/g)].map((match) => match[1]).sort();
 
 describe('workbench translator locales', () => {
-  it('translates the other ten locales rather than falling back to English', () => {
+  it('translates the other eleven locales rather than falling back to English', () => {
     expect(createWorkbenchTranslator('fr-FR')('workbench.tool.label.webSearch')).toBe(
       'Rechercher sur le web',
     );
@@ -55,7 +55,7 @@ describe('workbench translator locales', () => {
 });
 
 /**
- * The twelve-locale contract. `workbenchEn` is the shape; every locale must
+ * The thirteen-locale contract. `workbenchEn` is the shape; every locale must
  * resolve every one of its keys to a real sentence with the same interpolation
  * variables — a missing key would render as `workbench.tool.label.x` on a card,
  * and a dropped `{{order}}` would render a page number that is not there.
@@ -63,8 +63,8 @@ describe('workbench translator locales', () => {
 describe('workbench copy covers every supported locale', () => {
   const source = flatten(workbenchEn);
 
-  it('has twelve locales to check', () => {
-    expect(supportedLocales.length).toBe(12);
+  it('has thirteen locales to check', () => {
+    expect(supportedLocales.length).toBe(13);
     expect(source.size).toBeGreaterThanOrEqual(200);
   });
 
@@ -96,7 +96,7 @@ describe('workbench copy covers every supported locale', () => {
       .readdirSync(overlaysDir)
       .filter((file) => file.endsWith('.json'))
       .sort();
-    expect(files.length).toBeGreaterThanOrEqual(10);
+    expect(files.length).toBeGreaterThanOrEqual(11);
     for (const file of files) {
       const overlay = JSON.parse(fs.readFileSync(path.join(overlaysDir, file), 'utf8')) as Record<
         string,
@@ -137,7 +137,7 @@ describe('workbench copy covers every supported locale', () => {
     const overlayLocales = supportedLocales
       .map((locale) => locale.code)
       .filter((code) => code !== 'zh-CN' && code !== 'en-US');
-    expect(overlayLocales).toHaveLength(10);
+    expect(overlayLocales).toHaveLength(11);
     for (const code of overlayLocales) {
       const overlay = JSON.parse(
         fs.readFileSync(

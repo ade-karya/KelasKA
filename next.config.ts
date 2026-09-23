@@ -59,6 +59,19 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: '200mb',
   },
+  // Dev-only: allow accessing `next dev` via tunnels / custom domains.
+  // Without this, Next blocks cross-origin dev resources (HMR, stack frames)
+  // with "Blocked cross-origin request". Covers:
+  // - https://j3d8r0gr-3000.asse.devtunnels.ms (VS Code dev tunnel)
+  // - https://kelaska.riau.ai (custom domain)
+  allowedDevOrigins: [
+    'kelaska.riau.ai',
+    '*.devtunnels.ms',
+    '*.asse.devtunnels.ms',
+    ...(process.env.ALLOWED_DEV_ORIGINS?.split(',')
+      .map((s) => s.trim())
+      .filter(Boolean) ?? []),
+  ],
   async headers() {
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
     const frameAncestors = extraAncestors ? `'self' ${extraAncestors}` : "'self'";

@@ -22,8 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { useSettingsStore } from '@/lib/store/settings';
-import { ASR_PROVIDERS } from '@/lib/audio/constants';
+import { useSettingsStore, getValidASRLanguage } from '@/lib/store/settings';
+import { ASR_PROVIDERS, CUSTOM_ASR_DEFAULT_LANGUAGES } from '@/lib/audio/constants';
 import type { ASRProviderId } from '@/lib/audio/types';
 import { isCustomASRProvider } from '@/lib/audio/types';
 import { Mic, MicOff, CheckCircle2, XCircle, Eye, EyeOff, Plus, Loader2 } from 'lucide-react';
@@ -35,6 +35,12 @@ import { getASRServerDisabledError } from '@/lib/audio/asr-enablement';
 
 const log = createLogger('ASRSettings');
 
+function getLanguageName(code: string, t: (key: string) => string): string {
+  const key = `settings.lang_${code}`;
+  const translated = t(key);
+  return translated === key ? code : translated;
+}
+
 interface ASRSettingsProps {
   selectedProviderId: ASRProviderId;
 }
@@ -43,12 +49,36 @@ export function ASRSettings({ selectedProviderId }: ASRSettingsProps) {
   const { t } = useI18n();
 
   const asrLanguage = useSettingsStore((state) => state.asrLanguage);
+  const activeAsrProviderId = useSettingsStore((state) => state.asrProviderId);
+  const setASRProvider = useSettingsStore((state) => state.setASRProvider);
+  const setASRLanguage = useSettingsStore((state) => state.setASRLanguage);
   const asrProvidersConfig = useSettingsStore((state) => state.asrProvidersConfig);
   const setASRProviderConfig = useSettingsStore((state) => state.setASRProviderConfig);
   const removeCustomASRProvider = useSettingsStore((state) => state.removeCustomASRProvider);
 
   const asrProvider = ASR_PROVIDERS[selectedProviderId as keyof typeof ASR_PROVIDERS];
   const isCustom = isCustomASRProvider(selectedProviderId);
+  const supportedLanguages: readonly string[] = isCustom
+    ? CUSTOM_ASR_DEFAULT_LANGUAGES
+    : (asrProvider?.supportedLanguages ?? []);
+  // When browsing a provider that is not active, the global language may use
+  // another provider's code format (e.g. whisper "en" vs browser-native
+  // "en-US"). Show the browsed provider's valid fallback instead of an empty
+  // trigger, so the country list is always visible for browser-native.
+  const languageValue = supportedLanguages.includes(asrLanguage)
+    ? asrLanguage
+    : getValidASRLanguage(selectedProviderId, asrLanguage);
+
+  const handleLanguageChange = (value: string) => {
+    // Picking a country implies using that provider (same as the old media
+    // popover: provider + language were chosen together). Activate the
+    // browsed provider first so the global language never stays invalid for
+    // the active provider, then apply the chosen country/language.
+    if (selectedProviderId !== activeAsrProviderId) {
+      setASRProvider(selectedProviderId);
+    }
+    setASRLanguage(value);
+  };
   const providerConfig = asrProvidersConfig[selectedProviderId];
   const isServerConfigured = !!providerConfig?.isServerConfigured;
   const requiresApiKey = isCustom
@@ -106,7 +136,7 @@ export function ASRSettings({ selectedProviderId }: ASRSettingsProps) {
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vendor-prefixed API without standard typings
         const recognition = new (SpeechRecognitionCtor as new () => any)();
-        recognition.lang = asrLanguage || 'zh-CN';
+        recognition.lang = languageValue || 'zh-CN';
         recognition.onresult = (event: {
           results: {
             [index: number]: { [index: number]: { transcript: string } };
@@ -153,7 +183,7 @@ export function ASRSettings({ selectedProviderId }: ASRSettingsProps) {
                   asrProvider?.defaultModelId ||
                   '',
               );
-              formData.append('language', asrLanguage);
+              formData.append('language', languageValue);
               const apiKeyValue = asrProvidersConfig[selectedProviderId]?.apiKey;
               if (apiKeyValue?.trim()) formData.append('apiKey', apiKeyValue);
               const baseUrlValue =
@@ -308,6 +338,33 @@ export function ASRSettings({ selectedProviderId }: ASRSettingsProps) {
             );
           })()}
         </>
+      )}
+
+      {/* Browser-native note */}
+      {selectedProviderId === 'browser-native' && (
+        <div className="rounded-lg border border-muted bg-muted/30 p-3 text-sm text-muted-foreground">
+          {t('settings.browserNativeNote')}
+        </div>
+      )}
+
+      {/* Recognition Language / Country — restored country choice for
+          Browser Native ASR (BCP-47: id-ID, en-US, zh-CN, ...) */}
+      {supportedLanguages.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-sm">{t('settings.asrLanguage')}</Label>
+          <Select value={languageValue} onValueChange={handleLanguageChange}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {supportedLanguages.map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {getLanguageName(lang, t)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
 
       {/* Test ASR */}

@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 import { createLogger } from '@/lib/logger';
+import { OPENCODE_PROVIDER_ID, isOpencodeCliAvailable } from '@/lib/ai/opencode-cli';
 import {
   DEFAULT_QWEN_TTS_VOICE_CLONE_MODEL,
   isQwenCatalogVoice,
@@ -80,6 +81,7 @@ export const LLM_ENV_MAP: Record<string, string> = {
   XIAOMI: 'xiaomi',
   MIMO: 'xiaomi',
   TOKENDANCE: 'tokendance',
+  OPENCODE: 'opencode',
   OLLAMA: 'ollama',
   LEMONADE: 'lemonade',
   BEDROCK: 'bedrock',
@@ -499,6 +501,22 @@ function applyBedrockProviderConfig(
   return providers;
 }
 
+function applyOpencodeCliFallback(
+  providers: Record<string, ServerProviderEntry>,
+): Record<string, ServerProviderEntry> {
+  // The `opencode` provider needs no key or URL — the local CLI binary owns
+  // auth (including the keyless free tier). Auto-manage it when the binary is
+  // present so Pro workbench and every other stage can select
+  // `opencode:<model>` with zero configuration. Explicit operator config
+  // (OPENCODE_* env or YAML) always wins; OPENCODE_ENABLED=false opts out.
+  if (providers[OPENCODE_PROVIDER_ID]) return providers;
+  const flag = process.env.OPENCODE_ENABLED?.trim().toLowerCase();
+  if (flag === 'false' || flag === '0' || flag === 'no' || flag === 'off') return providers;
+  if (!isOpencodeCliAvailable()) return providers;
+  providers[OPENCODE_PROVIDER_ID] = { apiKey: '' };
+  return providers;
+}
+
 function buildConfig(yamlData: YamlData): ServerConfig {
   const image = applyOpenAIImageFallback(
     loadEnvSection(IMAGE_ENV_MAP, yamlData.image, {
@@ -506,11 +524,13 @@ function buildConfig(yamlData: YamlData): ServerConfig {
     }),
     yamlData.image,
   );
-  const providers = applyBedrockProviderConfig(
-    loadEnvSection(LLM_ENV_MAP, yamlData.providers, {
-      keylessProviders: new Set(['ollama', 'lemonade', BEDROCK_PROVIDER_ID]),
-    }),
-    yamlData.providers,
+  const providers = applyOpencodeCliFallback(
+    applyBedrockProviderConfig(
+      loadEnvSection(LLM_ENV_MAP, yamlData.providers, {
+        keylessProviders: new Set(['ollama', 'lemonade', 'opencode', BEDROCK_PROVIDER_ID]),
+      }),
+      yamlData.providers,
+    ),
   );
 
   return {

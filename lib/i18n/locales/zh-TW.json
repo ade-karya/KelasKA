@@ -1226,6 +1226,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade（本機）",
       "ollama": "Ollama（本機模型）",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1239,7 +1240,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Claude 協定",
       "google": "Gemini 協定",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "個模型",
     "modelSingular": "個模型",

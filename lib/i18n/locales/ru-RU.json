@@ -1241,6 +1241,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade (Локальный)",
       "ollama": "Ollama (Локальный)",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1254,7 +1255,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Протокол Claude",
       "google": "Протокол Gemini",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "моделей",
     "modelSingular": "модель",

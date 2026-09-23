@@ -58,6 +58,7 @@ import {
 } from './thinking-config';
 import { createLogger } from '@/lib/logger';
 import { normalizeAzureBaseUrl } from './azure';
+import { createOpencodeCliModel } from './opencode-model';
 // NOTE: Do NOT import thinking-context.ts here — it uses node:async_hooks
 // which is server-only, and this file is also used on the client via
 // settings.ts. The thinking context is read from globalThis instead
@@ -1719,6 +1720,73 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
       },
     ],
   },
+
+  opencode: {
+    id: 'opencode',
+    name: 'OpenCode CLI',
+    type: 'opencode',
+    // No defaultBaseUrl: the transport is the local `opencode` binary, not
+    // HTTP. The server auto-manages this provider when the binary is present
+    // (see applyOpencodeCliFallback in lib/server/provider-config.ts), so no
+    // API key or URL is ever needed — `opencode auth` owns the credentials,
+    // including the no-key free tier (`opencode/*` models).
+    requiresApiKey: false,
+    // Model list mirrors `opencode models` (free tier, verified 2026-09-23).
+    // `tools` is deliberately false even though the upstream models support
+    // function calling: `opencode run` executes its own agent loop and only
+    // ever returns text, so OpenMAIC-side tool calls cannot round-trip.
+    models: [
+      {
+        id: 'muse-spark-1.3-contributor-free',
+        name: 'Muse Spark 1.3 Free',
+        contextWindow: 1048576,
+        outputWindow: 131072,
+        capabilities: { streaming: true, tools: false, vision: false },
+      },
+      {
+        id: 'muse-spark-1.2-contributor-free',
+        name: 'Muse Spark 1.2 Free',
+        contextWindow: 1048576,
+        outputWindow: 131072,
+        capabilities: { streaming: true, tools: false, vision: false },
+      },
+      {
+        id: 'mimo-v2.6-flash-free',
+        name: 'MiMo-V2.6-Flash Free',
+        contextWindow: 200000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: false, vision: false },
+      },
+      {
+        id: 'ling-3.0-flash-fin-free',
+        name: 'Ling 3.0 Flash Fin Free',
+        contextWindow: 262144,
+        outputWindow: 32768,
+        capabilities: { streaming: true, tools: false, vision: false },
+      },
+      {
+        id: 'nemotron-3.5-lightning-free',
+        name: 'Nemotron 3.5 Lightning Free',
+        contextWindow: 262144,
+        outputWindow: 262144,
+        capabilities: { streaming: true, tools: false, vision: false },
+      },
+      {
+        id: 'nemotron-3-ultra-free',
+        name: 'Nemotron 3 Ultra Free',
+        contextWindow: 1000000,
+        outputWindow: 128000,
+        capabilities: { streaming: true, tools: false, vision: false },
+      },
+      {
+        id: 'big-pickle',
+        name: 'Big Pickle',
+        contextWindow: 200000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: false, vision: false },
+      },
+    ],
+  },
 };
 
 applyModelMetadata(PROVIDERS);
@@ -2613,6 +2681,20 @@ export function getModel(config: ModelConfig): ModelWithInfo {
       }
       const google = createGoogleGenerativeAI(googleOptions);
       model = google.chat(config.modelId);
+      break;
+    }
+
+    case 'opencode': {
+      // Local-binary transport: no API key, base URL, or proxy applies — the
+      // `opencode` CLI owns auth (including the keyless free tier) and the
+      // model factory resolves the binary itself. A per-request baseUrl for
+      // this provider is a configuration mistake, not an override.
+      if (config.baseUrl) {
+        throw new Error(
+          `Provider ${config.providerId} is served by the local OpenCode CLI and does not accept a base URL (received "${config.baseUrl}").`,
+        );
+      }
+      model = createOpencodeCliModel({ modelId: config.modelId });
       break;
     }
 

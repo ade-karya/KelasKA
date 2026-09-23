@@ -1241,6 +1241,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade (로컬)",
       "ollama": "Ollama (로컬)",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1254,7 +1255,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Claude 프로토콜",
       "google": "Gemini 프로토콜",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "개 모델",
     "modelSingular": "개 모델",
