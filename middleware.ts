@@ -22,8 +22,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Whitelist: access-code endpoints, health check
-  if (pathname.startsWith('/api/access-code/') || pathname === '/api/health') {
+  // Whitelist: access-code endpoints, health check, and the per-run MCP bridge
+  // for CLI-served drivers. The bridge route carries its own authorization (a
+  // 256-bit per-run token held only by the run's own bridge process) and a
+  // local CLI child cannot hold an access-code cookie, so gating it here would
+  // make every CLI-native agent run fail at tool discovery.
+  if (
+    pathname.startsWith('/api/access-code/') ||
+    pathname === '/api/health' ||
+    pathname.startsWith('/api/agent/mcp/')
+  ) {
     return NextResponse.next();
   }
 

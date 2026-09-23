@@ -23,8 +23,9 @@ import { parseCourseRefs, type CourseRef } from '@/lib/workbench/course-refs';
 import { parseElementRefs, type ElementRef } from '@/lib/workbench/element-refs';
 import type { Scene, SlideContent } from '@/lib/types/stage';
 
-import { resolveAgentDriverModel } from './agent-driver-model';
+import { resolveAgentDriverModel, isOpencodeDriverModel } from './agent-driver-model';
 import { buildAskUserTool } from './ask-user';
+import { resolveOpencodeBridgeBaseUrl, runOpencodeHarness } from './opencode-harness';
 import { agentRuntimeConfig as config } from './config';
 import { buildCreateSkillTool } from './create-skill';
 import {
@@ -1065,6 +1066,43 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     }
   };
 
+  /** Tool calls counted for the settlement frame; both harnesses increment it. */
+  let toolCalls = 0;
+
+  /**
+   * Terminal settlement, shared by the pi harness and the CLI-native harness.
+   *
+   * One implementation on purpose: cancel consumption, shutdown parking, lease
+   * fencing and the undelivered-message requeue are exactly the places where two
+   * copies would drift.
+   */
+  const settleRun = async (loopError: string | undefined): Promise<void> => {
+    cancelRequestedAt ??= await store.getCancelRequestedAt(id);
+    const settledCancelled = cancelled || cancelRequestedAt !== null;
+    if (settledCancelled) abort.abort();
+    const error = !settledCancelled && loopError ? loopError : undefined;
+    const status = settledCancelled ? 'cancelled' : error ? 'failed' : 'succeeded';
+    emit(LIFECYCLE.sessionEnd, { status, toolCalls, ...(error ? { error } : {}) });
+    await flushAll();
+    const settled = await store.finishSession(id, WORKER_ID, {
+      status,
+      ...(error ? { error } : {}),
+      resetAttempt: status !== 'failed',
+      expectedAttempt: attempt,
+      ...(settledCancelled && cancelRequestedAt !== null
+        ? { consumeCancelRequestedAt: cancelRequestedAt }
+        : {}),
+    });
+    if (!settled) {
+      markLeaseLost();
+      return;
+    }
+    if (!settledCancelled) {
+      await requeueIfUndelivered('settle');
+    }
+    log.info(`session ${id} -> ${status} (attempt ${attempt}, ${toolCalls} tool calls)`);
+  };
+
   // A verdict claim never executes the model. A message posted after the
   // claim still receives one attended redemption through the common check.
   if (isOverAttemptCap(meta)) {
@@ -1457,19 +1495,103 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       personalHistoryTools,
     );
     const askUserLatch = createAskUserTerminateLatch();
-    let toolCalls = 0;
+    const systemPrompt = buildRunnerCoursePrompt({
+      availableSkills: availableSkillsPromptBlock(installedSkills),
+      curriculum: CURRICULUM_TOOLS_PROMPT,
+      ...(search ? { search: searchPromptBlock() } : {}),
+      fetch: fetchPromptBlock(),
+      untrustedContent: untrustedContentPolicyPromptBlock(),
+      ...(materials.length ? { materials: sessionMaterialsPromptBlock(materials) } : {}),
+      roster: ROSTER_TOOLS_PROMPT,
+      voice: voiceCloneToolsPrompt(voiceRegistrationEnabled),
+    });
+
+    /**
+     * ── CLI-native harness ──────────────────────────────────────────────────
+     * A CLI-served driver (`opencode`) owns the agent loop and never returns
+     * tool calls to us, so its tools are published over MCP and its event
+     * stream is mapped into the same durable frames the pi harness emits. The
+     * session settles through the shared `settleRun` below, so lease, cancel,
+     * shutdown and undelivered-message handling stay one implementation.
+     * See lib/server/agent-runtime/opencode-harness.ts.
+     */
+    if (isOpencodeDriverModel(driver.connection.providerId)) {
+      const preload = await buildSkillPreload({
+        text: plannedStart.text,
+        skills: installedSkills,
+        transcript: modelMessages,
+        ...(plan.kind === 'start' && requestedSkill ? { forced: [requestedSkill] } : {}),
+        model: {
+          api: driver.piModel.api,
+          provider: driver.piModel.provider,
+          id: driver.piModel.id,
+        },
+        onSkipped: (skill, reason) =>
+          emit(LIFECYCLE.trace, {
+            message: `skill "${skill.id}" not preloaded (${reason}); its location is named in the prompt instead`,
+          }),
+      });
+      adoptPreload(preload, true);
+      const cliMessages: AgentMessage[] =
+        plannedStart.kind === 'prompt'
+          ? [
+              {
+                role: 'user',
+                content: preload.text,
+              } as unknown as AgentMessage,
+              ...preload.messages,
+            ]
+          : // Resume: the CLI gets the durable transcript it was seeded with plus
+            // the turn's own text; there is no pi `continue` to hand back to.
+            [
+              {
+                role: 'user',
+                content:
+                  loggedMessages.findLast((message) => message.seq <= deliveredThrough)?.text ??
+                  meta.prompt,
+              } as unknown as AgentMessage,
+            ];
+      const outcome = await runOpencodeHarness({
+        modelId: driver.connection.modelId,
+        systemPrompt,
+        tools,
+        history: plan.kind === 'start' ? [] : modelMessages,
+        messages: cliMessages,
+        sessionId: id,
+        ownerId: meta.ownerId,
+        attempt,
+        emit,
+        persistMessage: async (message) => {
+          await entrySession!.appendMessage(message as unknown as AgentMessage);
+        },
+        abortSignal: abort.signal,
+        appBaseUrl: resolveOpencodeBridgeBaseUrl(),
+      });
+      toolCalls = outcome.toolCalls;
+      if (outcome.questionEmitted) questionEmitted = true;
+      await flushAll();
+      const cliShutdown = ctx.shuttingDown && abort.signal.aborted && !cancelled;
+      if (cliShutdown || tripwireViolated || (leaseLost && abort.signal.aborted)) {
+        emit(LIFECYCLE.sessionInterrupted, {
+          reason: cliShutdown
+            ? 'runner shutdown'
+            : tripwireViolated
+              ? 'runner event-order tripwire'
+              : 'lease lost',
+          attempt,
+        });
+        await flushAll();
+        if (!leaseLost) await store.releaseLease(id, WORKER_ID);
+        log.info(`session ${id} parked at attempt ${attempt}`);
+        return;
+      }
+      await settleRun(outcome.error);
+      return;
+    }
+
     const agent = buildAgent({
       streamFn,
-      systemPrompt: buildRunnerCoursePrompt({
-        availableSkills: availableSkillsPromptBlock(installedSkills),
-        curriculum: CURRICULUM_TOOLS_PROMPT,
-        ...(search ? { search: searchPromptBlock() } : {}),
-        fetch: fetchPromptBlock(),
-        untrustedContent: untrustedContentPolicyPromptBlock(),
-        ...(materials.length ? { materials: sessionMaterialsPromptBlock(materials) } : {}),
-        roster: ROSTER_TOOLS_PROMPT,
-        voice: voiceCloneToolsPrompt(voiceRegistrationEnabled),
-      }),
+      systemPrompt,
       model: driver.piModel,
       tools,
       allowedToolNames: new Set([
@@ -1746,7 +1868,6 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       queueInterruptedToolResults();
       await flushAll();
 
-      const loopError = terminalLoopError(agent.state.messages, agent.state.errorMessage);
       const shutdown = ctx.shuttingDown && abort.signal.aborted && !cancelled;
       if (shutdown || tripwireViolated || (leaseLost && abort.signal.aborted)) {
         emit(LIFECYCLE.sessionInterrupted, {
@@ -1763,30 +1884,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         return;
       }
 
-      cancelRequestedAt ??= await store.getCancelRequestedAt(id);
-      const settledCancelled = cancelled || cancelRequestedAt !== null;
-      if (settledCancelled) abort.abort();
-      const error = !settledCancelled && loopError ? loopError : undefined;
-      const status = settledCancelled ? 'cancelled' : error ? 'failed' : 'succeeded';
-      emit(LIFECYCLE.sessionEnd, { status, toolCalls, ...(error ? { error } : {}) });
-      await flushAll();
-      const settled = await store.finishSession(id, WORKER_ID, {
-        status,
-        ...(error ? { error } : {}),
-        resetAttempt: status !== 'failed',
-        expectedAttempt: attempt,
-        ...(settledCancelled && cancelRequestedAt !== null
-          ? { consumeCancelRequestedAt: cancelRequestedAt }
-          : {}),
-      });
-      if (!settled) {
-        markLeaseLost();
-        return;
-      }
-      if (!settledCancelled) {
-        await requeueIfUndelivered('settle');
-      }
-      log.info(`session ${id} -> ${status} (attempt ${attempt}, ${toolCalls} tool calls)`);
+      await settleRun(terminalLoopError(agent.state.messages, agent.state.errorMessage));
     } catch (error) {
       queueInterruptedToolResults();
       if (isLeaseLostError(error)) markLeaseLost();

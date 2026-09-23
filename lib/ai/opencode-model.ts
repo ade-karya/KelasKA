@@ -206,6 +206,12 @@ export function createOpencodeCliModel(opts: OpencodeCliModelOptions): LanguageM
             })) {
               if (event.kind === 'text-delta') {
                 controller.enqueue({ type: 'text-delta', id: textId, delta: event.delta });
+              } else if (event.kind === 'tool') {
+                // The CLI executed this tool inside its own loop (a built-in, or
+                // an MCP tool). The AI SDK's provider stream has no part for
+                // "provider ran a tool", so it is not forwarded here — callers
+                // that need the tool transcript consume `streamOpencodePrompt`
+                // directly (see the CLI-native harness plan).
               } else {
                 const completion = event.completion;
                 // A CLI-reported failure arrives with exit 0 as an `error`
@@ -216,8 +222,7 @@ export function createOpencodeCliModel(opts: OpencodeCliModelOptions): LanguageM
                   controller.enqueue({
                     type: 'error',
                     error: new Error(
-                      completion.errorMessage ||
-                        `opencode CLI run failed for model "${modelId}"`,
+                      completion.errorMessage || `opencode CLI run failed for model "${modelId}"`,
                     ),
                   });
                 } else {

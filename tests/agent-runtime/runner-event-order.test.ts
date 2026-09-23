@@ -46,6 +46,8 @@ vi.mock('@/lib/server/agent-runtime/entry-tree-storage', async (importActual) =>
 });
 
 vi.mock('@/lib/server/agent-runtime/agent-driver-model', () => ({
+  // The runner's harness selection reads this; the mock must carry it.
+  isOpencodeDriverModel: () => false,
   resolveAgentDriverModel: vi.fn(async () => {
     throw new Error('driver setup unavailable');
   }),

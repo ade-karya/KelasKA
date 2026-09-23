@@ -143,6 +143,8 @@ vi.mock('@/lib/server/agent-runtime/voice-clone-tools', async (importActual) => 
 // A resolvable driver model with a no-op streamFn: the fake Agent below never
 // reads the stream, so nothing touches a real model gateway.
 vi.mock('@/lib/server/agent-runtime/agent-driver-model', () => ({
+  // The runner's harness selection reads this; the mock must carry it.
+  isOpencodeDriverModel: () => false,
   resolveAgentDriverModel: vi.fn(async () => ({
     connection: { model: { id: 'wakeup-test' }, modelId: 'wakeup-test', providerId: 'test' },
     piModel: {

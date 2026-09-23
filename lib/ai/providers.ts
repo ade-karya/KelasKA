@@ -70,7 +70,12 @@ const log = createLogger('AIProviders');
 export type { ProviderId, ProviderConfig, ModelInfo, ModelConfig };
 
 /** Provider IDs whose logos are monochrome-dark and need `dark:invert` in dark mode */
-export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'openrouter', 'ollama']);
+export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set([
+  'openai',
+  'openrouter',
+  'ollama',
+  'opencode',
+]);
 
 /**
  * Provider registry
@@ -1731,6 +1736,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     // API key or URL is ever needed — `opencode auth` owns the credentials,
     // including the no-key free tier (`opencode/*` models).
     requiresApiKey: false,
+    icon: '/logos/opencode.svg',
     // Model list mirrors `opencode models` (free tier, verified 2026-09-23).
     // `tools` is deliberately false even though the upstream models support
     // function calling: `opencode run` executes its own agent loop and only

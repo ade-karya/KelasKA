@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/*': [
       'lib/server/agent-runtime/import-pptx-worker.mjs',
+      // The stdio MCP bridge a CLI-served agent driver spawns (see
+      // lib/server/agent-runtime/opencode-harness.ts). Loaded as a real Node
+      // child process, so the tracer never sees it.
+      'scripts/opencode-mcp-bridge.mjs',
+      'node_modules/@modelcontextprotocol/sdk/**',
       'skills/openmaic/**',
       'skills/agent-runtime/**',
       // Loaded through a runtime-only `import('undici')` (see the LLM

@@ -3,6 +3,7 @@ import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 import { fetchModels, ModelFetchError } from '@/lib/server/model-fetch';
+import { OPENCODE_MODEL_PREFIX, listOpencodeModels } from '@/lib/ai/opencode-cli';
 
 const log = createLogger('ProbeModels');
 
@@ -13,17 +14,34 @@ const NON_CHAT_PATTERN = /(tts|asr|whisper|embedding|rerank|mineru|image|video|v
  * POST /api/provider/probe-models
  *
  * Discovers the chat models a base URL + key exposes, via the OpenAI-compatible
- * /models endpoint (with multi-candidate fallback). Returns the lit-up list, or
- * a typed status so the UI can fall back to manual model entry.
+ * /models endpoint (with multi-candidate fallback) or — for the keyless
+ * opencode provider — the local CLI's `opencode models` listing. Returns the
+ * lit-up list, or a typed status so the UI can fall back to manual model entry.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { baseUrl, apiKey, modelsUrl } = body as {
+    const { baseUrl, apiKey, modelsUrl, providerType } = body as {
       baseUrl?: string;
       apiKey?: string;
       modelsUrl?: string;
+      providerType?: string;
     };
+
+    // The opencode provider is a local-binary transport: there is no HTTP
+    // endpoint to probe, so its model list comes from `opencode models`.
+    // Only `opencode/*` refs are addressable through this transport (see
+    // toOpencodeModelRef), and the prefix is stripped so fetched ids match the
+    // built-in catalog's bare ids.
+    if (providerType === 'opencode') {
+      const refs = await listOpencodeModels();
+      const ids = refs
+        .filter((ref) => ref.startsWith(OPENCODE_MODEL_PREFIX))
+        .map((ref) => ref.slice(OPENCODE_MODEL_PREFIX.length))
+        .filter((id) => !NON_CHAT_PATTERN.test(id))
+        .sort((a, b) => a.localeCompare(b));
+      return apiSuccess({ models: ids.map((id) => ({ id })), total: ids.length, filtered: 0 });
+    }
 
     if (!baseUrl) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'baseUrl is required');
@@ -35,7 +53,10 @@ export async function POST(req: NextRequest) {
       if (ssrfError) return apiError('INVALID_REQUEST', 400, ssrfError);
     }
 
-    const models = await fetchModels(baseUrl, apiKey || '', { modelsUrlOverride: modelsUrl });
+    const models = await fetchModels(baseUrl, apiKey || '', {
+      modelsUrlOverride: modelsUrl,
+      providerType,
+    });
     const chatModels = models.filter((m) => !NON_CHAT_PATTERN.test(m.id));
 
     return apiSuccess({

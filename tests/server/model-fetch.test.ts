@@ -179,3 +179,133 @@ describe('fetchModels', () => {
     expect(text).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('buildModelsUrlCandidates (google)', () => {
+  it('versioned google base → {base}/models (no doubled /v1)', () => {
+    expect(
+      buildModelsUrlCandidates('https://generativelanguage.googleapis.com/v1beta', {
+        providerType: 'google',
+      }),
+    ).toEqual(['https://generativelanguage.googleapis.com/v1beta/models']);
+  });
+
+  it.each(['v1alpha', 'v1beta1', 'v1'])('treats /%s as a version segment', (version) => {
+    expect(
+      buildModelsUrlCandidates(`https://generativelanguage.googleapis.com/${version}`, {
+        providerType: 'google',
+      }),
+    ).toEqual([`https://generativelanguage.googleapis.com/${version}/models`]);
+  });
+
+  it('unversioned google base → v1beta then bare /models', () => {
+    expect(
+      buildModelsUrlCandidates('https://generativelanguage.googleapis.com', {
+        providerType: 'google',
+      }),
+    ).toEqual([
+      'https://generativelanguage.googleapis.com/v1beta/models',
+      'https://generativelanguage.googleapis.com/models',
+    ]);
+  });
+
+  it('keeps the OpenAI-compatible candidates for non-google provider types', () => {
+    expect(buildModelsUrlCandidates('https://generativelanguage.googleapis.com')).toEqual([
+      'https://generativelanguage.googleapis.com/v1/models',
+    ]);
+  });
+});
+
+describe('fetchModels (google)', () => {
+  it('parses a ListModels response and authenticates with x-goog-api-key', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({
+        models: [
+          {
+            name: 'models/gemini-2.5-flash',
+            supportedGenerationMethods: ['generateContent', 'countTokens'],
+          },
+          { name: 'models/text-embedding-004', supportedGenerationMethods: ['embedContent'] },
+          {
+            name: 'models/gemini-2.5-flash-preview-tts',
+            supportedGenerationMethods: ['generateContent'],
+          },
+        ],
+      }),
+    } as unknown as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      fetchModels('https://generativelanguage.googleapis.com/v1beta', 'test-key', {
+        providerType: 'google',
+      }),
+    ).resolves.toEqual([
+      { id: 'gemini-2.5-flash', ownedBy: undefined },
+      { id: 'gemini-2.5-flash-preview-tts', ownedBy: undefined },
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://generativelanguage.googleapis.com/v1beta/models',
+      expect.objectContaining({
+        method: 'GET',
+        headers: { 'x-goog-api-key': 'test-key' },
+        redirect: 'manual',
+      }),
+    );
+  });
+
+  it('keeps models whose generation methods are unknown', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({ models: [{ name: 'models/gemini-experimental' }] }),
+      } as unknown as Response),
+    );
+
+    await expect(
+      fetchModels('https://generativelanguage.googleapis.com/v1beta', 'test-key', {
+        providerType: 'google',
+      }),
+    ).resolves.toEqual([{ id: 'gemini-experimental', ownedBy: undefined }]);
+  });
+
+  it('maps Google 400 API_KEY_INVALID to the 401 auth contract', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: vi
+        .fn()
+        .mockResolvedValue(
+          '{"error":{"code":400,"message":"API key not valid. Please pass a valid API key.","status":"INVALID_ARGUMENT"}}',
+        ),
+    } as unknown as Response);
+    vi.stubGlobal('fetch', fetchMock);
+
+    const error = await fetchModels('https://generativelanguage.googleapis.com/v1beta', 'bad-key', {
+      providerType: 'google',
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ModelFetchError);
+    expect(error).toMatchObject({ status: 401 });
+  });
+
+  it('keeps a Google 400 that is not about the key as a terminal 400', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: vi.fn().mockResolvedValue('{"error":{"message":"Invalid page size"}}'),
+      } as unknown as Response),
+    );
+
+    const error = await fetchModels('https://generativelanguage.googleapis.com/v1beta', 'k', {
+      providerType: 'google',
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ModelFetchError);
+    expect(error).toMatchObject({ status: 400 });
+  });
+});

@@ -1,17 +1,24 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
+  buildOpencodeConfigJson,
   buildOpencodeRunArgs,
   createOpencodeAccumulator,
+  describeOpencodeFailure,
   extractOpencodeStdoutError,
   foldOpencodeJsonEvent,
   isOpencodeCliAvailable,
+  isRetryableOpencodeError,
+  listOpencodeModels,
   OPENCODE_CLI_TIMEOUT_MS,
+  OPENCODE_MODELS_TIMEOUT_MS,
   OPENCODE_SESSION_TITLE,
   parseOpencodeJsonOutput,
+  parseOpencodeModelsOutput,
+  prepareOpencodeConfigDir,
   resolveOpencodeCliPath,
   toOpencodeModelRef,
 } from '@/lib/ai/opencode-cli';
@@ -38,12 +45,77 @@ describe('toOpencodeModelRef', () => {
   });
 });
 
+describe('parseOpencodeModelsOutput', () => {
+  it('parses one provider/model ref per line, preserving order and deduping', () => {
+    const stdout = [
+      'opencode-go/deepseek-v4-pro',
+      'opencode/big-pickle',
+      '',
+      '  opencode/muse-spark-1.3-contributor-free  ',
+      'opencode/big-pickle',
+      'not-a-model-ref',
+      'Available models:',
+    ].join('\n');
+    expect(parseOpencodeModelsOutput(stdout)).toEqual([
+      'opencode-go/deepseek-v4-pro',
+      'opencode/big-pickle',
+      'opencode/muse-spark-1.3-contributor-free',
+    ]);
+  });
+
+  it('strips ANSI colour codes from piped output', () => {
+    expect(parseOpencodeModelsOutput('\u001b[32mopencode/big-pickle\u001b[0m')).toEqual([
+      'opencode/big-pickle',
+    ]);
+  });
+});
+
+describe('listOpencodeModels', () => {
+  const envBackup = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...envBackup };
+    vi.unstubAllEnvs();
+  });
+
+  it('runs `<cli> models` and returns the parsed refs', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opencode-models-test-'));
+    const fake = join(dir, 'opencode');
+    writeFileSync(
+      fake,
+      '#!/bin/sh\nprintf "opencode/big-pickle\\nopencode/mimo-v2.6-flash-free\\n"\n',
+      { mode: 0o755 },
+    );
+
+    await expect(listOpencodeModels({ cliPath: fake })).resolves.toEqual([
+      'opencode/big-pickle',
+      'opencode/mimo-v2.6-flash-free',
+    ]);
+    expect(OPENCODE_MODELS_TIMEOUT_MS).toBe(30_000);
+  });
+
+  it('rejects with the exit code when the listing command fails', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opencode-models-test-'));
+    const fake = join(dir, 'opencode');
+    writeFileSync(fake, '#!/bin/sh\necho "boom" >&2\nexit 3\n', { mode: 0o755 });
+
+    await expect(listOpencodeModels({ cliPath: fake })).rejects.toThrow(/exited with code 3/);
+  });
+
+  it('rejects when no CLI binary is available', async () => {
+    process.env = { PATH: '/nonexistent-dir-xyz', HOME: '/nonexistent-home-xyz' };
+    delete process.env.OPENCODE_CLI_PATH;
+    await expect(listOpencodeModels()).rejects.toThrow(/no `opencode` binary/i);
+  });
+});
+
 describe('buildOpencodeRunArgs', () => {
   it('builds a non-interactive JSON run with attribution title', () => {
     expect(buildOpencodeRunArgs('mimo-v2.6-flash-free', 'Say OK')).toEqual([
       'run',
       '--format',
       'json',
+      '--print-logs',
       '--model',
       'opencode/mimo-v2.6-flash-free',
       '--title',
@@ -51,6 +123,21 @@ describe('buildOpencodeRunArgs', () => {
       'Say OK',
     ]);
     expect(OPENCODE_SESSION_TITLE).toBe('openmaic-llm');
+  });
+
+  it('runs a private server when a per-run MCP config is injected', () => {
+    expect(buildOpencodeRunArgs('m', 'p', { standalone: true })).toEqual([
+      'run',
+      '--standalone',
+      '--format',
+      'json',
+      '--print-logs',
+      '--model',
+      'opencode/m',
+      '--title',
+      OPENCODE_SESSION_TITLE,
+      'p',
+    ]);
   });
 });
 
@@ -89,7 +176,7 @@ describe('parseOpencodeJsonOutput', () => {
     expect(result.finishReason).toBe('length');
   });
 
-  it("treats a tool-calls finish with answer text as a completed turn", () => {
+  it('treats a tool-calls finish with answer text as a completed turn', () => {
     // Real CLI shape when its own agent loop used tools: every step_finish
     // carries reason tool-calls. pi never sees those calls (this transport
     // drops caller tools), so the accumulated text IS the turn's answer.
@@ -182,6 +269,93 @@ describe('extractOpencodeStdoutError', () => {
   });
 });
 
+describe('isRetryableOpencodeError', () => {
+  it('retries non-zero exits and CLI-reported errors', () => {
+    expect(isRetryableOpencodeError(new Error('opencode CLI exited with code 1'))).toBe(true);
+    expect(
+      isRetryableOpencodeError(new Error('opencode CLI exited with code 1 (CLI reported: boom)')),
+    ).toBe(true);
+    expect(isRetryableOpencodeError(new Error('Rate limit exceeded'))).toBe(true);
+    expect(isRetryableOpencodeError(new Error('fetch failed'))).toBe(true);
+  });
+
+  it('never retries aborts, timeouts, or a missing binary', () => {
+    const abort = new Error('Operation aborted');
+    abort.name = 'AbortError';
+    expect(isRetryableOpencodeError(abort)).toBe(false);
+    expect(isRetryableOpencodeError(new Error('opencode CLI timed out after 100 ms'))).toBe(false);
+    expect(isRetryableOpencodeError(new Error('no `opencode` binary was found. Install it'))).toBe(
+      false,
+    );
+    expect(isRetryableOpencodeError(undefined)).toBe(false);
+  });
+});
+
+describe('describeOpencodeFailure', () => {
+  it('adds the rate-limit hint and the keyed-provider escape hatch', () => {
+    const message = describeOpencodeFailure(
+      'opencode CLI exited with code 1: AI.Error: Rate limit exceeded. Please try again later.',
+    );
+    expect(message).toContain('rate-limits');
+    expect(message).toContain('OPENAI_API_KEY');
+  });
+
+  it('passes a plain failure through unchanged', () => {
+    expect(describeOpencodeFailure('opencode CLI exited with code 1')).toBe(
+      'opencode CLI exited with code 1',
+    );
+  });
+
+  it('names an empty failure', () => {
+    expect(describeOpencodeFailure('   ')).toBe('opencode CLI run failed with no output');
+  });
+});
+
+describe('buildOpencodeConfigJson / prepareOpencodeConfigDir', () => {
+  it('wires MCP servers into the CLI config shape', () => {
+    const config = buildOpencodeConfigJson([
+      {
+        name: 'openmaic',
+        command: ['node', '/app/scripts/opencode-mcp-bridge.mjs'],
+        environment: { OPENMAIC_SESSION: 's1' },
+        codemode: false,
+      },
+    ]);
+    expect(config).toEqual({
+      mcp: {
+        openmaic: {
+          type: 'local',
+          command: ['node', '/app/scripts/opencode-mcp-bridge.mjs'],
+          environment: { OPENMAIC_SESSION: 's1' },
+          codemode: false,
+          enabled: true,
+          disabled: false,
+        },
+      },
+    });
+  });
+
+  it('omits codemode when the caller does not pin it', () => {
+    const config = buildOpencodeConfigJson([{ name: 'x', command: ['a'] }]) as {
+      mcp: Record<string, Record<string, unknown>>;
+    };
+    expect(config.mcp.x).not.toHaveProperty('codemode');
+    expect(config.mcp.x.type).toBe('local');
+  });
+
+  it('writes a private config dir and cleans it up', () => {
+    const { dir, cleanup } = prepareOpencodeConfigDir([{ name: 'x', command: ['a'] }]);
+    expect(existsSync(join(dir, 'opencode.json'))).toBe(true);
+    expect(JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8'))).toEqual({
+      mcp: { x: { type: 'local', command: ['a'], enabled: true, disabled: false } },
+    });
+    cleanup();
+    expect(existsSync(dir)).toBe(false);
+    // Idempotent: a second cleanup must not throw.
+    expect(() => cleanup()).not.toThrow();
+  });
+});
+
 describe('foldOpencodeJsonEvent', () => {
   it('accumulates reasoning deltas separately from text', () => {
     const acc = createOpencodeAccumulator();
@@ -193,6 +367,62 @@ describe('foldOpencodeJsonEvent', () => {
     expect(textDelta).toBe('OK');
     expect(acc.text).toBe('OK');
     expect(acc.reasoning).toBe('hmm');
+  });
+
+  it('folds a CLI tool_use part into a tool call', () => {
+    const acc = createOpencodeAccumulator();
+    const { tool } = foldOpencodeJsonEvent(acc, {
+      type: 'tool_use',
+      part: {
+        id: 'call-1',
+        tool: 'grep',
+        state: { status: 'completed', input: { pattern: 'x' }, output: 'hit' },
+      },
+    });
+    expect(tool).toEqual({
+      id: 'call-1',
+      name: 'grep',
+      input: { pattern: 'x' },
+      output: 'hit',
+      status: 'completed',
+    });
+    expect(acc.toolCalls).toHaveLength(1);
+  });
+
+  it('upserts repeated events for the same call id', () => {
+    const acc = createOpencodeAccumulator();
+    foldOpencodeJsonEvent(acc, {
+      type: 'tool_use',
+      part: { id: 'call-1', tool: 'read', state: { status: 'running' } },
+    });
+    foldOpencodeJsonEvent(acc, {
+      type: 'tool_use',
+      part: { id: 'call-1', tool: 'read', state: { status: 'completed', output: 'done' } },
+    });
+    expect(acc.toolCalls).toHaveLength(1);
+    expect(acc.toolCalls[0]).toMatchObject({ status: 'completed', output: 'done' });
+  });
+
+  it('exposes tool calls on a parsed completion', () => {
+    const result = parseOpencodeJsonOutput(
+      [
+        '{"type":"text","part":{"type":"text","text":"hasil"}}',
+        '{"type":"tool_use","part":{"id":"c1","tool":"openmaic_create_stage","state":{"status":"completed","input":{"title":"Fotosintesis"},"output":"ok"}}}',
+      ].join('\n'),
+    );
+    expect(result.toolCalls).toEqual([
+      {
+        id: 'c1',
+        name: 'openmaic_create_stage',
+        input: { title: 'Fotosintesis' },
+        output: 'ok',
+        status: 'completed',
+      },
+    ]);
+  });
+
+  it('omits toolCalls when the run made none', () => {
+    expect(parseOpencodeJsonOutput(REAL_RUN_OUTPUT).toolCalls).toBeUndefined();
   });
 });
 

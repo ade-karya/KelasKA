@@ -165,7 +165,8 @@ export function ProviderConfigPanel({
 
   const effectiveBaseUrl = baseUrl || provider.defaultBaseUrl || '';
 
-  // Probe the provider's /models endpoint and merge results into the model list.
+  // Probe the provider's model list: an HTTP `/models` endpoint for keyed
+  // providers, or the local `opencode models` listing for the CLI provider.
   const handleFetchModels = useCallback(async () => {
     setFetchStatus('fetching');
     setFetchMessage('');
@@ -173,7 +174,12 @@ export function ProviderConfigPanel({
       const response = await fetch('/api/provider/probe-models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ baseUrl: effectiveBaseUrl, apiKey, modelsUrl }),
+        body: JSON.stringify({
+          baseUrl: effectiveBaseUrl,
+          apiKey,
+          modelsUrl,
+          providerType: provider.type,
+        }),
       });
       const data = await response.json();
       if (response.ok && data.success) {
@@ -199,7 +205,7 @@ export function ProviderConfigPanel({
       setFetchStatus('error');
       setFetchMessage(t('settings.fetchModelsFailed'));
     }
-  }, [apiKey, effectiveBaseUrl, modelsUrl, onModelsFetched, t]);
+  }, [apiKey, effectiveBaseUrl, modelsUrl, onModelsFetched, provider.type, t]);
 
   const models = providersConfig[provider.id]?.models || [];
   const isServerConfigured = providersConfig[provider.id]?.isServerConfigured;

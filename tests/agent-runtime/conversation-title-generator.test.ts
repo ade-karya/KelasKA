@@ -13,6 +13,8 @@ vi.mock('@/lib/ai/llm', () => ({ callLLM: mocks.callLLM }));
 vi.mock('@/lib/server/model-routes', () => ({ getStageRoute: mocks.getStageRoute }));
 vi.mock('@/lib/server/resolve-model', () => ({ resolveModel: mocks.resolveModel }));
 vi.mock('@/lib/server/agent-runtime/agent-driver-model', () => ({
+  // The runner's harness selection reads this; the mock must carry it.
+  isOpencodeDriverModel: () => false,
   resolveAgentDriverModel: mocks.resolveAgentDriverModel,
 }));
 vi.mock('@/lib/logger', () => ({
