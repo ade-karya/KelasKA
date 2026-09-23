@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
-    "greetingWithName": "Привет, {{name}}"
+    "greetingWithName": "Привет, {{name}}",
+    "vocationalTestBadge": "Тестовая функция",
+    "vocationalTestLabel": "Учебное задание",
+    "vocationalTestTooltip": "Отправить практический тест профподготовки из текущего поля ввода"
   },
   "toolbar": {
     "pdfParser": "Парсер",

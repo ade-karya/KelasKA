@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Học tập sinh tạo trong lớp học tương tác đa tác nhân",
-    "greetingWithName": "Chào {{name}}"
+    "greetingWithName": "Chào {{name}}",
+    "vocationalTestBadge": "Tính năng thử nghiệm",
+    "vocationalTestLabel": "Nhiệm vụ giáo dục nghề nghiệp",
+    "vocationalTestTooltip": "Gửi bài kiểm tra thực hành nghề nghiệp từ ô nhập hiện tại"
   },
   "toolbar": {
     "pdfParser": "Bộ đọc PDF",

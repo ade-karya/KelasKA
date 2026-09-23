@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "L’apprentissage génératif en classe interactive multi-agents",
-    "greetingWithName": "Bonjour, {{name}}"
+    "greetingWithName": "Bonjour, {{name}}",
+    "vocationalTestBadge": "Fonction de test",
+    "vocationalTestLabel": "Tâche professionnelle",
+    "vocationalTestTooltip": "Envoyer un test de formation pratique professionnelle depuis le champ de saisie actuel"
   },
   "toolbar": {
     "pdfParser": "Analyseur",

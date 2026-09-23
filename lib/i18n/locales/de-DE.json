@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Generatives Lernen im interaktiven Lernraum mit mehreren KI-Agenten",
-    "greetingWithName": "Hallo, {{name}}"
+    "greetingWithName": "Hallo, {{name}}",
+    "vocationalTestBadge": "Testfunktion",
+    "vocationalTestLabel": "Berufsbildungsaufgabe",
+    "vocationalTestTooltip": "Einen berufsbildenden Praxistest aus dem aktuellen Eingabefeld senden"
   },
   "toolbar": {
     "pdfParser": "Parser",

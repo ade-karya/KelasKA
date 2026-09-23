@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Aprendizagem Generativa em Sala de Aula Interativa Multi-Agente",
-    "greetingWithName": "Olá, {{name}}"
+    "greetingWithName": "Olá, {{name}}",
+    "vocationalTestBadge": "Função de teste",
+    "vocationalTestLabel": "Tarefa vocacional",
+    "vocationalTestTooltip": "Enviar um teste de treinamento prático vocacional a partir da caixa de entrada atual"
   },
   "toolbar": {
     "pdfParser": "Analisador",

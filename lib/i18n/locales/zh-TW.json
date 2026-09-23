@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "多智能體互動課室中的生成式學習",
-    "greetingWithName": "嗨，{{name}}"
+    "greetingWithName": "嗨，{{name}}",
+    "vocationalTestBadge": "測試功能",
+    "vocationalTestLabel": "職教任務",
+    "vocationalTestTooltip": "從目前輸入框提交職教實操訓練測試"
   },
   "toolbar": {
     "pdfParser": "解析器",

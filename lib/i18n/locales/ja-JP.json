@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "マルチエージェント対話型教室で生成的に学ぶ",
-    "greetingWithName": "こんにちは、{{name}}さん"
+    "greetingWithName": "こんにちは、{{name}}さん",
+    "vocationalTestBadge": "テスト機能",
+    "vocationalTestLabel": "職業訓練タスク",
+    "vocationalTestTooltip": "現在の入力欄から職業実践トレーニングのテストを送信する"
   },
   "toolbar": {
     "pdfParser": "パーサー",

@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "التعلّم التوليدي في فصل تفاعلي متعدد الوكلاء",
-    "greetingWithName": "مرحبًا، {{name}}"
+    "greetingWithName": "مرحبًا، {{name}}",
+    "vocationalTestBadge": "ميزة تجريبية",
+    "vocationalTestLabel": "مهمة التعليم المهني",
+    "vocationalTestTooltip": "إرسال اختبار تدريب عملي مهني من مربع الإدخال الحالي"
   },
   "toolbar": {
     "pdfParser": "محلل PDF",

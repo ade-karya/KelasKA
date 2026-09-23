@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
-    "greetingWithName": "嗨，{{name}}"
+    "greetingWithName": "嗨，{{name}}",
+    "vocationalTestBadge": "测试功能",
+    "vocationalTestLabel": "职教任务",
+    "vocationalTestTooltip": "从当前输入框提交职教实操训练测试"
   },
   "toolbar": {
     "pdfParser": "解析器",

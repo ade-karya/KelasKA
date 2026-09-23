@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
-    "greetingWithName": "Hi, {{name}}"
+    "greetingWithName": "Hi, {{name}}",
+    "vocationalTestBadge": "Beta",
+    "vocationalTestLabel": "Vocational task",
+    "vocationalTestTooltip": "Submit a vocational hands-on training test from the current input box"
   },
   "toolbar": {
     "pdfParser": "Parser",

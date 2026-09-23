@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "멀티 에이전트 인터랙티브 교실에서 펼치는 생성형 학습",
-    "greetingWithName": "안녕하세요, {{name}}!"
+    "greetingWithName": "안녕하세요, {{name}}!",
+    "vocationalTestBadge": "테스트 기능",
+    "vocationalTestLabel": "직업훈련 과제",
+    "vocationalTestTooltip": "현재 입력창에서 직업 실습 훈련 테스트를 제출합니다"
   },
   "toolbar": {
     "pdfParser": "파서",
