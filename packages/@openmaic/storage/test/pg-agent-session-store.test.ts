@@ -994,4 +994,57 @@ describe('PgAgentSessionStore with PGlite', () => {
     expect(await hooked.getSession('session-1')).not.toBeNull();
     expect(await hooked.readMaxId('owner-a')).toBe(BigInt(0));
   });
+
+  describe('session driver model pin', () => {
+    test('round-trips a model pinned at creation', async () => {
+      const created = await store.createSession(
+        makeAgentSessionInput({ model: 'opencode:mimo-v2.6-flash-free' }),
+      );
+      expect(created.model).toBe('opencode:mimo-v2.6-flash-free');
+      await expect(store.getSession('session-1')).resolves.toMatchObject({
+        model: 'opencode:mimo-v2.6-flash-free',
+      });
+      const listed = await store.listSessionsByOwner('owner-a');
+      expect(listed.map((session) => session.model)).toEqual(['opencode:mimo-v2.6-flash-free']);
+    });
+
+    test('omits the model when no pin is sent', async () => {
+      const created = await store.createSession(makeAgentSessionInput());
+      expect(created.model).toBeUndefined();
+      expect('model' in created).toBe(false);
+    });
+
+    test('repins the model for the next run', async () => {
+      await store.createSession(makeAgentSessionInput());
+      const updated = await store.updateSessionModel(
+        'session-1',
+        'owner-a',
+        'opencode:muse-spark-1.3-contributor-free',
+      );
+      expect(updated?.model).toBe('opencode:muse-spark-1.3-contributor-free');
+      await expect(store.getSession('session-1')).resolves.toMatchObject({
+        model: 'opencode:muse-spark-1.3-contributor-free',
+      });
+    });
+
+    test('refuses to repin unknown or foreign sessions', async () => {
+      await store.createSession(makeAgentSessionInput());
+      await expect(
+        store.updateSessionModel('missing', 'owner-a', 'opencode:big-pickle'),
+      ).resolves.toBeNull();
+      await expect(
+        store.updateSessionModel('session-1', 'owner-b', 'opencode:big-pickle'),
+      ).resolves.toBeNull();
+      expect((await store.getSession('session-1'))?.model).toBeUndefined();
+    });
+
+    test('migrates a legacy table without the model column', async () => {
+      await db.query(`ALTER TABLE agent_sessions DROP COLUMN model`);
+      await ensureAgentSessionSchema(db);
+      const created = await store.createSession(
+        makeAgentSessionInput({ id: 'session-2', model: 'opencode:big-pickle' }),
+      );
+      expect(created.model).toBe('opencode:big-pickle');
+    });
+  });
 });

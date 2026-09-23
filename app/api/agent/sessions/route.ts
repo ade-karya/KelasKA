@@ -20,6 +20,7 @@ import {
 import { withRequestOwnerId } from '@/lib/server/agent-runtime/with-owner';
 import { buildRequestOrigin, isValidClassroomId } from '@/lib/server/classroom-storage';
 import { decodeCourseRefs } from '@/lib/workbench/course-refs';
+import { validateSessionModel } from '@/lib/server/agent-runtime/session-model';
 
 export const runtime = 'nodejs';
 
@@ -33,6 +34,13 @@ interface CreateSessionBody {
   materialIds?: unknown;
   /** Classrooms named on the opening message. */
   courseRefs?: unknown;
+  /**
+   * Optional per-session driver model pin (`provider:model`, the Pro workbench
+   * model pick). Only server-managed providers are accepted — client secrets
+   * must never travel into durable rows. The runner resolves the driver from
+   * it, under the operator's `maic-agent-driver` route.
+   */
+  model?: unknown;
 }
 
 export async function POST(req: NextRequest) {
@@ -88,6 +96,10 @@ export async function POST(req: NextRequest) {
   const decodedCourseRefs = decodeCourseRefs(body.courseRefs ?? []);
   if (!decodedCourseRefs.ok) {
     return apiError('INVALID_REQUEST', 400, decodedCourseRefs.error);
+  }
+  const validatedModel = validateSessionModel(body.model);
+  if (validatedModel.error) {
+    return apiError('INVALID_REQUEST', 400, validatedModel.error);
   }
 
   return withRequestOwnerId(req, async (ownerId, responseHeaders) => {
@@ -145,6 +157,7 @@ export async function POST(req: NextRequest) {
       existingCourse,
       titleState: 'pending',
       origin: buildRequestOrigin(req),
+      ...(validatedModel.model ? { model: validatedModel.model } : {}),
       // Keep the runner from claiming the session until its opening materials
       // and references are durable. postUserMessage below atomically requeues it.
       ...(existingCourse || hasOpeningContext ? { status: 'succeeded' as const } : {}),

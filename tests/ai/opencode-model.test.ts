@@ -17,7 +17,7 @@ vi.mock('@/lib/ai/opencode-cli', async (importOriginal) => {
       },
       finishReason: 'stop' as const,
     })),
-    streamOpencodePrompt: async function* () {
+    streamOpencodePrompt: vi.fn(async function* () {
       yield { kind: 'text-delta' as const, delta: 'O' };
       yield { kind: 'text-delta' as const, delta: 'K' };
       yield {
@@ -35,11 +35,12 @@ vi.mock('@/lib/ai/opencode-cli', async (importOriginal) => {
           finishReason: 'stop' as const,
         },
       };
-    },
+    }),
   };
 });
 
 import { createOpencodeCliModel, opencodePromptToText } from '@/lib/ai/opencode-model';
+import { streamOpencodePrompt } from '@/lib/ai/opencode-cli';
 import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 
 describe('opencodePromptToText', () => {
@@ -177,5 +178,44 @@ describe('createOpencodeCliModel', () => {
     };
     expect(finish.finishReason.unified).toBe('stop');
     expect(finish.usage.outputTokens.total).toBe(3);
+  });
+
+  it('doStream surfaces a CLI-reported failure as a stream error', async () => {
+    vi.mocked(streamOpencodePrompt).mockImplementationOnce(async function* () {
+      yield {
+        kind: 'done' as const,
+        completion: {
+          text: '',
+          reasoning: '',
+          usage: {
+            inputTokens: 10,
+            outputTokens: 0,
+            reasoningTokens: 0,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+          },
+          finishReason: 'error' as const,
+          errorMessage: 'Rate limited, retry later',
+        },
+      };
+    });
+    const model = createOpencodeCliModel({ modelId: 'mimo-v2.6-flash-free' }) as unknown as {
+      doStream: (opts: { prompt: LanguageModelV3Prompt }) => Promise<{
+        stream: ReadableStream<{ type: string; [k: string]: unknown }>;
+      }>;
+    };
+    const { stream } = await model.doStream({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Say OK' }] }],
+    });
+    const parts: Array<{ type: string; [k: string]: unknown }> = [];
+    const reader = stream.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      parts.push(value);
+    }
+    const error = parts.find((p) => p.type === 'error') as unknown as { error: Error };
+    expect(error.error.message).toBe('Rate limited, retry later');
+    expect(parts.some((p) => p.type === 'finish')).toBe(false);
   });
 });

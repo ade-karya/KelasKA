@@ -188,6 +188,16 @@ export interface SettingsState {
   thinkingConfigs: Record<string, ThinkingConfig>;
 
   /**
+   * The Pro workbench's own model selection, separate from the classic
+   * generator's main selection above. Empty pair = follow the main selection
+   * (resolved at read time, never written back). The Pro composer surfaces a
+   * model button bound to these fields; session creation sends the resolved
+   * `provider:model` as the session's driver pin.
+   */
+  proProviderId: ProviderId | '';
+  proModelId: string;
+
+  /**
    * User-level per-stage LLM routing (the user-facing counterpart of the
    * operator env MODEL_ROUTES): stage key (e.g. 'scene-content',
    * 'scene-content:slide') → explicit provider/model selection. Absent entry =
@@ -414,6 +424,8 @@ export interface SettingsState {
 
   // Actions
   setModel: (providerId: ProviderId, modelId: string) => void;
+  /** The Pro workbench's own model selection (empty pair = follow main). */
+  setProModel: (providerId: ProviderId | '', modelId: string) => void;
   /** Set (or clear, with null) the user-level route for one LLM stage. */
   setStageRoute: (
     stage: string,
@@ -603,6 +615,32 @@ function resolveLLMSelection(
   const modelId = providerId
     ? resolveSelectedLLMModel(providerId, currentModelId, config[providerId]?.models ?? [])
     : '';
+  return { providerId, modelId };
+}
+
+/**
+ * Resolve the Pro workbench's effective model selection: the explicit Pro
+ * pick when it is still usable, otherwise the main (classic) selection.
+ * Read-time fallback only — never written back — so the main selection's
+ * #580 invariant is untouched and clearing the Pro pick restores following.
+ */
+export function resolveProModelSelection(input: {
+  providersConfig: ProvidersConfig;
+  proProviderId: ProviderId | '' | undefined;
+  proModelId: string | undefined;
+  providerId: ProviderId;
+  modelId: string;
+}): { providerId: ProviderId; modelId: string } {
+  const { providersConfig, proProviderId, proModelId, providerId, modelId } = input;
+  if (proProviderId) {
+    const cfg = providersConfig[proProviderId];
+    if (cfg && cfg.enabled !== false && isLLMProviderConfigured(cfg)) {
+      return {
+        providerId: proProviderId,
+        modelId: resolveSelectedLLMModel(proProviderId, proModelId ?? '', cfg.models ?? []),
+      };
+    }
+  }
   return { providerId, modelId };
 }
 
@@ -1086,6 +1124,8 @@ export const useSettingsStore = create<SettingsState>()(
         // the KVStore on rehydration; an upgrading user reconfigures once.
         providerId: 'openai' as ProviderId,
         modelId: '',
+        proProviderId: '' as ProviderId | '',
+        proModelId: '',
         thinkingConfigs: {},
         llmStageRoutes: {},
         webSearchEnabled: false,
@@ -1147,6 +1187,7 @@ export const useSettingsStore = create<SettingsState>()(
 
         // Actions
         setModel: (providerId, modelId) => set({ providerId, modelId }),
+        setProModel: (proProviderId, proModelId) => set({ proProviderId, proModelId }),
         setStageRoute: (stage, route) =>
           set((state) => {
             const next = { ...state.llmStageRoutes };
@@ -2411,6 +2452,16 @@ export const useSettingsStore = create<SettingsState>()(
 
         if ((state as Record<string, unknown>).thinkingConfigs === undefined) {
           (state as Record<string, unknown>).thinkingConfigs = {};
+        }
+
+        // Pro workbench model selection: empty pair = follow the main
+        // selection. Old blobs predate the fields; default them explicitly so
+        // readers never see undefined.
+        if ((state as Record<string, unknown>).proProviderId === undefined) {
+          (state as Record<string, unknown>).proProviderId = '';
+        }
+        if ((state as Record<string, unknown>).proModelId === undefined) {
+          (state as Record<string, unknown>).proModelId = '';
         }
 
         // Migrate Web Search: old flat fields → new provider-based config

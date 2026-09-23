@@ -208,15 +208,29 @@ export function createOpencodeCliModel(opts: OpencodeCliModelOptions): LanguageM
                 controller.enqueue({ type: 'text-delta', id: textId, delta: event.delta });
               } else {
                 const completion = event.completion;
-                controller.enqueue({ type: 'text-end', id: textId });
-                controller.enqueue({
-                  type: 'finish',
-                  usage: toV3Usage(completion),
-                  finishReason: {
-                    unified: toUnifiedFinishReason(completion.finishReason),
-                    raw: completion.finishReason,
-                  },
-                });
+                // A CLI-reported failure arrives with exit 0 as an `error`
+                // finish: surface it as a stream error carrying the real cause
+                // instead of a `finish` part whose message the runner cannot
+                // see (it would degrade to "LLM stream finished with error").
+                if (completion.finishReason === 'error') {
+                  controller.enqueue({
+                    type: 'error',
+                    error: new Error(
+                      completion.errorMessage ||
+                        `opencode CLI run failed for model "${modelId}"`,
+                    ),
+                  });
+                } else {
+                  controller.enqueue({ type: 'text-end', id: textId });
+                  controller.enqueue({
+                    type: 'finish',
+                    usage: toV3Usage(completion),
+                    finishReason: {
+                      unified: toUnifiedFinishReason(completion.finishReason),
+                      raw: completion.finishReason,
+                    },
+                  });
+                }
               }
             }
           } catch (err) {

@@ -1948,6 +1948,10 @@ export async function createWorkbenchSession(input: {
   stageId?: string;
   existingCourse?: boolean;
 }): Promise<WorkbenchSessionMeta> {
+  // No per-session driver pin: every Pro conversation runs on the operator's
+  // `maic-agent-driver` MODEL_ROUTES entry (opencode CLI by default). The
+  // server still accepts a `model` pin for API callers; the workbench simply
+  // never sends one.
   const res = await fetch('/api/agent/sessions', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -2091,6 +2095,8 @@ export async function postWorkbenchMessage(
   elementRefs: readonly ElementRef[] = [],
   courseRefs: readonly CourseRef[] = [],
 ): Promise<{ elementRefsAccepted: boolean; courseRefsAccepted: boolean }> {
+  // No per-session driver pin (see createWorkbenchSession): follow-ups run on
+  // the session's existing driver, which is always the operator route.
   const res = await fetch(`/api/agent/sessions/${encodeURIComponent(sessionId)}/messages`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

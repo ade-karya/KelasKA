@@ -89,6 +89,12 @@ export interface AgentSessionMeta {
   attempt: number;
   /** Highest durable user-message event sequence appended to the run transcript. */
   deliveredUserMessageSeq: number;
+  /**
+   * The `provider:model` string pinned at creation (e.g. the Pro workbench
+   * model pick). The runner resolves the driver from it; absent means the
+   * operator route / DEFAULT_MODEL fallback, exactly as before.
+   */
+  model?: string;
   createdAt: number;
   updatedAt: number;
   lease?: AgentSessionLease;
@@ -109,6 +115,11 @@ export interface CreateAgentSessionInput {
   titleState?: 'pending';
   /** Existing-course sessions may begin terminal and requeue on the first message. */
   status?: 'queued' | 'succeeded';
+  /**
+   * Optional `provider:model` pin for the session's driver (the Pro workbench
+   * model pick). Validated by the caller; stored verbatim.
+   */
+  model?: string;
 }
 
 export type AgentSessionClaimReason = 'queued' | 'orphaned';
@@ -349,6 +360,15 @@ export interface AgentSessionTitleStore {
     sessionId: string,
     ownerId: string,
     title: string | null,
+  ): Promise<AgentSessionMeta | null>;
+}
+
+/** Per-session driver model pinning, separate from lifecycle authority. */
+export interface AgentSessionModelStore {
+  updateSessionModel(
+    sessionId: string,
+    ownerId: string,
+    model: string,
   ): Promise<AgentSessionMeta | null>;
 }
 

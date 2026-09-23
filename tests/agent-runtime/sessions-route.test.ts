@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   findSkill: vi.fn(),
   inferSkillIdFromPrompt: vi.fn(),
   scheduleConversationTitle: vi.fn(),
+  opencodeCliAvailable: false,
 }));
 
 vi.mock('@/lib/config/feature-flags', () => ({
@@ -46,6 +47,10 @@ vi.mock('@/lib/server/agent-runtime/session-materials', () => ({
 vi.mock('@/lib/server/agent-runtime/conversation-title-task', () => ({
   scheduleConversationTitle: mocks.scheduleConversationTitle,
 }));
+vi.mock('@/lib/ai/opencode-cli', () => ({
+  OPENCODE_PROVIDER_ID: 'opencode',
+  isOpencodeCliAvailable: () => mocks.opencodeCliAvailable,
+}));
 
 import { GET, POST } from '@/app/api/agent/sessions/route';
 import { MAX_SESSION_TEXT_LENGTH } from '@/lib/server/agent-runtime/limits';
@@ -63,6 +68,7 @@ function post(body: unknown, headers?: HeadersInit) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.runtimeEnabled = true;
+  mocks.opencodeCliAvailable = false;
   mocks.resolveRequestOwnerId.mockImplementation(
     (_request: NextRequest, responseHeaders: Headers) => {
       responseHeaders.append('Set-Cookie', 'anonymous_id=test; Path=/; HttpOnly');
@@ -108,6 +114,35 @@ describe('agent session collection route', () => {
       }),
     );
     expect(mocks.scheduleConversationTitle).toHaveBeenCalledWith('session-1', 'anon:test');
+  });
+
+  it('pins a server-managed session model when the Pro pick is sent', async () => {
+    mocks.opencodeCliAvailable = true;
+    const response = await post({
+      prompt: 'Build a course',
+      model: 'opencode:muse-spark-1.3-contributor-free',
+    });
+
+    expect(response.status).toBe(202);
+    expect(mocks.createSession).toHaveBeenCalledWith(
+      expect.objectContaining({ model: 'opencode:muse-spark-1.3-contributor-free' }),
+    );
+  });
+
+  it('rejects a session model without an explicit provider prefix', async () => {
+    const response = await post({ prompt: 'Build a course', model: 'muse-spark' });
+
+    expect(response.status).toBe(400);
+    expect(mocks.createSession).not.toHaveBeenCalled();
+  });
+
+  it('rejects a session model whose provider is not server-configured', async () => {
+    // No OPENAI_API_KEY here and no mock override: client-keyed providers
+    // cannot be pinned because their secrets must never enter durable rows.
+    const response = await post({ prompt: 'Build a course', model: 'openai:gpt-5.4' });
+
+    expect(response.status).toBe(400);
+    expect(mocks.createSession).not.toHaveBeenCalled();
   });
 
   it('does not schedule an ordinary session until its create write resolves', async () => {

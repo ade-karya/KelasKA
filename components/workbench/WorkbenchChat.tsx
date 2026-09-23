@@ -1001,6 +1001,8 @@ export function WorkbenchChat({
                     label={t('proMode.loadSkill')}
                     onClick={openSkillMenu}
                   />
+                  {/* No per-session model pick: every Pro conversation runs on
+                      the operator's `maic-agent-driver` route (opencode CLI). */}
                 </div>
                 <div className={styles.composer.actionsRow}>
                   {live ? (

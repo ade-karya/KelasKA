@@ -34,11 +34,13 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   // Detect language after hydration to avoid SSR mismatch.
   // i18next handles fallback automatically: if the detected language
   // has no matching JSON file, it falls back to fallbackLng.
+  // First open is always the default locale (Bahasa Indonesia): a stored
+  // choice wins, otherwise the default applies regardless of the browser
+  // language. Users can switch anytime via the language switcher.
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
-      const raw = stored || navigator.language || defaultLocale;
-      const target = resolveLocale(raw);
+      const target = stored ? resolveLocale(stored) : defaultLocale;
       if (target !== i18n.language) i18n.changeLanguage(target);
     } catch {
       // localStorage unavailable, keep default

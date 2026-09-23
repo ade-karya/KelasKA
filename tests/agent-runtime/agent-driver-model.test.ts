@@ -262,4 +262,65 @@ describe('agent driver model route', () => {
       await import('@/lib/server/agent-runtime/agent-driver-model');
     await expect(resolveAgentDriverModel()).rejects.toThrow('unsupported pi api/dialect');
   });
+
+  it('serves an opencode route without a pi api/dialect', async () => {
+    process.env.MODEL_ROUTES = JSON.stringify({
+      'maic-agent-driver': { model: 'opencode:muse-spark-1.3-contributor-free' },
+    });
+    mocks.resolveModel.mockResolvedValue({
+      model: {},
+      modelInfo: { contextWindow: 1_048_576, outputWindow: 131_072 },
+      modelString: 'opencode:muse-spark-1.3-contributor-free',
+      providerId: 'opencode',
+      modelId: 'muse-spark-1.3-contributor-free',
+      apiKey: '',
+      baseUrl: undefined,
+      thinkingConfig: undefined,
+    });
+    const { resolveAgentDriverModel } =
+      await import('@/lib/server/agent-runtime/agent-driver-model');
+    const resolved = await resolveAgentDriverModel();
+
+    // The injected StreamFn routes through the resolved AI SDK model, so the
+    // pi-side model is a stub and no wire cap is ever sent to the CLI.
+    expect(resolved.piModel.provider).toBe('opencode');
+    expect(resolved.wireMaxOutputTokens).toBeUndefined();
+    expect(resolved.reservedOutputTokens).toBe(131_072);
+  });
+
+  it('honors a per-session model pin under an unset operator route', async () => {
+    delete process.env.MODEL_ROUTES;
+    mocks.resolveModel.mockResolvedValue({
+      model: {},
+      modelInfo: { contextWindow: 200_000, outputWindow: 32_000 },
+      modelString: 'opencode:mimo-v2.6-flash-free',
+      providerId: 'opencode',
+      modelId: 'mimo-v2.6-flash-free',
+      apiKey: '',
+      baseUrl: undefined,
+      thinkingConfig: undefined,
+    });
+    const { resolveAgentDriverModel } =
+      await import('@/lib/server/agent-runtime/agent-driver-model');
+    const resolved = await resolveAgentDriverModel({
+      modelString: 'opencode:mimo-v2.6-flash-free',
+    });
+
+    expect(mocks.resolveModel).toHaveBeenCalledWith({
+      stage: 'maic-agent-driver',
+      modelString: 'opencode:mimo-v2.6-flash-free',
+    });
+    expect(resolved.connection.modelString).toBe('opencode:mimo-v2.6-flash-free');
+    expect(resolved.piModel.provider).toBe('opencode');
+  });
+
+  it('rejects a session pin without an explicit provider prefix', async () => {
+    delete process.env.MODEL_ROUTES;
+    const { resolveAgentDriverModel } =
+      await import('@/lib/server/agent-runtime/agent-driver-model');
+    await expect(resolveAgentDriverModel({ modelString: 'mimo-v2.6-flash-free' })).rejects.toThrow(
+      'explicit provider prefix',
+    );
+    expect(mocks.resolveModel).not.toHaveBeenCalled();
+  });
 });

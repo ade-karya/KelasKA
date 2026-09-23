@@ -11,6 +11,7 @@ import { scheduleConversationTitle } from '@/lib/server/agent-runtime/conversati
 import { withRequestOwnerId } from '@/lib/server/agent-runtime/with-owner';
 import { decodeElementRefs } from '@/lib/workbench/element-refs';
 import { decodeCourseRefs } from '@/lib/workbench/course-refs';
+import { validateSessionModel } from '@/lib/server/agent-runtime/session-model';
 import {
   bindOwnerMaterialsToSession,
   SessionMaterialBindingError,
@@ -36,6 +37,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       materialIds?: unknown;
       elementRefs?: unknown;
       courseRefs?: unknown;
+      /**
+       * Optional driver model re-pin (`provider:model`, the Pro workbench
+       * model pick). Same validation as session creation; takes effect on
+       * the next run the runner claims.
+       */
+      model?: unknown;
     } = {};
     try {
       body = ((await req.json()) ?? {}) as typeof body;
@@ -72,6 +79,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       responseHeaders.forEach((value, name) => response.headers.append(name, value));
       return response;
     }
+    const validatedModel = validateSessionModel(body.model);
+    if (validatedModel.error) {
+      const response = apiError('INVALID_REQUEST', 400, validatedModel.error);
+      responseHeaders.forEach((value, name) => response.headers.append(name, value));
+      return response;
+    }
     if (!text && materialIds.length === 0) {
       const response = apiError('MISSING_REQUIRED_FIELD', 400, 'text is required');
       responseHeaders.forEach((value, name) => response.headers.append(name, value));
@@ -91,6 +104,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const materials = materialIds.length
         ? await bindOwnerMaterialsToSession(id, ownerId, materialIds)
         : [];
+      if (validatedModel.model) {
+        const updated = await store.updateSessionModel(id, ownerId, validatedModel.model);
+        if (!updated) {
+          return new Response('Not found', { status: 404, headers: responseHeaders });
+        }
+      }
       const posted = await store.postUserMessage(
         id,
         {

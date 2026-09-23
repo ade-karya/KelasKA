@@ -26,6 +26,7 @@ import {
   type AgentSessionMeta,
   type AgentSessionAutomaticTitleStore,
   type AgentSessionStore,
+  type AgentSessionModelStore,
   type AgentSessionTitleStore,
   type AgentSessionTransaction,
   type AgentSessionUrlSource,
@@ -104,6 +105,9 @@ CREATE TABLE IF NOT EXISTS agent_sessions (
   status              TEXT NOT NULL DEFAULT 'queued',
   attempt             INTEGER NOT NULL DEFAULT 0,
   delivered_user_message_seq INTEGER NOT NULL DEFAULT 0,
+  -- Per-session driver model pin (provider:model), set by the Pro workbench
+  -- model pick at creation. NULL = operator route / DEFAULT_MODEL fallback.
+  model               TEXT,
   lease_worker_id     TEXT,
   lease_worker_pid    INTEGER,
   lease_heartbeat_at  BIGINT,
@@ -127,6 +131,9 @@ ALTER TABLE agent_sessions
 
 ALTER TABLE agent_sessions
   ADD COLUMN IF NOT EXISTS title_state TEXT NOT NULL DEFAULT 'manual';
+
+ALTER TABLE agent_sessions
+  ADD COLUMN IF NOT EXISTS model TEXT;
 
 DO $agent_session_title_state_constraint$
 BEGIN
@@ -386,6 +393,7 @@ interface SessionRow extends Record<string, unknown> {
   status: AgentSessionMeta['status'];
   attempt: number;
   delivered_user_message_seq: number;
+  model: string | null;
   lease_worker_id: string | null;
   lease_worker_pid: number | null;
   lease_heartbeat_at: number | string | null;
@@ -395,7 +403,7 @@ interface SessionRow extends Record<string, unknown> {
 }
 
 const SESSION_COLUMNS = `id, owner_id, prompt, title, stage_id, skill_id, origin,
-  existing_course, status, attempt, delivered_user_message_seq, lease_worker_id, lease_worker_pid,
+  existing_course, status, attempt, delivered_user_message_seq, model, lease_worker_id, lease_worker_pid,
   lease_heartbeat_at, error, created_at, updated_at`;
 
 function epoch(value: Date | string): number {
@@ -424,6 +432,7 @@ function sessionMeta(row: SessionRow): AgentSessionMeta {
     status: row.status,
     attempt: Number(row.attempt),
     deliveredUserMessageSeq: Number(row.delivered_user_message_seq),
+    ...(row.model ? { model: row.model } : {}),
     createdAt: epoch(row.created_at),
     updatedAt: epoch(row.updated_at),
     ...(row.lease_worker_id
@@ -450,6 +459,7 @@ export class PgAgentSessionStore
   implements
     AgentSessionStore,
     AgentSessionTitleStore,
+    AgentSessionModelStore,
     AgentSessionAutomaticTitleStore,
     AgentSessionEventLog,
     AgentSessionEntryTree,
@@ -527,8 +537,8 @@ export class PgAgentSessionStore
       const result = await tx.query<SessionRow>(
         `INSERT INTO ${this.table('sessions')}
           (id, owner_id, prompt, title, title_state, stage_id, skill_id, origin, existing_course,
-           status, attempt)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0)
+           status, attempt, model)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, $11)
          RETURNING ${SESSION_COLUMNS}`,
         [
           id,
@@ -541,6 +551,7 @@ export class PgAgentSessionStore
           input.origin ?? null,
           input.existingCourse ?? false,
           input.status ?? 'queued',
+          input.model ?? null,
         ],
       );
       const meta = sessionMeta(result.rows[0]!);
@@ -595,6 +606,30 @@ export class PgAgentSessionStore
       );
       return meta;
     });
+  }
+
+  /**
+   * Repin a session's driver model (`provider:model`, validated by the
+   * caller). Takes effect on the next run the runner claims — a live run
+   * keeps the driver it already resolved. Returns null for unknown/foreign
+   * sessions. No event is appended: the model is run configuration, not
+   * transcript, and the next `session_start`/`session_resumed` already marks
+   * the run boundary.
+   */
+  async updateSessionModel(
+    sessionId: string,
+    ownerId: string,
+    model: string,
+  ): Promise<AgentSessionMeta | null> {
+    const result = await this.queryable.query<SessionRow>(
+      `UPDATE ${this.table('sessions')}
+       SET model = $3, updated_at = clock_timestamp()
+       WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
+       RETURNING ${SESSION_COLUMNS}`,
+      [sessionId, ownerId, model],
+    );
+    const row = result.rows[0];
+    return row ? sessionMeta(row) : null;
   }
 
   async claimAutomaticSessionTitle(sessionId: string, ownerId: string): Promise<string | null> {

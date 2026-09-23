@@ -242,7 +242,26 @@ export function foldOpencodeJsonEvent(
     };
     if (reason === 'stop') acc.finishReason = 'stop';
     else if (reason === 'length') acc.finishReason = 'length';
-    else if (typeof reason === 'string' && reason) acc.finishReason = 'other';
+    else if (reason === 'error') acc.finishReason = 'error';
+    else if (reason === 'tool-calls') {
+      // The CLI ran its own internal tool loop (file reads, shell, ...) and
+      // stopped with answer text. Those calls are invisible to OpenMAIC's pi
+      // loop (this transport drops caller tools and never emits tool calls),
+      // so accumulated text IS the turn's completed answer. With no text the
+      // run produced nothing usable — keep 'other' so the caller fails loud
+      // instead of settling an empty turn as a success.
+      acc.finishReason = acc.text ? 'stop' : 'other';
+    } else if (typeof reason === 'string' && reason) {
+      // Forward-compatible: a step_finish ends the CLI's run, so text produced
+      // before it is a completed answer whatever the new reason string says.
+      // Warn so the new reason gets a deliberate mapping instead of hiding here.
+      if (acc.text) {
+        console.warn(`[opencode-cli] Unknown step_finish reason ${JSON.stringify(reason)} with answer text; treating the turn as completed.`);
+        acc.finishReason = 'stop';
+      } else {
+        acc.finishReason = 'other';
+      }
+    }
     return { textDelta: '', reasoningDelta: '' };
   }
   if (type === 'error' || type === 'step_error' || type === 'message_error') {
@@ -258,9 +277,49 @@ export function foldOpencodeJsonEvent(
   return { textDelta: '', reasoningDelta: '' };
 }
 
+/**
+ * The CLI-reported failure inside a `--format json` stdout buffer, if any.
+ *
+ * A failing `opencode run` often reports the real cause (rate limit, model
+ * error, interrupted session) as a JSON `error`/`step_error` event on stdout
+ * while leaving stderr empty — so an exit-code-only error ("exited with code
+ * 1") hides the one line that explains it. Exported for unit tests.
+ */
+export function extractOpencodeStdoutError(
+  stdout: string,
+  maxLength = 500,
+): string | undefined {
+  let found: string | undefined;
+  for (const line of stdout.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let event: unknown;
+    try {
+      event = JSON.parse(trimmed) as unknown;
+    } catch {
+      continue;
+    }
+    if (!event || typeof event !== 'object') continue;
+    const type = (event as Record<string, unknown>).type;
+    if (type !== 'error' && type !== 'step_error' && type !== 'message_error') continue;
+    const record = event as Record<string, unknown>;
+    const part =
+      record.part && typeof record.part === 'object'
+        ? (record.part as Record<string, unknown>)
+        : undefined;
+    const message =
+      (part && typeof part.message === 'string' && part.message) ||
+      (typeof record.message === 'string' && record.message) ||
+      (typeof record.error === 'string' && record.error) ||
+      undefined;
+    if (message) found = message;
+  }
+  if (!found) return undefined;
+  return found.length > maxLength ? `${found.slice(0, maxLength)}…` : found;
+}
+
 /** Parse a complete `--format json` stdout buffer into a completion. */
-export function parseOpencodeJsonOutput(stdout: string): OpencodeCompletion {
-  const acc = createOpencodeAccumulator();
+export function parseOpencodeJsonOutput(stdout: string): OpencodeCompletion {  const acc = createOpencodeAccumulator();
   for (const line of stdout.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed) continue;
@@ -373,15 +432,17 @@ export function runOpencodePrompt(opts: RunOpencodeOptions): Promise<OpencodeCom
           }
         });
       } else {
-        settle(() =>
+        settle(() => {
+          const stdout = Buffer.concat(chunks).toString('utf8');
+          const reported = extractOpencodeStdoutError(stdout);
           reject(
             new Error(
               `opencode CLI exited with code ${code ?? 'unknown'}${
                 stderrTail ? `: ${stderrTail}` : ''
-              }`,
+              }${reported ? ` (CLI reported: ${reported})` : ''}`,
             ),
-          ),
-        );
+          );
+        });
       }
     });
   });
@@ -486,8 +547,13 @@ export async function* streamOpencodePrompt(
     }
     if (buffer.trim()) feedLine(buffer);
     if (exitCode !== 0) {
+      // `feedLine` folds stdout error events into `acc.errorMessage`, which is
+      // usually the only record of the cause when stderr is empty.
+      const reported = acc.errorMessage?.trim();
       throw new Error(
-        `opencode CLI exited with code ${exitCode ?? 'unknown'}${stderrTail ? `: ${stderrTail}` : ''}`,
+        `opencode CLI exited with code ${exitCode ?? 'unknown'}${stderrTail ? `: ${stderrTail}` : ''}${
+          reported ? ` (CLI reported: ${reported.length > 500 ? `${reported.slice(0, 500)}…` : reported})` : ''
+        }`,
       );
     }
     yield {

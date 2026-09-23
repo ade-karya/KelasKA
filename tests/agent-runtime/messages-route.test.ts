@@ -5,8 +5,10 @@ import { NextRequest } from 'next/server';
 const mocks = vi.hoisted(() => ({
   getSession: vi.fn(),
   postUserMessage: vi.fn(),
+  updateSessionModel: vi.fn(),
   bindOwnerMaterialsToSession: vi.fn(),
   scheduleConversationTitle: vi.fn(),
+  opencodeCliAvailable: false,
 }));
 
 vi.mock('@/lib/config/feature-flags', () => ({
@@ -23,7 +25,12 @@ vi.mock('@/lib/server/agent-runtime/store', () => ({
   getAgentSessionStore: async () => ({
     getSession: mocks.getSession,
     postUserMessage: mocks.postUserMessage,
+    updateSessionModel: mocks.updateSessionModel,
   }),
+}));
+vi.mock('@/lib/ai/opencode-cli', () => ({
+  OPENCODE_PROVIDER_ID: 'opencode',
+  isOpencodeCliAvailable: () => mocks.opencodeCliAvailable,
 }));
 vi.mock('@/lib/server/agent-runtime/session-materials', () => ({
   SessionMaterialBindingError: class SessionMaterialBindingError extends Error {},
@@ -48,8 +55,10 @@ function call(body: unknown) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.opencodeCliAvailable = false;
   mocks.getSession.mockResolvedValue({ id: 'session-1', ownerId: 'owner-1', status: 'succeeded' });
   mocks.postUserMessage.mockResolvedValue({ seq: 4, delivery: 'queued', requeued: true });
+  mocks.updateSessionModel.mockResolvedValue({ id: 'session-1', ownerId: 'owner-1' });
   mocks.bindOwnerMaterialsToSession.mockResolvedValue([]);
 });
 
@@ -92,6 +101,30 @@ describe('POST agent session message', () => {
       { expectedOwnerId: 'owner-1' },
     );
     await expect(response.json()).resolves.toMatchObject({ courseRefsAccepted: true });
+  });
+
+  it('repins the session driver model before posting the follow-up', async () => {
+    mocks.opencodeCliAvailable = true;
+    const response = await call({
+      text: 'Continue',
+      model: 'opencode:mimo-v2.6-flash-free',
+    });
+
+    expect(response.status).toBe(202);
+    expect(mocks.updateSessionModel).toHaveBeenCalledWith(
+      'session-1',
+      'owner-1',
+      'opencode:mimo-v2.6-flash-free',
+    );
+    expect(mocks.postUserMessage).toHaveBeenCalled();
+  });
+
+  it('rejects an unmanaged follow-up model without posting', async () => {
+    const response = await call({ text: 'Continue', model: 'openai:gpt-5.4' });
+
+    expect(response.status).toBe(400);
+    expect(mocks.updateSessionModel).not.toHaveBeenCalled();
+    expect(mocks.postUserMessage).not.toHaveBeenCalled();
   });
 
   it('binds uploaded materials before posting the message the agent reads', async () => {

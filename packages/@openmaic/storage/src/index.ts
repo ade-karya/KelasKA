@@ -166,6 +166,7 @@ export {
   type AgentSessionMeta,
   type AgentSessionStatus,
   type AgentSessionStore,
+  type AgentSessionModelStore,
   type AgentSessionTitleStore,
   type AgentSessionTransaction,
   type AgentSessionUrlSource,

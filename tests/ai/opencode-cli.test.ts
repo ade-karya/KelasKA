@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import {
   buildOpencodeRunArgs,
   createOpencodeAccumulator,
+  extractOpencodeStdoutError,
   foldOpencodeJsonEvent,
   isOpencodeCliAvailable,
   OPENCODE_CLI_TIMEOUT_MS,
@@ -88,6 +89,51 @@ describe('parseOpencodeJsonOutput', () => {
     expect(result.finishReason).toBe('length');
   });
 
+  it("treats a tool-calls finish with answer text as a completed turn", () => {
+    // Real CLI shape when its own agent loop used tools: every step_finish
+    // carries reason tool-calls. pi never sees those calls (this transport
+    // drops caller tools), so the accumulated text IS the turn's answer.
+    const result = parseOpencodeJsonOutput(
+      [
+        '{"type":"text","part":{"type":"text","text":"Rencana kelas fotosintesis."}}',
+        '{"type":"step_finish","part":{"reason":"tool-calls","tokens":{"input":7752,"output":11}}}',
+      ].join('\n'),
+    );
+    expect(result.text).toBe('Rencana kelas fotosintesis.');
+    expect(result.finishReason).toBe('stop');
+  });
+
+  it('keeps a textless tool-calls finish as a loud failure', () => {
+    const result = parseOpencodeJsonOutput(
+      '{"type":"step_finish","part":{"reason":"tool-calls","tokens":{"input":7752,"output":0}}}',
+    );
+    expect(result.finishReason).toBe('other');
+  });
+
+  it('maps a step error reason to error', () => {
+    const result = parseOpencodeJsonOutput(
+      '{"type":"step_finish","part":{"reason":"error","tokens":{"input":1,"output":1}}}',
+    );
+    expect(result.finishReason).toBe('error');
+  });
+
+  it('treats an unknown finish reason with answer text as completed', () => {
+    const result = parseOpencodeJsonOutput(
+      [
+        '{"type":"text","part":{"type":"text","text":"Rencana."}}',
+        '{"type":"step_finish","part":{"reason":"some-future-reason","tokens":{"input":1,"output":1}}}',
+      ].join('\n'),
+    );
+    expect(result.finishReason).toBe('stop');
+  });
+
+  it('keeps an unknown finish reason without answer text as a loud failure', () => {
+    const result = parseOpencodeJsonOutput(
+      '{"type":"step_finish","part":{"reason":"some-future-reason","tokens":{"input":1,"output":0}}}',
+    );
+    expect(result.finishReason).toBe('other');
+  });
+
   it('captures error events', () => {
     const result = parseOpencodeJsonOutput('{"type":"error","message":"boom"}');
     expect(result.finishReason).toBe('error');
@@ -98,6 +144,41 @@ describe('parseOpencodeJsonOutput', () => {
     const result = parseOpencodeJsonOutput('');
     expect(result.text).toBe('');
     expect(result.finishReason).toBe('stop');
+  });
+});
+
+describe('extractOpencodeStdoutError', () => {
+  it('returns the CLI-reported message from stdout error events', () => {
+    expect(
+      extractOpencodeStdoutError(
+        [
+          '{"type":"text","part":{"type":"text","text":"hi"}}',
+          '{"type":"error","message":"Rate limited, retry later"}',
+        ].join('\n'),
+      ),
+    ).toBe('Rate limited, retry later');
+  });
+
+  it('prefers the last error event and reads part.message', () => {
+    expect(
+      extractOpencodeStdoutError(
+        [
+          '{"type":"step_error","part":{"message":"first"}}',
+          'not json',
+          '{"type":"message_error","part":{"message":"second"}}',
+        ].join('\n'),
+      ),
+    ).toBe('second');
+  });
+
+  it('returns undefined when stdout carries no error event', () => {
+    expect(extractOpencodeStdoutError(REAL_RUN_OUTPUT)).toBeUndefined();
+    expect(extractOpencodeStdoutError('')).toBeUndefined();
+  });
+
+  it('truncates long messages', () => {
+    const long = `{"type":"error","message":"${'x'.repeat(600)}"}`;
+    expect(extractOpencodeStdoutError(long)?.length).toBeLessThanOrEqual(501);
   });
 });
 

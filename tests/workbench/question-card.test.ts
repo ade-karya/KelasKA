@@ -27,7 +27,7 @@ import {
   questionMode,
   togglePicked,
 } from '@/components/workbench/chat/question-card-state';
-import { defaultWorkbenchTranslator } from '@/lib/i18n/workbench';
+import { createWorkbenchTranslator, defaultWorkbenchTranslator } from '@/lib/i18n/workbench';
 import type { ChatNode } from '@/lib/workbench/session-store';
 
 const options = [
@@ -101,7 +101,10 @@ describe('questionHint', () => {
     expect(questionHint(question())).toBeNull();
     expect(questionHint(question({ questionOptions: options }))).toBeNull();
     expect(
-      questionHint(question({ questionOptions: options, questionMultiSelect: true })),
+      questionHint(
+        question({ questionOptions: options, questionMultiSelect: true }),
+        createWorkbenchTranslator('zh-CN'),
+      ),
     ).toContain('多选');
     expect(questionHint(question({ questionAnswered: true }))).toBeNull();
     expect(

@@ -472,6 +472,8 @@ export function ProLaunchPanel({
             label={t('proMode.loadSkill')}
             onClick={openSkillMenu}
           />
+          {/* The driver is always the operator's `maic-agent-driver` route
+              (opencode CLI by default): no per-session model pick on Pro. */}
           <div className="flex-1" />
           <ProLaunchSend canSend={canSend} onSubmit={submit} />
         </div>
