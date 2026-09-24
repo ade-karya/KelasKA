@@ -18,10 +18,18 @@
  * - **No per-call sampling controls.** The CLI exposes no temperature /
  *   max-tokens flags, so those options are accepted and ignored.
  *
+ * Everything else matches a keyed provider: reasoning streams back through
+ * the standard channel (`--thinking` is always requested), inline images are
+ * attached with `--file` for vision-capable models, every run is isolated in
+ * a scratch directory, and the CLI's own filesystem/network tools are locked
+ * out so a plain generation call cannot act like an agent.
+ *
  * This module itself is client-safe: the Node-only transport it loads
  * (`lib/ai/opencode-cli.ts`) contains no static `node:*` imports — builtins
  * are resolved via `process.getBuiltinModule` — so bundling it into the
- * settings UI never pulls `node:child_process` into the browser.
+ * settings UI never pulls `node:child_process` into the browser. File bytes
+ * are decoded without Node APIs for the same reason; the transport writes
+ * them to disk.
  */
 
 import type { LanguageModel } from 'ai';
@@ -32,8 +40,10 @@ import type {
 } from '@ai-sdk/provider';
 import {
   OPENCODE_CLI_TIMEOUT_MS,
+  OPENCODE_MAX_ATTACHMENTS,
   OPENCODE_PROVIDER_ID,
   resolveOpencodeCliPath,
+  type OpencodeAttachment,
   type OpencodeCompletion,
   type OpencodeFinishReason,
 } from './opencode-cli';
@@ -51,8 +61,15 @@ export interface OpencodeCliModelOptions {
  * accepts. History is preserved as a role-labeled transcript so multi-turn
  * workbench sessions keep their context even though every call spawns a fresh
  * CLI session. Exported for unit tests.
+ *
+ * File parts are labeled in place: inline images forwarded with `--file` (see
+ * {@link extractOpencodeAttachments}) are announced as attachments so the
+ * model looks at them; anything the CLI cannot take (remote URLs,
+ * non-image types) keeps an honest omission note.
  */
 export function opencodePromptToText(prompt: LanguageModelV3Prompt): string {
+  const decisions = collectFileDecisions(prompt);
+  let decisionCursor = 0;
   const sections: string[] = [];
   for (const message of prompt) {
     if (message.role === 'system') {
@@ -82,10 +99,16 @@ export function opencodePromptToText(prompt: LanguageModelV3Prompt): string {
         parts.push(
           `[tool approval ${part.approvalId}: ${part.approved ? 'approved' : 'denied'}${part.reason ? ` (${part.reason})` : ''}]`,
         );
+      } else if (part.type === 'file') {
+        const decision = decisions[decisionCursor++];
+        if (decision?.kind === 'attach') {
+          parts.push(
+            `[attached image ${decision.index} (${decision.mediaType}): sent as a file attachment — refer to it directly]`,
+          );
+        } else {
+          parts.push(`[attached file omitted: ${decision?.reason ?? 'unsupported file part'}]`);
+        }
       }
-      // File parts reference URLs the CLI cannot fetch; note their presence
-      // so the model knows content was omitted rather than empty.
-      else if (part.type === 'file') parts.push('[attached file omitted: text-only transport]');
     }
     const body = parts.filter(Boolean).join('\n');
     if (message.role === 'user') sections.push(`[user]\n${body}`);
@@ -93,6 +116,106 @@ export function opencodePromptToText(prompt: LanguageModelV3Prompt): string {
     else if (message.role === 'tool') sections.push(`[tool]\n${body}`);
   }
   return sections.join('\n\n');
+}
+
+/** Image media types the CLI can plausibly attach with `--file`. */
+const ATTACHABLE_IMAGE_MEDIA = /^(image\/(?:png|jpeg|jpg|webp|gif|svg\+xml))$/i;
+
+/** Looks like base64 (whitespace tolerated) rather than a URL or prose. */
+const BASE64_LIKE = /^[A-Za-z0-9+/=\s]+$/;
+
+type FileDecision =
+  | { kind: 'attach'; index: number; filename?: string; mediaType: string; data: Uint8Array }
+  | { kind: 'omit'; reason: string };
+
+function decodeBase64Bytes(base64: string): Uint8Array | undefined {
+  try {
+    const bin = atob(base64.replace(/\s/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Decide what happens to one v3 `file` part, in prompt order. Exported for
+ * unit tests. Inline images become `--file` attachments; remote URLs (the CLI
+ * cannot fetch them) and non-image types are honestly omitted.
+ */
+export function decideOpencodeFilePart(
+  part: { filename?: string; mediaType: string; data: Uint8Array | string | URL },
+  index: number,
+): FileDecision {
+  const mediaType = part.mediaType || 'application/octet-stream';
+  if (!ATTACHABLE_IMAGE_MEDIA.test(mediaType)) {
+    return { kind: 'omit', reason: `unsupported media type ${mediaType}` };
+  }
+  const { data } = part;
+  if (data instanceof Uint8Array) {
+    return { kind: 'attach', index, filename: part.filename, mediaType, data };
+  }
+  if (typeof data === 'string') {
+    if (/^https?:\/\//i.test(data)) return { kind: 'omit', reason: 'remote URL (not fetched)' };
+    const dataUrl = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(data);
+    const encoded = dataUrl ? dataUrl[3] : data;
+    if (!BASE64_LIKE.test(encoded)) return { kind: 'omit', reason: 'undecodable file data' };
+    const bytes = decodeBase64Bytes(encoded);
+    if (!bytes) return { kind: 'omit', reason: 'undecodable file data' };
+    return {
+      kind: 'attach',
+      index,
+      filename: part.filename,
+      mediaType: dataUrl?.[1] || mediaType,
+      data: bytes,
+    };
+  }
+  return { kind: 'omit', reason: 'remote URL (not fetched)' };
+}
+
+function collectFileDecisions(prompt: LanguageModelV3Prompt): FileDecision[] {
+  const decisions: FileDecision[] = [];
+  let attached = 0;
+  for (const message of prompt) {
+    if (message.role === 'system') continue;
+    for (const part of message.content) {
+      if (part.type !== 'file') continue;
+      if (attached >= OPENCODE_MAX_ATTACHMENTS) {
+        decisions.push({
+          kind: 'omit',
+          reason: `attachment budget exceeded (max ${OPENCODE_MAX_ATTACHMENTS})`,
+        });
+        continue;
+      }
+      const decision = decideOpencodeFilePart(
+        part as { filename?: string; mediaType: string; data: Uint8Array | string | URL },
+        attached + 1,
+      );
+      if (decision.kind === 'attach') attached += 1;
+      decisions.push(decision);
+    }
+  }
+  return decisions;
+}
+
+/**
+ * Extract the inline images of a v3 prompt as CLI `--file` attachments, in
+ * prompt order (capped). Exported for unit tests; `opencodePromptToText`
+ * announces exactly these files in the transcript.
+ */
+export function extractOpencodeAttachments(prompt: LanguageModelV3Prompt): OpencodeAttachment[] {
+  const attachments: OpencodeAttachment[] = [];
+  for (const decision of collectFileDecisions(prompt)) {
+    if (decision.kind === 'attach') {
+      attachments.push({
+        filename: decision.filename,
+        mediaType: decision.mediaType,
+        data: decision.data,
+      });
+    }
+  }
+  return attachments;
 }
 
 function toV3Usage(completion: OpencodeCompletion): LanguageModelV3Usage {
@@ -161,11 +284,19 @@ export function createOpencodeCliModel(opts: OpencodeCliModelOptions): LanguageM
         cliPath,
         modelId: opts.modelId,
         prompt: opencodePromptToText(options.prompt),
+        thinking: true,
+        lockBuiltinTools: true,
+        attachments: extractOpencodeAttachments(options.prompt),
         timeoutMs,
         abortSignal: options.abortSignal,
       });
       return {
-        content: [{ type: 'text' as const, text: completion.text }],
+        content: [
+          ...(completion.reasoning
+            ? [{ type: 'reasoning' as const, text: completion.reasoning }]
+            : []),
+          { type: 'text' as const, text: completion.text },
+        ],
         finishReason: {
           unified: toUnifiedFinishReason(completion.finishReason),
           raw: completion.finishReason,
@@ -190,22 +321,44 @@ export function createOpencodeCliModel(opts: OpencodeCliModelOptions): LanguageM
             ]
           : [];
       const prompt = opencodePromptToText(options.prompt);
+      const attachments = extractOpencodeAttachments(options.prompt);
       const modelId = opts.modelId;
       const textId = 'opencode-text-0';
+      const reasoningId = 'opencode-reasoning-0';
       const stream = new ReadableStream({
         async start(controller) {
           controller.enqueue({ type: 'stream-start', warnings });
           controller.enqueue({ type: 'text-start', id: textId });
+          let reasoningStarted = false;
+          const endReasoning = () => {
+            if (reasoningStarted) {
+              reasoningStarted = false;
+              controller.enqueue({ type: 'reasoning-end', id: reasoningId });
+            }
+          };
           try {
             for await (const event of transport.streamOpencodePrompt({
               cliPath,
               modelId,
               prompt,
+              thinking: true,
+              lockBuiltinTools: true,
+              attachments,
               timeoutMs,
               abortSignal: options.abortSignal,
             })) {
               if (event.kind === 'text-delta') {
                 controller.enqueue({ type: 'text-delta', id: textId, delta: event.delta });
+              } else if (event.kind === 'reasoning-delta') {
+                if (!reasoningStarted) {
+                  reasoningStarted = true;
+                  controller.enqueue({ type: 'reasoning-start', id: reasoningId });
+                }
+                controller.enqueue({
+                  type: 'reasoning-delta',
+                  id: reasoningId,
+                  delta: event.delta,
+                });
               } else if (event.kind === 'tool') {
                 // The CLI executed this tool inside its own loop (a built-in, or
                 // an MCP tool). The AI SDK's provider stream has no part for
@@ -219,6 +372,7 @@ export function createOpencodeCliModel(opts: OpencodeCliModelOptions): LanguageM
                 // instead of a `finish` part whose message the runner cannot
                 // see (it would degrade to "LLM stream finished with error").
                 if (completion.finishReason === 'error') {
+                  endReasoning();
                   controller.enqueue({
                     type: 'error',
                     error: new Error(
@@ -226,6 +380,7 @@ export function createOpencodeCliModel(opts: OpencodeCliModelOptions): LanguageM
                     ),
                   });
                 } else {
+                  endReasoning();
                   controller.enqueue({ type: 'text-end', id: textId });
                   controller.enqueue({
                     type: 'finish',

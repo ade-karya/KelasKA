@@ -5,7 +5,9 @@ import {
   buildCliHarnessSystemPrompt,
   extractOpenmaicCall,
   renderHarnessPrompt,
+  resolveHarnessToolName,
   runOpencodeHarness,
+  toHarnessUsage,
   verifyBridgeEndpoint,
 } from '@/lib/server/agent-runtime/opencode-harness';
 import { getRunToolset } from '@/lib/server/agent-runtime/mcp-registry';
@@ -411,6 +413,148 @@ describe('runOpencodeHarness', () => {
     expect(outcome.error).toContain('OPENMAIC_MCP_BASE_URL');
     // No CLI process is spawned for a doomed run.
     expect(stream).not.toHaveBeenCalled();
+  });
+
+  it('records token usage from the terminal done event', async () => {
+    const persistMessage = vi.fn(async () => undefined);
+    const outcome = await runOpencodeHarness(
+      baseOptions({
+        persistMessage,
+        stream: streamOf([
+          { kind: 'text-delta', delta: 'x' },
+          {
+            kind: 'done',
+            completion: {
+              text: 'x',
+              reasoning: '',
+              usage: {
+                inputTokens: 5,
+                outputTokens: 7,
+                reasoningTokens: 1,
+                cacheReadTokens: 2,
+                cacheWriteTokens: 3,
+              },
+              finishReason: 'stop',
+            },
+          },
+        ]),
+      }),
+    );
+    expect(outcome.error).toBeUndefined();
+    const persisted = persistMessage.mock.calls[0]?.[0] as {
+      usage: Record<string, unknown>;
+    };
+    expect(persisted.usage).toMatchObject({
+      input: 5,
+      output: 7,
+      cacheRead: 2,
+      cacheWrite: 3,
+      totalTokens: 12,
+    });
+    expect(toHarnessUsage({})).toMatchObject({ input: 0, output: 0, totalTokens: 0 });
+  });
+
+  it('accumulates reasoning deltas into a thinking block in arrival order', async () => {
+    const persistMessage = vi.fn(async () => undefined);
+    await runOpencodeHarness(
+      baseOptions({
+        persistMessage,
+        stream: streamOf([
+          { kind: 'reasoning-delta', delta: 'karena ' },
+          { kind: 'reasoning-delta', delta: 'x' },
+          { kind: 'text-delta', delta: 'Selesai.' },
+          {
+            kind: 'done',
+            completion: {
+              text: 'Selesai.',
+              reasoning: 'karena x',
+              usage: {},
+              finishReason: 'stop',
+            },
+          },
+        ]),
+      }),
+    );
+    const persisted = persistMessage.mock.calls[0]?.[0] as { content: unknown[] };
+    expect(persisted.content).toEqual([
+      { type: 'thinking', thinking: 'karena x' },
+      { type: 'text', text: 'Selesai.' },
+    ]);
+  });
+
+  it('settles a CLI-reported error finish as a failed run', async () => {
+    const emit = vi.fn();
+    const persistMessage = vi.fn(async () => undefined);
+    const outcome = await runOpencodeHarness(
+      baseOptions({
+        emit,
+        persistMessage,
+        stream: streamOf([
+          { kind: 'text-delta', delta: 'partial' },
+          {
+            kind: 'done',
+            completion: {
+              text: 'partial',
+              reasoning: '',
+              usage: {},
+              finishReason: 'error',
+              errorMessage: 'Rate limited, retry later',
+            },
+          },
+        ]),
+      }),
+    );
+    expect(outcome.error).toBe('Rate limited, retry later');
+    const persisted = persistMessage.mock.calls[0]?.[0] as {
+      stopReason: string;
+      errorMessage?: string;
+    };
+    expect(persisted.stopReason).toBe('error');
+    expect(persisted.errorMessage).toBe('Rate limited, retry later');
+    expect(emit.mock.calls.some((call) => call[0] === 'message_end')).toBe(true);
+  });
+
+  it('maps a first-class MCP tool step to the bare tool name', async () => {
+    const emit = vi.fn();
+    await runOpencodeHarness(
+      baseOptions({
+        emit,
+        stream: streamOf([
+          {
+            kind: 'tool',
+            tool: {
+              id: 'call-2',
+              name: 'openmaic_create_stage',
+              status: 'completed',
+              input: { title: 'T' },
+              output: 'stage-9',
+            },
+          },
+          {
+            kind: 'done',
+            completion: { text: '', reasoning: '', usage: {}, finishReason: 'stop' },
+          },
+        ]),
+      }),
+    );
+    const start = emit.mock.calls.find((call) => call[0] === 'tool_execution_start')?.[1] as {
+      toolName: string;
+    };
+    expect(start.toolName).toBe('create_stage');
+  });
+});
+
+describe('resolveHarnessToolName', () => {
+  const known = ['create_stage', 'generate_scene'];
+  it('passes known bare names through and strips the MCP server namespace', () => {
+    expect(resolveHarnessToolName('create_stage', known)).toBe('create_stage');
+    expect(resolveHarnessToolName('openmaic_create_stage', known)).toBe('create_stage');
+    expect(resolveHarnessToolName('openmaic.generate_scene', known)).toBe('generate_scene');
+  });
+
+  it('keeps unknown names verbatim instead of inventing a tool', () => {
+    expect(resolveHarnessToolName('shell', known)).toBe('shell');
+    expect(resolveHarnessToolName('openmaic_unknown_tool', known)).toBe('openmaic_unknown_tool');
   });
 });
 

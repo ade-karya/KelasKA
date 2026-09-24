@@ -1,7 +1,13 @@
 # OpenCode CLI as the backend for every stage (v2 study)
 
-Status: **study + verified plumbing**. The harness re-architecture below is
-proposed, not built.
+Status: **implemented**. The CLI-native harness below is built
+(`lib/server/agent-runtime/opencode-harness.ts`, branched from
+`lib/server/agent-runtime/runner.ts` via `isOpencodeDriverModel`) and the
+classic text path goes through the AI SDK adapter
+(`lib/ai/opencode-model.ts`). What remains deliberately different from keyed
+providers is documented in each section — the CLI owns its agent loop, so
+parity is behavioral (same frames, same tools, same settlement), not
+protocol-level.
 
 Scope: `anomalyco/opencode` branch `v2` (installed binary `opencode v2.0.15`,
 the latest v2 release tag). Goal: use the local `opencode` CLI as the model
@@ -79,9 +85,9 @@ and the probe server logged the call.
   runner's durable-event, steer, repair and lease discipline does not apply
   inside it; a CLI-native harness must re-derive settlement from CLI events.
 
-## 4. Proposed architecture: CLI-native harness
+## 4. Architecture: CLI-native harness (built)
 
-Add a second harness behind the existing driver seam
+The second harness lives behind the existing driver seam
 (`resolveAgentDriverModel` → `isOpencodeDriverModel`):
 
 ```
@@ -118,6 +124,10 @@ event names for replay compatibility.
 
 ## 5. Work plan
 
+Built (see `lib/server/agent-runtime/opencode-harness.ts`,
+`lib/server/agent-runtime/mcp-registry.ts`,
+`scripts/opencode-mcp-bridge.mjs`, plus the `/api/agent/mcp/[token]` route):
+
 1. **MCP route + registry** — token-authenticated, owner/session scoped, exposes
    the run's tools with JSON Schemas from the existing pi tool parameters.
 2. **CLI harness module** — `lib/server/agent-runtime/opencode-harness.ts`:
@@ -134,9 +144,27 @@ event names for replay compatibility.
    settlement/fencing parity with the pi harness.
 7. **Optional upgrade path** — once a build with `codemode: false` ships, flip
    it so tools are first-class and the prompt no longer needs the Code Mode
-   indirection.
+   indirection. The transcript already accepts both shapes
+   (`resolveHarnessToolName` strips the `openmaic_` namespace).
 
-## 6. Fallbacks while the harness is unbuilt
+## 6. Parity with keyed providers (behavioral, not protocol)
+
+The CLI owns its loop, so some differences are structural and stay:
+
+- **Reasoning** streams via `--thinking` (adapter `reasoning` content,
+  harness `thinking` block) — but there is still no effort/budget control, so
+  the catalog keeps no thinking capability.
+- **Sampling** (temperature / max tokens) is accepted and ignored — the CLI
+  exposes no such flags.
+- **Vision** works only on `opencode-go/deepseek-v4-flash-vision-exp`: inline
+  images ride `--file`, remote URLs stay omitted. Other CLI models keep
+  `vision: false` and get text descriptions, exactly as before.
+- **Steer mid-run** is still queue-to-next-claim; **compaction** still applies
+  to the shared transcript the CLI is seeded with.
+- Image/video generation inside tools still uses the media providers and
+  their API keys — the CLI model only writes the surrounding pedagogy.
+
+Fallbacks while a stage cannot use the CLI:
 
 - Text-only stages (scene content, outlines, quizzes, chat) already run on the
   CLI today; the transport now retries rate limits and reports the real cause.

@@ -336,6 +336,17 @@ export function buildOpencodeRunArgs(
      * service's config and see none of the injected tools.
      */
     standalone?: boolean;
+    /**
+     * Pass `--thinking` so the CLI emits thinking/reasoning blocks as events.
+     * Display-only: it does not change sampling, it just makes the model's
+     * reasoning visible (the same reasoning keyed providers return).
+     */
+    thinking?: boolean;
+    /**
+     * Absolute file paths to attach to the message (`--file`, repeatable).
+     * This is how images reach vision-capable models on this transport.
+     */
+    files?: readonly string[];
   } = {},
 ): string[] {
   return [
@@ -343,11 +354,13 @@ export function buildOpencodeRunArgs(
     ...(options.standalone ? ['--standalone'] : []),
     '--format',
     'json',
+    ...(options.thinking ? ['--thinking'] : []),
     // The CLI reports the real cause of a failed run (rate limit, provider
     // error, interrupted session) on its own log stream, not in the JSON
     // stdout events. Without this flag a failed run surfaces as a bare
     // "exited with code 1" with an empty stderr.
     '--print-logs',
+    ...(options.files?.flatMap((file) => ['--file', file]) ?? []),
     '--model',
     toOpencodeModelRef(modelId),
     '--title',
@@ -613,6 +626,21 @@ export interface RunOpencodeOptions {
   /** Base backoff between attempts, doubling each retry (default 3000 ms). */
   retryBaseDelayMs?: number;
   /**
+   * Request thinking blocks (`--thinking`). The CLI then emits
+   * reasoning/thinking events which stream as `reasoning-delta` and land on
+   * the completion — the same reasoning channel keyed providers return.
+   * Sampling itself is still the CLI's own: there is no temperature /
+   * max-tokens flag to forward.
+   */
+  thinking?: boolean;
+  /**
+   * File bytes to attach to the message with `--file` (materialized into the
+   * run directory, cleaned up with it). This is how images reach
+   * vision-capable models on this transport — the keyed-provider equivalent
+   * of image content parts.
+   */
+  attachments?: readonly OpencodeAttachment[];
+  /**
    * MCP servers to load for this run (see {@link OpencodeMcpServer}). When
    * present, the child gets a private `OPENCODE_CONFIG_DIR`; the operator's own
    * CLI config is never touched.
@@ -620,13 +648,78 @@ export interface RunOpencodeOptions {
   mcpServers?: readonly OpencodeMcpServer[];
   /**
    * Disable the CLI's own filesystem/network tools for this run (see
-   * {@link lockedToolConfig}). Defaults to true when `mcpServers` are
-   * injected: the run's tools are OpenMAIC's MCP tools, and the CLI built-ins
-   * would act on the run's working directory or ask via the native `question`
-   * tool instead of OpenMAIC's `ask_user`. `read` and `shell` are always left
-   * enabled — the gateway rejects free-tier models when either is disabled.
+   * {@link lockedToolConfig}). A private config dir is written whenever this
+   * is true — even with no MCP servers — so a plain text run matches a keyed
+   * LLM call (no tools) instead of an agent with a filesystem. Defaults to
+   * true when `mcpServers` are injected, false otherwise; text-only callers
+   * (the AI SDK adapter) pass true explicitly.
+   *
+   * `read` and `shell` are always left enabled — the gateway rejects free-tier
+   * models when either is disabled.
    */
   lockBuiltinTools?: boolean;
+}
+
+/**
+ * One file to attach to a run with `--file`.
+ *
+ * Keyed providers take image bytes as message content parts; the CLI takes
+ * file paths, so the transport materializes these bytes into the run
+ * directory (see {@link writeOpencodeAttachments}) and passes the paths.
+ */
+export interface OpencodeAttachment {
+  /** Filename hint (sanitized on write; extension derived when missing). */
+  filename?: string;
+  /** IANA media type, e.g. `image/png`. */
+  mediaType: string;
+  /** Raw file bytes. */
+  data: Uint8Array;
+}
+
+/** Upper bound on `--file` attachments per run (CLI arg limits, prompt cost). */
+export const OPENCODE_MAX_ATTACHMENTS = 8;
+
+const ATTACHMENT_EXTENSION_BY_MEDIA_TYPE: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/svg+xml': 'svg',
+};
+
+function attachmentExtension(filename: string | undefined, mediaType: string): string {
+  const fromName = filename?.split('.').pop()?.toLowerCase();
+  if (fromName && /^[a-z0-9]{1,5}$/.test(fromName)) return fromName;
+  return ATTACHMENT_EXTENSION_BY_MEDIA_TYPE[mediaType.toLowerCase()] ?? 'bin';
+}
+
+function sanitizeAttachmentName(name: string): string {
+  const base = name.split('/').pop()?.split('\\').pop() ?? 'attachment';
+  const clean = base.replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 80);
+  return clean || 'attachment';
+}
+
+/**
+ * Materialize {@link OpencodeAttachment} bytes as files inside `dir` and
+ * return their absolute paths in input order. Exported for unit tests.
+ *
+ * Callers write into the run's own directory (the scratch cwd the transport
+ * creates, or the harness scratch dir), so cleanup of that directory removes
+ * the materialized files — no separate lifecycle to manage.
+ */
+export function writeOpencodeAttachments(
+  attachments: readonly OpencodeAttachment[],
+  dir: string,
+): string[] {
+  const { writeFileSync, join } = nodeBuiltins();
+  return attachments.map((attachment, index) => {
+    const ext = attachmentExtension(attachment.filename, attachment.mediaType);
+    const name = sanitizeAttachmentName(attachment.filename ?? `attachment-${index + 1}.${ext}`);
+    const suffixed = name.includes('.') ? name : `${name}.${ext}`;
+    const path = join(dir, `${index + 1}-${suffixed}`);
+    writeFileSync(path, attachment.data);
+    return path;
+  });
 }
 
 /**
@@ -969,11 +1062,18 @@ function runOpencodePromptOnce(opts: RunOpencodeOptions): Promise<OpencodeComple
       return;
     }
     let child: ChildProcess;
-    const config = opts.mcpServers?.length
-      ? prepareOpencodeConfigDir(opts.mcpServers, {
-          lockBuiltinTools: opts.lockBuiltinTools ?? true,
-        })
-      : undefined;
+    // A private config dir is needed whenever the run injects MCP servers OR
+    // locks the CLI built-ins: a plain text run must match a keyed LLM call
+    // (no tools), so the adapter passes `lockBuiltinTools: true` and gets the
+    // lockdown even with an empty `mcp` section. The operator's own CLI
+    // config is never touched either way.
+    const lockBuiltins = opts.lockBuiltinTools ?? (opts.mcpServers?.length ?? 0) > 0;
+    const config =
+      opts.mcpServers?.length || lockBuiltins
+        ? prepareOpencodeConfigDir(opts.mcpServers ?? [], {
+            lockBuiltinTools: lockBuiltins,
+          })
+        : undefined;
     // Never run inside the server checkout: the CLI derives its snapshot
     // --work-tree and watchers from the child cwd, and a repo cwd produces
     // exit-1 "Session interrupted: shutdown" runs carrying the checkout path.
@@ -981,13 +1081,23 @@ function runOpencodePromptOnce(opts: RunOpencodeOptions): Promise<OpencodeComple
     // other run gets a private scratch dir cleaned up on settle.
     const scratch = opts.cwd ? undefined : prepareOpencodeScratchDir();
     const cwd = opts.cwd ?? scratch?.dir ?? process.cwd();
+    // `--file` attachments are materialized into the run directory so the
+    // scratch cleanup removes them; an explicit caller-owned cwd only ever
+    // carries attachments when the caller put them there itself.
+    const files = opts.attachments?.length
+      ? writeOpencodeAttachments(opts.attachments.slice(0, OPENCODE_MAX_ATTACHMENTS), cwd)
+      : [];
     try {
       child = nodeBuiltins().spawn(
         opts.cliPath,
         // Always a private server: the shared background service's shutdown
         // takes down whatever run it hosts, while a per-run server dies with
         // its own child. Verified with and without an MCP config dir.
-        buildOpencodeRunArgs(opts.modelId, opts.prompt, { standalone: true }),
+        buildOpencodeRunArgs(opts.modelId, opts.prompt, {
+          standalone: true,
+          thinking: opts.thinking,
+          files,
+        }),
         {
           cwd,
           stdio: ['ignore', 'pipe', 'pipe'],
@@ -1065,16 +1175,18 @@ function runOpencodePromptOnce(opts: RunOpencodeOptions): Promise<OpencodeComple
 
 export type OpencodeStreamEvent =
   | { kind: 'text-delta'; delta: string }
+  | { kind: 'reasoning-delta'; delta: string }
   | { kind: 'tool'; tool: OpencodeToolCall }
   | { kind: 'done'; completion: OpencodeCompletion };
 
 /**
- * Streaming variant: yields `text-delta` events as JSONL `text` lines arrive
- * on the child's stdout, then a terminal `done` carrying the full completion
- * (text + usage + finish reason). Used by `doStream` so long workbench
- * generations stream into the UI instead of arriving all at once.
+ * Streaming variant: yields `text-delta` and `reasoning-delta` events as JSONL
+ * `text` / `reasoning` lines arrive on the child's stdout, then a terminal
+ * `done` carrying the full completion (text + reasoning + usage + finish
+ * reason). Used by `doStream` so long workbench generations stream into the
+ * UI instead of arriving all at once.
  *
- * Transient failures are retried with backoff, but ONLY while no text has
+ * Transient failures are retried with backoff, but ONLY while no content has
  * been yielded yet: once the caller has seen a delta, a retry would duplicate
  * that prefix in the UI, so the failure is surfaced instead.
  */
@@ -1085,16 +1197,18 @@ export async function* streamOpencodePrompt(
   const baseDelay = opts.retryBaseDelayMs ?? OPENCODE_DEFAULT_RETRY_BASE_DELAY_MS;
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    let emittedText = false;
+    let emittedContent = false;
     try {
       for await (const event of streamOpencodePromptOnce(opts)) {
-        if (event.kind === 'text-delta') emittedText = true;
+        if (event.kind === 'text-delta' || event.kind === 'reasoning-delta') {
+          emittedContent = true;
+        }
         yield event;
       }
       return;
     } catch (error) {
       lastError = error;
-      if (attempt >= maxAttempts || emittedText || !isRetryableOpencodeError(error)) throw error;
+      if (attempt >= maxAttempts || emittedContent || !isRetryableOpencodeError(error)) throw error;
       await sleep(baseDelay * 2 ** (attempt - 1), opts.abortSignal);
     }
   }
@@ -1106,23 +1220,34 @@ async function* streamOpencodePromptOnce(
 ): AsyncGenerator<OpencodeStreamEvent, void, void> {
   if (opts.abortSignal?.aborted) throw abortError(opts.abortSignal);
   const timeoutMs = opts.timeoutMs ?? OPENCODE_CLI_TIMEOUT_MS;
-  const config = opts.mcpServers?.length
-    ? prepareOpencodeConfigDir(opts.mcpServers, {
-        lockBuiltinTools: opts.lockBuiltinTools ?? true,
-      })
-    : undefined;
+  // Same private-config rule as the one-shot path: MCP servers or an explicit
+  // builtin lockdown both need `OPENCODE_CONFIG_DIR`.
+  const lockBuiltins = opts.lockBuiltinTools ?? (opts.mcpServers?.length ?? 0) > 0;
+  const config =
+    opts.mcpServers?.length || lockBuiltins
+      ? prepareOpencodeConfigDir(opts.mcpServers ?? [], {
+          lockBuiltinTools: lockBuiltins,
+        })
+      : undefined;
   // Same isolation as the one-shot path: an explicit cwd (the harness scratch
   // dir) is kept, otherwise the run gets a private scratch dir so the CLI's
   // snapshot --work-tree and watchers never point at the server checkout.
   const scratch = opts.cwd ? undefined : prepareOpencodeScratchDir();
   const cwd = opts.cwd ?? scratch?.dir ?? process.cwd();
+  const files = opts.attachments?.length
+    ? writeOpencodeAttachments(opts.attachments.slice(0, OPENCODE_MAX_ATTACHMENTS), cwd)
+    : [];
   let child: ChildProcess;
   try {
     child = nodeBuiltins().spawn(
       opts.cliPath,
       // Always a private server (see runOpencodePromptOnce): a shared-service
       // shutdown must not take the run down.
-      buildOpencodeRunArgs(opts.modelId, opts.prompt, { standalone: true }),
+      buildOpencodeRunArgs(opts.modelId, opts.prompt, {
+        standalone: true,
+        thinking: opts.thinking,
+        files,
+      }),
       {
         cwd,
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -1140,6 +1265,7 @@ async function* streamOpencodePromptOnce(
   let stderrTail = '';
   let stdoutBytes = 0;
   const pendingDeltas: string[] = [];
+  const pendingReasoning: string[] = [];
   const pendingTools: OpencodeToolCall[] = [];
   let streamError: Error | undefined;
   let exitCode: number | null = null;
@@ -1154,8 +1280,9 @@ async function* streamOpencodePromptOnce(
     } catch {
       return;
     }
-    const { textDelta, tool } = foldOpencodeJsonEvent(acc, event);
+    const { textDelta, reasoningDelta, tool } = foldOpencodeJsonEvent(acc, event);
     if (textDelta) pendingDeltas.push(textDelta);
+    if (reasoningDelta) pendingReasoning.push(reasoningDelta);
     if (tool) pendingTools.push(tool);
   };
 
@@ -1195,6 +1322,11 @@ async function* streamOpencodePromptOnce(
 
   try {
     for (;;) {
+      // Thinking normally precedes the answer, so reasoning drains first —
+      // preserving arrival order for the overwhelmingly common case.
+      while (pendingReasoning.length > 0) {
+        yield { kind: 'reasoning-delta', delta: pendingReasoning.shift() as string };
+      }
       while (pendingDeltas.length > 0) {
         yield { kind: 'text-delta', delta: pendingDeltas.shift() as string };
       }
@@ -1208,6 +1340,9 @@ async function* streamOpencodePromptOnce(
       if (opts.abortSignal?.aborted && !streamError) {
         throw abortError(opts.abortSignal);
       }
+    }
+    while (pendingReasoning.length > 0) {
+      yield { kind: 'reasoning-delta', delta: pendingReasoning.shift() as string };
     }
     while (pendingDeltas.length > 0) {
       yield { kind: 'text-delta', delta: pendingDeltas.shift() as string };

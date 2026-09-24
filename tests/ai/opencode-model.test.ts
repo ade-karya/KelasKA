@@ -39,8 +39,13 @@ vi.mock('@/lib/ai/opencode-cli', async (importOriginal) => {
   };
 });
 
-import { createOpencodeCliModel, opencodePromptToText } from '@/lib/ai/opencode-model';
-import { streamOpencodePrompt } from '@/lib/ai/opencode-cli';
+import {
+  createOpencodeCliModel,
+  decideOpencodeFilePart,
+  extractOpencodeAttachments,
+  opencodePromptToText,
+} from '@/lib/ai/opencode-model';
+import { runOpencodePrompt, streamOpencodePrompt } from '@/lib/ai/opencode-cli';
 import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 
 describe('opencodePromptToText', () => {
@@ -217,5 +222,121 @@ describe('createOpencodeCliModel', () => {
     const error = parts.find((p) => p.type === 'error') as unknown as { error: Error };
     expect(error.error.message).toBe('Rate limited, retry later');
     expect(parts.some((p) => p.type === 'finish')).toBe(false);
+  });
+
+  it('doGenerate returns reasoning content and requests thinking with locked tools', async () => {
+    vi.mocked(runOpencodePrompt).mockImplementationOnce(async () => ({
+      text: 'OK',
+      reasoning: 'karena x',
+      usage: {
+        inputTokens: 10,
+        outputTokens: 3,
+        reasoningTokens: 1,
+        cacheReadTokens: 0,
+        cacheWriteTokens: 0,
+      },
+      finishReason: 'stop' as const,
+    }));
+    const model = createOpencodeCliModel({ modelId: 'mimo-v2.6-flash-free' }) as unknown as {
+      doGenerate: (opts: { prompt: LanguageModelV3Prompt }) => Promise<{
+        content: Array<{ type: string; text: string }>;
+      }>;
+    };
+    const result = await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Say OK' }] }],
+    });
+    expect(result.content).toEqual([
+      { type: 'reasoning', text: 'karena x' },
+      { type: 'text', text: 'OK' },
+    ]);
+    const call = vi.mocked(runOpencodePrompt).mock.calls.at(-1)?.[0] as unknown as Record<
+      string,
+      unknown
+    >;
+    expect(call.thinking).toBe(true);
+    expect(call.lockBuiltinTools).toBe(true);
+  });
+
+  it('doStream forwards reasoning deltas as reasoning parts', async () => {
+    vi.mocked(streamOpencodePrompt).mockImplementationOnce(async function* () {
+      yield { kind: 'reasoning-delta' as const, delta: 'hmm' };
+      yield { kind: 'text-delta' as const, delta: 'OK' };
+      yield {
+        kind: 'done' as const,
+        completion: {
+          text: 'OK',
+          reasoning: 'hmm',
+          usage: {
+            inputTokens: 10,
+            outputTokens: 3,
+            reasoningTokens: 1,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+          },
+          finishReason: 'stop' as const,
+        },
+      };
+    });
+    const model = createOpencodeCliModel({ modelId: 'mimo-v2.6-flash-free' }) as unknown as {
+      doStream: (opts: { prompt: LanguageModelV3Prompt }) => Promise<{
+        stream: ReadableStream<{ type: string; [k: string]: unknown }>;
+      }>;
+    };
+    const { stream } = await model.doStream({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Say OK' }] }],
+    });
+    const parts: Array<{ type: string; [k: string]: unknown }> = [];
+    const reader = stream.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      parts.push(value);
+    }
+    expect(parts.map((p) => p.type)).toEqual([
+      'stream-start',
+      'text-start',
+      'reasoning-start',
+      'reasoning-delta',
+      'text-delta',
+      'reasoning-end',
+      'text-end',
+      'finish',
+    ]);
+  });
+});
+
+describe('opencode file attachments', () => {
+  const pngBytes = new Uint8Array([137, 80, 78, 71]);
+
+  it('attaches inline images and omits remote URLs', () => {
+    const prompt: LanguageModelV3Prompt = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Lihat gambar ini' },
+          { type: 'file', mediaType: 'image/png', data: pngBytes },
+          { type: 'file', mediaType: 'image/png', data: 'https://example.test/a.png' },
+        ],
+      },
+    ];
+    const attachments = extractOpencodeAttachments(prompt);
+    expect(attachments).toHaveLength(1);
+    expect(attachments[0].mediaType).toBe('image/png');
+    expect(attachments[0].data).toEqual(pngBytes);
+    const text = opencodePromptToText(prompt);
+    expect(text).toContain('[attached image 1 (image/png): sent as a file attachment');
+    expect(text).toContain('[attached file omitted: remote URL (not fetched)]');
+  });
+
+  it('decodes data URLs and rejects non-image types', () => {
+    const b64 = Buffer.from(pngBytes).toString('base64');
+    const dataUrl = `data:image/png;base64,${b64}`;
+    const decision = decideOpencodeFilePart({ mediaType: 'image/png', data: dataUrl }, 1);
+    expect(decision.kind).toBe('attach');
+    if (decision.kind === 'attach') expect(decision.data).toEqual(pngBytes);
+    expect(decideOpencodeFilePart({ mediaType: 'application/pdf', data: pngBytes }, 1)).toEqual({
+      kind: 'omit',
+      reason: expect.stringContaining('unsupported media type'),
+    });
   });
 });

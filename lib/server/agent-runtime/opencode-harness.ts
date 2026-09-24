@@ -7,9 +7,11 @@
  * (`lib/server/agent-runtime/mcp-registry.ts` + `scripts/opencode-mcp-bridge.mjs`)
  * and OpenMAIC consumes its event stream:
  *
- *   - text deltas   -> `message_start` / `message_update` / `message_end`
- *   - tool_use      -> `tool_execution_start` / `tool_execution_end`
- *   - terminal      -> the runner's own settlement (session_end) as before
+ *   - text deltas      -> `message_start` / `message_update` / `message_end`
+ *   - reasoning deltas -> a `thinking` content block on the same message
+ *   - tool_use         -> `tool_execution_start` / `tool_execution_end`
+ *   - terminal `done`  -> token usage on the persisted message; an `error`
+ *                         finish settles the run failed, like the pi path
  *
  * The run's tools execute in THIS process (the MCP route calls them directly),
  * so every durable side effect a tool emits — checkpoints, stage links, library
@@ -30,6 +32,7 @@ import {
   resolveOpencodeCliPath,
   streamOpencodePrompt,
   type OpencodeToolCall,
+  type OpencodeUsage,
 } from '@/lib/ai/opencode-cli';
 import { registerRunToolset, type RunToolsetEntry } from './mcp-registry';
 
@@ -319,6 +322,47 @@ export function extractOpenmaicCall(
 }
 
 /**
+ * Resolve the transcript name for a CLI-reported tool call against the run's
+ * known tools. Exported for unit tests.
+ *
+ * Code Mode steps (`execute` carrying `tools.openmaic["<tool>"](...)`) go
+ * through {@link extractOpenmaicCall}. Newer CLI builds honor
+ * `codemode: false` and report first-class MCP calls namespaced by server
+ * (`openmaic_create_stage`, `openmaic.create_stage`); when the suffix matches
+ * a run tool, the transcript uses the bare tool name so the fold's tool cards
+ * behave exactly like the pi path. Anything unrecognized stays verbatim —
+ * the transcript must never invent a tool the run did not call.
+ */
+export function resolveHarnessToolName(
+  reportedName: string,
+  knownToolNames: readonly string[],
+): string {
+  if (knownToolNames.includes(reportedName)) return reportedName;
+  const namespaced = new RegExp(`^${OPENMAIC_MCP_SERVER_NAME}[_.:-](.+)$`).exec(reportedName);
+  if (namespaced && knownToolNames.includes(namespaced[1])) return namespaced[1];
+  return reportedName;
+}
+
+/**
+ * Map a CLI `step_finish` token report onto the persisted assistant usage.
+ * Missing counters default to zero (unit-test `done` fixtures carry `{}`).
+ */
+export function toHarnessUsage(usage: Partial<OpencodeUsage>): AssistantMessageLike['usage'] {
+  const input = usage.inputTokens ?? 0;
+  const output = usage.outputTokens ?? 0;
+  const cacheRead = usage.cacheReadTokens ?? 0;
+  const cacheWrite = usage.cacheWriteTokens ?? 0;
+  return {
+    input,
+    output,
+    cacheRead,
+    cacheWrite,
+    totalTokens: input + output,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+  };
+}
+
+/**
  * Is a repaired object plausibly what the literal said?
  *
  * `jsonrepair` is deliberately forgiving — on `{ path: "/x", value: fn() }` it
@@ -474,7 +518,13 @@ export async function runOpencodeHarness(
 
   /** The single text block of this turn, mirroring pi's one-block-per-stream. */
   const textBlock = { type: 'text' as const, text: '' };
-  let textStarted = false;
+  let textPushed = false;
+  /** The thinking block, in arrival order relative to the text block. */
+  const thinkingBlock = { type: 'thinking' as const, thinking: '' };
+  let thinkingPushed = false;
+  let messageStarted = false;
+  /** Set when the terminal `done` reports an `error` finish. */
+  let terminalError: string | undefined;
   let lastUpdateAt = 0;
   const emitUpdate = (force = false): void => {
     const now = Date.now();
@@ -482,8 +532,15 @@ export async function runOpencodeHarness(
     lastUpdateAt = now;
     options.emit('message_update', { message: { ...assistant } });
   };
+  const ensureMessageStarted = (): void => {
+    if (!messageStarted) {
+      messageStarted = true;
+      options.emit('message_start', { message: { ...assistant } });
+    }
+  };
 
   try {
+    const knownToolNames = options.tools.map((tool) => tool.name);
     const events = stream({
       cliPath,
       modelId: options.modelId,
@@ -495,6 +552,7 @@ export async function runOpencodeHarness(
         options.history,
         options.messages,
       ),
+      thinking: true,
       abortSignal: options.abortSignal,
       cwd: scratch.dir,
       lockBuiltinTools: true,
@@ -508,21 +566,45 @@ export async function runOpencodeHarness(
           },
           // First-class tools exist only on CLI builds newer than the pinned
           // v2.0.15; on this build the field is ignored and tools stay
-          // reachable through Code Mode `execute`.
+          // reachable through Code Mode `execute`. Either shape maps to the
+          // same transcript below.
           codemode: false,
         },
       ],
     });
 
     for await (const event of events) {
+      if (event.kind === 'reasoning-delta') {
+        if (!thinkingPushed) {
+          thinkingPushed = true;
+          assistant.content.push(thinkingBlock);
+          ensureMessageStarted();
+        }
+        thinkingBlock.thinking += event.delta;
+        emitUpdate();
+        continue;
+      }
       if (event.kind === 'text-delta') {
-        if (!textStarted) {
-          textStarted = true;
+        if (!textPushed) {
+          textPushed = true;
           assistant.content.push(textBlock);
-          options.emit('message_start', { message: { ...assistant } });
+          ensureMessageStarted();
         }
         textBlock.text += event.delta;
         emitUpdate();
+        continue;
+      }
+      if (event.kind === 'done') {
+        // The terminal completion carries the run's token report (the pi
+        // path records the same via onFinish) and its real finish reason.
+        assistant.usage = toHarnessUsage(event.completion.usage ?? {});
+        if (event.completion.finishReason === 'error') {
+          terminalError =
+            event.completion.errorMessage?.trim() ||
+            `opencode CLI run failed for model "${options.modelId}"`;
+          assistant.stopReason = 'error';
+          assistant.errorMessage = terminalError;
+        }
         continue;
       }
       if (event.kind !== 'tool') continue;
@@ -530,7 +612,8 @@ export async function runOpencodeHarness(
       // The CLI reports a call once, already completed: the transcript gets the
       // start+end pair in one step so the fold's card lifecycle is unchanged.
       const mapped = extractOpenmaicCall(event.tool);
-      const toolName = mapped?.name ?? event.tool.name;
+      const reportedName = mapped?.name ?? event.tool.name;
+      const toolName = mapped ? reportedName : resolveHarnessToolName(reportedName, knownToolNames);
       const toolArgs = mapped?.args ?? (event.tool.input as Record<string, unknown>) ?? {};
       const toolCallId = event.tool.id ?? `cli-${toolName}-${toolCalls}`;
       const isError = event.tool.status === 'error';
@@ -550,10 +633,11 @@ export async function runOpencodeHarness(
           details: undefined,
         },
       });
-      if (!textStarted) {
+      if (!textPushed && !thinkingPushed) {
         // A tool card before any text: the turn still owns an assistant frame.
-        textStarted = true;
-        options.emit('message_start', { message: { ...assistant } });
+        textPushed = true;
+        assistant.content.push(textBlock);
+        ensureMessageStarted();
       }
       emitUpdate(true);
     }
@@ -561,7 +645,7 @@ export async function runOpencodeHarness(
     const message = error instanceof Error ? error.message : String(error);
     assistant.stopReason = 'error';
     assistant.errorMessage = message;
-    if (textStarted || assistant.content.length > 0) {
+    if (messageStarted || assistant.content.length > 0) {
       options.emit('message_end', { message: { ...assistant } });
       await options.persistMessage(assistant).catch(() => undefined);
     }
@@ -569,8 +653,21 @@ export async function runOpencodeHarness(
     return { toolCalls, questionEmitted, error: message };
   }
 
+  // A CLI-reported `error` finish (exit 0 with an error event) settles the
+  // run failed with the real cause — the pi path settles its own stream
+  // errors the same way instead of recording an empty success.
+  if (terminalError) {
+    if (messageStarted || assistant.content.length > 0) {
+      emitUpdate(true);
+      options.emit('message_end', { message: { ...assistant } });
+      await options.persistMessage(assistant).catch(() => undefined);
+    }
+    releaseRunResources();
+    return { toolCalls, questionEmitted, error: terminalError };
+  }
+
   assistant.timestamp = Date.now();
-  if (!textStarted && assistant.content.length === 0) {
+  if (!messageStarted && assistant.content.length === 0) {
     // Nothing was produced: no assistant frame at all, exactly like an empty pi
     // turn. The runner settles on its own bookkeeping.
     releaseRunResources();

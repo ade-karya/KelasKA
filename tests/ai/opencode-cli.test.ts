@@ -16,6 +16,7 @@ import {
   isRetryableOpencodeError,
   listOpencodeModels,
   OPENCODE_CLI_TIMEOUT_MS,
+  OPENCODE_MAX_ATTACHMENTS,
   OPENCODE_MODELS_TIMEOUT_MS,
   OPENCODE_SESSION_TITLE,
   parseOpencodeJsonOutput,
@@ -26,6 +27,7 @@ import {
   runOpencodePrompt,
   streamOpencodePrompt,
   toOpencodeModelRef,
+  writeOpencodeAttachments,
 } from '@/lib/ai/opencode-cli';
 
 // Real `--format json` output captured from:
@@ -171,6 +173,32 @@ describe('buildOpencodeRunArgs', () => {
       '--format',
       'json',
       '--print-logs',
+      '--model',
+      'opencode/m',
+      '--title',
+      OPENCODE_SESSION_TITLE,
+      'p',
+    ]);
+  });
+
+  it('requests thinking blocks and attaches files when asked', () => {
+    expect(
+      buildOpencodeRunArgs('m', 'p', {
+        standalone: true,
+        thinking: true,
+        files: ['/tmp/a.png', '/tmp/b.jpg'],
+      }),
+    ).toEqual([
+      'run',
+      '--standalone',
+      '--format',
+      'json',
+      '--thinking',
+      '--print-logs',
+      '--file',
+      '/tmp/a.png',
+      '--file',
+      '/tmp/b.jpg',
       '--model',
       'opencode/m',
       '--title',
@@ -427,6 +455,31 @@ describe('buildOpencodeConfigJson / prepareOpencodeConfigDir', () => {
     // `execute` stays enabled: on this CLI build it is the only path to MCP tools.
     expect(config.tools).not.toHaveProperty('execute');
     cleanup();
+  });
+});
+
+describe('writeOpencodeAttachments', () => {
+  it('materializes attachment bytes with safe names and extensions', async () => {
+    const { rmSync } = await import('node:fs');
+    const dir = mkdtempSync(join(tmpdir(), 'opencode-attachments-test-'));
+    try {
+      const paths = writeOpencodeAttachments(
+        [
+          { mediaType: 'image/png', data: new Uint8Array([1, 2, 3]) },
+          { filename: '../../evil.png', mediaType: 'image/png', data: new Uint8Array([4]) },
+        ],
+        dir,
+      );
+      expect(paths).toHaveLength(2);
+      expect(paths[0].endsWith('.png')).toBe(true);
+      expect(readFileSync(paths[0])).toEqual(Buffer.from([1, 2, 3]));
+      // Path traversal in the hint must not escape the run directory.
+      expect(paths[1].startsWith(dir)).toBe(true);
+      expect(paths[1]).not.toContain('..');
+      expect(OPENCODE_MAX_ATTACHMENTS).toBe(8);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
@@ -713,5 +766,72 @@ describe('streamOpencodePrompt isolation', () => {
     const recorded = readFileSync(record, 'utf8');
     expect(recorded).toContain('--standalone');
     expect(recorded).toContain('openmaic-opencode-run-');
+  });
+
+  it('yields reasoning deltas when the CLI emits thinking blocks', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opencode-isolation-test-'));
+    const fake = join(dir, 'opencode');
+    writeFileSync(
+      fake,
+      [
+        '#!/bin/sh',
+        'printf \'{"type":"reasoning","part":{"text":"hmm"}}\\n{"type":"text","part":{"type":"text","text":"OK"}}\\n{"type":"step_finish","part":{"reason":"stop","tokens":{"input":1,"output":1,"reasoning":1}}}\\n\'',
+        'exit 0',
+        '',
+      ].join('\n'),
+      { mode: 0o755 },
+    );
+
+    const events = [];
+    for await (const event of streamOpencodePrompt({
+      cliPath: fake,
+      modelId: 'm',
+      prompt: 'p',
+      thinking: true,
+      maxAttempts: 1,
+    })) {
+      events.push(event);
+    }
+    expect(events).toContainEqual({ kind: 'reasoning-delta', delta: 'hmm' });
+    expect(events).toContainEqual({ kind: 'text-delta', delta: 'OK' });
+    const done = events.find((event) => event.kind === 'done');
+    expect((done as { completion: { reasoning: string } }).completion.reasoning).toBe('hmm');
+  });
+
+  it('locks built-ins and passes attachments even with no MCP servers', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opencode-isolation-test-'));
+    const fake = join(dir, 'opencode');
+    const record = join(dir, 'record.txt');
+    writeFileSync(
+      fake,
+      [
+        '#!/bin/sh',
+        `echo "ARGS:$@" >> "${record}"`,
+        `cat "$OPENCODE_CONFIG_DIR/opencode.json" >> "${record}"`,
+        'printf \'{"type":"text","part":{"type":"text","text":"OK"}}\\n{"type":"step_finish","part":{"reason":"stop","tokens":{"input":1,"output":1}}}\\n\'',
+        'exit 0',
+        '',
+      ].join('\n'),
+      { mode: 0o755 },
+    );
+
+    const completion = await runOpencodePrompt({
+      cliPath: fake,
+      modelId: 'm',
+      prompt: 'p',
+      thinking: true,
+      lockBuiltinTools: true,
+      attachments: [{ mediaType: 'image/png', data: new Uint8Array([137, 80]) }],
+      maxAttempts: 1,
+    });
+    expect(completion.text).toBe('OK');
+    const recorded = readFileSync(record, 'utf8');
+    // A text-only run matches a keyed LLM call: thinking on, one --file, and
+    // the CLI built-ins locked out via a private config dir.
+    expect(recorded).toContain('--thinking');
+    expect(recorded).toContain('--file');
+    expect(recorded).toContain('"write":false');
+    expect(recorded).toContain('"question":false');
+    expect(recorded).not.toContain('"read":false');
   });
 });

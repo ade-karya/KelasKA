@@ -1809,7 +1809,10 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         name: 'DeepSeek V4 Flash Vision Exp',
         contextWindow: 1000000,
         outputWindow: 384000,
-        capabilities: { streaming: true, tools: false, vision: false },
+        // The only CLI model with vision: inline images are materialized to
+        // `--file` attachments by the adapter (`extractOpencodeAttachments`),
+        // so vision routes attach here exactly like a keyed provider.
+        capabilities: { streaming: true, tools: false, vision: true },
       },
       {
         id: 'opencode-go/deepseek-v4-pro',
