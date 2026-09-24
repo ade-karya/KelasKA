@@ -198,8 +198,15 @@ describe('POST /api/provider/probe-models', () => {
     expect(res.status).toBe(200);
     expect(json).toEqual({
       success: true,
-      models: [{ id: 'big-pickle' }, { id: 'muse-spark-1.3-contributor-free' }],
-      total: 2,
+      // Free refs lose the `opencode/` prefix (matching the built-in catalog's
+      // bare ids); Go refs keep the full `opencode-go/…` form because that
+      // prefix selects the paid tier on the wire. Foreign refs are dropped.
+      models: [
+        { id: 'big-pickle' },
+        { id: 'muse-spark-1.3-contributor-free' },
+        { id: 'opencode-go/deepseek-v4-pro' },
+      ],
+      total: 3,
       filtered: 0,
     });
     expect(mocks.validateUrlForSSRF).not.toHaveBeenCalled();

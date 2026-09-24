@@ -3,7 +3,11 @@ import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 import { fetchModels, ModelFetchError } from '@/lib/server/model-fetch';
-import { OPENCODE_MODEL_PREFIX, listOpencodeModels } from '@/lib/ai/opencode-cli';
+import {
+  OPENCODE_MODEL_PREFIX,
+  isOpencodeModelRef,
+  listOpencodeModels,
+} from '@/lib/ai/opencode-cli';
 
 const log = createLogger('ProbeModels');
 
@@ -30,14 +34,18 @@ export async function POST(req: NextRequest) {
 
     // The opencode provider is a local-binary transport: there is no HTTP
     // endpoint to probe, so its model list comes from `opencode models`.
-    // Only `opencode/*` refs are addressable through this transport (see
-    // toOpencodeModelRef), and the prefix is stripped so fetched ids match the
-    // built-in catalog's bare ids.
+    // Both tiers are addressable through it (`opencode/*` keyless free,
+    // `opencode-go/*` via the CLI's stored OpenCode Go auth). Free refs lose
+    // their prefix so fetched ids keep matching the built-in catalog's bare
+    // ids; Go refs keep the full `opencode-go/…` form because that prefix is
+    // what selects the tier on the wire (see toOpencodeModelRef).
     if (providerType === 'opencode') {
       const refs = await listOpencodeModels();
       const ids = refs
-        .filter((ref) => ref.startsWith(OPENCODE_MODEL_PREFIX))
-        .map((ref) => ref.slice(OPENCODE_MODEL_PREFIX.length))
+        .filter(isOpencodeModelRef)
+        .map((ref) =>
+          ref.startsWith(OPENCODE_MODEL_PREFIX) ? ref.slice(OPENCODE_MODEL_PREFIX.length) : ref,
+        )
         .filter((id) => !NON_CHAT_PATTERN.test(id))
         .sort((a, b) => a.localeCompare(b));
       return apiSuccess({ models: ids.map((id) => ({ id })), total: ids.length, filtered: 0 });

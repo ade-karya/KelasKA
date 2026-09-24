@@ -1,5 +1,6 @@
 import type { Api, Model } from '@earendil-works/pi-ai';
 
+import { toOpencodeModelRef } from '@/lib/ai/opencode-cli';
 import { getStageRoute } from '@/lib/server/model-routes';
 import { resolveModel, type ResolvedModel } from '@/lib/server/resolve-model';
 
@@ -29,9 +30,12 @@ export function isOpencodeDriverModel(providerId: string): boolean {
  * present because pi requires *a* model object on the agent state.
  */
 function buildOpencodeDriverStub(modelId: string): Model<Api> {
+  // Preserve the tier ref (`opencode/…` vs `opencode-go/…`) instead of
+  // double-prefixing the already-ref-formed model ids the Go catalog stores.
+  const ref = toOpencodeModelRef(modelId);
   return {
-    id: `opencode/${modelId}`,
-    name: `opencode/${modelId}`,
+    id: ref,
+    name: ref,
     api: 'unknown',
     provider: 'opencode',
     baseUrl: '',

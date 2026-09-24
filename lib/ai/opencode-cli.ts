@@ -89,6 +89,15 @@ export { OPENCODE_CLI_TIMEOUT_MS, OPENCODE_PROVIDER_ID };
 /** CLI model reference prefix, e.g. `opencode/muse-spark-1.3-contributor-free`. */
 export const OPENCODE_MODEL_PREFIX = 'opencode/' as const;
 
+/**
+ * Paid-tier CLI model reference prefix, e.g. `opencode-go/deepseek-v4.1-flash`.
+ *
+ * Both prefixes are addressable through `opencode run -m`; the prefix selects
+ * the tier (keyless free vs. the `opencode auth`-stored OpenCode Go
+ * subscription). The prefix must therefore survive to the wire untouched.
+ */
+export const OPENCODE_GO_MODEL_PREFIX = 'opencode-go/' as const;
+
 /** Session title so opencode-side sessions are attributable to OpenMAIC. */
 export const OPENCODE_SESSION_TITLE = 'openmaic-llm';
 
@@ -180,8 +189,30 @@ export function isOpencodeCliAvailable(explicitPath?: string): boolean {
   return resolveOpencodeCliPath(explicitPath) !== undefined;
 }
 
-/** `opencode/<modelId>` reference as expected by `opencode run -m`. */
+/**
+ * Whether a `provider/model` reference is addressable through the CLI
+ * transport: the keyless free tier (`opencode/…`) or the paid OpenCode Go
+ * tier (`opencode-go/…`). A bare prefix without a model id is not a reference.
+ */
+export function isOpencodeModelRef(ref: string): boolean {
+  return (
+    (ref.startsWith(OPENCODE_MODEL_PREFIX) && ref.length > OPENCODE_MODEL_PREFIX.length) ||
+    (ref.startsWith(OPENCODE_GO_MODEL_PREFIX) && ref.length > OPENCODE_GO_MODEL_PREFIX.length)
+  );
+}
+
+/**
+ * `provider/model` reference as expected by `opencode run -m`.
+ *
+ * Known refs are passed through unchanged: the prefix (`opencode/` vs.
+ * `opencode-go/`) selects the tier, so stripping it would silently route a Go
+ * model to the free tier (or fail with an unknown model). A bare id keeps the
+ * historical default of the keyless free tier, and an unknown `x/y` ref is
+ * normalized to its last segment so a foreign prefix can never address a
+ * provider this transport does not serve.
+ */
 export function toOpencodeModelRef(modelId: string): string {
+  if (isOpencodeModelRef(modelId)) return modelId;
   const bare = modelId.includes('/') ? (modelId.split('/').pop() ?? modelId) : modelId;
   return `${OPENCODE_MODEL_PREFIX}${bare}`;
 }
@@ -724,7 +755,10 @@ export function prepareOpencodeScratchDir(): { dir: string; cleanup: () => void 
  * caller falls back to the stdout-reported error instead of git noise.
  * Exported for unit tests.
  */
-export function extractOpencodeStderrError(stderrTail: string, maxLength = 500): string | undefined {
+export function extractOpencodeStderrError(
+  stderrTail: string,
+  maxLength = 500,
+): string | undefined {
   const lines = stderrTail
     .replace(/\x1b\[[0-9;]*m/g, '')
     .split('\n')
@@ -742,15 +776,24 @@ export function extractOpencodeStderrError(stderrTail: string, maxLength = 500):
   // error keyword is treated as noise.
   const errorLine = [...meaningful]
     .reverse()
-    .find((line) => /error|fail|interrupt|shut ?down|rate limit|timed out|timeout|ENOENT|EPIPE|ECONNRESET|socket hang up|fetch failed|denied|panic/i.test(line));
-  const chosen = errorLine ?? (() => {
-    const last = meaningful[meaningful.length - 1];
-    if (!last) return undefined;
-    if (/\blevel=(INFO|DEBUG|TRACE)\b/i.test(last) && !/level=(WARN|WARNING|ERROR|FATAL)\b/i.test(last)) {
-      return undefined;
-    }
-    return last;
-  })();
+    .find((line) =>
+      /error|fail|interrupt|shut ?down|rate limit|timed out|timeout|ENOENT|EPIPE|ECONNRESET|socket hang up|fetch failed|denied|panic/i.test(
+        line,
+      ),
+    );
+  const chosen =
+    errorLine ??
+    (() => {
+      const last = meaningful[meaningful.length - 1];
+      if (!last) return undefined;
+      if (
+        /\blevel=(INFO|DEBUG|TRACE)\b/i.test(last) &&
+        !/level=(WARN|WARNING|ERROR|FATAL)\b/i.test(last)
+      ) {
+        return undefined;
+      }
+      return last;
+    })();
   if (!chosen) return undefined;
   return chosen.length > maxLength ? `${chosen.slice(0, maxLength)}…` : chosen;
 }

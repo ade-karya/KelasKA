@@ -12,6 +12,7 @@ import {
   extractOpencodeStdoutError,
   foldOpencodeJsonEvent,
   isOpencodeCliAvailable,
+  isOpencodeModelRef,
   isRetryableOpencodeError,
   listOpencodeModels,
   OPENCODE_CLI_TIMEOUT_MS,
@@ -46,6 +47,26 @@ describe('toOpencodeModelRef', () => {
     expect(toOpencodeModelRef('opencode/mimo-v2.6-flash-free')).toBe(
       'opencode/mimo-v2.6-flash-free',
     );
+  });
+
+  it('preserves the opencode-go paid-tier prefix', () => {
+    expect(toOpencodeModelRef('opencode-go/deepseek-v4.1-flash')).toBe(
+      'opencode-go/deepseek-v4.1-flash',
+    );
+  });
+
+  it('normalizes a foreign provider prefix to the free-tier last segment', () => {
+    expect(toOpencodeModelRef('anthropic/claude-opus-5')).toBe('opencode/claude-opus-5');
+  });
+});
+
+describe('isOpencodeModelRef', () => {
+  it('accepts both tier refs and rejects bare prefixes or foreign refs', () => {
+    expect(isOpencodeModelRef('opencode/big-pickle')).toBe(true);
+    expect(isOpencodeModelRef('opencode-go/deepseek-v4-pro')).toBe(true);
+    expect(isOpencodeModelRef('opencode/')).toBe(false);
+    expect(isOpencodeModelRef('opencode-go/')).toBe(false);
+    expect(isOpencodeModelRef('anthropic/claude-opus-5')).toBe(false);
   });
 });
 
@@ -127,6 +148,20 @@ describe('buildOpencodeRunArgs', () => {
       'Say OK',
     ]);
     expect(OPENCODE_SESSION_TITLE).toBe('openmaic-llm');
+  });
+
+  it('keeps a Go-tier ref intact on the run command', () => {
+    expect(buildOpencodeRunArgs('opencode-go/deepseek-v4.1-flash', 'p')).toEqual([
+      'run',
+      '--format',
+      'json',
+      '--print-logs',
+      '--model',
+      'opencode-go/deepseek-v4.1-flash',
+      '--title',
+      OPENCODE_SESSION_TITLE,
+      'p',
+    ]);
   });
 
   it('runs a private server when a per-run MCP config is injected', () => {
