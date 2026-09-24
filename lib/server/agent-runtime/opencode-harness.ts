@@ -22,6 +22,8 @@
  */
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
 import type { AgentTool } from '@earendil-works/pi-agent-core';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { jsonrepair } from 'jsonrepair';
 
@@ -175,6 +177,50 @@ export function renderHarnessPrompt(
 }
 
 /**
+ * CLI-specific augmentation of the runner system prompt.
+ *
+ * The CLI owns its agent loop and, on this build, reaches MCP tools only
+ * through Code Mode — none of that is in the pi-oriented prompt, so without
+ * this the model uses the CLI's native `question`/`write`/`shell` tools
+ * (acting on the server checkout) and narrates stage plans as text instead
+ * of building them with tools.
+ */
+export function buildCliHarnessSystemPrompt(systemPrompt: string): string {
+  return (
+    `${systemPrompt}\n\n[opencode CLI harness — read this first]\n` +
+    `- Your OpenMAIC tools live on the MCP server "openmaic" and are reachable ONLY through ` +
+    `Code Mode. Call them with the execute tool, e.g. ` +
+    `return await tools.openmaic["generate_scene"]({ title: "...", type: "slide", brief: "..." }). ` +
+    `First run search({}) if you need the exact call shape.\n` +
+    `- Never use the CLI built-in tools (question, read, write, edit, shell, grep, glob, ` +
+    `webfetch, websearch, subagent, skill, task); they are disabled. To ask the user ` +
+    `anything, call tools.openmaic["ask_user"] — a question ends your turn, so stop after asking.\n` +
+    `- Build the stage with tools (create_stage, then set_roster, then one generate_scene ` +
+    `per settled page in order, then list_scenes to verify). Describing the plan in text ` +
+    `without calling the tools leaves the classroom empty.`
+  );
+}
+
+/**
+ * A scratch working directory for one CLI run, so the CLI's git
+ * snapshot/watcher machinery never touches the app checkout. Best-effort
+ * cleanup: a leftover temp dir must never fail a run.
+ */
+function prepareOpencodeScratchDir(): { dir: string; cleanup: () => void } {
+  const dir = mkdtempSync(join(tmpdir(), 'openmaic-opencode-run-'));
+  return {
+    dir,
+    cleanup: () => {
+      try {
+        rmSync(dir, { recursive: true, force: true });
+      } catch {
+        /* best effort */
+      }
+    },
+  };
+}
+
+/**
  * Recover the OpenMAIC tool call a Code Mode `execute` step made.
  *
  * On this CLI build MCP tools are only reachable through Code Mode, so the
@@ -322,6 +368,14 @@ export async function runOpencodeHarness(
     },
   };
   const { token, unregister } = register(toolset);
+  // Run the CLI with its git snapshot/watcher machinery pointed at a scratch
+  // directory, never at the app checkout (exit-1 "Session interrupted:
+  // shutdown" runs in the field all carried --work-tree /content/KelasKA).
+  const scratch = prepareOpencodeScratchDir();
+  const releaseRunResources = () => {
+    unregister();
+    scratch.cleanup();
+  };
 
   const assistant: AssistantMessageLike = {
     role: 'assistant',
@@ -349,8 +403,14 @@ export async function runOpencodeHarness(
     const events = stream({
       cliPath,
       modelId: options.modelId,
-      prompt: renderHarnessPrompt(options.systemPrompt, options.history, options.messages),
+      prompt: renderHarnessPrompt(
+        buildCliHarnessSystemPrompt(options.systemPrompt),
+        options.history,
+        options.messages,
+      ),
       abortSignal: options.abortSignal,
+      cwd: scratch.dir,
+      lockBuiltinTools: true,
       mcpServers: [
         {
           name: OPENMAIC_MCP_SERVER_NAME,
@@ -359,6 +419,10 @@ export async function runOpencodeHarness(
             OPENMAIC_MCP_URL: options.appBaseUrl,
             OPENMAIC_MCP_TOKEN: token,
           },
+          // First-class tools exist only on CLI builds newer than the pinned
+          // v2.0.15; on this build the field is ignored and tools stay
+          // reachable through Code Mode `execute`.
+          codemode: false,
         },
       ],
     });
@@ -414,7 +478,7 @@ export async function runOpencodeHarness(
       options.emit('message_end', { message: { ...assistant } });
       await options.persistMessage(assistant).catch(() => undefined);
     }
-    unregister();
+    releaseRunResources();
     return { toolCalls, questionEmitted, error: message };
   }
 
@@ -422,12 +486,12 @@ export async function runOpencodeHarness(
   if (!textStarted && assistant.content.length === 0) {
     // Nothing was produced: no assistant frame at all, exactly like an empty pi
     // turn. The runner settles on its own bookkeeping.
-    unregister();
+    releaseRunResources();
     return { toolCalls, questionEmitted };
   }
   emitUpdate(true);
   options.emit('message_end', { message: { ...assistant } });
   await options.persistMessage(assistant);
-  unregister();
+  releaseRunResources();
   return { toolCalls, questionEmitted };
 }

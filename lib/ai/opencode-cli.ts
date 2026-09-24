@@ -587,6 +587,15 @@ export interface RunOpencodeOptions {
    * CLI config is never touched.
    */
   mcpServers?: readonly OpencodeMcpServer[];
+  /**
+   * Disable the CLI's own filesystem/network tools for this run (see
+   * {@link lockedToolConfig}). Defaults to true when `mcpServers` are
+   * injected: the run's tools are OpenMAIC's MCP tools, and the CLI built-ins
+   * would act on the server's working directory (a past run wrote a stray
+   * markdown file into the repo) or ask via the native `question` tool
+   * instead of OpenMAIC's `ask_user`.
+   */
+  lockBuiltinTools?: boolean;
 }
 
 /**
@@ -748,9 +757,13 @@ export function describeOpencodeFailure(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return 'opencode CLI run failed with no output';
   const rateLimited = /rate limit/i.test(trimmed);
-  return rateLimited
-    ? `${trimmed} — the OpenCode free tier rate-limits per model; wait a moment and retry, or configure a keyed provider (e.g. MODEL_ROUTES openai:... with OPENAI_API_KEY).`
-    : trimmed;
+  if (rateLimited) {
+    return `${trimmed} — the OpenCode free tier rate-limits per model; wait a moment and retry, or configure a keyed provider (e.g. MODEL_ROUTES openai:... with OPENAI_API_KEY).`;
+  }
+  if (/interrupt|shut ?down/i.test(trimmed)) {
+    return `${trimmed} — the CLI server stopped mid-run (its snapshot/watcher state is tied to the child working directory). Retry; harness runs use a private --standalone server with a scratch cwd so a shared-service shutdown cannot take the run down.`;
+  }
+  return trimmed;
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -822,7 +835,11 @@ function runOpencodePromptOnce(opts: RunOpencodeOptions): Promise<OpencodeComple
       return;
     }
     let child: ChildProcess;
-    const config = opts.mcpServers?.length ? prepareOpencodeConfigDir(opts.mcpServers) : undefined;
+    const config = opts.mcpServers?.length
+      ? prepareOpencodeConfigDir(opts.mcpServers, {
+          lockBuiltinTools: opts.lockBuiltinTools ?? true,
+        })
+      : undefined;
     try {
       child = nodeBuiltins().spawn(
         opts.cliPath,
@@ -942,7 +959,11 @@ async function* streamOpencodePromptOnce(
 ): AsyncGenerator<OpencodeStreamEvent, void, void> {
   if (opts.abortSignal?.aborted) throw abortError(opts.abortSignal);
   const timeoutMs = opts.timeoutMs ?? OPENCODE_CLI_TIMEOUT_MS;
-  const config = opts.mcpServers?.length ? prepareOpencodeConfigDir(opts.mcpServers) : undefined;
+  const config = opts.mcpServers?.length
+    ? prepareOpencodeConfigDir(opts.mcpServers, {
+        lockBuiltinTools: opts.lockBuiltinTools ?? true,
+      })
+    : undefined;
   const child = nodeBuiltins().spawn(
     opts.cliPath,
     buildOpencodeRunArgs(opts.modelId, opts.prompt, { standalone: !!config }),

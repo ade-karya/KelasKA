@@ -309,6 +309,14 @@ describe('describeOpencodeFailure', () => {
   it('names an empty failure', () => {
     expect(describeOpencodeFailure('   ')).toBe('opencode CLI run failed with no output');
   });
+
+  it('explains a mid-run server shutdown instead of surfacing a bare exit code', () => {
+    const message = describeOpencodeFailure(
+      'opencode CLI exited with code 1 (CLI reported: Session interrupted: shutdown)',
+    );
+    expect(message).toContain('--standalone');
+    expect(message).toContain('scratch');
+  });
 });
 
 describe('buildOpencodeConfigJson / prepareOpencodeConfigDir', () => {
@@ -353,6 +361,21 @@ describe('buildOpencodeConfigJson / prepareOpencodeConfigDir', () => {
     expect(existsSync(dir)).toBe(false);
     // Idempotent: a second cleanup must not throw.
     expect(() => cleanup()).not.toThrow();
+  });
+
+  it('locks CLI built-ins out when requested, including the native question tool', () => {
+    const { dir, cleanup } = prepareOpencodeConfigDir([{ name: 'x', command: ['a'] }], {
+      lockBuiltinTools: true,
+    });
+    const config = JSON.parse(readFileSync(join(dir, 'opencode.json'), 'utf8')) as {
+      tools: Record<string, boolean>;
+    };
+    expect(config.tools.question).toBe(false);
+    expect(config.tools.write).toBe(false);
+    expect(config.tools.shell).toBe(false);
+    // `execute` stays enabled: on this CLI build it is the only path to MCP tools.
+    expect(config.tools).not.toHaveProperty('execute');
+    cleanup();
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AgentTool } from '@earendil-works/pi-agent-core';
 
 import {
+  buildCliHarnessSystemPrompt,
   extractOpenmaicCall,
   renderHarnessPrompt,
   runOpencodeHarness,
@@ -304,5 +305,50 @@ describe('runOpencodeHarness', () => {
   it('reports a missing CLI binary as a run error instead of throwing', async () => {
     const outcome = await runOpencodeHarness(baseOptions({ resolveCliPath: () => undefined }));
     expect(outcome.error).toContain('no `opencode` binary was found');
+  });
+
+  it('teaches the Code Mode call shape and bans native tools in the CLI prompt', () => {
+    const prompt = buildCliHarnessSystemPrompt('SYS');
+    expect(prompt.startsWith('SYS')).toBe(true);
+    expect(prompt).toContain('tools.openmaic["generate_scene"]');
+    expect(prompt).toContain('tools.openmaic["ask_user"]');
+  });
+
+  it('runs the CLI locked down in a scratch cwd, never the app checkout', async () => {
+    const { existsSync } = await import('node:fs');
+    let seenCwd = '';
+    let seenLockdown: unknown;
+    let seenPrompt = '';
+    await runOpencodeHarness(
+      baseOptions({
+        stream: streamOf(
+          [
+            { kind: 'text-delta', delta: 'x' },
+            {
+              kind: 'done',
+              completion: { text: 'x', reasoning: '', usage: {}, finishReason: 'stop' },
+            },
+          ],
+          (options) => {
+            const opts = options as {
+              cwd?: string;
+              lockBuiltinTools?: boolean;
+              prompt?: string;
+            };
+            seenCwd = opts.cwd ?? '';
+            seenLockdown = opts.lockBuiltinTools;
+            seenPrompt = opts.prompt ?? '';
+            // The scratch dir must exist while the run is live.
+            expect(existsSync(seenCwd)).toBe(true);
+          },
+        ),
+      }),
+    );
+    expect(seenLockdown).toBe(true);
+    expect(seenCwd).not.toBe(process.cwd());
+    expect(seenCwd).toContain('openmaic-opencode-run-');
+    expect(seenPrompt).toContain('tools.openmaic[');
+    // Best-effort cleanup: the scratch dir is removed after the run.
+    expect(existsSync(seenCwd)).toBe(false);
   });
 });
