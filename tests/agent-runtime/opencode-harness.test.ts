@@ -6,6 +6,7 @@ import {
   extractOpenmaicCall,
   renderHarnessPrompt,
   runOpencodeHarness,
+  verifyBridgeEndpoint,
 } from '@/lib/server/agent-runtime/opencode-harness';
 import { getRunToolset } from '@/lib/server/agent-runtime/mcp-registry';
 
@@ -49,6 +50,8 @@ function baseOptions(overrides: Record<string, unknown> = {}) {
     resolveCliPath: () => '/usr/local/bin/opencode',
     stream: undefined,
     registerToolset: undefined,
+    // Bridge preflight must not touch the network in unit tests.
+    fetchImpl: (async () => new Response('{}', { status: 200 })) as unknown as typeof fetch,
     ...overrides,
   };
 }
@@ -78,6 +81,40 @@ describe('renderHarnessPrompt', () => {
       ],
     );
     expect(prompt).toContain('[assistant]\nsiap\n[tool call create_stage c1]\n{"title":"T"}');
+  });
+
+  it('demotes native tool calls so the CLI cannot mimic them', () => {
+    // The skill preload ships synthesized `read` calls; rendered verbatim they
+    // teach the CLI a callable native tool, and the mimicry aborts the run.
+    const prompt = renderHarnessPrompt(
+      'SYS',
+      [],
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'toolCall',
+              id: 'c1',
+              name: 'read',
+              arguments: { path: '/content/KelasKA/skills/agent-runtime/stage-design/SKILL.md' },
+            },
+          ],
+        } as never,
+        {
+          role: 'toolResult',
+          toolCallId: 'c1',
+          toolName: 'read',
+          content: [{ type: 'text', text: '# Stage design skill body' }],
+        } as never,
+      ],
+    );
+    expect(prompt).not.toContain('[tool call read ');
+    expect(prompt).not.toContain('/content/KelasKA/skills/agent-runtime/stage-design/SKILL.md');
+    expect(prompt).toContain('tools.openmaic[...]');
+    // The loaded text itself survives as reference, not as a callable shape.
+    expect(prompt).toContain('# Stage design skill body');
+    expect(prompt).not.toContain('[tool result read ');
   });
 
   it('renders tool results', () => {
@@ -308,10 +345,18 @@ describe('runOpencodeHarness', () => {
   });
 
   it('teaches the Code Mode call shape and bans native tools in the CLI prompt', () => {
-    const prompt = buildCliHarnessSystemPrompt('SYS');
+    const prompt = buildCliHarnessSystemPrompt('SYS', ['create_stage', 'ask_user']);
     expect(prompt.startsWith('SYS')).toBe(true);
-    expect(prompt).toContain('tools.openmaic["generate_scene"]');
+    expect(prompt).toContain('tools.openmaic["create_stage"]');
     expect(prompt).toContain('tools.openmaic["ask_user"]');
+    expect(prompt).toContain('create_stage, ask_user');
+    expect(prompt).not.toContain('search({})');
+    // `read`/`shell` stay enabled (the gateway 403s without them), so the
+    // prompt bans them with the abort consequence instead of claiming they
+    // are disabled.
+    expect(prompt).toContain('NEVER call a CLI built-in tool (read, shell,');
+    expect(prompt).toContain('NEVER re-read');
+    expect(prompt).toContain('empty scratch dir');
   });
 
   it('runs the CLI locked down in a scratch cwd, never the app checkout', async () => {
@@ -350,5 +395,50 @@ describe('runOpencodeHarness', () => {
     expect(seenPrompt).toContain('tools.openmaic[');
     // Best-effort cleanup: the scratch dir is removed after the run.
     expect(existsSync(seenCwd)).toBe(false);
+  });
+
+  it('fails fast when the bridge endpoint does not hold the run token', async () => {
+    const stream = vi.fn(async function* () {
+      yield { kind: 'text-delta', delta: 'x' };
+    });
+    const outcome = await runOpencodeHarness(
+      baseOptions({
+        stream: stream as never,
+        fetchImpl: (async () => new Response('Not found', { status: 404 })) as unknown as typeof fetch,
+      }),
+    );
+    expect(outcome.error).toContain('MCP bridge preflight failed');
+    expect(outcome.error).toContain('OPENMAIC_MCP_BASE_URL');
+    // No CLI process is spawned for a doomed run.
+    expect(stream).not.toHaveBeenCalled();
+  });
+});
+
+describe('verifyBridgeEndpoint', () => {
+  const okFetch = (async () => new Response('{"tools":[]}', { status: 200 })) as unknown as typeof fetch;
+
+  it('passes when the token endpoint answers OK', async () => {
+    await expect(verifyBridgeEndpoint(okFetch, 'http://127.0.0.1:3000/', 'abc123')).resolves.toEqual({
+      ok: true,
+    });
+  });
+
+  it('names the base URL and token prefix on 404', async () => {
+    const notFound = (async () => new Response('Not found', { status: 404 })) as unknown as typeof fetch;
+    const result = await verifyBridgeEndpoint(notFound, 'http://127.0.0.1:3000', 'abc123token');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain('http://127.0.0.1:3000/api/agent/mcp/abc123to…');
+      expect(result.error).not.toContain('abc123token');
+    }
+  });
+
+  it('reports an unreachable app instead of throwing', async () => {
+    const failing = (async () => {
+      throw new Error('fetch failed');
+    }) as unknown as typeof fetch;
+    const result = await verifyBridgeEndpoint(failing, 'http://127.0.0.1:3000', 'abc123');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain('fetch failed');
   });
 });

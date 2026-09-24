@@ -86,6 +86,49 @@ export interface OpencodeHarnessOptions {
   stream?: typeof streamOpencodePrompt;
   /** Injected for tests: skips MCP registration (returns a fixed token). */
   registerToolset?: typeof registerRunToolset;
+  /** Injected for tests: replaces the bridge preflight fetch. */
+  fetchImpl?: typeof fetch;
+}
+
+/** Wall-clock budget for one bridge preflight attempt. */
+export const OPENMAIC_BRIDGE_PREFLIGHT_TIMEOUT_MS = 8_000;
+
+/**
+ * Fail fast when the CLI child could not possibly list this run's tools.
+ *
+ * The bridge reaches the run's toolset over HTTP loopback into *this*
+ * process (`/api/agent/mcp/<token>` against an in-process registry), and an
+ * `mcp connect failed` inside the CLI is only a WARN — the run would continue
+ * with none of OpenMAIC's tools and burn a full provider turn building
+ * nothing. A GET here exercises the exact endpoint the bridge will call: a
+ * 404 means the serving process does not hold the token (wrong
+ * OPENMAIC_MCP_BASE_URL/PORT, a deployment without the route, or an app
+ * restart that wiped the registry), anything else non-OK is reported as-is.
+ * Exported for unit tests.
+ */
+export async function verifyBridgeEndpoint(
+  fetchImpl: typeof fetch,
+  baseUrl: string,
+  token: string,
+  timeoutMs = OPENMAIC_BRIDGE_PREFLIGHT_TIMEOUT_MS,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const endpoint = `${baseUrl.replace(/\/+$/, '')}/api/agent/mcp/${encodeURIComponent(token)}`;
+  const describe = (cause: string): string =>
+    `MCP bridge preflight failed: GET ${baseUrl.replace(/\/+$/, '')}/api/agent/mcp/${token.slice(0, 8)}… → ${cause} (runner pid ${process.pid}). ` +
+    `The CLI child would not see this run's tools. Check OPENMAIC_MCP_BASE_URL (or PORT) points at this app process, ` +
+    `the deployment serves /api/agent/mcp/[token], and the app did not restart (the toolset registry is in-process).`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(endpoint, { method: 'GET', signal: controller.signal });
+    if (res.ok) return { ok: true };
+    return { ok: false, error: describe(`HTTP ${res.status}`) };
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: describe(cause) };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** The assistant message shape the runner persists and the fold renders. */
@@ -129,6 +172,22 @@ const EMPTY_USAGE: AssistantMessageLike['usage'] = {
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 };
 
+/** CLI-native tool names that must never appear callable in a harness prompt. */
+export const NATIVE_CLI_TOOL_NAMES = new Set([
+  'read',
+  'write',
+  'edit',
+  'shell',
+  'grep',
+  'glob',
+  'webfetch',
+  'websearch',
+  'subagent',
+  'skill',
+  'question',
+  'task',
+]);
+
 /** Render one pi message as the labeled transcript block the CLI expects. */
 function renderMessage(message: AgentMessage): string {
   if (message.role === 'user') {
@@ -147,18 +206,36 @@ function renderMessage(message: AgentMessage): string {
       if (block.type === 'text') parts.push(block.text);
       else if (block.type === 'thinking') parts.push(`[thinking]\n${block.thinking}`);
       else if (block.type === 'toolCall') {
-        parts.push(
-          `[tool call ${block.name} ${block.id}]\n${
-            typeof block.arguments === 'string' ? block.arguments : JSON.stringify(block.arguments)
-          }`,
-        );
+        // A pi-transcript `read` (e.g. the skill-preload's synthesized
+        // `assistant(toolCall read SKILL.md)`) rendered as `[tool call read …]`
+        // teaches the CLI model a callable native tool — the field failure was
+        // exactly this mimicry (native read of a repo-absolute path is declined
+        // non-interactively, and the declined call aborts the whole session).
+        // Demote native calls to a note; the matching toolResult below still
+        // carries the loaded text (e.g. the full SKILL.md body).
+        if (NATIVE_CLI_TOOL_NAMES.has(block.name)) {
+          parts.push(
+            `[note: a previous turn used the CLI-native "${block.name}" tool — that tool is not available here; use tools.openmaic[...] instead]`,
+          );
+        } else {
+          parts.push(
+            `[tool call ${block.name} ${block.id}]\n${
+              typeof block.arguments === 'string' ? block.arguments : JSON.stringify(block.arguments)
+            }`,
+          );
+        }
       }
     }
     return `[assistant]\n${parts.filter(Boolean).join('\n')}`;
   }
   // toolResult
+  const toolName = message.toolName;
   const text = message.content.map((part) => (part.type === 'text' ? part.text : '')).join('');
-  return `[tool result ${message.toolName} ${message.toolCallId}]\n${text}`;
+  // A native-labeled result (e.g. a preloaded SKILL.md body) is reference text,
+  // not an invitation: relabel so no callable `[tool … read …]` shape remains.
+  // The durable transcript is untouched — this string only seeds the CLI run.
+  if (NATIVE_CLI_TOOL_NAMES.has(toolName)) return `[reference text]\n${text}`;
+  return `[tool result ${toolName} ${message.toolCallId}]\n${text}`;
 }
 
 /**
@@ -180,20 +257,34 @@ export function renderHarnessPrompt(
  *
  * The CLI owns its agent loop and, on this build, reaches MCP tools only
  * through Code Mode — none of that is in the pi-oriented prompt, so without
- * this the model uses the CLI's native `question`/`write`/`shell` tools
- * (acting on the server checkout) and narrates stage plans as text instead
- * of building them with tools.
+ * this the model uses the CLI's native tools and narrates stage plans as text
+ * instead of building them with tools. The ban has teeth: a declined native
+ * call (e.g. `read` of a repo-absolute path, declined non-interactively)
+ * aborts the whole session with `Session interrupted: shutdown`.
  */
-export function buildCliHarnessSystemPrompt(systemPrompt: string): string {
+export function buildCliHarnessSystemPrompt(
+  systemPrompt: string,
+  toolNames: readonly string[] = [],
+): string {
+  const inventory = toolNames.length
+    ? `Your tools (and ONLY these — there is no other tool): ${toolNames.join(', ')}. `
+    : '';
+  const example = toolNames.length
+    ? `e.g. return await tools.openmaic["${toolNames[0]}"]({ ... }) with a JSON object argument. `
+    : '';
   return (
     `${systemPrompt}\n\n[opencode CLI harness — read this first]\n` +
     `- Your OpenMAIC tools live on the MCP server "openmaic" and are reachable ONLY through ` +
-    `Code Mode. Call them with the execute tool, e.g. ` +
-    `return await tools.openmaic["generate_scene"]({ title: "...", type: "slide", brief: "..." }). ` +
-    `First run search({}) if you need the exact call shape.\n` +
-    `- Never use the CLI built-in tools (question, read, write, edit, shell, grep, glob, ` +
-    `webfetch, websearch, subagent, skill, task); they are disabled. To ask the user ` +
-    `anything, call tools.openmaic["ask_user"] — a question ends your turn, so stop after asking.\n` +
+    `Code Mode. Call them with the execute tool. ${example}${inventory}\n` +
+    `- NEVER call a CLI built-in tool (read, shell, write, edit, grep, glob, ` +
+    `webfetch, websearch, subagent, skill, task, question). A single native call ` +
+    `fails the entire run: declined native calls abort the session, destroying ` +
+    `everything built so far.\n` +
+    `- Skill texts appearing in this prompt are already complete — NEVER re-read a ` +
+    `SKILL.md or any repo path. The session directory is an empty scratch dir; ` +
+    `absolute repo paths do not exist here.\n` +
+    `- To ask the user anything, call tools.openmaic["ask_user"] — a question ends ` +
+    `your turn, so stop after asking.\n` +
     `- Build the stage with tools (create_stage, then set_roster, then one generate_scene ` +
     `per settled page in order, then list_scenes to verify). Describing the plan in text ` +
     `without calling the tools leaves the classroom empty.`
@@ -357,6 +448,19 @@ export async function runOpencodeHarness(
     scratch.cleanup();
   };
 
+  // The bridge lists this run's tools over HTTP loopback; when that endpoint
+  // is unreachable the CLI only warns and runs tool-less. Fail here instead
+  // of burning a provider turn that cannot build anything.
+  const preflight = await verifyBridgeEndpoint(
+    options.fetchImpl ?? fetch,
+    options.appBaseUrl,
+    token,
+  );
+  if (!preflight.ok) {
+    releaseRunResources();
+    return { toolCalls, questionEmitted, error: preflight.error };
+  }
+
   const assistant: AssistantMessageLike = {
     role: 'assistant',
     content: [],
@@ -384,7 +488,10 @@ export async function runOpencodeHarness(
       cliPath,
       modelId: options.modelId,
       prompt: renderHarnessPrompt(
-        buildCliHarnessSystemPrompt(options.systemPrompt),
+        buildCliHarnessSystemPrompt(
+          options.systemPrompt,
+          options.tools.map((tool) => tool.name),
+        ),
         options.history,
         options.messages,
       ),

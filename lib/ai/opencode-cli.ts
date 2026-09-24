@@ -591,9 +591,9 @@ export interface RunOpencodeOptions {
    * Disable the CLI's own filesystem/network tools for this run (see
    * {@link lockedToolConfig}). Defaults to true when `mcpServers` are
    * injected: the run's tools are OpenMAIC's MCP tools, and the CLI built-ins
-   * would act on the server's working directory (a past run wrote a stray
-   * markdown file into the repo) or ask via the native `question` tool
-   * instead of OpenMAIC's `ask_user`.
+   * would act on the run's working directory or ask via the native `question`
+   * tool instead of OpenMAIC's `ask_user`. `read` and `shell` are always left
+   * enabled — the gateway rejects free-tier models when either is disabled.
    */
   lockBuiltinTools?: boolean;
 }
@@ -776,16 +776,21 @@ function childEnv(cwd: string, configDir?: string): NodeJS.ProcessEnv {
  * CLI built-ins a CLI-native agent run must not use.
  *
  * The agent's tools are this app's (`tools.openmaic[...]` over MCP); the CLI's
- * own filesystem tools would act on the *server's* working directory — an agent
- * run once wrote a stray markdown file into the repo, and `shell`/`write` would
- * be worse. `execute` stays enabled: on this CLI build it is the only way to
- * reach an MCP tool.
+ * own filesystem tools would act on the *run's scratch* working directory — an
+ * early agent run wrote a stray file into the repo before scratch isolation —
+ * and the native `question` tool would bypass OpenMAIC's `ask_user`.
+ * `execute` stays enabled: on this CLI build it is the only way to reach an
+ * MCP tool.
+ *
+ * `read` and `shell` stay enabled even though the prompt steers the model away
+ * from them: disabling either makes the Console gateway reject free-tier
+ * models with 403 "OpenCode's free tier can only be used from within OpenCode"
+ * (bisected per-flag against v2.0.15: `read:false` or `shell:false` alone
+ * fails, everything else locked passes). They see only the empty scratch dir.
  */
 const DISABLED_CLI_TOOLS = [
-  'read',
   'write',
   'edit',
-  'shell',
   'grep',
   'glob',
   'webfetch',
@@ -845,6 +850,9 @@ export function describeOpencodeFailure(raw: string): string {
   }
   if (/interrupt|shut ?down/i.test(trimmed)) {
     return `${trimmed} — the CLI server stopped mid-run (its snapshot/watcher state is tied to the child working directory). Retry; runs use a private --standalone server with a scratch cwd so a shared-service shutdown cannot take the run down.`;
+  }
+  if (/mcp connect failed|tool list failed/i.test(trimmed)) {
+    return `${trimmed} — the CLI could not reach this run's MCP toolset. Check OPENMAIC_MCP_BASE_URL (or PORT) points at the serving app, the deployment includes /api/agent/mcp/[token], and the app did not restart mid-run (the registry is in-process; the route logs the token prefix and live-toolset count).`;
   }
   return trimmed;
 }

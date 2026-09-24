@@ -30,15 +30,46 @@ if (!baseUrl || !token) {
 }
 
 const endpoint = `${baseUrl}/api/agent/mcp/${encodeURIComponent(token)}`;
+// Never log the full token: a prefix identifies the run in the app's
+// `[agent-mcp] unknown bridge token …` warning without leaking the secret.
+const tokenPrefix = token.slice(0, 8);
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * GET the run's tool list, tolerating a briefly-unavailable app (restart,
+ * dev HMR reload) before failing loud. A persistent 404 means the bridge
+ * reached a server that does not hold this run: wrong OPENMAIC_MCP_BASE_URL /
+ * PORT, a deployment without /api/agent/mcp/[token], or an app restart that
+ * wiped the in-process registry mid-run.
+ */
+async function fetchToolList(attempts = 5, delayMs = 750) {
+  let lastError = '';
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const res = await fetch(endpoint, { method: 'GET' });
+      if (res.ok) {
+        const body = await res.json();
+        return body.tools ?? [];
+      }
+      lastError = `HTTP ${res.status}`;
+      // A 404 from the right server still converges once the run registers;
+      // anything else (or the last attempt) stops the wait.
+      if (res.status !== 404 || attempt >= attempts) break;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+      if (attempt >= attempts) break;
+    }
+    await sleep(delayMs);
+  }
+  throw new Error(
+    `tool list failed: ${lastError} (bridge reached ${baseUrl} with token ${tokenPrefix}…)`,
+  );
+}
 
 const server = new Server({ name: 'openmaic', version: '1.0.0' }, { capabilities: { tools: {} } });
 
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  const res = await fetch(endpoint, { method: 'GET' });
-  if (!res.ok) throw new Error(`tool list failed: HTTP ${res.status}`);
-  const body = await res.json();
-  return { tools: body.tools ?? [] };
-});
+server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: await fetchToolList() }));
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params ?? {};

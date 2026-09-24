@@ -321,6 +321,14 @@ describe('describeOpencodeFailure', () => {
     expect(message).toContain('--standalone');
     expect(message).toContain('scratch');
   });
+
+  it('points an MCP connect failure at the bridge URL and the registry', () => {
+    const message = describeOpencodeFailure(
+      'opencode CLI exited with code 1: timestamp=2026-09-24T02:17:50.783Z level=WARN run=498cedb2 message="mcp connect failed" server=openmaic status.error="tool list failed: HTTP 404"',
+    );
+    expect(message).toContain('OPENMAIC_MCP_BASE_URL');
+    expect(message).toContain('/api/agent/mcp/[token]');
+  });
 });
 
 describe('buildOpencodeConfigJson / prepareOpencodeConfigDir', () => {
@@ -376,7 +384,11 @@ describe('buildOpencodeConfigJson / prepareOpencodeConfigDir', () => {
     };
     expect(config.tools.question).toBe(false);
     expect(config.tools.write).toBe(false);
-    expect(config.tools.shell).toBe(false);
+    expect(config.tools.edit).toBe(false);
+    // `read` and `shell` stay enabled: the Console gateway rejects free-tier
+    // models with 403 when either is disabled (bisected per-flag on v2.0.15).
+    expect(config.tools).not.toHaveProperty('read');
+    expect(config.tools).not.toHaveProperty('shell');
     // `execute` stays enabled: on this CLI build it is the only path to MCP tools.
     expect(config.tools).not.toHaveProperty('execute');
     cleanup();

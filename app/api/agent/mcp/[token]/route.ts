@@ -42,7 +42,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     // token prefix and the live-entry count so an operator can tell an expired
     // run from a bridge that reached the wrong process.
     console.warn(
-      `[agent-mcp] unknown bridge token ${token.slice(0, 8)}… (live toolsets: ${liveToolsetCount()})`,
+      `[agent-mcp] unknown bridge token ${token.slice(0, 8)}… (live toolsets: ${liveToolsetCount()}, server pid ${process.pid})`,
     );
     return new Response('Not found', { status: 404 });
   }

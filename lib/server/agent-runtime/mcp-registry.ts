@@ -42,7 +42,21 @@ export interface RunToolsetEntry {
   onToolCall?: (toolName: string, isError: boolean) => void;
 }
 
-const registry = new Map<string, RunToolsetEntry>();
+const REGISTRY_GLOBAL_KEY = '__openmaicRunToolsets';
+
+/**
+ * The live registry, rooted at `globalThis` instead of module scope.
+ *
+ * The runner (started from `instrumentation.ts`) and the bridge route can be
+ * evaluated in different module graphs of the same process (observed in the
+ * field: a token registered microseconds earlier 404s from the route). A
+ * module-level `Map` then silently splits in two; `globalThis` is shared by
+ * every graph in the process, so the entry is visible wherever it is read.
+ */
+function registry(): Map<string, RunToolsetEntry> {
+  const holder = globalThis as unknown as Record<string, Map<string, RunToolsetEntry> | undefined>;
+  return (holder[REGISTRY_GLOBAL_KEY] ??= new Map<string, RunToolsetEntry>());
+}
 
 /** Publish a run's toolset and return its token + a revoke function. */
 export function registerRunToolset(entry: Omit<RunToolsetEntry, 'createdAt'>): {
@@ -50,23 +64,23 @@ export function registerRunToolset(entry: Omit<RunToolsetEntry, 'createdAt'>): {
   unregister: () => void;
 } {
   const token = randomBytes(32).toString('hex');
-  registry.set(token, { ...entry, createdAt: Date.now() });
+  registry().set(token, { ...entry, createdAt: Date.now() });
   return {
     token,
     unregister: () => {
-      registry.delete(token);
+      registry().delete(token);
     },
   };
 }
 
 /** The toolset a bridge token names, or undefined for an unknown/expired token. */
 export function getRunToolset(token: string): RunToolsetEntry | undefined {
-  return registry.get(token);
+  return registry().get(token);
 }
 
 /** How many runs currently publish a toolset (diagnostics only). */
 export function liveToolsetCount(): number {
-  return registry.size;
+  return registry().size;
 }
 
 /** Tool descriptors in the MCP `tools/list` shape. */
