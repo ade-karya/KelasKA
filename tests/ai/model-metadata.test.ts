@@ -38,7 +38,8 @@ const MODELS_WITHOUT_CONFIGURABLE_THINKING = new Set<string>([
   'ollama:deepseek-r1',
   // OpenCode CLI models can reason, but the `opencode run` transport exposes
   // no thinking controls (no effort/budget flags) — the CLI owns the request
-  // and thinking stays at the model default.
+  // and thinking stays at the model default. The same applies to the paid
+  // OpenCode Go tier (`opencode-go/…`), which rides the identical transport.
   'opencode:muse-spark-1.3-contributor-free',
   'opencode:muse-spark-1.2-contributor-free',
   'opencode:mimo-v2.6-flash-free',
@@ -46,6 +47,38 @@ const MODELS_WITHOUT_CONFIGURABLE_THINKING = new Set<string>([
   'opencode:nemotron-3.5-lightning-free',
   'opencode:nemotron-3-ultra-free',
   'opencode:big-pickle',
+  'opencode:opencode-go/deepseek-v4-flash',
+  'opencode:opencode-go/deepseek-v4-flash-vision-exp',
+  'opencode:opencode-go/deepseek-v4-pro',
+  'opencode:opencode-go/deepseek-v4.1-flash',
+  'opencode:opencode-go/glm-5.1',
+  'opencode:opencode-go/glm-5.2',
+  'opencode:opencode-go/glm-5.3',
+  'opencode:opencode-go/glm-5.3-flash',
+  'opencode:opencode-go/gpt-5.6-luna',
+  'opencode:opencode-go/gpt-6-luna',
+  'opencode:opencode-go/grok-4.6',
+  'opencode:opencode-go/grok-4.7',
+  'opencode:opencode-go/hy3',
+  'opencode:opencode-go/hy4-preview',
+  'opencode:opencode-go/kimi-k2.6',
+  'opencode:opencode-go/kimi-k2.7-code',
+  'opencode:opencode-go/kimi-k3',
+  'opencode:opencode-go/longcat-2.0',
+  'opencode:opencode-go/mimo-v2.5',
+  'opencode:opencode-go/mimo-v2.5-pro',
+  'opencode:opencode-go/mimo-v2.6-flash',
+  'opencode:opencode-go/mimo-v2.6-pro',
+  'opencode:opencode-go/minimax-m2.7',
+  'opencode:opencode-go/minimax-m3',
+  'opencode:opencode-go/muse-spark-1.2-contributor',
+  'opencode:opencode-go/muse-spark-1.3-contributor',
+  'opencode:opencode-go/qwen3.6-plus',
+  'opencode:opencode-go/qwen3.7-max',
+  'opencode:opencode-go/qwen3.7-plus',
+  'opencode:opencode-go/qwen3.8-flash',
+  'opencode:opencode-go/qwen3.8-max',
+  'opencode:opencode-go/space-bunny-free',
 ]);
 
 function findDriftedModels(providers: Record<ProviderId, ProviderConfig>): string[] {
