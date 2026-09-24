@@ -684,9 +684,92 @@ export function prepareOpencodeConfigDir(
   };
 }
 
-/** The child environment for one run, with its private config dir when set. */
-function childEnv(configDir?: string): NodeJS.ProcessEnv {
-  return configDir ? { ...process.env, OPENCODE_CONFIG_DIR: configDir } : { ...process.env };
+/**
+ * A scratch working directory for one CLI run, so the CLI's git
+ * snapshot/watcher machinery never touches the app checkout.
+ *
+ * The CLI derives its snapshot `--work-tree` and file watchers from the child
+ * cwd: runs inheriting the server cwd (`/content/KelasKA` in the field) snapshot
+ * the whole repo on every turn and die with `Session interrupted: shutdown`
+ * when that watcher state is torn down. A fresh temp dir has no git repo, so
+ * the private server starts with no snapshot work at all (verified: watchers
+ * point at the scratch dir, exit 0). Best-effort cleanup: a leftover temp dir
+ * must never fail a run. Exported so the harness reuses the same dir shape.
+ */
+export function prepareOpencodeScratchDir(): { dir: string; cleanup: () => void } {
+  const { mkdirSync, rmSync, randomUUID, tmpdir, join } = nodeBuiltins();
+  const dir = join(tmpdir(), `openmaic-opencode-run-${randomUUID()}`);
+  mkdirSync(dir, { recursive: true });
+  return {
+    dir,
+    cleanup: () => {
+      try {
+        rmSync(dir, { recursive: true, force: true });
+      } catch {
+        /* best effort — a leftover temp dir must never fail a run */
+      }
+    },
+  };
+}
+
+/**
+ * The meaningful failure inside a `--print-logs` stderr tail, if any.
+ *
+ * A `--standalone` run logs its private server to stderr, and inside a git
+ * checkout most of that is INFO noise (`spawning process command=git ...`,
+ * `watcher subscribe/started ...`). Surfacing the raw tail turns a failure
+ * into `exited with code 1: ... "diff-files","--name-only" ...`, which hides
+ * the cause. This keeps lines that look like errors and drops snapshot/watcher
+ * INFO spam; when nothing meaningful remains it returns undefined so the
+ * caller falls back to the stdout-reported error instead of git noise.
+ * Exported for unit tests.
+ */
+export function extractOpencodeStderrError(stderrTail: string, maxLength = 500): string | undefined {
+  const lines = stderrTail
+    .replace(/\x1b\[[0-9;]*m/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const meaningful = lines.filter((line) => {
+    if (/spawning process.*command=git/i.test(line)) return false;
+    if (/watcher (subscribe|started|stopped)/i.test(line)) return false;
+    if (/location services booted/i.test(line)) return false;
+    if (/cli starting/i.test(line)) return false;
+    return true;
+  });
+  // Prefer an actual error line; otherwise the last surviving line (e.g. a
+  // fatal log) still beats git snapshot spam. Pure-INFO server chatter with no
+  // error keyword is treated as noise.
+  const errorLine = [...meaningful]
+    .reverse()
+    .find((line) => /error|fail|interrupt|shut ?down|rate limit|timed out|timeout|ENOENT|EPIPE|ECONNRESET|socket hang up|fetch failed|denied|panic/i.test(line));
+  const chosen = errorLine ?? (() => {
+    const last = meaningful[meaningful.length - 1];
+    if (!last) return undefined;
+    if (/\blevel=(INFO|DEBUG|TRACE)\b/i.test(last) && !/level=(WARN|WARNING|ERROR|FATAL)\b/i.test(last)) {
+      return undefined;
+    }
+    return last;
+  })();
+  if (!chosen) return undefined;
+  return chosen.length > maxLength ? `${chosen.slice(0, maxLength)}…` : chosen;
+}
+
+/**
+ * The child environment for one run, rooted at the run cwd with its private
+ * config dir when set.
+ *
+ * `PWD` must track the run cwd: `opencode run` resolves its session directory
+ * from `process.env.PWD ?? process.cwd()` (see `run.ts` in the v2 reference)
+ * and chdirs there, so an inherited server `PWD` would drag a scratch-cwd run
+ * back into the app checkout — snapshot `--work-tree` and watchers included.
+ * `OLDPWD` is dropped for the same reason.
+ */
+function childEnv(cwd: string, configDir?: string): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, PWD: cwd };
+  delete env.OLDPWD;
+  if (configDir) env.OPENCODE_CONFIG_DIR = configDir;
+  return env;
 }
 
 /**
@@ -761,7 +844,7 @@ export function describeOpencodeFailure(raw: string): string {
     return `${trimmed} — the OpenCode free tier rate-limits per model; wait a moment and retry, or configure a keyed provider (e.g. MODEL_ROUTES openai:... with OPENAI_API_KEY).`;
   }
   if (/interrupt|shut ?down/i.test(trimmed)) {
-    return `${trimmed} — the CLI server stopped mid-run (its snapshot/watcher state is tied to the child working directory). Retry; harness runs use a private --standalone server with a scratch cwd so a shared-service shutdown cannot take the run down.`;
+    return `${trimmed} — the CLI server stopped mid-run (its snapshot/watcher state is tied to the child working directory). Retry; runs use a private --standalone server with a scratch cwd so a shared-service shutdown cannot take the run down.`;
   }
   return trimmed;
 }
@@ -840,20 +923,31 @@ function runOpencodePromptOnce(opts: RunOpencodeOptions): Promise<OpencodeComple
           lockBuiltinTools: opts.lockBuiltinTools ?? true,
         })
       : undefined;
+    // Never run inside the server checkout: the CLI derives its snapshot
+    // --work-tree and watchers from the child cwd, and a repo cwd produces
+    // exit-1 "Session interrupted: shutdown" runs carrying the checkout path.
+    // Callers with an explicit cwd (the harness scratch dir) keep it; every
+    // other run gets a private scratch dir cleaned up on settle.
+    const scratch = opts.cwd ? undefined : prepareOpencodeScratchDir();
+    const cwd = opts.cwd ?? scratch?.dir ?? process.cwd();
     try {
       child = nodeBuiltins().spawn(
         opts.cliPath,
-        buildOpencodeRunArgs(opts.modelId, opts.prompt, { standalone: !!config }),
+        // Always a private server: the shared background service's shutdown
+        // takes down whatever run it hosts, while a per-run server dies with
+        // its own child. Verified with and without an MCP config dir.
+        buildOpencodeRunArgs(opts.modelId, opts.prompt, { standalone: true }),
         {
-          cwd: opts.cwd ?? process.cwd(),
+          cwd,
           stdio: ['ignore', 'pipe', 'pipe'],
           // Never inherit the server's env-derived auth into the child beyond
           // what opencode itself needs; opencode reads its own auth store.
-          env: childEnv(config?.dir),
+          env: childEnv(cwd, config?.dir),
         },
       );
     } catch (err) {
       config?.cleanup();
+      scratch?.cleanup();
       reject(err instanceof Error ? err : new Error(String(err)));
       return;
     }
@@ -869,6 +963,7 @@ function runOpencodePromptOnce(opts: RunOpencodeOptions): Promise<OpencodeComple
       opts.abortSignal?.removeEventListener('abort', onAbort);
       killChild(child);
       config?.cleanup();
+      scratch?.cleanup();
       fn();
     };
     const timer = setTimeout(
@@ -901,11 +996,12 @@ function runOpencodePromptOnce(opts: RunOpencodeOptions): Promise<OpencodeComple
         settle(() => {
           const stdout = Buffer.concat(chunks).toString('utf8');
           const reported = extractOpencodeStdoutError(stdout);
+          const stderrError = extractOpencodeStderrError(stderrTail);
           reject(
             new Error(
               describeOpencodeFailure(
                 `opencode CLI exited with code ${code ?? 'unknown'}${
-                  stderrTail ? `: ${stderrTail}` : ''
+                  stderrError ? `: ${stderrError}` : ''
                 }${reported ? ` (CLI reported: ${reported})` : ''}`,
               ),
             ),
@@ -964,15 +1060,29 @@ async function* streamOpencodePromptOnce(
         lockBuiltinTools: opts.lockBuiltinTools ?? true,
       })
     : undefined;
-  const child = nodeBuiltins().spawn(
-    opts.cliPath,
-    buildOpencodeRunArgs(opts.modelId, opts.prompt, { standalone: !!config }),
-    {
-      cwd: opts.cwd ?? process.cwd(),
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env: childEnv(config?.dir),
-    },
-  );
+  // Same isolation as the one-shot path: an explicit cwd (the harness scratch
+  // dir) is kept, otherwise the run gets a private scratch dir so the CLI's
+  // snapshot --work-tree and watchers never point at the server checkout.
+  const scratch = opts.cwd ? undefined : prepareOpencodeScratchDir();
+  const cwd = opts.cwd ?? scratch?.dir ?? process.cwd();
+  let child: ChildProcess;
+  try {
+    child = nodeBuiltins().spawn(
+      opts.cliPath,
+      // Always a private server (see runOpencodePromptOnce): a shared-service
+      // shutdown must not take the run down.
+      buildOpencodeRunArgs(opts.modelId, opts.prompt, { standalone: true }),
+      {
+        cwd,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: childEnv(cwd, config?.dir),
+      },
+    );
+  } catch (err) {
+    config?.cleanup();
+    scratch?.cleanup();
+    throw err;
+  }
 
   const acc = createOpencodeAccumulator();
   let buffer = '';
@@ -1059,10 +1169,11 @@ async function* streamOpencodePromptOnce(
       // `feedLine` folds stdout error events into `acc.errorMessage`, which is
       // usually the only record of the cause when stderr is empty.
       const reported = acc.errorMessage?.trim();
+      const stderrError = extractOpencodeStderrError(stderrTail);
       throw new Error(
         describeOpencodeFailure(
           `opencode CLI exited with code ${exitCode ?? 'unknown'}${
-            stderrTail ? `: ${stderrTail}` : ''
+            stderrError ? `: ${stderrError}` : ''
           }${
             reported
               ? ` (CLI reported: ${reported.length > 500 ? `${reported.slice(0, 500)}…` : reported})`
@@ -1087,5 +1198,6 @@ async function* streamOpencodePromptOnce(
     opts.abortSignal?.removeEventListener('abort', onAbort);
     killChild(child);
     config?.cleanup();
+    scratch?.cleanup();
   }
 }

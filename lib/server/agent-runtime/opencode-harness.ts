@@ -22,12 +22,11 @@
  */
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
 import type { AgentTool } from '@earendil-works/pi-agent-core';
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { jsonrepair } from 'jsonrepair';
 
 import {
+  prepareOpencodeScratchDir,
   resolveOpencodeCliPath,
   streamOpencodePrompt,
   type OpencodeToolCall,
@@ -199,25 +198,6 @@ export function buildCliHarnessSystemPrompt(systemPrompt: string): string {
     `per settled page in order, then list_scenes to verify). Describing the plan in text ` +
     `without calling the tools leaves the classroom empty.`
   );
-}
-
-/**
- * A scratch working directory for one CLI run, so the CLI's git
- * snapshot/watcher machinery never touches the app checkout. Best-effort
- * cleanup: a leftover temp dir must never fail a run.
- */
-function prepareOpencodeScratchDir(): { dir: string; cleanup: () => void } {
-  const dir = mkdtempSync(join(tmpdir(), 'openmaic-opencode-run-'));
-  return {
-    dir,
-    cleanup: () => {
-      try {
-        rmSync(dir, { recursive: true, force: true });
-      } catch {
-        /* best effort */
-      }
-    },
-  };
 }
 
 /**

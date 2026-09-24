@@ -8,6 +8,7 @@ import {
   buildOpencodeRunArgs,
   createOpencodeAccumulator,
   describeOpencodeFailure,
+  extractOpencodeStderrError,
   extractOpencodeStdoutError,
   foldOpencodeJsonEvent,
   isOpencodeCliAvailable,
@@ -19,7 +20,10 @@ import {
   parseOpencodeJsonOutput,
   parseOpencodeModelsOutput,
   prepareOpencodeConfigDir,
+  prepareOpencodeScratchDir,
   resolveOpencodeCliPath,
+  runOpencodePrompt,
+  streamOpencodePrompt,
   toOpencodeModelRef,
 } from '@/lib/ai/opencode-cli';
 
@@ -483,5 +487,184 @@ describe('resolveOpencodeCliPath', () => {
 
   it('exposes a 15-minute default timeout', () => {
     expect(OPENCODE_CLI_TIMEOUT_MS).toBe(15 * 60 * 1000);
+  });
+});
+
+describe('prepareOpencodeScratchDir', () => {
+  it('creates a dir outside the server checkout and cleans it up', () => {
+    const { dir, cleanup } = prepareOpencodeScratchDir();
+    try {
+      expect(dir).toContain('openmaic-opencode-run-');
+      expect(dir).not.toBe(process.cwd());
+      expect(existsSync(dir)).toBe(true);
+    } finally {
+      cleanup();
+    }
+    expect(existsSync(dir)).toBe(false);
+    expect(() => cleanup()).not.toThrow();
+  });
+});
+
+describe('extractOpencodeStderrError', () => {
+  const GIT_NOISE = [
+    'timestamp=2026-09-24T01:07:10.804Z level=INFO run=32fa907c message="spawning process" command=git args="[\\"--git-dir\\",\\"snap\\",\\"--work-tree\\",\\"/content/KelasKA\\",\\"diff-files\\",\\"--name-only\\"]" cwd=/content/KelasKA role=server',
+    'timestamp=2026-09-24T01:07:36.959Z level=INFO run=32fa907c message="watcher stopped" path=/content/KelasKA/AGENTS.md type=file role=server',
+    'timestamp=2026-09-24T01:07:36.978Z level=INFO run=32fa907c message="watcher stopped" path=/content/KelasKA type=entries role=server',
+  ].join('\n');
+
+  it('drops git snapshot and watcher INFO noise', () => {
+    expect(extractOpencodeStderrError(GIT_NOISE)).toBeUndefined();
+  });
+
+  it('keeps a real error line instead of snapshot spam', () => {
+    const message = extractOpencodeStderrError(
+      `${GIT_NOISE}\nAI.Error: Rate limit exceeded. Please try again later.`,
+    );
+    expect(message).toContain('Rate limit exceeded');
+    expect(message).not.toContain('diff-files');
+    expect(message).not.toContain('--work-tree');
+  });
+
+  it('returns undefined for empty input', () => {
+    expect(extractOpencodeStderrError('')).toBeUndefined();
+    expect(extractOpencodeStderrError('   \n  ')).toBeUndefined();
+  });
+});
+
+describe('runOpencodePrompt isolation', () => {
+  it('runs standalone in a scratch cwd, never the server checkout', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opencode-isolation-test-'));
+    const fake = join(dir, 'opencode');
+    const record = join(dir, 'record.txt');
+    writeFileSync(
+      fake,
+      [
+        '#!/bin/sh',
+        `echo "ARGS:$@" >> "${record}"`,
+        `echo "CWD:$(pwd)" >> "${record}"`,
+        `echo "PWD:$PWD" >> "${record}"`,
+        'printf \'{"type":"text","part":{"type":"text","text":"OK"}}\\n{"type":"step_finish","part":{"reason":"stop","tokens":{"input":1,"output":1}}}\\n\'',
+        'exit 0',
+        '',
+      ].join('\n'),
+      { mode: 0o755 },
+    );
+
+    const completion = await runOpencodePrompt({
+      cliPath: fake,
+      modelId: 'muse-spark-1.3-contributor-free',
+      prompt: 'Say OK',
+      maxAttempts: 1,
+    });
+    expect(completion.text).toBe('OK');
+
+    const recorded = readFileSync(record, 'utf8');
+    expect(recorded).toContain('--standalone');
+    const cwdLine = recorded.split('\n').find((line) => line.startsWith('CWD:')) ?? '';
+    const seenCwd = cwdLine.slice('CWD:'.length);
+    expect(seenCwd).toContain('openmaic-opencode-run-');
+    expect(seenCwd).not.toBe(process.cwd());
+    // The CLI resolves its session directory from PWD (v2 `run.ts`), so PWD
+    // must track the scratch cwd — an inherited server PWD would drag the run
+    // back into the checkout with its snapshot/watcher state.
+    const pwdLine = recorded.split('\n').find((line) => line.startsWith('PWD:')) ?? '';
+    expect(pwdLine.slice('PWD:'.length)).toBe(seenCwd);
+    // Best-effort cleanup: the scratch dir is removed after the run.
+    expect(existsSync(seenCwd)).toBe(false);
+  });
+
+  it('respects an explicit cwd (the harness scratch dir)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opencode-isolation-test-'));
+    const fake = join(dir, 'opencode');
+    const record = join(dir, 'record.txt');
+    const explicit = mkdtempSync(join(tmpdir(), 'openmaic-opencode-run-'));
+    try {
+      writeFileSync(
+        fake,
+        [
+          '#!/bin/sh',
+          `echo "ARGS:$@" >> "${record}"`,
+          `echo "CWD:$(pwd)" >> "${record}"`,
+          'printf \'{"type":"text","part":{"type":"text","text":"OK"}}\\n{"type":"step_finish","part":{"reason":"stop","tokens":{"input":1,"output":1}}}\\n\'',
+          'exit 0',
+          '',
+        ].join('\n'),
+        { mode: 0o755 },
+      );
+
+      await runOpencodePrompt({
+        cliPath: fake,
+        modelId: 'm',
+        prompt: 'p',
+        cwd: explicit,
+        maxAttempts: 1,
+      });
+      const recorded = readFileSync(record, 'utf8');
+      expect(recorded).toContain(explicit);
+      // An explicit cwd belongs to the caller: the transport must not delete it.
+      expect(existsSync(explicit)).toBe(true);
+    } finally {
+      const { rmSync } = await import('node:fs');
+      rmSync(explicit, { recursive: true, force: true });
+    }
+  });
+
+  it('surfaces the stdout-reported cause instead of git snapshot spam', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opencode-isolation-test-'));
+    const fake = join(dir, 'opencode');
+    writeFileSync(
+      fake,
+      [
+        '#!/bin/sh',
+        'printf \'{"type":"error","message":"Session interrupted: shutdown"}\\n\'',
+        'echo \'timestamp=2026-09-24T01:07:36.846Z level=INFO run=32fa907c message="spawning process" command=git args="[\\"--work-tree\\",\\"/content/KelasKA\\",\\"diff-files\\"]" cwd=/content/KelasKA role=server\' >&2',
+        'exit 1',
+        '',
+      ].join('\n'),
+      { mode: 0o755 },
+    );
+
+    await expect(
+      runOpencodePrompt({ cliPath: fake, modelId: 'm', prompt: 'p', maxAttempts: 1 }),
+    ).rejects.toThrow(/Session interrupted: shutdown/);
+    await expect(
+      runOpencodePrompt({ cliPath: fake, modelId: 'm', prompt: 'p', maxAttempts: 1 }).catch(
+        (err: Error) => err.message,
+      ),
+    ).resolves.not.toContain('diff-files');
+  });
+});
+
+describe('streamOpencodePrompt isolation', () => {
+  it('streams standalone from a scratch cwd with filtered failures', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'opencode-isolation-test-'));
+    const fake = join(dir, 'opencode');
+    const record = join(dir, 'record.txt');
+    writeFileSync(
+      fake,
+      [
+        '#!/bin/sh',
+        `echo "ARGS:$@" >> "${record}"`,
+        `echo "CWD:$(pwd)" >> "${record}"`,
+        'printf \'{"type":"text","part":{"type":"text","text":"Hi"}}\\n{"type":"step_finish","part":{"reason":"stop","tokens":{"input":1,"output":1}}}\\n\'',
+        'exit 0',
+        '',
+      ].join('\n'),
+      { mode: 0o755 },
+    );
+
+    const events = [];
+    for await (const event of streamOpencodePrompt({
+      cliPath: fake,
+      modelId: 'm',
+      prompt: 'p',
+      maxAttempts: 1,
+    })) {
+      events.push(event);
+    }
+    expect(events.some((event) => event.kind === 'text-delta')).toBe(true);
+    const recorded = readFileSync(record, 'utf8');
+    expect(recorded).toContain('--standalone');
+    expect(recorded).toContain('openmaic-opencode-run-');
   });
 });
