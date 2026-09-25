@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Aprendizagem Generativa em Sala de Aula Interativa Multi-Agente",
-    "greetingWithName": "Olá, {{name}}"
+    "greetingWithName": "Olá, {{name}}",
+    "vocationalTestBadge": "Função de teste",
+    "vocationalTestLabel": "Tarefa vocacional",
+    "vocationalTestTooltip": "Enviar um teste de treinamento prático vocacional a partir da caixa de entrada atual"
   },
   "toolbar": {
     "pdfParser": "Analisador",
@@ -142,12 +145,11 @@
       "streamInterrupted": "O fluxo de dados terminou inesperadamente; a discussão não foi concluída. Por favor, tente novamente."
     },
     "elementReference": {
-      "whiteboardChanged": "O elemento do quadro branco mudou ou não está mais disponível. Selecione-o novamente ou remova a referência antes de enviar.",
-      "button": "Referenciar conteúdo",
-      "unavailable": "O conteúdo atual não permite referências a elementos.",
-      "instruction": "Clique em um elemento · Esc para sair",
-      "fallback": "Outros elementos ({{count}})",
-      "clear": "Remover referência",
+      "button": "Referenciar conteúdo do curso",
+      "unavailable": "Apenas o slide PPT atual ou um componente interativo compatível pode ser referenciado",
+      "instruction": "Clique em um elemento do material do curso · Esc para sair",
+      "fallback": "Outros elementos do slide ({{count}})",
+      "clear": "Remover referência do conteúdo do curso",
       "summary": {
         "noText": "Sem texto",
         "emptyContent": "Sem conteúdo",
@@ -1242,6 +1244,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade (Local)",
       "ollama": "Ollama (Local)",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1255,7 +1258,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Protocolo Claude",
       "google": "Protocolo Gemini",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "modelos",
     "modelSingular": "modelo",
@@ -1987,12 +1991,7 @@
     },
     "enableThisProvider": "Habilitar este provedor",
     "enableThisProviderHint": "Desativado, este provedor não aparece mais na configuração de modelos do curso.",
-    "more": "Mais ações",
-    "providerLinks": {
-      "getApiKey": "Obter chave de API",
-      "domestic": "China continental",
-      "international": "Internacional"
-    }
+    "more": "Mais ações"
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

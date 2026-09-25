@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "L’apprentissage génératif en classe interactive multi-agents",
-    "greetingWithName": "Bonjour, {{name}}"
+    "greetingWithName": "Bonjour, {{name}}",
+    "vocationalTestBadge": "Fonction de test",
+    "vocationalTestLabel": "Tâche professionnelle",
+    "vocationalTestTooltip": "Envoyer un test de formation pratique professionnelle depuis le champ de saisie actuel"
   },
   "toolbar": {
     "pdfParser": "Analyseur",
@@ -142,12 +145,11 @@
       "streamInterrupted": "Le flux s’est interrompu de façon inattendue ; la discussion n’a pas abouti. Veuillez réessayer."
     },
     "elementReference": {
-      "whiteboardChanged": "L’élément du tableau blanc a changé ou n’est plus disponible. Sélectionnez-le à nouveau ou retirez la référence avant d’envoyer.",
-      "button": "Référencer du contenu",
-      "unavailable": "Le contenu actuel ne permet pas de référencer des éléments.",
-      "instruction": "Cliquez sur un élément · Échap pour quitter",
-      "fallback": "Autres éléments ({{count}})",
-      "clear": "Retirer la référence",
+      "button": "Référencer le contenu du cours",
+      "unavailable": "Seuls la diapositive PPT actuelle ou un composant interactif pris en charge peuvent être référencés",
+      "instruction": "Cliquez sur un élément du support de cours · Échap pour quitter",
+      "fallback": "Autres éléments de la diapositive ({{count}})",
+      "clear": "Retirer la référence au contenu du cours",
       "summary": {
         "noText": "Sans texte",
         "emptyContent": "Aucun contenu",
@@ -1242,6 +1244,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade (local)",
       "ollama": "Ollama (local)",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1255,7 +1258,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Protocole Claude",
       "google": "Protocole Gemini",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "modèles",
     "modelSingular": "modèle",
@@ -1987,12 +1991,7 @@
     },
     "enableThisProvider": "Activer ce service",
     "enableThisProviderHint": "Désactivé, ce service n'apparaît plus dans la configuration des modèles de cours.",
-    "more": "Plus d'actions",
-    "providerLinks": {
-      "getApiKey": "Obtenir une clé API",
-      "domestic": "Chine",
-      "international": "International"
-    }
+    "more": "Plus d'actions"
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

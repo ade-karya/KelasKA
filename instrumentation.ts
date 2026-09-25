@@ -124,6 +124,10 @@ export async function register(): Promise<void> {
     return shutdownPromise;
   };
 
-  process.once('SIGTERM', () => void shutdown());
-  process.once('SIGINT', () => void shutdown());
+  // Registered via a Node-only module (dynamic import) so the Edge bundle
+  // never statically includes `process.once`. A static reference here trips
+  // Turbopack's Edge-runtime Node API warning even behind the NEXT_RUNTIME
+  // early return above, because that guard is runtime-only.
+  const { registerShutdownHooks } = await import('@/lib/server/instrumentation-shutdown');
+  registerShutdownHooks(shutdown);
 }

@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
-    "greetingWithName": "Привет, {{name}}"
+    "greetingWithName": "Привет, {{name}}",
+    "vocationalTestBadge": "Тестовая функция",
+    "vocationalTestLabel": "Учебное задание",
+    "vocationalTestTooltip": "Отправить практический тест профподготовки из текущего поля ввода"
   },
   "toolbar": {
     "pdfParser": "Парсер",
@@ -142,12 +145,11 @@
       "streamInterrupted": "Поток данных неожиданно прервался; обсуждение не завершено. Попробуйте ещё раз."
     },
     "elementReference": {
-      "whiteboardChanged": "Элемент доски изменился или больше недоступен. Выберите его заново или удалите ссылку перед отправкой.",
-      "button": "Сослаться на содержимое",
-      "unavailable": "Текущее содержимое не поддерживает ссылки на элементы.",
-      "instruction": "Нажмите на элемент · Esc для выхода",
-      "fallback": "Другие элементы ({{count}})",
-      "clear": "Удалить ссылку",
+      "button": "Сослаться на учебный материал",
+      "unavailable": "Можно сослаться только на текущий слайд PPT или поддерживаемый интерактивный компонент",
+      "instruction": "Нажмите на элемент учебного материала · Esc для выхода",
+      "fallback": "Другие элементы слайда ({{count}})",
+      "clear": "Удалить ссылку на учебный материал",
       "summary": {
         "noText": "Без текста",
         "emptyContent": "Без содержимого",
@@ -1242,6 +1244,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade (Локальный)",
       "ollama": "Ollama (Локальный)",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1255,7 +1258,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Протокол Claude",
       "google": "Протокол Gemini",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "моделей",
     "modelSingular": "модель",
@@ -1987,12 +1991,7 @@
     },
     "enableThisProvider": "Включить этот сервис",
     "enableThisProviderHint": "В выключенном состоянии этот сервис больше не отображается в настройке моделей курса.",
-    "more": "Ещё действия",
-    "providerLinks": {
-      "getApiKey": "Получить API-ключ",
-      "domestic": "Китай",
-      "international": "Международный"
-    }
+    "more": "Ещё действия"
   },
   "workspace": {
     "untitledCourse": "未命名课堂",
