@@ -3,7 +3,7 @@
  *
  * Renders exported Hyperframes projects (the ZIP the app builds with
  * `packageVideoZip`) to MP4 using `@hyperframes/producer`, isolated in a
- * Node 22 + Chromium + FFmpeg container (issue #866).
+ * Node 24 + Chromium + FFmpeg container (issue #866).
  *
  * The contract is intentionally minimal and stable so the internals (in-memory
  * vs Redis job store, local-disk vs S3 artifacts) can be swapped for a

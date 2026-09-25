@@ -92,8 +92,8 @@ https://github.com/user-attachments/assets/f4a2f1be-6615-4330-aea1-b86ccf42045e
 
 ### 环境要求
 
-- **Node.js** >= 22.19
-- **pnpm** >= 10
+- **Node.js** >= 24.21
+- **pnpm** >= 12.6
 
 ### 1. 克隆 & 安装
 
@@ -347,7 +347,7 @@ docker build \
 ```
 
 这些参数不会加速 Docker Hub 拉取，包括 Dockerfile frontend 和
-`node:22-alpine` 基础镜像。若这些步骤较慢，需要单独配置 Docker daemon 的
+`node:24-alpine` 基础镜像。若这些步骤较慢，需要单独配置 Docker daemon 的
 registry mirror。同一个 BuildKit builder 会在常规缓存清理前跨构建复用 pnpm
 store；缓存只用于提升性能，不是正确完成构建的必要条件。
 
@@ -386,7 +386,7 @@ NEXT_PUBLIC_PERSISTENCE=1 NEXT_PUBLIC_PERSISTENCE_TOKEN=openmaic-local-dev docke
 
 ### 可选：MP4 视频导出（渲染服务）
 
-“导出视频”菜单在浏览器内构建一个自包含的 [Hyperframes](https://www.npmjs.com/package/@hyperframes/producer) 项目。要把它变成 MP4 需要 Chromium + FFmpeg（Node 22），因此运行在独立的 `render-service` 容器中，而不在应用内。
+“导出视频”菜单在浏览器内构建一个自包含的 [Hyperframes](https://www.npmjs.com/package/@hyperframes/producer) 项目。要把它变成 MP4 需要 Chromium + FFmpeg（Node 24），因此运行在独立的 `render-service` 容器中，而不在应用内。
 
 它是可选的，通过 `video-export` compose profile 启动：
 

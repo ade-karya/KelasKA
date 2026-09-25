@@ -84,7 +84,7 @@ jobs:
     # whose behaviour only a real PostgreSQL can confirm.
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_DB: openmaic
           POSTGRES_PASSWORD: postgres
@@ -104,7 +104,7 @@ jobs:
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       # ci.yml is a separate workflow, so its copy of the version check cannot
@@ -261,7 +261,7 @@ jobs:
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org
           # setup-node v5 enables package-manager caching whenever package.json
           # declares `packageManager`, which requires pnpm on PATH. This job only
@@ -439,7 +439,7 @@ jobs:
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
-          node-version: 22
+          node-version: 24
           # See the publish job: no pnpm here, so disable the automatic cache.
           package-manager-cache: false
 

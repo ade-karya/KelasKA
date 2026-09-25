@@ -48,7 +48,7 @@ services:
   # The app reads DATABASE_URL and PERSISTENCE_DEV_TOKEN from .env.local; keeping
   # those values there avoids changing the default browser-only deployment.
   postgres:
-    image: postgres:16
+    image: postgres:18
     profiles:
       - server-persistence
     environment:
@@ -67,7 +67,7 @@ services:
       - openmaic-postgres:/var/lib/postgresql/data
     restart: unless-stopped
 
-  # Isolated MP4 render service (Node 22 + Chromium + FFmpeg) for classroom video
+  # Isolated MP4 render service (Node 24 + Chromium + FFmpeg) for classroom video
   # export (issue #866). Opt-in: only starts with `--profile video-export`, since
   # the image is heavy (bundles Chromium + FFmpeg) and the capability is optional.
   #

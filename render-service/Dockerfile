@@ -1,11 +1,11 @@
-# Isolated render service: Node 22 + Chromium headless shell + FFmpeg.
+# Isolated render service: Node 24 + Chromium headless shell + FFmpeg.
 #
 # Debian (bookworm-slim), NOT Alpine: @hyperframes/producer drives Chromium via
 # puppeteer, and Chromium + its shared libraries are far simpler to provision on
 # glibc/Debian than on musl/Alpine. Producer's beginFrame capture requires the
 # old headless shell binary; regular Chromium exposes the resolver path but then
 # rejects HeadlessExperimental.beginFrame and silently falls back to screenshots.
-FROM node:22.22.2-bookworm-slim@sha256:f3a68cf41a855d227d1b0ab832bed9749469ef38cf4f58182fb8c893bc462383 AS base
+FROM node:24.21.0-bookworm-slim AS base
 
 ARG CHROMIUM_VERSION=151.0.7922.71-1~deb12u1
 ARG FFMPEG_VERSION=7:5.1.9-0+deb12u1
