@@ -40,7 +40,7 @@ describe('render-service container contract', () => {
   it('pins the browser, encoder, fonts, Node image, and producer dependency', () => {
     const dockerfile = read('Dockerfile');
     expect(dockerfile).toContain(
-      'node:22.22.2-bookworm-slim@sha256:f3a68cf41a855d227d1b0ab832bed9749469ef38cf4f58182fb8c893bc462383',
+      'node:24.21.0-bookworm-slim',
     );
     expect(dockerfile).toContain('CHROMIUM_VERSION=151.0.7922.71-1~deb12u1');
     expect(dockerfile).toContain('"chromium-common=${CHROMIUM_VERSION}"');

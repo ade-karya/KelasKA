@@ -12,12 +12,12 @@ concurrency:
 
 jobs:
   storage-pg-contract:
-    name: Storage Contract (PostgreSQL 16)
+    name: Storage Contract (PostgreSQL 18)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_DB: openmaic
           POSTGRES_PASSWORD: postgres
@@ -38,7 +38,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile

@@ -105,8 +105,8 @@ https://github.com/user-attachments/assets/8f3f1e5f-1468-4e93-8054-afeeea683a61
 
 ### Prerequisites
 
-- **Node.js** >= 22.19
-- **pnpm** >= 10
+- **Node.js** >= 24.21
+- **pnpm** >= 12.6
 
 ### 1. Clone & Install
 
@@ -370,7 +370,7 @@ docker build \
 ```
 
 These arguments do not accelerate Docker Hub pulls, including the Dockerfile
-frontend and the `node:22-alpine` base image. Configure a Docker daemon registry
+frontend and the `node:24-alpine` base image. Configure a Docker daemon registry
 mirror separately if those pulls are slow. The pnpm store cache is reused by the
 same BuildKit builder across builds, subject to normal cache garbage collection;
 the cache only improves performance and is not required for a correct build.
@@ -548,7 +548,7 @@ the reserved compaction knobs are listed in `.env.example`.
 
 ### Optional: MP4 Video Export (Render Service)
 
-The "Export Video" menu builds a self-contained [Hyperframes](https://www.npmjs.com/package/@hyperframes/producer) project entirely in the browser. Turning that into an MP4 needs Chromium + FFmpeg on Node 22, so it runs in an isolated `render-service` container rather than the app.
+The "Export Video" menu builds a self-contained [Hyperframes](https://www.npmjs.com/package/@hyperframes/producer) project entirely in the browser. Turning that into an MP4 needs Chromium + FFmpeg on Node 24, so it runs in an isolated `render-service` container rather than the app.
 
 It's opt-in. Start it with the `video-export` compose profile:
 

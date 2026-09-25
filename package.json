@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "engines": {
-    "node": ">=22.19.0"
+    "node": ">=24.21.0"
   },
   "scripts": {
     "postinstall": "pnpm run build:packages",
@@ -117,7 +117,7 @@
     "mitt": "^3.0.1",
     "motion": "^12.27.5",
     "nanoid": "5.1.16",
-    "next": "16.3.3",
+    "next": "16.3.6",
     "next-themes": "^0.4.6",
     "openai": "^4.104.0",
     "parse-srcset": "^1.0.2",
@@ -141,9 +141,9 @@
     "prosemirror-state": "^1.4.4",
     "prosemirror-view": "^1.41.5",
     "radix-ui": "^1.4.3",
-    "react": "19.2.3",
+    "react": "19.3.0",
     "react-colorful": "^5.7.0",
-    "react-dom": "19.2.3",
+    "react-dom": "19.3.0",
     "react-i18next": "^17.0.1",
     "sanitize-html": "2.17.0",
     "shadcn": "^3.6.3",
@@ -178,14 +178,14 @@
     "@types/file-saver": "^2.0.7",
     "@types/katex": "^0.16.8",
     "@types/lodash": "^4.17.23",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/pg": "^8.15.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/sanitize-html": "^2.16.1",
     "@types/tinycolor2": "^1.4.6",
     "eslint": "^9",
-    "eslint-config-next": "16.2.11",
+    "eslint-config-next": "16.3.6",
     "fake-indexeddb": "^6.2.5",
     "fontkit": "2.0.4",
     "gsap": "^3.15.0",
@@ -207,5 +207,5 @@
       "unrs-resolver"
     ]
   },
-  "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48"
+  "packageManager": "pnpm@12.6.0+sha512.3ef68f951cb111ac204b4a5a16f0b2ddf0da56a96e0413e81d855d9f0b55ef926714709028e1cd00c405c2c5fb7b9e8ec4dc46777c805d0373c2f2ff00fd20ec"
 }

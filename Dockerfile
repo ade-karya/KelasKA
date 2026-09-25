@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ---- Stage 1: Base ----
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 
 ARG ALPINE_MIRROR=""
 ARG NPM_REGISTRY=""
@@ -19,7 +19,7 @@ RUN npm_registry="$NPM_REGISTRY"; \
       export COREPACK_NPM_REGISTRY="$npm_registry"; \
     fi && \
     corepack enable && \
-    corepack prepare pnpm@10.28.0 --activate
+    corepack prepare pnpm@12.6.0 --activate
 
 WORKDIR /app
 
@@ -92,7 +92,7 @@ RUN NODE_OPTIONS=--max-old-space-size=1024 pnpm run build:packages
 RUN pnpm build
 
 # ---- Stage 4: Runner ----
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 
 ARG ALPINE_MIRROR=""
 

@@ -6,7 +6,7 @@ The main app compiles a classroom to a self-contained Hyperframes project ZIP
 (`index.html` + `assets/` + vendored GSAP) entirely in the browser. This service
 takes that ZIP and renders it to an MP4 with [`@hyperframes/producer`], which
 drives headless Chromium (frame capture) + FFmpeg (encode). It runs in its own
-Node 22 container because the producer needs Node ≥ 22, Chromium, and FFmpeg —
+Node 24 container because the producer needs Node ≥ 24, Chromium, and FFmpeg —
 none of which belong in the Next.js runtime.
 
 It is an **opt-in capability**: when the app has no `RENDER_SERVICE_URL`
@@ -208,7 +208,7 @@ docker compose --profile video-export up --build
 
 ### Standalone (development)
 
-Requires Node 22, Chromium's old headless shell, and FFmpeg on `PATH`. The
+Requires Node 24, Chromium's old headless shell, and FFmpeg on `PATH`. The
 standard profile checks for 8 GiB of available host/cgroup memory before
 listening:
 
@@ -372,7 +372,7 @@ infer safe cleanup from a failed launch command. An operator must audit the
 unit, cgroup, mounts and task state before cleanup and owner restart; there is
 no automatic retry or admission reset.
 
-Fixed-input Linux evidence on Ubuntu 22.04 x86_64 with Node 22.23.2, systemd
+Fixed-input Linux evidence on Ubuntu 22.04 x86_64 with Node 24.21.0, systemd
 249 and cgroup v2 covers consecutive renders under one owner, cancellation and
 deadline cleanup with same-owner recovery, supervisor-death takeover,
 audio/video temporary paths, external FD/mmap rejection, task OOM enforcement,
