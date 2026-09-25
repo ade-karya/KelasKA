@@ -18,7 +18,7 @@ let warnedUnset = false;
  * particular, `next dev` and `next start` ignore HOSTNAME and default to a
  * wildcard bind. Warn conservatively even when network exposure is unknown,
  * rather than interpreting a missing/loopback HOSTNAME as a safe deployment.
- * Keep the same truthiness check as middleware: do not trim the access code.
+ * Keep the same truthiness check as proxy: do not trim the access code.
  */
 export function warnIfAccessCodeIsUnset(accessCode: string | undefined): void {
   if (accessCode || warnedUnset) return;
@@ -34,7 +34,7 @@ export function warnIfAccessCodeIsUnset(accessCode: string | undefined): void {
 /**
  * Log at most one warning per process when `accessCode` is shorter than
  * {@link ACCESS_CODE_MIN_RECOMMENDED_LENGTH}. Called from the Node verify route,
- * not from Edge middleware. A code at or above the threshold logs nothing.
+ * not from the Edge proxy. A code at or above the threshold logs nothing.
  *
  * Length is measured in Unicode code points, not UTF-16 code units, so an
  * emoji-heavy code is not silently treated as twice its real length.

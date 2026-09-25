@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "マルチエージェント対話型教室で生成的に学ぶ",
-    "greetingWithName": "こんにちは、{{name}}さん"
+    "greetingWithName": "こんにちは、{{name}}さん",
+    "vocationalTestBadge": "テスト機能",
+    "vocationalTestLabel": "職業訓練タスク",
+    "vocationalTestTooltip": "現在の入力欄から職業実践トレーニングのテストを送信する"
   },
   "toolbar": {
     "pdfParser": "パーサー",
@@ -142,12 +145,11 @@
       "streamInterrupted": "ストリームが予期せず終了し、ディスカッションが完了しませんでした。再度お試しください。"
     },
     "elementReference": {
-      "whiteboardChanged": "参照したホワイトボードの要素が変更されたか、利用できません。再選択するか、参照を削除してから送信してください。",
-      "button": "内容を参照",
-      "unavailable": "現在のコンテンツでは要素の参照を利用できません。",
-      "instruction": "要素をクリック · Esc で終了",
-      "fallback": "その他の要素（{{count}}）",
-      "clear": "参照を解除",
+      "button": "教材を参照",
+      "unavailable": "現在の PPT スライドまたは対応するインタラクティブコンポーネントのみ参照できます",
+      "instruction": "教材要素をクリック · Esc で終了",
+      "fallback": "その他のスライド要素（{{count}}）",
+      "clear": "教材の参照を解除",
       "summary": {
         "noText": "テキストなし",
         "emptyContent": "内容なし",
@@ -1242,6 +1244,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade（ローカル）",
       "ollama": "Ollama（ローカルモデル）",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1255,7 +1258,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Claudeプロトコル",
       "google": "Geminiプロトコル",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "モデル",
     "modelSingular": "モデル",
@@ -1987,12 +1991,7 @@
     },
     "enableThisProvider": "このプロバイダーを有効化",
     "enableThisProviderHint": "オフにすると、このプロバイダーはコースモデル設定に表示されなくなります。",
-    "more": "その他の操作",
-    "providerLinks": {
-      "getApiKey": "APIキーを取得",
-      "domestic": "中国国内",
-      "international": "海外"
-    }
+    "more": "その他の操作"
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

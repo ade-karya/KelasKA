@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "التعلّم التوليدي في فصل تفاعلي متعدد الوكلاء",
-    "greetingWithName": "مرحبًا، {{name}}"
+    "greetingWithName": "مرحبًا، {{name}}",
+    "vocationalTestBadge": "ميزة تجريبية",
+    "vocationalTestLabel": "مهمة التعليم المهني",
+    "vocationalTestTooltip": "إرسال اختبار تدريب عملي مهني من مربع الإدخال الحالي"
   },
   "toolbar": {
     "pdfParser": "محلل PDF",
@@ -142,12 +145,11 @@
       "streamInterrupted": "انتهى تدفق البيانات بشكل غير متوقع; لم يكتمل النقاش. يرجى المحاولة مرة أخرى."
     },
     "elementReference": {
-      "whiteboardChanged": "تغيّر عنصر السبورة المشار إليه أو لم يعد متاحًا. اختره مجددًا أو أزل الإشارة قبل الإرسال.",
-      "button": "الإشارة إلى محتوى",
-      "unavailable": "لا يدعم المحتوى الحالي الإشارة إلى العناصر.",
-      "instruction": "انقر على عنصر · Esc للخروج",
-      "fallback": "عناصر أخرى ({{count}})",
-      "clear": "إزالة الإشارة",
+      "button": "الإشارة إلى المحتوى التعليمي",
+      "unavailable": "يمكن الإشارة فقط إلى شريحة PPT الحالية أو مكوّن تفاعلي مدعوم",
+      "instruction": "انقر على عنصر في المادة التعليمية · Esc للخروج",
+      "fallback": "عناصر أخرى في الشريحة ({{count}})",
+      "clear": "إزالة مرجع المحتوى التعليمي",
       "summary": {
         "noText": "لا يوجد نص",
         "emptyContent": "لا يوجد محتوى",
@@ -1242,6 +1244,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade (محلي)",
       "ollama": "Ollama (محلي)",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1255,7 +1258,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "بروتوكول Claude",
       "google": "بروتوكول Gemini",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "نماذج",
     "modelSingular": "نموذج",
@@ -1987,12 +1991,7 @@
     },
     "enableThisProvider": "تمكين هذا المزوّد",
     "enableThisProviderHint": "عند الإيقاف لن يظهر هذا المزوّد في إعداد نماذج المقرر.",
-    "more": "إجراءات إضافية",
-    "providerLinks": {
-      "getApiKey": "احصل على مفتاح API",
-      "domestic": "الصين",
-      "international": "دولي"
-    }
+    "more": "إجراءات إضافية"
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

@@ -58,7 +58,7 @@ export function resolveSharedOwnerId(): string | undefined {
         'cannot use the reserved "anon:" prefix or a character the key sanitiser would rewrite.',
     );
   }
-  // The gate this assumes is the middleware's: with `ACCESS_CODE` unset it lets
+  // The gate this assumes is the proxy's: with `ACCESS_CODE` unset it lets
   // every request through, and resolving them all to one owner would hand a
   // single readable, editable, publishable course library to whoever asks. That
   // is a far worse deployment than the per-browser partitioning this setting
@@ -66,7 +66,7 @@ export function resolveSharedOwnerId(): string | undefined {
   // either wants an access code or did not mean to set this.
   if (!process.env.ACCESS_CODE) {
     throw new Error(
-      `${SHARED_OWNER_ENV} requires ACCESS_CODE. Without an access code the middleware lets ` +
+      `${SHARED_OWNER_ENV} requires ACCESS_CODE. Without an access code the proxy lets ` +
         'every request through, so a single shared owner would expose one course library to ' +
         `anyone who can reach the deployment. Set ACCESS_CODE, or unset ${SHARED_OWNER_ENV}.`,
     );

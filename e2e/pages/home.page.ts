@@ -8,7 +8,10 @@ export class HomePage {
 
   constructor(page: Page) {
     this.page = page;
-    this.logo = page.locator('img[alt="OpenMAIC"]');
+    // Support both legacy OpenMAIC alt and new Kelas KA branding (Kemendikdasmen/DPRD logos)
+    this.logo = page
+      .locator('img[alt="OpenMAIC"], img[alt="Kemendikdasmen Logo"], img[alt="DPRD Logo"]')
+      .first();
     this.textarea = page.locator('textarea');
     this.enterButton = page
       .getByRole('button', { name: /enter/i })

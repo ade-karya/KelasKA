@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Học tập sinh tạo trong lớp học tương tác đa tác nhân",
-    "greetingWithName": "Chào {{name}}"
+    "greetingWithName": "Chào {{name}}",
+    "vocationalTestBadge": "Tính năng thử nghiệm",
+    "vocationalTestLabel": "Nhiệm vụ giáo dục nghề nghiệp",
+    "vocationalTestTooltip": "Gửi bài kiểm tra thực hành nghề nghiệp từ ô nhập hiện tại"
   },
   "toolbar": {
     "pdfParser": "Bộ đọc PDF",
@@ -142,12 +145,11 @@
       "streamInterrupted": "Luồng dữ liệu dừng bất ngờ, thảo luận chưa hoàn tất. Vui lòng thử lại."
     },
     "elementReference": {
-      "whiteboardChanged": "Phần tử bảng trắng đã thay đổi hoặc không còn khả dụng. Hãy chọn lại hoặc xóa tham chiếu trước khi gửi.",
-      "button": "Tham chiếu nội dung",
-      "unavailable": "Nội dung hiện tại không hỗ trợ tham chiếu phần tử.",
-      "instruction": "Nhấp vào phần tử · Esc để thoát",
+      "button": "Tham chiếu học liệu",
+      "unavailable": "Chỉ có thể tham chiếu trang PPT hiện tại hoặc một thành phần tương tác được hỗ trợ",
+      "instruction": "Nhấp vào một phần tử trong học liệu · Esc để thoát",
       "fallback": "Các phần tử khác ({{count}})",
-      "clear": "Xóa tham chiếu",
+      "clear": "Xóa tham chiếu học liệu",
       "summary": {
         "noText": "Không có văn bản",
         "emptyContent": "Không có nội dung",
@@ -1242,6 +1244,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade (Cục bộ)",
       "ollama": "Ollama (Cục bộ)",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1255,7 +1258,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Giao thức Claude",
       "google": "Giao thức Gemini",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "model",
     "modelSingular": "mô hình",
@@ -1987,12 +1991,7 @@
     },
     "enableThisProvider": "Bật nhà cung cấp này",
     "enableThisProviderHint": "Khi tắt, nhà cung cấp này sẽ không còn xuất hiện trong Cấu hình mô hình khóa học.",
-    "more": "Thao tác khác",
-    "providerLinks": {
-      "getApiKey": "Lấy khóa API",
-      "domestic": "Trung Quốc",
-      "international": "Quốc tế"
-    }
+    "more": "Thao tác khác"
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

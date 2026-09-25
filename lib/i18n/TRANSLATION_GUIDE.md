@@ -3,7 +3,7 @@
 ## Adding a new language
 
 1. Copy `locales/en-US.json` to `locales/<code>.json` (e.g. `ja-JP.json`)
-2. Append an entry to the end of the `supportedLocales` array in `locales.ts` — do not reorder existing entries, as the first locale for each language prefix (e.g. `zh-CN` for `zh`) is used as the default when the browser sends a bare language code:
+2. Append an entry to the end of the `supportedLocales` array in `locales.ts` — do not reorder existing entries, as the first locale for each language prefix (e.g. `zh-CN` for `zh`) is used as the default when the browser sends a bare language code. The one intentional exception is `id-ID`, which sits at the top of the array because it is the default locale:
    ```ts
    { code: 'ja-JP', label: '日本語', shortLabel: 'JA' },
    ```

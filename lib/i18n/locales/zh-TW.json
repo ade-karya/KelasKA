@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "多智能體互動課室中的生成式學習",
-    "greetingWithName": "嗨，{{name}}"
+    "greetingWithName": "嗨，{{name}}",
+    "vocationalTestBadge": "測試功能",
+    "vocationalTestLabel": "職教任務",
+    "vocationalTestTooltip": "從目前輸入框提交職教實操訓練測試"
   },
   "toolbar": {
     "pdfParser": "解析器",
@@ -142,12 +145,11 @@
       "streamInterrupted": "資料串流意外中斷,討論未能完成。請重新嘗試。"
     },
     "elementReference": {
-      "whiteboardChanged": "引用的白板元素已變更或無法使用，請重新選擇或移除引用後再傳送。",
-      "button": "引用內容",
-      "unavailable": "目前內容暫不支援元素引用",
-      "instruction": "點擊一個元素 · Esc 退出",
-      "fallback": "其他元素（{{count}}）",
-      "clear": "取消引用",
+      "button": "引用課件",
+      "unavailable": "僅可引用目前的 PPT 頁面或支援的互動元件",
+      "instruction": "點選一個課件元素 · Esc 退出",
+      "fallback": "其他課件元素（{{count}}）",
+      "clear": "取消課件引用",
       "summary": {
         "noText": "無文字",
         "emptyContent": "無內容",
@@ -1227,6 +1229,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade（本機）",
       "ollama": "Ollama（本機模型）",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1240,7 +1243,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Claude 協定",
       "google": "Gemini 協定",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "個模型",
     "modelSingular": "個模型",
@@ -1972,12 +1976,7 @@
     },
     "enableThisProvider": "啟用此提供方",
     "enableThisProviderHint": "關閉後，此提供方不再出現在課程模型設定中",
-    "more": "更多操作",
-    "providerLinks": {
-      "getApiKey": "取得 API Key",
-      "domestic": "國內",
-      "international": "海外"
-    }
+    "more": "更多操作"
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

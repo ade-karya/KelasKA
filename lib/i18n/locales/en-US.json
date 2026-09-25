@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
-    "greetingWithName": "Hi, {{name}}"
+    "greetingWithName": "Hi, {{name}}",
+    "vocationalTestBadge": "Beta",
+    "vocationalTestLabel": "Vocational task",
+    "vocationalTestTooltip": "Submit a vocational hands-on training test from the current input box"
   },
   "toolbar": {
     "pdfParser": "Parser",
@@ -142,12 +145,11 @@
       "streamInterrupted": "Stream ended unexpectedly; discussion didn't complete. Please try again."
     },
     "elementReference": {
-      "whiteboardChanged": "The referenced whiteboard element has changed or is no longer available. Select it again or remove the reference before sending.",
-      "button": "Reference content",
-      "unavailable": "The current content does not support element references.",
-      "instruction": "Click an element · Esc to exit",
-      "fallback": "Other elements ({{count}})",
-      "clear": "Remove reference",
+      "button": "Reference courseware",
+      "unavailable": "Only the current PPT slide or a supported interactive component can be referenced",
+      "instruction": "Click a courseware element · Esc to exit",
+      "fallback": "Other slide elements ({{count}})",
+      "clear": "Remove courseware reference",
       "summary": {
         "noText": "No text",
         "emptyContent": "No content",
@@ -1242,6 +1244,7 @@
       "tokendance": "TokenDance",
       "lemonade": "Lemonade (Local)",
       "ollama": "Ollama (Local)",
+      "opencode": "OpenCode CLI",
       "tavily": "Tavily",
       "exa": "Exa",
       "bocha": "Bocha",
@@ -1255,7 +1258,8 @@
       "azure": "Azure OpenAI",
       "anthropic": "Claude Protocol",
       "google": "Gemini Protocol",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "models",
     "modelSingular": "model",
@@ -1987,12 +1991,7 @@
     },
     "enableThisProvider": "Enable this provider",
     "enableThisProviderHint": "When off, this provider no longer appears in Course Model Config.",
-    "more": "More actions",
-    "providerLinks": {
-      "getApiKey": "Get API key",
-      "domestic": "Mainland",
-      "international": "International"
-    }
+    "more": "More actions"
   },
   "workspace": {
     "untitledCourse": "Untitled course",

@@ -3,13 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAgentRuntimeConfigured, isProWorkbenchEnabled } from '@/lib/config/feature-flags';
 import { verifyAccessTokenEdge } from '@/lib/server/access-token-edge';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Return an actual server-side 404 when either half of the workbench is off.
-  // Edge middleware cannot reliably inspect server-only deployment variables,
+  // Edge proxy cannot reliably inspect server-only deployment variables,
   // so it enforces the public gate and leaves the complete runtime/database
-  // check to Node. A Node-hosted middleware uses the same gate as startup.
+  // check to Node. A Node-hosted proxy uses the same gate as startup.
   const canInspectServerRuntime = process.env.NEXT_RUNTIME !== 'edge';
   const workbenchEnabled =
     isProWorkbenchEnabled() && (!canInspectServerRuntime || isAgentRuntimeConfigured());

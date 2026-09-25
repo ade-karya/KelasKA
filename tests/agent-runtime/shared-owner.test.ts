@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-import { middleware } from '@/middleware';
+import { proxy } from '@/proxy';
 import { resolveRequestOwnerId } from '@/lib/server/agent-runtime/owner';
 import { resolveSharedOwnerId } from '@/lib/server/agent-runtime/shared-owner';
 
@@ -101,7 +101,7 @@ describe('resolveSharedOwnerId', () => {
   });
 
   it('treats a blank ACCESS_CODE as absent', () => {
-    // The middleware reads this the same way — an empty value leaves the gate
+    // The proxy reads this the same way — an empty value leaves the gate
     // open, so it cannot satisfy the requirement.
     configure('team-alpha', '');
     expect(() => resolveSharedOwnerId()).toThrow(/ACCESS_CODE/);
@@ -110,14 +110,14 @@ describe('resolveSharedOwnerId', () => {
 
 describe('the access-code gate in front of the shared owner', () => {
   // #1550 constraint 1. The resolver has no idea ACCESS_CODE exists — the
-  // middleware is what keeps an unauthenticated request away from it. These two
+  // proxy is what keeps an unauthenticated request away from it. These two
   // pin that composition, so a change that served the shared owner before the
   // gate would fail here rather than shipping.
 
   it('refuses an unauthenticated request before owner resolution is reached', async () => {
     configure('team-alpha');
 
-    const response = await middleware(stageRequest());
+    const response = await proxy(stageRequest());
 
     expect(response.status).toBe(401);
   });
@@ -126,7 +126,7 @@ describe('the access-code gate in front of the shared owner', () => {
     configure('team-alpha');
     const request = stageRequest(tokenFor(Date.now()));
 
-    expect((await middleware(request)).status).toBe(200);
+    expect((await proxy(request)).status).toBe(200);
 
     const responseHeaders = new Headers();
     const ownerId = resolveRequestOwnerId(request, responseHeaders);
