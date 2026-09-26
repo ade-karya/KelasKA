@@ -51,6 +51,10 @@ export function AccessCodeGuard({ children }: { children: ReactNode }) {
             // provider reads as unconfigured until a manual reload. Re-fetch
             // now that the request will be authorized.
             void useSettingsStore.getState().fetchServerProviders();
+            // The home library mounts behind the modal and skips its initial
+            // fetch while unauthenticated (see HomePage). Notify it so it
+            // loads classrooms + folders now that the cookie exists.
+            window.dispatchEvent(new CustomEvent('openmaic:access-authenticated'));
           }}
         />
       )}

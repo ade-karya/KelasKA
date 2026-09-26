@@ -643,9 +643,9 @@ fi
   && info "Vendor PPTX: OK (public/vendor/maic-importer/index.js)" \
   || warn "Vendor PPTX hilang — jalankan: pnpm --filter @openmaic/importer build && pnpm run sync:maic-importer"
 echo ""
-# Tampilkan ACCESS_CODE agar user bisa login. Tanpa ini user hanya melihat
-# modal + error console "Failed to list ... HTTP 401" dan mengira install rusak,
-# padahal itu perilaku normal proxy.ts sebelum cookie openmaic_access terisi.
+# Tampilkan ACCESS_CODE agar user bisa login. Home menunda fetch library
+# sampai modal selesai (pre-auth 401 ditelan diam-diam), jadi console bersih
+# sejak buka pertama — tidak ada lagi "Failed to list ... HTTP 401".
 if [[ -f .env.local ]]; then
   CURRENT_ACCESS_CODE="$(grep -E '^[[:space:]]*ACCESS_CODE=' .env.local 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '[:space:]')"
   if [[ -n "${CURRENT_ACCESS_CODE:-}" ]]; then
@@ -664,8 +664,7 @@ echo "  npm run start   # jalankan hasil build -> http://localhost:3000"
 echo ""
 echo "Login akses (wajib bila ACCESS_CODE di atas ada):"
 echo "  1. Buka http://localhost:3000, masukkan ACCESS_CODE di atas saat modal muncul."
-echo "  2. Error console 'Failed to list owner stages/folders: HTTP 401' SEBELUM login itu normal"
-echo "     (proxy.ts menolak /api/* tanpa cookie openmaic_access) — hilang sendiri setelah login + reload."
+echo "  2. Library dimuat otomatis setelah login (tanpa reload manual, tanpa error 401 di console)."
 echo "  3. Restart dev server tiap ubah .env.local agar env terbaca ulang."
 echo ""
 echo "Catatan:"
