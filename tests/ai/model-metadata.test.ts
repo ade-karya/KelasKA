@@ -36,6 +36,18 @@ const MODELS_WITHOUT_CONFIGURABLE_THINKING = new Set<string>([
   'ollama:llama3.3',
   'ollama:gemma3',
   'ollama:deepseek-r1',
+  // OpenCode Zen serves many vendors' models behind one OpenAI-compatible
+  // gateway; per-model thinking parameters are left at the model default until
+  // their pass-through on the gateway is verified (same posture as tokendance).
+  'opencode:big-pickle',
+  'opencode:muse-spark-1.3-contributor-free',
+  'opencode:deepseek-v4-flash-free',
+  'opencode:mimo-v2.6-flash-free',
+  'opencode:mimo-v2.5-free',
+  'opencode:space-bunny-free',
+  'opencode:ling-3.0-flash-fin-free',
+  'opencode:nemotron-3-ultra-free',
+  'opencode:nemotron-3.5-lightning-free',
 ]);
 
 function findDriftedModels(providers: Record<ProviderId, ProviderConfig>): string[] {
