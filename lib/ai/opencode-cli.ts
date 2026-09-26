@@ -702,7 +702,7 @@ export function buildToolCallingInstructions(
 }
 
 function coerceArgs(value: unknown): Record<string, unknown> | null {
-  let args = value ?? {};
+  let args: unknown = value ?? {};
   if (typeof args === 'string') {
     try {
       args = JSON.parse(args) as unknown;
