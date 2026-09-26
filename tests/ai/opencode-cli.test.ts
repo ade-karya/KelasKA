@@ -163,6 +163,25 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
     );
   }, 30_000);
 
+  it('runOpencodeCli menandai kegagalan auth dengan statusCode 401 (fail-fast)', async () => {
+    const stub = writeStub('opencode-fail', ERROR_STUB);
+    vi.stubEnv('OPENCODE_BIN', stub);
+    const err = await runOpencodeCli({ modelId: 'big-pickle', promptText: 'hi' }).catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error & { statusCode?: number }).statusCode).toBe(401);
+  }, 30_000);
+
+  it('runOpencodeCli TIDAK menandai kegagalan non-auth dengan 401 (tetap bisa retry)', async () => {
+    const stub = writeStub(
+      'opencode-fail-generic',
+      '#!/usr/bin/env bash\nif [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\ncat > /dev/null\necho "boom: model overloaded, try again" >&2\nexit 2\n',
+    );
+    vi.stubEnv('OPENCODE_BIN', stub);
+    const err = await runOpencodeCli({ modelId: 'big-pickle', promptText: 'hi' }).catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error & { statusCode?: number }).statusCode).toBeUndefined();
+  }, 30_000);
+
   it('runOpencodeCli melempar petunjuk instal saat binary tidak ada', async () => {
     const emptyPath = fs.mkdtempSync(path.join(os.tmpdir(), 'openmaic-empty-path-'));
     vi.stubEnv('OPENCODE_BIN', '/tidak/ada/opencode-xyz');

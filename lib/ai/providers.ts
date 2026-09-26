@@ -1714,11 +1714,21 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     // (big-pickle, *-free) jalan server-side karena eksekusi terjadi di dalam
     // klien opencode. defaultBaseUrl hanya dokumentasi gateway + dipakai
     // konstruksi pi Model untuk agent-driver (yang tetap butuh HTTP/key).
+    // Model default (gpt-6-luna) adalah model BERBAYAR Zen: butuh
+    // `opencode auth login` untuk jalur CLI, atau OPENCODE_API_KEY untuk
+    // jalur HTTP langsung.
     type: 'opencode',
     defaultBaseUrl: 'https://opencode.ai/zen/v1',
     requiresApiKey: false,
     icon: '/logos/opencode.svg',
     models: [
+      {
+        id: 'gpt-6-luna',
+        name: 'GPT 6 Luna (Zen)',
+        contextWindow: 1100000,
+        outputWindow: 128000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
       {
         id: 'muse-spark-1.3-contributor-free',
         name: 'Muse Spark 1.3 Free (Zen)',

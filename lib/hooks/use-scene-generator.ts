@@ -49,6 +49,36 @@ import {
 
 const log = createLogger('SceneGenerator');
 
+/**
+ * Batas TUNGGU per percobaan fetch scene (bukan total): tanpa ini, satu
+ * panggilan LLM yang menggantung (mis. CLI `opencode run` antre di Zen tanpa
+ * `auth login`) membuat UI loading selamanya karena `fetch()` tidak punya
+ * timeout bawaan. Batas ini mengubah hang tak berujung menjadi kegagalan
+ * yang masuk jalur retry + UI retry yang sudah ada.
+ *
+ * Nilai diselaraskan dengan `maxDuration` route server:
+ * scene-content 300 dtk, scene-actions 60 dtk (diberi headroom 2x).
+ * Setiap percobaan retry mendapat sinyal timeout BARU, jadi total batas
+ * = timeout x (maxRetries + 1).
+ */
+const SCENE_CONTENT_FETCH_TIMEOUT_MS = 300_000;
+const SCENE_ACTIONS_FETCH_TIMEOUT_MS = 120_000;
+
+/** Gabungkan sinyal abort luar dengan timeout per percobaan (sinyal baru tiap panggilan). */
+function attemptSignal(outer: AbortSignal | undefined, timeoutMs: number): AbortSignal {
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  return outer ? AbortSignal.any([outer, timeoutSignal]) : timeoutSignal;
+}
+
+/** Log retry agar "loading lama" terlihat sebagai percobaan berulang di console. */
+function logFetchRetry(outlineTitle: string) {
+  return (event: { label: string; attempt: number; maxAttempts: number; reason: string }): void => {
+    log.warn(
+      `[${event.label}] percobaan ${event.attempt}/${event.maxAttempts} (${event.reason}) — mengulang... [outline: ${outlineTitle}]`,
+    );
+  };
+}
+
 interface SceneContentResult {
   success: boolean;
   content?: unknown;
@@ -172,7 +202,7 @@ export async function fetchSceneContent(
           method: 'POST',
           headers: getApiHeaders(),
           body: JSON.stringify(withThinkingConfig(params)),
-          signal,
+          signal: attemptSignal(signal, SCENE_CONTENT_FETCH_TIMEOUT_MS),
         });
 
         const data = await readJsonResponse(response);
@@ -221,7 +251,7 @@ export async function fetchSceneActions(
           method: 'POST',
           headers: getApiHeaders(),
           body: JSON.stringify(withThinkingConfig(params)),
-          signal,
+          signal: attemptSignal(signal, SCENE_ACTIONS_FETCH_TIMEOUT_MS),
         });
 
         const data = await readJsonResponse(response);
@@ -869,6 +899,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
               ...(params.taskEngineMode ? { requirements: { taskEngineMode: true } } : {}),
             },
             signal,
+            { onRetry: logFetchRetry(outline.title) },
           );
 
         // Pre-warm content fetches (<= parallelConcurrency in flight), keyed by
@@ -964,6 +995,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
               languageDirective: params.languageDirective,
             },
             signal,
+            { onRetry: logFetchRetry(outline.title) },
           );
 
           if (actionsResult.success && actionsResult.scene) {
@@ -1123,6 +1155,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             ...(params.taskEngineMode ? { requirements: { taskEngineMode: true } } : {}),
           },
           signal,
+          { onRetry: logFetchRetry(outline.title) },
         );
 
         if (!contentResult.success || !contentResult.content) {
@@ -1151,6 +1184,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             languageDirective: params.languageDirective,
           },
           signal,
+          { onRetry: logFetchRetry(outline.title) },
         );
 
         if (!actionsResult.success || !actionsResult.scene) {

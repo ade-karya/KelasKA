@@ -22,7 +22,7 @@
 #      --no-opencode). Ollama TIDAK diinstal lagi.
 #   6. File `.env.local` (dibuat dari template bila belum ada; bila sudah ada
 #      hanya dilengkapi variabel yang hilang — tidak menimpa isi user).
-#      LLM default: opencode:muse-spark-1.3-contributor-free (provider `opencode` terdaftar di
+#      LLM default: opencode:gpt-6-luna (provider `opencode` terdaftar di
 #      lib/ai/providers.ts; gateway Zen https://opencode.ai/zen/v1).
 #   7. Direktori `data/` untuk classroom store berbasis file.
 #   8. Dependensi JS via `pnpm install --frozen-lockfile`
@@ -86,7 +86,7 @@ for arg in "$@"; do
     --with-playwright) WITH_PLAYWRIGHT=1 ;;
     --with-opencode)   WITH_OPENCODE=1 ;;
     --no-opencode)     WITH_OPENCODE=0 ;;
-    --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (opencode:muse-spark-1.3-contributor-free). Hapus flag tersebut dan ulangi." ;;
+    --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (opencode:gpt-6-luna). Hapus flag tersebut dan ulangi." ;;
     --pg-password=*)   PG_PASSWORD="${arg#*=}" ;;
     -h|--help)
       sed -n '2,/^$/p' "$0" | sed 's/^# \?//'
@@ -148,7 +148,7 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   echo "  - instal Node.js 24 (bila belum memenuhi syarat) + pnpm 12.6.0"
   echo "  - instal OpenCode CLI v2 (bila --no-opencode tidak dipakai)"
   echo "  - setup database Postgres 'openmaic' di PG ${PG_MAJOR} (bila --no-postgres tidak dipakai)"
-  echo "  - buat/lengkapi .env.local (DEFAULT_MODEL=opencode:muse-spark-1.3-contributor-free), direktori data/, pnpm install$( [[ "$WITH_BUILD" -eq 1 ]] && echo ", npm run build" )"
+  echo "  - buat/lengkapi .env.local (DEFAULT_MODEL=opencode:gpt-6-luna), direktori data/, pnpm install$( [[ "$WITH_BUILD" -eq 1 ]] && echo ", npm run build" )"
   read -rp "Lanjut? [y/N] " jawab
   [[ "$jawab" =~ ^[yY]$ ]] || { info "Dibatalkan."; exit 0; }
 fi
@@ -349,21 +349,24 @@ tulis_template_env() {
 # LLM default: OpenCode CLI v2 (provider 'opencode' terdaftar di
 # lib/ai/providers.ts, dieksekusi lokal pola nexu-io/open-design).
 # CLI diinstal via: curl -fsSL https://opencode.ai/v2/install | bash
-# Model FREE (big-pickle, *-free) jalan server-side TANPA API key karena
-# eksekusi terjadi di dalam klien opencode. Bila CLI menuntut login:
+# Default (opencode:gpt-6-luna) adalah model BERBAYAR Zen: butuh
 #   opencode auth login
+# agar eksekusi CLI bisa memakai akun Anda. Model FREE (big-pickle, *-free)
+# tetap bisa dipakai server-side TANPA API key karena eksekusi terjadi
+# di dalam klien opencode.
 # Dokumentasi semua variabel: lihat .env.example
 # =============================================================================
 
 # --- LLM default (OpenCode CLI v2) ---------------------------------------------
 # Harus \`provider:model\` dengan provider terdaftar; tanpa ini resolveModel throw.
-DEFAULT_MODEL=opencode:muse-spark-1.3-contributor-free
+DEFAULT_MODEL=opencode:gpt-6-luna
 # Route eksplisit maic-agent-driver (wajib + \`api\` saat agent runtime aktif).
 # CATATAN: driver (pi runner) memanggil HTTP OpenAI-compatible + function tools,
-# yang tidak bisa dipenuhi eksekusi CLI. Untuk agent runtime pakai model
-# berbayar via OPENCODE_API_KEY (mis. opencode:deepseek-v4-flash), atau
-# matikan OPENMAIC_AGENT_RUNTIME_ENABLED bila hanya perlu generasi teks.
-MODEL_ROUTES='{"maic-agent-driver":{"model":"opencode:muse-spark-1.3-contributor-free","api":"openai-completions"}}'
+# yang tidak bisa dipenuhi eksekusi CLI. Driver memakai model berbayar
+# (default opencode:gpt-6-luna) via OPENCODE_API_KEY; tanpa key, runtime agen
+# gagal auth. Bila hanya perlu generasi teks, matikan
+# OPENMAIC_AGENT_RUNTIME_ENABLED.
+MODEL_ROUTES='{"maic-agent-driver":{"model":"opencode:gpt-6-luna","api":"openai-completions"}}'
 
 # --- OpenCode CLI (eksekusi lokal, tanpa API key untuk model FREE) -------------
 # Server memanggil binary ini per request (prompt via stdin, JSON via stdout).
@@ -374,7 +377,7 @@ OPENCODE_BIN=${opencode_bin}
 # Opsional (hanya untuk pemakaian HTTP/gateway langsung, bukan CLI):
 # OPENCODE_API_KEY=
 # OPENCODE_BASE_URL=https://opencode.ai/zen/v1
-# OPENCODE_MODELS=muse-spark-1.3-contributor-free
+# OPENCODE_MODELS=gpt-6-luna
 
 # --- Feature Flags: client (NEXT_PUBLIC_*) ------------------------------------
 # Nilai NEXT_PUBLIC_* dibaca saat start (dev) / saat build (produksi).
@@ -445,37 +448,47 @@ if [[ ! -f .env.local ]]; then
 else
   info ".env.local sudah ada — dilengkapi tanpa menimpa nilai Anda..."
   cp .env.local ".env.local.bak.$(date +%Y%m%d-%H%M%S)"
-  # Migrasi ke default OpenCode CLI v2 (muse-spark-1.3-contributor-free):
+  # Migrasi ke default OpenCode CLI v2 (gpt-6-luna):
   # - ollama:* (Ollama tidak lagi diinstal) -> default baru.
-  # - opencode:big-pickle (default lama) -> default baru.
+  # - opencode:big-pickle / opencode:muse-spark-1.3-contributor-free
+  #   (default lama) -> default baru.
   # Nilai kustom milik user (provider/model lain) tidak disentuh.
   if grep -qE '^[[:space:]]*DEFAULT_MODEL=ollama:' .env.local; then
-    sed -i -E 's|^[[:space:]]*DEFAULT_MODEL=ollama:.*|DEFAULT_MODEL=opencode:muse-spark-1.3-contributor-free|' .env.local
-    info "DEFAULT_MODEL dimigrasi ollama -> opencode:muse-spark-1.3-contributor-free."
+    sed -i -E 's|^[[:space:]]*DEFAULT_MODEL=ollama:.*|DEFAULT_MODEL=opencode:gpt-6-luna|' .env.local
+    info "DEFAULT_MODEL dimigrasi ollama -> opencode:gpt-6-luna."
   elif grep -qE '^[[:space:]]*DEFAULT_MODEL=opencode:big-pickle[[:space:]]*$' .env.local; then
-    sed -i -E 's|^[[:space:]]*DEFAULT_MODEL=opencode:big-pickle[[:space:]]*$|DEFAULT_MODEL=opencode:muse-spark-1.3-contributor-free|' .env.local
-    info "DEFAULT_MODEL dimigrasi opencode:big-pickle -> opencode:muse-spark-1.3-contributor-free."
+    sed -i -E 's|^[[:space:]]*DEFAULT_MODEL=opencode:big-pickle[[:space:]]*$|DEFAULT_MODEL=opencode:gpt-6-luna|' .env.local
+    info "DEFAULT_MODEL dimigrasi opencode:big-pickle -> opencode:gpt-6-luna."
+  elif grep -qE '^[[:space:]]*DEFAULT_MODEL=opencode:muse-spark-1\.3-contributor-free[[:space:]]*$' .env.local; then
+    sed -i -E 's|^[[:space:]]*DEFAULT_MODEL=opencode:muse-spark-1\.3-contributor-free[[:space:]]*$|DEFAULT_MODEL=opencode:gpt-6-luna|' .env.local
+    info "DEFAULT_MODEL dimigrasi opencode:muse-spark-1.3-contributor-free -> opencode:gpt-6-luna."
   fi
   if grep -qE '^[[:space:]]*MODEL_ROUTES=.*ollama:' .env.local; then
-    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s|ollama:[^"\\} ]*|opencode:muse-spark-1.3-contributor-free|g' .env.local
-    info "MODEL_ROUTES dimigrasi ollama -> opencode:muse-spark-1.3-contributor-free."
+    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s|ollama:[^"\\} ]*|opencode:gpt-6-luna|g' .env.local
+    info "MODEL_ROUTES dimigrasi ollama -> opencode:gpt-6-luna."
   elif grep -qE '^[[:space:]]*MODEL_ROUTES=.*opencode:big-pickle' .env.local; then
-    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s|opencode:big-pickle|opencode:muse-spark-1.3-contributor-free|g' .env.local
-    info "MODEL_ROUTES dimigrasi opencode:big-pickle -> opencode:muse-spark-1.3-contributor-free."
+    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s|opencode:big-pickle|opencode:gpt-6-luna|g' .env.local
+    info "MODEL_ROUTES dimigrasi opencode:big-pickle -> opencode:gpt-6-luna."
+  elif grep -qE '^[[:space:]]*MODEL_ROUTES=.*opencode:muse-spark-1\.3-contributor-free' .env.local; then
+    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s|opencode:muse-spark-1\.3-contributor-free|opencode:gpt-6-luna|g' .env.local
+    info "MODEL_ROUTES dimigrasi opencode:muse-spark-1.3-contributor-free -> opencode:gpt-6-luna."
   fi
   # OPENCODE_MODELS: pastikan_var_env di bawah tidak menimpa nilai yang sudah
-  # ada, jadi pin default lama (big-pickle) harus dimigrasi eksplisit di sini.
-  # Nilai kustom lain tidak disentuh.
+  # ada, jadi pin default lama (big-pickle / muse-spark-1.3-contributor-free)
+  # harus dimigrasi eksplisit di sini. Nilai kustom lain tidak disentuh.
   if grep -qE '^[[:space:]]*OPENCODE_MODELS=big-pickle[[:space:]]*$' .env.local; then
-    sed -i -E 's|^[[:space:]]*OPENCODE_MODELS=big-pickle[[:space:]]*$|OPENCODE_MODELS=muse-spark-1.3-contributor-free|' .env.local
-    info "OPENCODE_MODELS dimigrasi big-pickle -> muse-spark-1.3-contributor-free."
+    sed -i -E 's|^[[:space:]]*OPENCODE_MODELS=big-pickle[[:space:]]*$|OPENCODE_MODELS=gpt-6-luna|' .env.local
+    info "OPENCODE_MODELS dimigrasi big-pickle -> gpt-6-luna."
+  elif grep -qE '^[[:space:]]*OPENCODE_MODELS=muse-spark-1\.3-contributor-free[[:space:]]*$' .env.local; then
+    sed -i -E 's|^[[:space:]]*OPENCODE_MODELS=muse-spark-1\.3-contributor-free[[:space:]]*$|OPENCODE_MODELS=gpt-6-luna|' .env.local
+    info "OPENCODE_MODELS dimigrasi muse-spark-1.3-contributor-free -> gpt-6-luna."
   fi
-  pastikan_var_env .env.local DEFAULT_MODEL "opencode:muse-spark-1.3-contributor-free"
-  pastikan_var_env .env.local MODEL_ROUTES '{"maic-agent-driver":{"model":"opencode:muse-spark-1.3-contributor-free","api":"openai-completions"}}'
+  pastikan_var_env .env.local DEFAULT_MODEL "opencode:gpt-6-luna"
+  pastikan_var_env .env.local MODEL_ROUTES '{"maic-agent-driver":{"model":"opencode:gpt-6-luna","api":"openai-completions"}}'
   pastikan_var_env .env.local OPENCODE_BIN ""
   # OPENCODE_API_KEY/BASE_URL opsional (hanya HTTP langsung); jangan buat key
   # kosong yang mengesankan wajib — cukup pastikan pin model tersedia.
-  pastikan_var_env .env.local OPENCODE_MODELS "muse-spark-1.3-contributor-free"
+  pastikan_var_env .env.local OPENCODE_MODELS "gpt-6-luna"
   pastikan_var_env .env.local ACCESS_CODE "$ACCESS_CODE_NEW"
   if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     if [[ "${PG_PASSWORD_FORCED:-0}" -eq 1 ]]; then
@@ -589,7 +602,7 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
   fi
   if [[ -n "$OPENCODE_BIN_DETECTED" ]]; then
     info "OpenCode CLI: ${OPENCODE_BIN_DETECTED}"
-    echo "  Model gratis: opencode auth login && opencode run -m opencode/muse-spark-1.3-contributor-free \"hi\""
+    echo "  Uji cepat (butuh login dulu): opencode auth login && opencode run -m opencode/gpt-6-luna \"hi\""
   else
     warn "Binary opencode tidak ditemukan setelah instal; cek manual lalu set OPENCODE_BIN di .env.local."
   fi
@@ -671,13 +684,16 @@ echo "Catatan:"
 echo "  - .env.local berisi secret (600). Jangan commit (sudah di .gitignore)."
 echo "  - Ambil ACCESS_CODE kapan saja: grep '^ACCESS_CODE=' .env.local"
 echo "  - Nilai NEXT_PUBLIC_* dibaca saat build: ubah nilainya lalu build ulang."
-echo "  - LLM default: opencode:muse-spark-1.3-contributor-free (OpenCode CLI v2, eksekusi lokal)."
-echo "    Tanpa API key untuk model FREE; OPENCODE_BIN menunjuk binary absolut."
-echo "    Coba manual: opencode run -m opencode/muse-spark-1.3-contributor-free \"hi\""
-echo "    (bila menuntut login: opencode auth login)."
+echo "  - LLM default: opencode:gpt-6-luna (OpenCode CLI v2, eksekusi lokal)."
+echo "    Model BERBAYAR Zen: wajib login dulu via 'opencode auth login' agar"
+echo "    eksekusi CLI bisa memakai akun Anda (tanpa API key di env)."
+echo "    OPENCODE_BIN menunjuk binary absolut."
+echo "    Coba manual: opencode run -m opencode/gpt-6-luna \"hi\""
+echo "    Model FREE (mis. opencode:muse-spark-1.3-contributor-free) tetap bisa"
+echo "    dipakai server-side tanpa API key via CLI yang sama."
 echo "    Pengecualian: pi agent-driver (MODEL_ROUTES maic-agent-driver) memanggil"
-echo "    HTTP + function tools — untuk runtime agen isi OPENCODE_API_KEY dan"
-echo "    pakai model berbayar (mis. opencode:deepseek-v4-flash)."
+echo "    HTTP + function tools — untuk runtime agen isi OPENCODE_API_KEY"
+echo "    (default route sudah memakai gpt-6-luna)."
 echo "  - Agent runtime + workbench butuh Postgres ${PG_MAJOR} + MODEL_ROUTES maic-agent-driver."
 echo "  - Video MP4 butuh: docker compose --profile video-export up (berat: Chromium+FFmpeg)."
 echo "  - e2e: pnpm exec playwright install --with-deps chromium && pnpm test:e2e"
