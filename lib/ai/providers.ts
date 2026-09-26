@@ -59,6 +59,7 @@ import {
 import { createLogger } from '@/lib/logger';
 import { withAppAttributionInit } from '@/lib/config/app-attribution';
 import { normalizeAzureBaseUrl } from './azure';
+import { createOpencodeCliModel } from './opencode-cli';
 // NOTE: Do NOT import thinking-context.ts here — it uses node:async_hooks
 // which is server-only, and this file is also used on the client via
 // settings.ts. The thinking context is read from globalThis instead
@@ -1705,6 +1706,85 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     ],
   },
 
+  opencode: {
+    id: 'opencode',
+    name: 'OpenCode CLI',
+    // Dieksekusi sebagai child process `opencode run` (lib/ai/opencode-cli.ts,
+    // pola nexu-io/open-design) — BUKAN HTTP. Tanpa API key: model FREE Zen
+    // (big-pickle, *-free) jalan server-side karena eksekusi terjadi di dalam
+    // klien opencode. defaultBaseUrl hanya dokumentasi gateway + dipakai
+    // konstruksi pi Model untuk agent-driver (yang tetap butuh HTTP/key).
+    type: 'opencode',
+    defaultBaseUrl: 'https://opencode.ai/zen/v1',
+    requiresApiKey: false,
+    icon: '/logos/opencode.svg',
+    models: [
+      {
+        id: 'muse-spark-1.3-contributor-free',
+        name: 'Muse Spark 1.3 Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'big-pickle',
+        name: 'Big Pickle (Zen, free via CLI)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek-v4-flash-free',
+        name: 'DeepSeek V4 Flash Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.6-flash-free',
+        name: 'MiMo V2.6 Flash Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.5-free',
+        name: 'MiMo V2.5 Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'space-bunny-free',
+        name: 'Space Bunny Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'ling-3.0-flash-fin-free',
+        name: 'Ling 3.0 Flash Fin Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'nemotron-3-ultra-free',
+        name: 'Nemotron 3 Ultra Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'nemotron-3.5-lightning-free',
+        name: 'Nemotron 3.5 Lightning Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+    ],
+  },
+
   lemonade: {
     id: 'lemonade',
     name: 'Lemonade',
@@ -2617,6 +2697,13 @@ export function getModel(config: ModelConfig): ModelWithInfo {
       }
       const google = createGoogleGenerativeAI(googleOptions);
       model = google.chat(config.modelId);
+      break;
+    }
+
+    case 'opencode': {
+      // Eksekusi CLI lokal (tanpa HTTP/API key): model = child process
+      // `opencode run --format json`. baseUrl/key diabaikan di jalur ini.
+      model = createOpencodeCliModel(config.modelId);
       break;
     }
 
