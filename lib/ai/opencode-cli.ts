@@ -393,6 +393,34 @@ function authHint(): string {
 }
 
 /**
+ * Totokan kegagalan auth pada teks MENTAH CLI (stderr / event error) — dicek
+ * SEBELUM authHint ditempel, karena hint itu sendiri mengandung frasa
+ * "opencode auth login" dan akan membuat semua error lolos deteksi.
+ * Tanpa ini, kegagalan auth (mis. belum `opencode auth login`) keluar
+ * sebagai error generik 500 dan di-retry 5x oleh client — setiap percobaan
+ * men-spawn proses CLI baru yang gagal dengan cara yang sama.
+ */
+const AUTH_FAILURE_PATTERN =
+  /auth login|not logged in|logged in|unauthorized|unauthenticated|\b401\b|forbidden|\b403\b|api key|invalid key|login required|permission denied|access denied|authentication/i;
+
+function isAuthFailureMessage(message: string): boolean {
+  return AUTH_FAILURE_PATTERN.test(message);
+}
+
+/**
+ * Error CLI yang otomatis membawa statusCode 401 bila TEKS MENTAH CLI-nya
+ * menandakan kegagalan auth — agar `llmApiError` memetakannya ke HTTP 401
+ * (fail-fast, non-retryable di client) bukan 500 generik yang memicu retry
+ * membabi-buta. `rawText` WAJIB teks mentah CLI (stderr/event), bukan pesan
+ * jadi: pesan jadi selalu ditempeli authHint yang mengandung frasa "API key".
+ */
+function cliError(rawText: string, fullMessage: string): Error & { statusCode?: number } {
+  const err = new Error(fullMessage) as Error & { statusCode?: number };
+  if (rawText && isAuthFailureMessage(rawText)) err.statusCode = 401;
+  return err;
+}
+
+/**
  * Eksekusi satu prompt one-shot via `opencode run`. Melempar Error yang
  * deskriptif bila binary tidak ada, timeout, dibatalkan, atau CLI gagal.
  */
@@ -500,7 +528,13 @@ export async function runOpencodeCli(
         if (code === 0) {
           const parsed = parser.finish();
           if (parsed.error) {
-            fail(new Error(`opencode run melaporkan error: ${parsed.error} ${authHint()}`));
+            // Deteksi auth dari teks mentah CLI (sebelum hint ditempel).
+            fail(
+              cliError(
+                parsed.error,
+                `opencode run melaporkan error: ${parsed.error} ${authHint()}`,
+              ),
+            );
             return;
           }
           done();
@@ -508,7 +542,8 @@ export async function runOpencodeCli(
         }
         const errTail = tailText(stderr.trim(), STDERR_TAIL_CHARS);
         fail(
-          new Error(
+          cliError(
+            errTail,
             `opencode run gagal (exit ${code ?? 'unknown'}, model ${toCliModelId(modelId)})` +
               (errTail ? `: ${errTail}` : '') +
               ` ${authHint()}`,
