@@ -740,6 +740,24 @@ async function performStageDeletion(stageId: string): Promise<void> {
 }
 
 /**
+ * Thrown when an owner-scoped listing hits HTTP 401 — i.e. the deployment is
+ * gated by ACCESS_CODE and the browser has no `openmaic_access` cookie yet
+ * (first open, before the access-code modal is completed). This is an
+ * expected pre-auth state, not a persistence failure: callers must swallow it
+ * silently (empty library) instead of logging an error or toasting.
+ */
+export class AccessCodeRequiredError extends Error {
+  constructor(message = 'Access code required') {
+    super(message);
+    this.name = 'AccessCodeRequiredError';
+  }
+}
+
+export function isAccessCodeRequiredError(error: unknown): boolean {
+  return error instanceof AccessCodeRequiredError;
+}
+
+/**
  * PG mode: the owner-scoped course listing.
  *
  * The generic `GET /api/persistence/documents` listing is deliberately refused
@@ -754,6 +772,9 @@ async function performStageDeletion(stageId: string): Promise<void> {
  */
 async function listOwnerStagesFromServer(): Promise<StageListItem[]> {
   const res = await fetch('/api/stages', { credentials: 'include' });
+  if (res.status === 401) {
+    throw new AccessCodeRequiredError('Access code required: HTTP 401');
+  }
   if (!res.ok) {
     throw new Error(`Failed to list owner stages: HTTP ${res.status}`);
   }
@@ -827,6 +848,13 @@ export async function listStages(): Promise<StageListItem[]> {
       )
       .sort((a, b) => b.updatedAt - a.updatedAt);
   } catch (error) {
+    if (error instanceof AccessCodeRequiredError) {
+      // Pre-auth (no cookie yet): expected, not a failure. Debug-level only so
+      // the first-open console stays clean; the caller renders an empty library
+      // until the access-code modal completes.
+      log.debug('Skipping stage list: access code required (pre-auth).');
+      throw error;
+    }
     log.error('Failed to list stages:', error);
     throw error;
   }
@@ -1178,6 +1206,9 @@ function toFolderRecord(folder: FolderRecord): FolderRecord {
  */
 async function listOwnerFoldersFromServer(): Promise<FolderRecord[]> {
   const res = await fetch('/api/folders', { credentials: 'include' });
+  if (res.status === 401) {
+    throw new AccessCodeRequiredError('Access code required: HTTP 401');
+  }
   if (!res.ok) {
     throw new Error(`Failed to list owner folders: HTTP ${res.status}`);
   }

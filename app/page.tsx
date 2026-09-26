@@ -67,6 +67,7 @@ import {
   deleteFolder,
   setStageFolder,
   FolderNameError,
+  isAccessCodeRequiredError,
   type DeleteFolderMode,
 } from '@/lib/utils/stage-storage';
 import type { FolderRecord } from '@/lib/utils/database';
@@ -281,6 +282,15 @@ function HomePage() {
         replaceThumbnails({});
       }
     } catch (err) {
+      // Pre-auth (ACCESS_CODE gate, no cookie yet): expected on first open.
+      // Stay silent with an empty library; the access-authenticated event
+      // below reloads once the user completes the modal.
+      if (isAccessCodeRequiredError(err)) {
+        log.debug('Skipping classroom load: access code required (pre-auth).');
+        setClassrooms([]);
+        replaceThumbnails({});
+        return;
+      }
       log.error('Failed to load classrooms:', err);
       toast.error('Persistence is unavailable. Saved classrooms could not be loaded.');
     }
@@ -290,6 +300,12 @@ function HomePage() {
     try {
       setFolders(await listFolders());
     } catch (err) {
+      // Same pre-auth case as loadClassrooms: silent empty list, no error log.
+      if (isAccessCodeRequiredError(err)) {
+        log.debug('Skipping folder load: access code required (pre-auth).');
+        setFolders([]);
+        return;
+      }
       log.error('Failed to load folders:', err);
     }
   };
@@ -334,12 +350,42 @@ function HomePage() {
     useMediaGenerationStore.getState().revokeObjectUrls();
     useMediaGenerationStore.setState({ tasks: {} });
 
-    // Read sessionStorage on the client only (avoids SSR hydration mismatch).
+    let cancelled = false;
+    const reloadLibrary = () => {
+      if (cancelled) return;
+      void Promise.all([loadClassrooms(), loadFolders()]);
+    };
+    // On ACCESS_CODE-gated deployments the home mounts behind the modal with
+    // no cookie yet: /api/stages and /api/folders would answer 401. Check the
+    // gate first and skip the initial fetch while unauthenticated — the modal
+    // success path dispatches `openmaic:access-authenticated`, which reloads.
     // Both reads resolve before flipping `hydrated`, so the hero layout does
     // not thrash as each lands independently.
-    void Promise.all([loadClassrooms(), loadFolders()]).finally(() => setHydrated(true));
+    const initLibrary = async () => {
+      try {
+        const res = await fetch('/api/access-code/status', { credentials: 'include' });
+        const data = (await res.json().catch(() => null)) as {
+          enabled?: unknown;
+          authenticated?: unknown;
+        } | null;
+        if (!cancelled && data?.enabled === true && data?.authenticated !== true) {
+          setHydrated(true);
+          return;
+        }
+      } catch {
+        // Status check failed: fall through to the normal fetch path, whose
+        // own pre-auth handling keeps the console clean.
+      }
+      if (cancelled) return;
+      await Promise.all([loadClassrooms(), loadFolders()]);
+      if (!cancelled) setHydrated(true);
+    };
+    void initLibrary();
+    window.addEventListener('openmaic:access-authenticated', reloadLibrary);
 
     return () => {
+      cancelled = true;
+      window.removeEventListener('openmaic:access-authenticated', reloadLibrary);
       revokeThumbnailSlideMediaUrls(thumbnailsRef.current);
       thumbnailsRef.current = {};
     };
