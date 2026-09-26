@@ -139,19 +139,39 @@ function HomePage() {
     workbenchRuntimeCache === true,
   );
   useEffect(() => {
-    if (!workbenchBuildEnabled || workbenchRuntimeCache !== null) return;
+    if (!workbenchBuildEnabled) return;
     let cancelled = false;
-    fetch('/api/agent/runtime')
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body) => {
-        workbenchRuntimeCache = body?.enabled === true;
-        if (!cancelled) setWorkbenchRuntimeEnabled(workbenchRuntimeCache);
-      })
-      .catch(() => {
-        // A failed probe keeps the entry hidden and allows a later visit to retry.
-      });
+    const probeRuntime = () => {
+      fetch('/api/agent/runtime', { credentials: 'include' })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((body) => {
+          // A pre-auth 401 answers !ok → null → false, which would hide the
+          // Pro entry until a hard reload. The access-authenticated listener
+          // below re-probes once the cookie exists, so a false cached here is
+          // always corrected right after login.
+          workbenchRuntimeCache = body?.enabled === true;
+          if (!cancelled) setWorkbenchRuntimeEnabled(workbenchRuntimeCache);
+        })
+        .catch(() => {
+          // A failed probe keeps the entry hidden and allows a later visit to retry.
+        });
+    };
+    // Pre-auth the probe runs without a cookie and caches false; re-probe as
+    // soon as the access-code modal completes so the Pro badge appears without
+    // a manual reload.
+    const onAuthenticated = () => {
+      workbenchRuntimeCache = null;
+      probeRuntime();
+    };
+    if (workbenchRuntimeCache === null) {
+      probeRuntime();
+    } else {
+      setWorkbenchRuntimeEnabled(workbenchRuntimeCache);
+    }
+    window.addEventListener('openmaic:access-authenticated', onAuthenticated);
     return () => {
       cancelled = true;
+      window.removeEventListener('openmaic:access-authenticated', onAuthenticated);
     };
   }, [workbenchBuildEnabled]);
   const workbenchEntryEnabled = workbenchBuildEnabled && workbenchRuntimeEnabled;
