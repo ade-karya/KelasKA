@@ -90,15 +90,12 @@ describe('thinking config metadata', () => {
     );
     expect(googleModels).toContain('gemini-3.1-pro-preview');
     expect(googleModels).not.toContain('gemini-3-pro-preview');
-    expect(deepseekModels).toEqual([
-      'deepseek-v4-pro',
-      'deepseek-v4-flash',
-      'deepseek-v4-flash-vision-exp',
-    ]);
-    // Pin the vision model's capabilities so a regression to vision: false
-    // (silently dropping document images during generation) fails this test.
+    expect(deepseekModels).toEqual(['deepseek-v4-pro', 'deepseek-flash']);
+    // Pin the flash model's capabilities (live /v1/models: input text+image)
+    // so a regression to vision: false (silently dropping document images
+    // during generation) fails this test.
     const visionModel = getProvider('deepseek')?.models.find(
-      (m) => m.id === 'deepseek-v4-flash-vision-exp',
+      (m) => m.id === 'deepseek-flash',
     );
     expect(visionModel?.capabilities).toMatchObject({
       streaming: true,

@@ -392,8 +392,7 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
   [getModelMetadataKey('qwen', 'qwen3-vl-plus')]: qwenBudgetDisabled,
 
   [getModelMetadataKey('deepseek', 'deepseek-v4-pro')]: deepseekEffort,
-  [getModelMetadataKey('deepseek', 'deepseek-v4-flash')]: deepseekEffort,
-  [getModelMetadataKey('deepseek', 'deepseek-v4-flash-vision-exp')]: deepseekEffort,
+  [getModelMetadataKey('deepseek', 'deepseek-flash')]: deepseekEffort,
   [getModelMetadataKey('atlascloud', 'deepseek-ai/deepseek-v4-pro')]: deepseekEffort,
 
   [getModelMetadataKey('kimi', 'kimi-k3')]: kimiK3Effort,

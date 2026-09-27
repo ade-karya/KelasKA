@@ -24,7 +24,7 @@
 #      hanya dilengkapi variabel yang hilang — tidak menimpa isi user).
 #      Pro Workbench: auto-tier model 1->2->3 dari API key yang terisi
 #      (provider terdaftar di lib/ai/providers.ts) —
-#      1 LLM murni (deepseek:deepseek-v4-flash), 2 OpenCode Go
+#      1 LLM DeepSeek (deepseek:deepseek-flash = V4.1 Flash), 2 OpenCode Go
 #      (opencode-go:gpt-6-luna), 3 OpenCode free CLI
 #      (opencode:muse-spark-1.3-contributor-free). API key
 #      (DEEPSEEK_API_KEY, OPENCODE_API_KEY/OPENCODE_GO_API_KEY, provider LLM,
@@ -739,15 +739,16 @@ set_agent_runtime_flag() {
 # yang ada, fallback environment). Idempoten: isi key lalu jalankan ulang
 # untuk naik tier; kosongkan key untuk turun tier. Nilai kustom milik user
 # (provider/model di luar daftar milik installer) tidak disentuh.
-#   tier1 = LLM murni + key   : deepseek:deepseek-v4-flash
-#           (DEEPSEEK_API_KEY platform asli https://api.deepseek.com/v1)
+#   tier1 = LLM DeepSeek + key : deepseek:deepseek-flash
+#           (DEEPSEEK_API_KEY platform asli https://api.deepseek.com/v1;
+#           nama katalog: DeepSeek-V4.1-Flash, terverifikasi via GET /v1/models)
 #   tier2 = OpenCode Go + key : opencode-go:gpt-6-luna — slug PERSIS katalog
 #           `opencode models` (terverifikasi RC=0). Kunci: OPENCODE_API_KEY
 #           (utama) dan/atau OPENCODE_GO_API_KEY (jalur HTTP/driver).
 #           `opencode auth login` saja tidak cukup untuk driver HTTP.
 #   tier3 = OpenCode free CLI : opencode:muse-spark-1.3-contributor-free
 #           (eksekusi lokal, tanpa auth; terverifikasi RC=0 tanpa kredensial)
-TIER1_MODEL="deepseek:deepseek-v4-flash"
+TIER1_MODEL="deepseek:deepseek-flash"
 TIER1_KEY_VAR="DEEPSEEK_API_KEY"
 TIER2_MODEL="opencode-go:gpt-6-luna"
 TIER2_KEY_PRIMARY="OPENCODE_API_KEY"
@@ -852,7 +853,7 @@ else
   # milik installer yang dipindah; nilai kustom user tidak disentuh.
   # - ollama:* (Ollama tidak lagi diinstal) -> tier saat ini.
   # - opencode:gpt-6-luna (slug lama, tanpa prefix go) -> tier saat ini.
-  # - deepseek:deepseek-v4-flash / opencode-go:gpt-6-luna /
+  # - deepseek:deepseek-flash / opencode-go:gpt-6-luna /
   #   opencode:muse-spark-1.3-contributor-free / opencode:space-bunny-free /
   #   opencode:big-pickle / tokendance:deepseek-v4.1-flash = preset
   #   installer -> tier saat ini.
@@ -872,9 +873,18 @@ else
     printf '%s=%s\n' "$TIER2_KEY_HTTP" "$K2P" >> .env.local
     info "${TIER2_KEY_HTTP} disalin dari ${TIER2_KEY_PRIMARY} (gateway Zen yang sama) untuk driver HTTP."
   fi
+  # Rename ID DeepSeek yang sudah tidak ada di platform (hasil fetch GET
+  # /v1/models: hanya deepseek-flash + deepseek-v4-pro yang live).
+  # deepseek-v4-flash & deepseek-v4-flash-vision-exp -> deepseek-flash
+  # (V4.1 Flash; vision kini native). Pola tidak menyentuh
+  # tokendance:deepseek-v4.1-flash (setelah `v4` ada `.`, bukan `-`).
+  if grep -qE 'deepseek-v4-flash(-vision-exp)?' .env.local 2>/dev/null; then
+    sed -i -E -e 's/deepseek-v4-flash-vision-exp/deepseek-flash/g' -e 's/deepseek-v4-flash/deepseek-flash/g' .env.local
+    info "ID DeepSeek lawas dipindah ke deepseek-flash (V4.1 Flash, sesuai /v1/models)."
+  fi
   CUR_DEFAULT="$(env_get .env.local DEFAULT_MODEL)"
   case "$CUR_DEFAULT" in
-    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash|deepseek:deepseek-v4-flash)
+    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash|deepseek:deepseek-flash)
       if [[ "$CUR_DEFAULT" != "$TIER_DEFAULT" ]]; then
         DM_ESCAPED="$(sed_escape_replacement "$TIER_DEFAULT")"
         sed -i -E "s|^[[:space:]]*DEFAULT_MODEL=.*|DEFAULT_MODEL=${DM_ESCAPED}|" .env.local
@@ -884,9 +894,9 @@ else
   esac
   CUR_DRIVER="$(sed -n -E 's/^[^#]*"maic-agent-driver"[^}]*"model"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' .env.local | head -1)"
   case "$CUR_DRIVER" in
-    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash|deepseek:deepseek-v4-flash)
+    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash|deepseek:deepseek-flash)
       if [[ "$CUR_DRIVER" != "$TIER_DEFAULT" ]]; then
-        DR_RE='ollama:[^"\\} ]*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4\.1-flash|deepseek:deepseek-v4-flash'
+        DR_RE='ollama:[^"\\} ]*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4\.1-flash|deepseek:deepseek-flash'
         DM_ESCAPED2="$(sed_escape_replacement "$TIER_DEFAULT")"
         sed -i -E "/^[[:space:]]*MODEL_ROUTES=/ s#(${DR_RE})#${DM_ESCAPED2}#g" .env.local
         info "MODEL_ROUTES maic-agent-driver dipindah ${CUR_DRIVER} -> ${TIER_DEFAULT} (${TIER})."
@@ -1236,7 +1246,7 @@ echo "    Server baca ulang tiap restart (flag server-only); flag NEXT_PUBLIC_*"
 echo "    butuh build ulang."
 echo "  - Tier model Pro Workbench (auto 1->2->3 dari API key; ulangi install.sh"
 echo "    setelah isi/kosongkan key untuk pindah tier, nilai kustom tak disentuh):"
-echo "    1. LLM murni + key   : deepseek:deepseek-v4-flash (ISI MANUAL"
+echo "    1. DeepSeek + key  : deepseek:deepseek-flash = V4.1-Flash (ISI MANUAL"
 echo "       DEEPSEEK_API_KEY platform asli https://api.deepseek.com/v1)"
 echo "    2. OpenCode Go + key  : opencode-go:gpt-6-luna (slug persis katalog"
 echo "       'opencode models', terverifikasi; ISI MANUAL OPENCODE_API_KEY"

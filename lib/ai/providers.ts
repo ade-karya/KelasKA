@@ -982,24 +982,10 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         },
       },
       {
-        id: 'deepseek-v4-flash',
-        name: 'DeepSeek V4 Flash',
-        contextWindow: 1048576,
-        outputWindow: 393216,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: false,
-          thinking: {
-            toggleable: true,
-            budgetAdjustable: true,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'deepseek-v4-flash-vision-exp',
-        name: 'DeepSeek V4 Flash Vision (Exp)',
+        // ID persis GET /v1/models platform DeepSeek (diverifikasi live):
+        // DeepSeek-V4.1-Flash — input text+image, effort low/high/max.
+        id: 'deepseek-flash',
+        name: 'DeepSeek V4.1 Flash',
         contextWindow: 1048576,
         outputWindow: 393216,
         capabilities: {
