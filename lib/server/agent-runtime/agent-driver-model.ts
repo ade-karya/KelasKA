@@ -7,16 +7,51 @@ export const AGENT_DRIVER_STAGE = 'maic-agent-driver' as const;
 export const UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS = 8_192;
 // The driver route owns the model choice. This adapter only enforces its transport
 // contract: a resolvable provider prefix, no thinking effort, and an explicit
-// OpenAI-compatible pi api/dialect. The actual HTTP transport is selected by
+// pi api/dialect. The actual HTTP transport is selected by
 // lib/ai/providers.ts.
+//
+// CLI tier-3 transport: `opencode:*` / `opencode-go:*` models run as a local
+// `opencode run` child process (lib/ai/opencode-cli.ts, pola
+// nexu-io/open-design) — no HTTP, no API key. Function tools reach the model
+// via the ```tool_calls envelope and the pi loop executes them, so a free Zen
+// model behaves like a keyed LLM from the harness perspective (single-turn
+// emit → harness executes → follow-up). The route declares this with
+// `"api":"opencode-cli"` (aliases `"cli"`, `"opencode"`); internally the pi
+// metadata still carries the `openai-completions` shim because pi's
+// Model<Api> union has no CLI member — the StreamFn ignores that stub and
+// routes through OpenMAIC's resolved Vercel LanguageModel anyway
+// (see lib/agent/runtime/stream-fn.ts).
 const OPENAI_PI_APIS = new Set<Api>(['openai-completions', 'openai-responses']);
+
+/** Route `api` values that select the local CLI transport instead of HTTP. */
+export const OPENCODE_CLI_APIS = new Set(['opencode-cli', 'cli', 'opencode']);
+
+/** Providers executed locally via CLI (no key, no HTTP). */
+export function isOpencodeCliProvider(providerId: string): boolean {
+  return providerId === 'opencode' || providerId === 'opencode-go';
+}
+
+/** True when the route explicitly selects the CLI transport. */
+export function isOpencodeCliApi(api: string | undefined): boolean {
+  return !!api && OPENCODE_CLI_APIS.has(api);
+}
 
 export function buildPiDriverModel(
   connection: ResolvedModel,
   configuredApi?: string,
   routeContextWindow?: number,
 ): Model<Api> {
-  if (!configuredApi || !OPENAI_PI_APIS.has(configuredApi)) {
+  const cliTransport = isOpencodeCliApi(configuredApi);
+  if (cliTransport && !isOpencodeCliProvider(connection.providerId)) {
+    throw new Error(
+      `MODEL_ROUTES stage "${AGENT_DRIVER_STAGE}" uses CLI api ${JSON.stringify(configuredApi)} ` +
+        `but model provider is "${connection.providerId}" (expected "opencode" or "opencode-go").`,
+    );
+  }
+  // Effective pi api: the CLI aliases collapse onto the OpenAI-completions
+  // shim — pi metadata only, never an HTTP transport selector here.
+  const effectiveApi = cliTransport ? 'openai-completions' : configuredApi;
+  if (!effectiveApi || !OPENAI_PI_APIS.has(effectiveApi)) {
     throw new Error(
       `MODEL_ROUTES stage "${AGENT_DRIVER_STAGE}" has unsupported pi api/dialect ` +
         `${JSON.stringify(configuredApi)} for model id ${connection.modelId}.`,
@@ -25,7 +60,7 @@ export function buildPiDriverModel(
   return {
     id: connection.modelId,
     name: connection.modelId,
-    api: configuredApi,
+    api: effectiveApi,
     provider: connection.providerId,
     baseUrl: connection.baseUrl ?? '',
     reasoning: true,
@@ -53,6 +88,10 @@ export async function resolveAgentDriverModel(): Promise<{
   wireMaxOutputTokens?: number;
   /** Internal compaction output-space estimate; never used as a conversation API limit. */
   reservedOutputTokens: number;
+  /** True when the route selects the local CLI transport (tier-3 free). */
+  isCliDriver: boolean;
+  /** Raw `api` value from the route (e.g. "opencode-cli" vs "openai-completions"). */
+  driverApi?: string;
 }> {
   const route = getStageRoute(AGENT_DRIVER_STAGE);
   if (!route) {
@@ -80,11 +119,17 @@ export async function resolveAgentDriverModel(): Promise<{
     );
   }
   const connection = await resolveModel({ stage: AGENT_DRIVER_STAGE });
-  const wireMaxOutputTokens = connection.modelInfo?.outputWindow;
+  const isCliDriver = isOpencodeCliApi(route.api) || isOpencodeCliProvider(connection.providerId);
+  // CLI ignores maxTokens per-call (unsupported-setting warning only): never
+  // send a hard cap on the wire for the CLI transport. HTTP keeps the catalog
+  // output window as the API limit.
+  const wireMaxOutputTokens = isCliDriver ? undefined : connection.modelInfo?.outputWindow;
   return {
     connection,
     piModel: buildPiDriverModel(connection, route.api, route.contextWindow),
     wireMaxOutputTokens,
-    reservedOutputTokens: wireMaxOutputTokens ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
+    reservedOutputTokens: connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
+    isCliDriver,
+    driverApi: route.api,
   };
 }

@@ -24,6 +24,7 @@ import { parseElementRefs, type ElementRef } from '@/lib/workbench/element-refs'
 import type { Scene, SlideContent } from '@/lib/types/stage';
 
 import { resolveAgentDriverModel } from './agent-driver-model';
+import { opencodeCliStreamFnOptions } from './agent-driver-opencode';
 import { buildAskUserTool } from './ask-user';
 import { agentRuntimeConfig as config } from './config';
 import { buildCreateSkillTool } from './create-skill';
@@ -1260,12 +1261,18 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     }
 
     const driver = await resolveAgentDriverModel();
+    if (driver.isCliDriver) {
+      log.info(
+        `session ${id}: CLI driver ${driver.connection.modelString} via ${driver.driverApi ?? 'opencode-cli'} (envelope tools, no key)`,
+      );
+    }
+    const cliOpts = driver.isCliDriver ? opencodeCliStreamFnOptions(driver) : null;
     const streamFn = createCallLlmStreamFn({
       languageModel: driver.connection.model,
-      maxOutputTokens: driver.wireMaxOutputTokens,
-      omitMaxOutputTokens: driver.wireMaxOutputTokens === undefined,
+      maxOutputTokens: cliOpts ? cliOpts.maxOutputTokens : driver.wireMaxOutputTokens,
+      omitMaxOutputTokens: cliOpts ? cliOpts.omitMaxOutputTokens : driver.wireMaxOutputTokens === undefined,
       thinkingConfig: driver.connection.thinkingConfig,
-      source: 'agent-runtime',
+      source: cliOpts ? cliOpts.source : 'agent-runtime',
       abortSignal: abort.signal,
     });
     let questionEmitted = false;

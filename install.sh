@@ -609,9 +609,10 @@ tulis_template_env() {
 # Harus \`provider:model\` dengan provider terdaftar; tanpa ini resolveModel throw.
 DEFAULT_MODEL=${tier_default}
 # Route eksplisit maic-agent-driver (wajib + \`api\` saat agent runtime aktif).
-# Driver (pi runner) memanggil HTTP OpenAI-compatible + function tools yang
-# tidak bisa dipenuhi eksekusi CLI — tier ber-key wajib agar driver auth OK.
-# Tanpa key (tier3), runtime agen dimatikan otomatis oleh installer.
+# Tier ber-key (1/2): HTTP OpenAI-compatible (`openai-completions`).
+# Tier-3 gratis: driver khusus CLI (`opencode-cli`, alias `cli`/`opencode`) —
+# eksekusi lokal `opencode run` tanpa key; function tools via envelope
+# ```tool_calls (lib/ai/opencode-cli.ts + lib/server/agent-runtime/agent-driver-model.ts).
 MODEL_ROUTES='${tier_driver}'
 
 # --- OpenCode CLI (eksekusi lokal, tanpa API key untuk model FREE) -------------
@@ -779,7 +780,10 @@ tier_default_model() {
   esac
 }
 tier_driver_route() {
-  printf '{"maic-agent-driver":{"model":"%s","api":"openai-completions"}}' "$(tier_default_model "$1")"
+  case "${1:-tier3}" in
+    tier3) printf '{"maic-agent-driver":{"model":"%s","api":"opencode-cli"}}' "$(tier_default_model "$1")" ;;
+    *) printf '{"maic-agent-driver":{"model":"%s","api":"openai-completions"}}' "$(tier_default_model "$1")" ;;
+  esac
 }
 
 # Tulis key dari environment ke file bila kolom file masih kosong (append
@@ -800,8 +804,8 @@ selaraskan_key_env() {
 
 if [[ ! -f .env.local ]]; then
   info "Membuat .env.local baru dari template..."
-  # Tier dari environment (file belum ada). Runtime agen butuh driver HTTP +
-  # key: ON hanya bila DB ada DAN tier ber-key; tier3 gratis khusus teks.
+  # Tier dari environment (file belum ada). Runtime agen ON bila DB ada —
+  # tier-3 gratis dilayani driver khusus CLI (opencode-cli, tanpa key).
   TIER="$(pilih_tier_model .env.local)"
   TIER_DEFAULT="$(tier_default_model "$TIER")"
   TIER_DRIVER="$(tier_driver_route "$TIER")"
@@ -820,7 +824,7 @@ if [[ ! -f .env.local ]]; then
   else
     TIER2GO_KEY_LINE="# OPENCODE_GO_API_KEY="
   fi
-  if [[ -n "$DATABASE_URL_VALUE" && "$TIER" != "tier3" ]]; then AGENT_RT="true"; else AGENT_RT="false"; fi
+  if [[ -n "$DATABASE_URL_VALUE" ]]; then AGENT_RT="true"; else AGENT_RT="false"; fi
   info "Tier model Pro Workbench: ${TIER} (${TIER_DEFAULT})."
   if [[ -n "${GO_MIRRORED_FRESH:-}" ]]; then
     info "OPENCODE_GO_API_KEY disalin dari OPENCODE_API_KEY (gateway Zen yang sama) untuk driver HTTP."
@@ -828,7 +832,7 @@ if [[ ! -f .env.local ]]; then
   if [[ -n "$DATABASE_URL_VALUE" ]]; then
     tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > .env.local
     if [[ "$AGENT_RT" == "false" ]]; then
-      info "Agent runtime nonaktif (tier3 tanpa API key; driver butuh HTTP+key). Isi ${TIER1_KEY_VAR}/${TIER2_KEY_PRIMARY}/${TIER2_KEY_HTTP} lalu ulangi install.sh untuk naik tier."
+      info "Agent runtime nonaktif (tanpa DATABASE_URL). Tier-3 tetap didukung driver CLI bila DB ada."
     fi
   else
     tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > .env.local
@@ -904,6 +908,14 @@ else
       fi
       ;;
   esac
+  # Normalisasi api driver tier-3 ke driver khusus CLI: model opencode/*
+  # yang masih memakai "openai-completions" (warisan sebelum driver CLI)
+  # dipindah ke "opencode-cli" agar transport eksplisit. Berlaku untuk nilai
+  # milik installer; nilai kustom (provider non-opencode) tidak disentuh.
+  if [[ "$TIER" == "tier3" ]] && grep -qE '^[[:space:]]*MODEL_ROUTES=.*opencode:[^"]*.*openai-completions' .env.local 2>/dev/null; then
+    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s#"api"[[:space:]]*:[[:space:]]*"openai-completions"#"api":"opencode-cli"#' .env.local
+    info 'MODEL_ROUTES maic-agent-driver api dinormalisasi openai-completions -> opencode-cli (driver khusus tier-3).'
+  fi
   # OPENCODE_MODELS: pastikan_var_env di bawah tidak menimpa nilai yang sudah
   # ada, jadi pin milik installer harus dipindah eksplisit di sini. Nilai
   # kustom lain tidak disentuh.
@@ -970,23 +982,18 @@ else
     fi
     pastikan_var_env .env.local PERSISTENCE_ALLOW_INSECURE_DEV_AUTH "true"
     pastikan_var_env .env.local COOKIE_SECURE "0"
-    # Nyalakan agent runtime HANYA bila DATABASE_URL benar-benar terisi DAN
-    # tier ber-key (driver butuh HTTP + function tools + key). Tier3 gratis
-    # via CLI tidak bisa melayani driver — tanpanya boot hanya warning
-    # [config] dan panggilannya 401.
+    # Nyalakan agent runtime bila DATABASE_URL benar-benar terisi.
+    # Tier-3 gratis dilayani driver khusus CLI (opencode-cli, tanpa key);
+    # tier ber-key memakai driver HTTP seperti biasa.
     DB_URL_ISI="$(env_get .env.local DATABASE_URL)"
-    if [[ -n "$DB_URL_ISI" && "$TIER" != "tier3" ]]; then
-      set_agent_runtime_flag true "DATABASE_URL + ${TIER} ber-key tersedia"
+    if [[ -n "$DB_URL_ISI" ]]; then
+      set_agent_runtime_flag true "DATABASE_URL + ${TIER} tersedia (driver ${TIER} khusus)"
       pastikan_var_env .env.local OPENMAIC_AGENT_RUNTIME_ENABLED "true"
     else
-      if [[ -z "$DB_URL_ISI" ]]; then
-        ALASAN_RT="DATABASE_URL kosong"
-      else
-        ALASAN_RT="${TIER} tanpa API key (driver butuh HTTP+key)"
-      fi
+      ALASAN_RT="DATABASE_URL kosong"
       set_agent_runtime_flag false "$ALASAN_RT"
       pastikan_var_env .env.local OPENMAIC_AGENT_RUNTIME_ENABLED "false"
-      warn "OPENMAIC_AGENT_RUNTIME_ENABLED=false (${ALASAN_RT}). Isi ${TIER1_KEY_VAR}/${TIER2_KEY_PRIMARY}/${TIER2_KEY_HTTP} lalu ulangi install.sh untuk naik tier."
+      warn "OPENMAIC_AGENT_RUNTIME_ENABLED=false (${ALASAN_RT})."
     fi
   else
     # --no-postgres: flag aktif tanpa DATABASE_URL = warning [config] tiap boot
@@ -1256,10 +1263,10 @@ echo "       'opencode auth login' saja tidak cukup untuk driver)"
 echo "    3. OpenCode free CLI : opencode:muse-spark-1.3-contributor-free (tanpa auth;"
 echo '       coba manual: opencode run -m opencode/muse-spark-1.3-contributor-free "hi"'
 echo "       OPENCODE_BIN menunjuk binary absolut."
-echo "    Driver agen (MODEL_ROUTES maic-agent-driver) butuh HTTP + function tools"
-echo "    + key: tanpa key tier3, installer mematikan OPENMAIC_AGENT_RUNTIME_ENABLED"
-echo "    otomatis (isi key + ulangi install.sh untuk menyalakan)."
-echo "  - Agent runtime + workbench butuh Postgres ${PG_MAJOR} + tier ber-key."
+echo "    Driver agen (MODEL_ROUTES maic-agent-driver): tier ber-key via HTTP"
+echo "    (openai-completions/responses); tier-3 gratis via driver khusus CLI"
+echo "    (opencode-cli, tanpa key, envelope tool_calls)."
+echo "  - Agent runtime + workbench butuh Postgres ${PG_MAJOR} (semua tier, termasuk tier-3 CLI)."
 echo "  - Performa: PARALLEL_SCENE_CONCURRENCY=5 (scene paralel, maks kode 10;"
 echo "    turunkan bila kena 429, naikkan s.d. 10 di server besar) + ffmpeg apt"
 echo "    default terinstal (lewati via --no-ffmpeg). TTS tanpa pacing"

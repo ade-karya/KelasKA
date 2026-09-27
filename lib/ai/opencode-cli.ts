@@ -802,9 +802,14 @@ export function buildToolCallingInstructions(
   const required = requiredToolName(toolChoice);
   const lines = [
     '[tools] Tool-use protocol for THIS session (the harness intercepts it):',
+    'You are a SINGLE-TURN function-calling language model, NOT an autonomous coding agent.',
+    'Do NOT use your built-in file/shell/workspace tools for these functions and do NOT read the local workspace — the harness owns execution.',
     'To use a tool, print exactly ONE fenced block as your ENTIRE response:',
     '```tool_calls',
     '{"tool_calls":[{"name":"<function-name>","arguments":{...}}]}',
+    '```',
+    'Example: ```tool_calls',
+    '{"tool_calls":[{"name":"my_tool","arguments":{"q":"hello"}}]}',
     '```',
     'The harness executes each call and returns the result(s) to you as a follow-up message; then continue.',
     'Rules:',
