@@ -264,17 +264,32 @@ function extractErrorMessage(value: unknown, fallback: string): string {
   return fallback;
 }
 
-/** Event error CLI -> pesan, atau null bila bukan event error. */
-function eventErrorMessage(obj: Record<string, unknown>): string | null {
+/**
+ * Event error CLI -> pesan + kode, atau null bila bukan event error.
+ *
+ * opencode v2 melaporkan error sebagai event NDJSON di STDOUT
+ * (`{"type":"error","error":{"type":"provider.no-route","message":"..."}}`),
+ * bukan ke stderr. Kode error (`provider.no-route`, `auth.*`, ...) ikut
+ * diambil karena dipakai runner untuk classifies kegagalan yang tidak bisa
+ * diperbaiki dengan retry.
+ */
+function eventErrorInfo(obj: Record<string, unknown>): { message: string; code: string } | null {
   const type = typeof obj.type === 'string' ? obj.type : '';
   if (type === 'error' || type.endsWith('.error') || type.endsWith('_error')) {
-    const message = extractErrorMessage(obj, '').trim();
-    return message || 'OpenCode CLI melaporkan error tanpa pesan.';
+    const payload = obj;
+    const nested = isRecord(payload.error) ? payload.error : null;
+    return {
+      message:
+        extractErrorMessage(payload, '').trim() || 'OpenCode CLI melaporkan error tanpa pesan.',
+      code: nested && typeof nested.type === 'string' ? nested.type : type,
+    };
   }
-  // Bentuk tanpa `type`: { error: { message } }.
+  // Bentuk tanpa `type`: { error: { type, message } }.
   if (!type && isRecord(obj.error)) {
-    const message = extractErrorMessage(obj.error, '').trim();
-    if (message) return message;
+    const payload = obj.error;
+    const message = extractErrorMessage(payload, '').trim();
+    if (!message) return null;
+    return { message, code: typeof payload.type === 'string' ? payload.type : 'error' };
   }
   return null;
 }
@@ -287,12 +302,15 @@ export function createOpencodeStreamParser(events: OpencodeParseEvents = {}): {
     sessionId: string | null;
     toolUses: OpencodeToolUse[];
     error: string | null;
+    /** Kode error CLI (mis. `provider.no-route`); null bila tidak ada. */
+    errorCode: string | null;
   };
 } {
   let buffer = '';
   let text = '';
   let sessionId: string | null = null;
   let error: string | null = null;
+  let errorCode: string | null = null;
   const toolUses: OpencodeToolUse[] = [];
   const seenToolIds = new Set<string>();
 
@@ -308,8 +326,11 @@ export function createOpencodeStreamParser(events: OpencodeParseEvents = {}): {
     if (typeof obj.sessionID === 'string') captureSession(obj.sessionID);
     if (typeof obj.sessionId === 'string') captureSession(obj.sessionId);
 
-    const err = eventErrorMessage(obj);
-    if (err && !error) error = err;
+    const failure = eventErrorInfo(obj);
+    if (failure && !error) {
+      error = failure.message;
+      errorCode = failure.code;
+    }
 
     const part = isRecord(obj.part) ? obj.part : null;
 
@@ -353,7 +374,11 @@ export function createOpencodeStreamParser(events: OpencodeParseEvents = {}): {
       }
     },
     finish() {
+      // Idempoten: `close` handler bisa memanggil finish() lebih dari sekali
+      // (lalu `done()` memanggilnya lagi). Buffer dikosongkan agar sisa baris
+      // tidak di-parse dua kali — tanpa itu teks terakhir terduplikasi.
       const tail = buffer.trim();
+      buffer = '';
       if (tail) {
         try {
           handleObject(JSON.parse(tail) as unknown);
@@ -361,7 +386,7 @@ export function createOpencodeStreamParser(events: OpencodeParseEvents = {}): {
           /* abaikan */
         }
       }
-      return { text, sessionId, toolUses, error };
+      return { text, sessionId, toolUses, error, errorCode };
     },
   };
 }
@@ -403,21 +428,64 @@ function authHint(): string {
 const AUTH_FAILURE_PATTERN =
   /auth login|not logged in|logged in|unauthorized|unauthenticated|\b401\b|forbidden|\b403\b|api key|invalid key|login required|permission denied|access denied|authentication/i;
 
+/**
+ * Kegagalan "model tidak tersedia" (`provider.no-route`, `Model unavailable`,
+ * `unknown model`, ...). Ini salah KONFIGURASI, bukan kondisi sementara: retry
+ * dengan model yang sama akan gagal terus, dan CLI selalu keluar non-nol. Tanpa
+ * klasifikasi ini, config salah tampak seperti gangguan sementara: muncul
+ * sebagai 500 generik yang di-retry `maxAttempts` kali sambil menyalin pesan
+ * yang sama.
+ */
+const MODEL_UNAVAILABLE_PATTERN =
+  /model unavailable|no[- ]route|unknown model|model not found|unsupported model|invalid model|model_not_found/i;
+
 function isAuthFailureMessage(message: string): boolean {
   return AUTH_FAILURE_PATTERN.test(message);
 }
 
+function isModelUnavailable(message: string, errorCode: string | null): boolean {
+  return (
+    (errorCode != null &&
+      /no[- ]?route|model[-_.]?not[-_.]?found|unknown[-_.]?model/i.test(errorCode)) ||
+    MODEL_UNAVAILABLE_PATTERN.test(message)
+  );
+}
+
 /**
- * Error CLI yang otomatis membawa statusCode 401 bila TEKS MENTAH CLI-nya
- * menandakan kegagalan auth — agar `llmApiError` memetakannya ke HTTP 401
- * (fail-fast, non-retryable di client) bukan 500 generik yang memicu retry
+ * Error CLI yang otomatis membawa statusCode: 401 untuk kegagalan auth dan 400
+ * untuk model tidak tersedia — agar `llmApiError` memetakannya ke HTTP yang
+ * fail-fast (non-retryable di client) alih-alih 500 generik yang memicu retry
  * membabi-buta. `rawText` WAJIB teks mentah CLI (stderr/event), bukan pesan
  * jadi: pesan jadi selalu ditempeli authHint yang mengandung frasa "API key".
  */
-function cliError(rawText: string, fullMessage: string): Error & { statusCode?: number } {
+function cliError(
+  rawText: string,
+  fullMessage: string,
+  errorCode: string | null = null,
+): Error & { statusCode?: number } {
   const err = new Error(fullMessage) as Error & { statusCode?: number };
-  if (rawText && isAuthFailureMessage(rawText)) err.statusCode = 401;
+  if (!rawText) return err;
+  if (isAuthFailureMessage(rawText)) err.statusCode = 401;
+  else if (isModelUnavailable(rawText, errorCode)) err.statusCode = 400;
   return err;
+}
+
+/**
+ * Petunjuk yang relevan untuk kegagalan tertentu. authHint hanya ditempel bila
+ * kegagalan memang auth-seperti: menempelkannya tanpa syarat membuat error
+ * konfigurasi (model typo) tampil seolah-olah penyebabnya kredensial, yang
+ * mengarahkan operator ke `opencode auth login` padahal itu tidak akan
+ * menolong sama sekali.
+ */
+function failureHint(rawText: string, errorCode: string | null): string {
+  if (isAuthFailureMessage(rawText)) return authHint();
+  if (isModelUnavailable(rawText, errorCode)) {
+    return (
+      'Daftar model yang tersedia bisa dicek dengan: opencode models. ' +
+      'Perbaiki juga model id di DEFAULT_MODEL / MODEL_ROUTES bila perlu.'
+    );
+  }
+  return 'opencode CLI tidak mengeluarkan pesan error yang bisa dibaca.';
 }
 
 /**
@@ -525,14 +593,16 @@ export async function runOpencodeCli(
 
       child.on('close', (code) => {
         abortSignal?.removeEventListener('abort', onAbort);
+        const parsed = parser.finish();
         if (code === 0) {
-          const parsed = parser.finish();
           if (parsed.error) {
             // Deteksi auth dari teks mentah CLI (sebelum hint ditempel).
             fail(
               cliError(
                 parsed.error,
-                `opencode run melaporkan error: ${parsed.error} ${authHint()}`,
+                `opencode run melaporkan error: ${parsed.error} ` +
+                  failureHint(parsed.error, parsed.errorCode),
+                parsed.errorCode,
               ),
             );
             return;
@@ -540,13 +610,24 @@ export async function runOpencodeCli(
           done();
           return;
         }
+        // opencode v2 menulis error sebagai event NDJSON di STDOUT, bukan ke
+        // stderr. Mengambil detail HANYA dari stderr di sini membuang penyebab
+        // sebenarnya: mis. `provider.no-route` / "Model unavailable" untuk
+        // model id yang tidak terdaftar, yang Exit 1 dengan stderr KOSONG.
+        // Sumber detail digabung: event stdout dulu (penyebab sebenarnya),
+        // stderr sebagai pelengkap bila ada.
         const errTail = tailText(stderr.trim(), STDERR_TAIL_CHARS);
+        const detailText =
+          parsed.error && errTail && parsed.error !== errTail
+            ? `${parsed.error} | ${errTail}`
+            : (parsed.error ?? errTail);
         fail(
           cliError(
-            errTail,
+            detailText,
             `opencode run gagal (exit ${code ?? 'unknown'}, model ${toCliModelId(modelId)})` +
-              (errTail ? `: ${errTail}` : '') +
-              ` ${authHint()}`,
+              (detailText ? `: ${detailText}` : '') +
+              ` ${failureHint(detailText, parsed.errorCode)}`,
+            parsed.errorCode,
           ),
         );
       });

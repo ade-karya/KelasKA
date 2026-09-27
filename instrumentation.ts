@@ -66,6 +66,14 @@ export async function register(): Promise<void> {
   try {
     const { isAgentRuntimeConfigured } = await import('@/lib/config/feature-flags');
     if (isAgentRuntimeConfigured()) {
+      // Loading the runtime modules is the one heavy step of this process's
+      // boot, and it is what stalls the event loop in `next dev`. Load them
+      // BEFORE the bus connects: a connect that spans a multi-second stall
+      // has its own wall-clock connect deadline fire late and take down a
+      // socket that is already up. Both imports are pure module loads — they
+      // neither touch the database nor start a timer.
+      const runtime = await import('@/lib/server/agent-runtime/runner');
+      const extraction = await import('@/lib/server/material-extraction/runner');
       // One dedicated LISTEN connection per application instance. The HTTP
       // SSE routes and the runner share its in-process fanout registry; it is
       // not a pool client and never scales with the number of streams.
@@ -75,9 +83,7 @@ export async function register(): Promise<void> {
       stopAgentEventNotifyBus = () => eventNotifyBus.stop();
       // startAgentRunner only installs a timer. Store/schema initialization is
       // retained behind the store's lazy promise and never blocks register().
-      const runtime = await import('@/lib/server/agent-runtime/runner');
       runner = runtime.startAgentRunner();
-      const extraction = await import('@/lib/server/material-extraction/runner');
       extractionRunner = extraction.startMaterialExtractionRunner();
     }
   } catch (error) {

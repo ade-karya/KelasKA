@@ -39,13 +39,11 @@ const MODELS_WITHOUT_CONFIGURABLE_THINKING = new Set<string>([
   // OpenCode Zen serves many vendors' models behind one OpenAI-compatible
   // gateway; per-model thinking parameters are left at the model default until
   // their pass-through on the gateway is verified (same posture as tokendance).
-  'opencode:gpt-6-luna',
+  'opencode:space-bunny-free',
   'opencode:big-pickle',
   'opencode:muse-spark-1.3-contributor-free',
-  'opencode:deepseek-v4-flash-free',
+  'opencode:longcat-2.5-preview-free',
   'opencode:mimo-v2.6-flash-free',
-  'opencode:mimo-v2.5-free',
-  'opencode:space-bunny-free',
   'opencode:ling-3.0-flash-fin-free',
   'opencode:nemotron-3-ultra-free',
   'opencode:nemotron-3.5-lightning-free',

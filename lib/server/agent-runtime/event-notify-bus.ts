@@ -14,6 +14,12 @@
  * deliberately only a LOSSY wakeup. A notification dropped by a proxy, a
  * parameter group, or a listener disconnect degrades only latency — every
  * SSE route and the runner keep their fallback polls and converge anyway.
+ *
+ * One deliberate departure from the reference: the connect deadline is this
+ * port's own (see `armConnectDeadline`) rather than pg's wall-clock
+ * `connectionTimeoutMillis`, because a stalled event loop would otherwise kill a
+ * healthy connection — a `timeout expired` error plus a needless reconnect on
+ * every dev boot.
  */
 import { Client, type Notification } from 'pg';
 
@@ -231,6 +237,96 @@ function disconnected(client: Client, generation: number, error?: unknown) {
   scheduleReconnect();
 }
 
+/**
+ * Event-loop time the connect is allowed before it counts as unreachable.
+ *
+ * Deliberately NOT wall-clock: this is the budget pg's `connectionTimeoutMillis`
+ * used to be, and measuring it in wall-clock is exactly the bug. A timer is
+ * wall-clock, so a loop that was blocked for longer than the budget fires it
+ * the instant the loop is free and pg destroys a connection whose socket is
+ * already up — the `timeout expired` error and needless reconnect this replaces
+ * (compiling the runtime modules in `next dev` blocks the loop for ~10s, so it
+ * happened on every dev boot). Time the loop was not running was never time the
+ * connect got to spend, so it must not be charged to the connect.
+ */
+const AGENT_EVENT_CONNECT_BUDGET_MS = 10_000;
+/**
+ * Heartbeat that measures event-loop time. Short enough to notice the budget
+ * running out, long enough to be free: it exists only while one connect is in
+ * flight, and only until that connect settles.
+ */
+const AGENT_EVENT_CONNECT_TICK_MS = 250;
+/**
+ * Timer jitter forgiven per tick. A healthy loop wakes a heartbeat within a few
+ * ms of its interval; anything above this is time the loop was busy elsewhere
+ * and the connect could not have progressed.
+ */
+const AGENT_EVENT_CONNECT_TICK_SLACK_MS = 50;
+/**
+ * Wall-clock cap on top of the budget, so a process that is permanently
+ * saturated still ends up with a connect failure (and a logged retry) instead of
+ * a bus that never connects and never says why.
+ */
+const AGENT_EVENT_CONNECT_STALL_GRACE_MS = 30_000;
+
+/** The part of a connecting pg client's socket the deadline acts on. */
+interface ConnectSocket {
+  destroy: (error?: Error) => unknown;
+}
+
+function connectSocket(client: Client): ConnectSocket | undefined {
+  // `connection.stream` is a pg internal, but part of its public typings, and
+  // the hermetic unit test's fake client has none at all — hence the optional
+  // read.
+  return (client as { connection?: { stream?: ConnectSocket } }).connection?.stream;
+}
+
+/**
+ * Whether a connect that has had `loopTimeMs` of event-loop time and `elapsedMs`
+ * of wall clock must be given up on.
+ *
+ * Exported because this policy IS the fix — a hermetic test pins it without
+ * needing a stalled loop, a real socket, or a running PostgreSQL.
+ */
+export function connectDeadlineExpired(loopTimeMs: number, elapsedMs: number): boolean {
+  return (
+    loopTimeMs >= AGENT_EVENT_CONNECT_BUDGET_MS ||
+    elapsedMs >= AGENT_EVENT_CONNECT_BUDGET_MS + AGENT_EVENT_CONNECT_STALL_GRACE_MS
+  );
+}
+
+/**
+ * Stall-aware replacement for pg's own connect timer, measured in event-loop
+ * time.
+ *
+ * A heartbeat measures how long the loop actually ran between ticks, and the
+ * connect is failed only once it has spent the budget that way. The failure
+ * shape is unchanged: destroying the stream rejects the pending `connect()` with
+ * the same `timeout expired` error, so the reconnect path and its log line are
+ * untouched, and an unreachable server still fails after the budget.
+ */
+function armConnectDeadline(client: Client): () => void {
+  const startedAt = Date.now();
+  let lastTickAt = startedAt;
+  let loopTimeMs = 0;
+
+  const heartbeat = setInterval(() => {
+    const now = Date.now();
+    const gapMs = now - lastTickAt;
+    lastTickAt = now;
+    // A heartbeat this late means the loop was busy, not the connect. Charge
+    // the connect only the time the loop was actually free to read its socket.
+    loopTimeMs += Math.min(gapMs, AGENT_EVENT_CONNECT_TICK_MS + AGENT_EVENT_CONNECT_TICK_SLACK_MS);
+    if (connectDeadlineExpired(loopTimeMs, now - startedAt)) {
+      clearInterval(heartbeat);
+      connectSocket(client)?.destroy(new Error('timeout expired'));
+    }
+  }, AGENT_EVENT_CONNECT_TICK_MS);
+  heartbeat.unref?.();
+
+  return () => clearInterval(heartbeat);
+}
+
 async function connect(generation: number): Promise<void> {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -244,8 +340,11 @@ async function connect(generation: number): Promise<void> {
   const client = new Client({
     connectionString,
     application_name: AGENT_EVENT_NOTIFY_APPLICATION_NAME,
-    connectionTimeoutMillis: 10_000,
+    // pg's connect timer is off on purpose: `armConnectDeadline` below owns
+    // the deadline because it can tell a stalled event loop from a dead peer.
+    connectionTimeoutMillis: 0,
   });
+  const clearConnectDeadline = armConnectDeadline(client);
   state.client = client;
   client.on('notification', (notification) => {
     if (notification.channel === AGENT_EVENT_PROBE_CHANNEL) {
@@ -268,6 +367,10 @@ async function connect(generation: number): Promise<void> {
 
   try {
     await client.connect();
+    // The connection is up, so there is nothing left to time out. Cleared here
+    // rather than in a `finally` so a later stall — LISTEN, the self-check
+    // probe — can never destroy a client that is already healthy.
+    clearConnectDeadline();
     if (state.stopped || generation !== state.generation) {
       await client.end().catch(() => undefined);
       return;
@@ -304,6 +407,7 @@ async function connect(generation: number): Promise<void> {
     // business wakeups are not delayed by the probe.
     if (probeChannelListened) await runProbe(client, generation);
   } catch (error) {
+    clearConnectDeadline();
     disconnected(client, generation, error);
     await client.end().catch(() => undefined);
     throw error;

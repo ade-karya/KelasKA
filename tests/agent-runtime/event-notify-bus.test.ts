@@ -12,7 +12,10 @@
  *     transaction handle (same-transaction lossy wakeup) and silently skips
  *     an over-limit payload instead of poisoning the transaction;
  *  4. subscription lifecycle: unsubscribe removes the route from the
- *     registry.
+ *     registry;
+ *  5. the connect deadline: a stalled event loop must not kill a connect whose
+ *     socket is already established, while an unreachable server and a peer
+ *     that goes silent still fail.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,16 +25,47 @@ const fake = vi.hoisted(() => {
   type Listener = (value?: unknown) => void;
   class FakeClient {
     static instances: FakeClient[] = [];
+    /** Next constructed client never finishes connecting on its own. */
+    static hangOnConnect = false;
     queryCalls: Array<{ text: string; params: unknown[] }> = [];
+    socket = {
+      destroyed: false,
+      destroy: (error?: Error) => {
+        this.socket.destroyed = true;
+        this.failConnect(error ?? new Error('socket destroyed'));
+      },
+    };
+    // pg exposes the socket under `client.connection.stream`; the connect
+    // deadline reads exactly this shape.
+    connection = { stream: this.socket };
     private listeners = new Map<string, Set<Listener>>();
+    private hangOnConnect: boolean;
+    private pendingConnect: { resolve: () => void; reject: (error: Error) => void } | null = null;
     ended = false;
 
     constructor(_config?: unknown) {
+      this.hangOnConnect = FakeClient.hangOnConnect;
       FakeClient.instances.push(this);
     }
 
     async connect(): Promise<void> {
-      // no-op
+      if (!this.hangOnConnect) return;
+      await new Promise<void>((resolve, reject) => {
+        this.pendingConnect = { resolve, reject };
+      });
+    }
+
+    /** Test hook: let a hanging connect finish, as a real handshake would. */
+    finishConnect(): void {
+      const pending = this.pendingConnect;
+      this.pendingConnect = null;
+      pending?.resolve();
+    }
+
+    private failConnect(error: Error): void {
+      const pending = this.pendingConnect;
+      this.pendingConnect = null;
+      pending?.reject(error);
     }
 
     async query(text: string, params: unknown[] = []): Promise<{ rows: unknown[] }> {
@@ -67,6 +101,7 @@ vi.mock('pg', () => ({ Client: fake.FakeClient }));
 import {
   AGENT_EVENT_NOTIFY_CHANNEL,
   AGENT_EVENT_PROBE_CHANNEL,
+  connectDeadlineExpired,
   hasAgentEventWakeupSubscriber,
   notifyDurableAgentEvent,
   startAgentEventNotifyBus,
@@ -92,6 +127,7 @@ function txProbe() {
 describe('agent event notify bus', () => {
   beforeEach(() => {
     fake.FakeClient.instances = [];
+    fake.FakeClient.hangOnConnect = false;
     // The bus builds its dedicated LISTEN client from DATABASE_URL (the app
     // contract); the fake client never connects anywhere, the variable just
     // has to be present for the bus to construct it.
@@ -100,6 +136,7 @@ describe('agent event notify bus', () => {
 
   afterEach(async () => {
     delete process.env.DATABASE_URL;
+    vi.useRealTimers();
     await stopAgentEventNotifyBus();
   });
 
@@ -189,5 +226,61 @@ describe('agent event notify bus', () => {
       notifyDurableAgentEvent(big, { kind: 'session', sessionId: 'x'.repeat(8_001) }),
     ).resolves.toBeUndefined();
     expect(big.calls).toEqual([]);
+  });
+
+  it('keeps a connect alive while a stalled event loop has not spent its budget', async () => {
+    // A blocked event loop makes a wall-clock timer fire LATE, not on time — and
+    // Node cannot even report the socket as connected until the loop runs again.
+    // pg's own connect timer fired regardless and killed the connection: the
+    // spurious `timeout expired` plus needless reconnect this pins, seen on
+    // every `next dev` boot because compiling the runtime modules blocks the
+    // loop for longer than the budget.
+    vi.useFakeTimers();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    fake.FakeClient.hangOnConnect = true;
+
+    const handle = startAgentEventNotifyBus();
+    const client = fake.FakeClient.instances.at(-1)!;
+
+    // One stall longer than the whole budget, then the loop is free again: the
+    // deadline must survive it and the connect must still land.
+    vi.setSystemTime(Date.now() + 12_000);
+    await vi.advanceTimersByTimeAsync(250);
+    expect(client.socket.destroyed).toBe(false);
+
+    client.finishConnect();
+    await vi.advanceTimersByTimeAsync(0);
+    client.emitNotification(AGENT_EVENT_PROBE_CHANNEL, 'openmaic-agent-notify-selfcheck');
+    await handle.connecting;
+
+    // Usable, and never reconnected: no wakeup was lost to the stall.
+    expect(fake.FakeClient.instances).toHaveLength(1);
+    expect(client.queryCalls.map((call) => call.text)).toContain(
+      `LISTEN ${AGENT_EVENT_NOTIFY_CHANNEL}`,
+    );
+  });
+
+  it('still fails the connect once a healthy loop has given it the whole budget', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    fake.FakeClient.hangOnConnect = true;
+
+    startAgentEventNotifyBus();
+    const client = fake.FakeClient.instances.at(-1)!;
+
+    // On time, so this is what the budget exists for: a peer that never answers
+    // must still fail and be retried.
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(client.socket.destroyed).toBe(true);
+  });
+
+  it('measures the connect budget in event-loop time, with a wall-clock cap', () => {
+    // Budget spent, loop healthy: an unreachable server, give up.
+    expect(connectDeadlineExpired(10_000, 10_000)).toBe(true);
+    // Budget barely spent because the loop was blocked: a stall is not the
+    // connect's fault, so the connect is worth keeping.
+    expect(connectDeadlineExpired(300, 12_000)).toBe(false);
+    // A permanently saturated process still ends up failing the connect.
+    expect(connectDeadlineExpired(300, 40_000)).toBe(true);
   });
 });

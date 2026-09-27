@@ -1714,19 +1714,23 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     // (big-pickle, *-free) jalan server-side karena eksekusi terjadi di dalam
     // klien opencode. defaultBaseUrl hanya dokumentasi gateway + dipakai
     // konstruksi pi Model untuk agent-driver (yang tetap butuh HTTP/key).
-    // Model default (gpt-6-luna) adalah model BERBAYAR Zen: butuh
-    // `opencode auth login` untuk jalur CLI, atau OPENCODE_API_KEY untuk
-    // jalur HTTP langsung.
+    // Default app (space-bunny-free) adalah model FREE: jalan tanpa credential.
+    // Model BERBAYAR butuh `opencode auth login` untuk jalur CLI, atau
+    // OPENCODE_API_KEY untuk jalur HTTP langsung.
+    //
+    // PENTING: id di daftar ini harus BENAR-benar ada di katalog opencode.
+    // Model yang tidak terdaftar ditolak CLI dengan `provider.no-route`
+    // ("Model unavailable"), bukan dengan error auth.
     type: 'opencode',
     defaultBaseUrl: 'https://opencode.ai/zen/v1',
     requiresApiKey: false,
     icon: '/logos/opencode.svg',
     models: [
       {
-        id: 'gpt-6-luna',
-        name: 'GPT 6 Luna (Zen)',
-        contextWindow: 1100000,
-        outputWindow: 128000,
+        id: 'space-bunny-free',
+        name: 'Space Bunny Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
         capabilities: { streaming: true, tools: true, vision: false },
       },
       {
@@ -1738,14 +1742,14 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
       },
       {
         id: 'big-pickle',
-        name: 'Big Pickle (Zen, free via CLI)',
+        name: 'Big Pickle (Zen)',
         contextWindow: 256000,
         outputWindow: 32000,
         capabilities: { streaming: true, tools: true, vision: false },
       },
       {
-        id: 'deepseek-v4-flash-free',
-        name: 'DeepSeek V4 Flash Free (Zen)',
+        id: 'longcat-2.5-preview-free',
+        name: 'LongCat 2.5 Preview Free (Zen)',
         contextWindow: 256000,
         outputWindow: 32000,
         capabilities: { streaming: true, tools: true, vision: false },
@@ -1753,20 +1757,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
       {
         id: 'mimo-v2.6-flash-free',
         name: 'MiMo V2.6 Flash Free (Zen)',
-        contextWindow: 256000,
-        outputWindow: 32000,
-        capabilities: { streaming: true, tools: true, vision: false },
-      },
-      {
-        id: 'mimo-v2.5-free',
-        name: 'MiMo V2.5 Free (Zen)',
-        contextWindow: 256000,
-        outputWindow: 32000,
-        capabilities: { streaming: true, tools: true, vision: false },
-      },
-      {
-        id: 'space-bunny-free',
-        name: 'Space Bunny Free (Zen)',
         contextWindow: 256000,
         outputWindow: 32000,
         capabilities: { streaming: true, tools: true, vision: false },

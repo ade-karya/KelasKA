@@ -182,6 +182,51 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
     expect((err as Error & { statusCode?: number }).statusCode).toBeUndefined();
   }, 30_000);
 
+  it('error event di stdout (bukan stderr) tetap muncul di pesan gagal', async () => {
+    // opencode v2 melaporkan error sebagai event NDJSON di stdout lalu Exit 1
+    // dengan stderr KOSONG. Dulu detail ini dibuang dan yang tampil hanya
+    // "exit 1" + petunjuk auth, sehingga penyebab sebenarnya tak terlihat.
+    const stub = writeStub(
+      'opencode-no-route',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'cat > /dev/null\n' +
+        'echo \'{"type":"error","sessionID":"ses_x","error":{"type":"provider.no-route","message":"Model unavailable: opencode/gpt-6-luna"}}\'\n' +
+        'exit 1\n',
+    );
+    vi.stubEnv('OPENCODE_BIN', stub);
+    const err = await runOpencodeCli({ modelId: 'gpt-6-luna', promptText: 'hi' }).catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toContain('Model unavailable: opencode/gpt-6-luna');
+    expect((err as Error).message).toContain('exit 1');
+  }, 30_000);
+
+  it('model tidak tersedia = 400 fail-fast, BUKAN 401 auth', async () => {
+    const stub = writeStub(
+      'opencode-no-route-2',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'cat > /dev/null\n' +
+        'echo \'{"type":"error","error":{"type":"provider.no-route","message":"Model unavailable: opencode/typo"}}\'\n' +
+        'exit 1\n',
+    );
+    vi.stubEnv('OPENCODE_BIN', stub);
+    const err = await runOpencodeCli({ modelId: 'typo', promptText: 'hi' }).catch((e) => e);
+    // Salah konfigurasi tidak akan tertolong oleh retry.
+    expect((err as Error & { statusCode?: number }).statusCode).toBe(400);
+    // Petunjuk auth hanya menyesatkan di sini; yang relevan = daftar model.
+    expect((err as Error).message).not.toMatch(/opencode auth login/);
+    expect((err as Error).message).toMatch(/opencode models/);
+  }, 30_000);
+
+  it('hint auth tetap muncul untuk kegagalan auth yang konsisten', async () => {
+    const stub = writeStub('opencode-auth', ERROR_STUB);
+    vi.stubEnv('OPENCODE_BIN', stub);
+    const err = await runOpencodeCli({ modelId: 'big-pickle', promptText: 'hi' }).catch((e) => e);
+    expect((err as Error).message).toMatch(/opencode auth login/);
+    expect((err as Error & { statusCode?: number }).statusCode).toBe(401);
+  }, 30_000);
+
   it('runOpencodeCli melempar petunjuk instal saat binary tidak ada', async () => {
     const emptyPath = fs.mkdtempSync(path.join(os.tmpdir(), 'openmaic-empty-path-'));
     vi.stubEnv('OPENCODE_BIN', '/tidak/ada/opencode-xyz');
