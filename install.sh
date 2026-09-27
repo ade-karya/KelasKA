@@ -24,10 +24,10 @@
 #      hanya dilengkapi variabel yang hilang — tidak menimpa isi user).
 #      Pro Workbench: auto-tier model 1->2->3 dari API key yang terisi
 #      (provider terdaftar di lib/ai/providers.ts) —
-#      1 LLM DeepSeek (deepseek:deepseek-flash = V4.1 Flash), 2 OpenCode Go
+#      1 Gemini (google:gemini-3.5-flash-lite), 2 OpenCode Go
 #      (opencode-go:gpt-6-luna), 3 OpenCode free CLI
 #      (opencode:muse-spark-1.3-contributor-free). API key
-#      (DEEPSEEK_API_KEY, OPENCODE_API_KEY/OPENCODE_GO_API_KEY, provider LLM,
+#      (GOOGLE_API_KEY, OPENCODE_API_KEY/OPENCODE_GO_API_KEY, provider LLM,
 #      TTS/ASR, search) dibiarkan kosong untuk diisi manual. Tanpa docker:
 #      render MP4 tetap via ZIP, bukan render-service.
 #   7. Direktori `data/` untuk classroom store berbasis file.
@@ -620,9 +620,9 @@ MODEL_ROUTES='${tier_driver}'
 # (OPENCODE_BIN, PATH, ~/.opencode/bin). Timeout per panggilan CLI.
 OPENCODE_BIN=${opencode_bin}
 # OPENCODE_CLI_TIMEOUT_MS=600000
-# Tier1 butuh key platform DeepSeek asli (ISI MANUAL):
+# Tier1 butuh key Google AI Studio (ISI MANUAL):
 ${tier_key1_line}
-# DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+# GOOGLE_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 # Tier2 butuh key (ISI MANUAL; jalur CLI paid butuh \`opencode auth login\`):
 ${tier_key2_line}
 ${tier_key2go_line}
@@ -739,17 +739,17 @@ set_agent_runtime_flag() {
 # yang ada, fallback environment). Idempoten: isi key lalu jalankan ulang
 # untuk naik tier; kosongkan key untuk turun tier. Nilai kustom milik user
 # (provider/model di luar daftar milik installer) tidak disentuh.
-#   tier1 = LLM DeepSeek + key : deepseek:deepseek-flash
-#           (DEEPSEEK_API_KEY platform asli https://api.deepseek.com/v1;
-#           nama katalog: DeepSeek-V4.1-Flash, terverifikasi via GET /v1/models)
+#   tier1 = Gemini + key : google:gemini-3.5-flash-lite
+#           (GOOGLE_API_KEY dari https://aistudio.google.com;
+#           terverifikasi live: generateContent 200 OK)
 #   tier2 = OpenCode Go + key : opencode-go:gpt-6-luna — slug PERSIS katalog
 #           `opencode models` (terverifikasi RC=0). Kunci: OPENCODE_API_KEY
 #           (utama) dan/atau OPENCODE_GO_API_KEY (jalur HTTP/driver).
 #           `opencode auth login` saja tidak cukup untuk driver HTTP.
 #   tier3 = OpenCode free CLI : opencode:muse-spark-1.3-contributor-free
 #           (eksekusi lokal, tanpa auth; terverifikasi RC=0 tanpa kredensial)
-TIER1_MODEL="deepseek:deepseek-flash"
-TIER1_KEY_VAR="DEEPSEEK_API_KEY"
+TIER1_MODEL="google:gemini-3.5-flash-lite"
+TIER1_KEY_VAR="GOOGLE_API_KEY"
 TIER2_MODEL="opencode-go:gpt-6-luna"
 TIER2_KEY_PRIMARY="OPENCODE_API_KEY"
 TIER2_KEY_HTTP="OPENCODE_GO_API_KEY"
@@ -760,7 +760,7 @@ TIER_PIN="muse-spark-1.3-contributor-free"
 pilih_tier_model() {
   local f="${1:-.env.local}" k1="" k2=""
   k1="$(env_get "$f" "$TIER1_KEY_VAR")"
-  [[ -z "$k1" ]] && k1="${DEEPSEEK_API_KEY:-}"
+  [[ -z "$k1" ]] && k1="${GOOGLE_API_KEY:-}"
   k2="$(env_get "$f" "$TIER2_KEY_PRIMARY")"
   [[ -z "$k2" ]] && k2="$(env_get "$f" "$TIER2_KEY_HTTP")"
   [[ -z "$k2" ]] && k2="${OPENCODE_API_KEY:-}"
@@ -788,7 +788,7 @@ tier_driver_route() {
 selaraskan_key_env() {
   local file="$1" key="$2" envval=""
   case "$key" in
-    DEEPSEEK_API_KEY) envval="${DEEPSEEK_API_KEY:-}" ;;
+    GOOGLE_API_KEY) envval="${GOOGLE_API_KEY:-}" ;;
     OPENCODE_API_KEY) envval="${OPENCODE_API_KEY:-}" ;;
     OPENCODE_GO_API_KEY) envval="${OPENCODE_GO_API_KEY:-}" ;;
   esac
@@ -808,7 +808,7 @@ if [[ ! -f .env.local ]]; then
   # Baris key: aktif bila ada di environment (agar tier dari env permanen di
   # file), komentar bila tidak. Isi mentah via variabel (heredoc tidak
   # mengevaluasi ulang isi variabel) → aman untuk karakter apa pun.
-  if [[ -n "${DEEPSEEK_API_KEY:-}" ]]; then TIER1_KEY_LINE="DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}"; else TIER1_KEY_LINE="# DEEPSEEK_API_KEY="; fi
+  if [[ -n "${GOOGLE_API_KEY:-}" ]]; then TIER1_KEY_LINE="GOOGLE_API_KEY=${GOOGLE_API_KEY}"; else TIER1_KEY_LINE="# GOOGLE_API_KEY="; fi
   if [[ -n "${OPENCODE_API_KEY:-}" ]]; then TIER2_KEY_LINE="OPENCODE_API_KEY=${OPENCODE_API_KEY}"; else TIER2_KEY_LINE="# OPENCODE_API_KEY="; fi
   if [[ -n "${OPENCODE_GO_API_KEY:-}" ]]; then
     TIER2GO_KEY_LINE="OPENCODE_GO_API_KEY=${OPENCODE_GO_API_KEY}"
@@ -853,11 +853,12 @@ else
   # milik installer yang dipindah; nilai kustom user tidak disentuh.
   # - ollama:* (Ollama tidak lagi diinstal) -> tier saat ini.
   # - opencode:gpt-6-luna (slug lama, tanpa prefix go) -> tier saat ini.
-  # - deepseek:deepseek-flash / opencode-go:gpt-6-luna /
-  #   opencode:muse-spark-1.3-contributor-free / opencode:space-bunny-free /
-  #   opencode:big-pickle / tokendance:deepseek-v4.1-flash = preset
-  #   installer -> tier saat ini.
-  for kk in DEEPSEEK_API_KEY OPENCODE_API_KEY OPENCODE_GO_API_KEY; do
+  # - google:gemini-3.5-flash-lite / deepseek:deepseek-flash (tier1 lama) /
+  #   opencode-go:gpt-6-luna / opencode:muse-spark-1.3-contributor-free /
+  #   opencode:space-bunny-free / opencode:big-pickle /
+  #   tokendance:deepseek-v4.1-flash = preset installer -> tier saat ini
+  #   (ganti total ke Gemini: nilai DeepSeek lama ikut dipindah maju).
+  for kk in GOOGLE_API_KEY OPENCODE_API_KEY OPENCODE_GO_API_KEY; do
     selaraskan_key_env .env.local "$kk"
   done
   TIER="$(pilih_tier_model .env.local)"
@@ -884,7 +885,7 @@ else
   fi
   CUR_DEFAULT="$(env_get .env.local DEFAULT_MODEL)"
   case "$CUR_DEFAULT" in
-    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash|deepseek:deepseek-flash)
+    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash)
       if [[ "$CUR_DEFAULT" != "$TIER_DEFAULT" ]]; then
         DM_ESCAPED="$(sed_escape_replacement "$TIER_DEFAULT")"
         sed -i -E "s|^[[:space:]]*DEFAULT_MODEL=.*|DEFAULT_MODEL=${DM_ESCAPED}|" .env.local
@@ -894,9 +895,9 @@ else
   esac
   CUR_DRIVER="$(sed -n -E 's/^[^#]*"maic-agent-driver"[^}]*"model"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' .env.local | head -1)"
   case "$CUR_DRIVER" in
-    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash|deepseek:deepseek-flash)
+    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash)
       if [[ "$CUR_DRIVER" != "$TIER_DEFAULT" ]]; then
-        DR_RE='ollama:[^"\\} ]*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4\.1-flash|deepseek:deepseek-flash'
+        DR_RE='ollama:[^"\\} ]*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3\.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4\.1-flash'
         DM_ESCAPED2="$(sed_escape_replacement "$TIER_DEFAULT")"
         sed -i -E "/^[[:space:]]*MODEL_ROUTES=/ s#(${DR_RE})#${DM_ESCAPED2}#g" .env.local
         info "MODEL_ROUTES maic-agent-driver dipindah ${CUR_DRIVER} -> ${TIER_DEFAULT} (${TIER})."
@@ -922,7 +923,7 @@ else
   # Key tier1/tier2 opsional; jangan buat key kosong yang mengesankan wajib
   # — tier dipilih dari key yang terisi. Cukup pastikan pin model tersedia.
   pastikan_var_env .env.local OPENCODE_MODELS "$TIER_PIN"
-  pastikan_komentar_env .env.local DEEPSEEK_API_KEY ""
+  pastikan_komentar_env .env.local GOOGLE_API_KEY ""
   # Native tanpa docker: izinkan URL loopback/privat (Ollama/Lemonade/FunASR/
   # SearXNG lokal). Baris berkomentar jejak template lama ikut diaktifkan.
   pastikan_var_env .env.local ALLOW_LOCAL_NETWORKS "true"
@@ -1239,15 +1240,15 @@ echo "  - Fitur native aktif semua tanpa docker: flag client+server true,"
 echo "    ALLOW_LOCAL_NETWORKS=true (Ollama/Lemonade/FunASR/SearXNG lokal bisa"
 echo "    dipakai; matikan bila server terekspos publik). Video MP4 tanpa"
 echo "    render-service: unduh ZIP lalu render via CLI lokal."
-echo "  - ISI MANUAL di .env.local: DEEPSEEK_API_KEY (tier1), OPENCODE_API_KEY /"
+echo "  - ISI MANUAL di .env.local: GOOGLE_API_KEY (tier1), OPENCODE_API_KEY /"
 echo "    OPENCODE_GO_API_KEY (tier2), OLLAMA_BASE_URL / OLLAMA_MODELS,"
 echo "    SEARXNG_BASE_URL, dan API key provider lain (lihat .env.example)."
 echo "    Server baca ulang tiap restart (flag server-only); flag NEXT_PUBLIC_*"
 echo "    butuh build ulang."
 echo "  - Tier model Pro Workbench (auto 1->2->3 dari API key; ulangi install.sh"
 echo "    setelah isi/kosongkan key untuk pindah tier, nilai kustom tak disentuh):"
-echo "    1. DeepSeek + key  : deepseek:deepseek-flash = V4.1-Flash (ISI MANUAL"
-echo "       DEEPSEEK_API_KEY platform asli https://api.deepseek.com/v1)"
+echo "    1. Gemini + key    : google:gemini-3.5-flash-lite (ISI MANUAL"
+echo "       GOOGLE_API_KEY dari https://aistudio.google.com)"
 echo "    2. OpenCode Go + key  : opencode-go:gpt-6-luna (slug persis katalog"
 echo "       'opencode models', terverifikasi; ISI MANUAL OPENCODE_API_KEY"
 echo "       dan/atau OPENCODE_GO_API_KEY untuk jalur HTTP/driver;"
