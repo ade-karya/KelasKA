@@ -5,11 +5,14 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  applyStopSequences,
   buildCliWarnings,
   buildOpencodeArgs,
+  buildSamplingHints,
   buildToolCallingInstructions,
   createOpencodeCliModel,
   createOpencodeStreamParser,
+  estimateTokens,
   findOpencodeBin,
   flattenPromptToText,
   parseToolCallsFromText,
@@ -121,6 +124,43 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
     expect(text).toContain('[lampiran image/png');
   });
 
+  it('paritas riwayat: tool-call pertahankan argumen, tool-result tidak dipotong', () => {
+    const longBody = 'x'.repeat(5000);
+    const text = flattenPromptToText([
+      {
+        role: 'assistant',
+        content: [{ type: 'tool-call', toolName: 'read', input: { path: 'SKILL.md' } }],
+      },
+      {
+        role: 'tool',
+        content: [{ type: 'tool-result', toolName: 'read', output: longBody }],
+      },
+    ]);
+    // Argumen dipertahankan (bukan nama saja) — paritas pesan terstruktur ber-key.
+    expect(text).toContain('[tool-call read');
+    expect(text).toContain('SKILL.md');
+    // Badan panjang (SKILL.md) utuh — dulu dipotong 2000 char.
+    expect(text).toContain(longBody);
+    expect(text.length).toBeGreaterThan(5000);
+  });
+
+  it('paritas sampling: hint prompt + stopSequences nyata + estimasi token', () => {
+    expect(buildSamplingHints({ prompt: [] })).toBe('');
+    const hints = buildSamplingHints({
+      prompt: [],
+      maxOutputTokens: 500,
+      temperature: 0.1,
+      stopSequences: ['STOP'],
+    });
+    expect(hints).toContain('500');
+    expect(hints).toContain('deterministik');
+    expect(hints).toContain('STOP');
+    expect(applyStopSequences('halo STOP dunia', ['STOP'])).toBe('halo ');
+    expect(applyStopSequences('halo dunia', ['STOP'])).toBe('halo dunia');
+    expect(estimateTokens('')).toBe(0);
+    expect(estimateTokens('abcd')).toBe(1);
+  });
+
   it('parser menoleransi baris non-JSON dan menangkap teks + sesi + tool', () => {
     const deltas: string[] = [];
     const sessions: string[] = [];
@@ -148,18 +188,19 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
     expect(parser.finish().error).toBe('boom');
   });
 
-  it('warnings jujur: function tools didukung (tanpa warning), setting tetap diwarning', () => {
+  it('warnings paritas: sampling dipetakan ke prompt (tanpa warning), hanya seed + non-function diwarning', () => {
     const warnings = buildCliWarnings({
       prompt: [],
       temperature: 0.5,
+      maxOutputTokens: 1000,
+      stopSequences: ['STOP'],
       tools: [
         { type: 'function', name: 'catat_nilai' },
         { type: 'other', name: 'aneh' },
       ],
     });
-    expect(warnings).toContainEqual(
-      expect.objectContaining({ type: 'unsupported-setting', setting: 'temperature' }),
-    );
+    // Sampling yang dipetakan ke instruksi prompt TIDAK diwarning (paritas ber-key).
+    expect(warnings.filter((w) => w.type === 'unsupported-setting')).toEqual([]);
     expect(warnings).toContainEqual(
       expect.objectContaining({
         type: 'unsupported-tool',
@@ -172,6 +213,9 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
           w.type === 'unsupported-tool' && (w.tool as { name?: string }).name === 'catat_nilai',
       ),
     ).toEqual([]);
+    expect(
+      buildCliWarnings({ prompt: [], seed: 42 }),
+    ).toContainEqual(expect.objectContaining({ type: 'unsupported-setting', setting: 'seed' }));
     expect(buildCliWarnings({ prompt: [] })).toEqual([]);
   });
 
@@ -290,17 +334,19 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
     expect(await findOpencodeBin()).toBe(stub);
   }, 30_000);
 
-  it('model LanguageModel mengembalikan teks + finish stop via doGenerate', async () => {
+  it('model LanguageModel mengembalikan teks + finish stop via doGenerate (spec v3)', async () => {
     const stub = writeStub('opencode', SUCCESS_STUB);
     vi.stubEnv('OPENCODE_BIN', stub);
     const model = createOpencodeCliModel('big-pickle');
     expect(model.provider).toBe('opencode');
     expect(model.modelId).toBe('big-pickle');
+    expect((model as unknown as { specificationVersion: string }).specificationVersion).toBe('v3');
     const result = await (
       model as unknown as {
         doGenerate: (o: unknown) => Promise<{
           content: Array<{ type: string; text: string }>;
-          finishReason: string;
+          finishReason: { unified: string };
+          usage: { inputTokens: { total: number }; outputTokens: { total: number } };
           warnings: unknown[];
         }>;
       }
@@ -309,14 +355,17 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
       tools: [{ type: 'function', name: 'catat' }],
     });
     expect(result.content).toEqual([{ type: 'text', text: 'Halo dunia' }]);
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchObject({ unified: 'stop' });
+    // Usage diestimasi (bukan nol) agar paritas cost/compaction jalur ber-key.
+    expect(result.usage.inputTokens.total).toBeGreaterThan(0);
+    expect(result.usage.outputTokens.total).toBeGreaterThan(0);
     // Function tool tidak lagi diwarning (didukung via envelope).
     expect(
       (result.warnings as Array<{ type: string }>).filter((w) => w.type === 'unsupported-tool'),
     ).toEqual([]);
   }, 30_000);
 
-  it('doStream mengalirkan text-delta live lalu finish', async () => {
+  it('doStream mengalirkan text-delta live lalu finish v3', async () => {
     const stub = writeStub('opencode', SUCCESS_STUB);
     vi.stubEnv('OPENCODE_BIN', stub);
     const model = createOpencodeCliModel('big-pickle') as unknown as {
@@ -342,6 +391,9 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
         .join(''),
     ).toBe('Halo dunia');
     expect(types[types.length - 1]).toBe('finish');
+    expect(parts[parts.length - 1]).toMatchObject({
+      finishReason: { unified: 'stop' },
+    });
   }, 30_000);
 });
 
@@ -410,7 +462,7 @@ describe('opencode-cli tool calling via envelope JSON', () => {
     expect(parsed?.leadingText).toContain('lanjut');
   });
 
-  it('doGenerate dengan tools mengembalikan tool-call + finish tool-calls', async () => {
+  it('doGenerate dengan tools mengembalikan tool-call + finish tool-calls (v3)', async () => {
     const stub = writeStub(
       'opencode-envelope',
       '#!/usr/bin/env bash\n' +
@@ -425,14 +477,14 @@ describe('opencode-cli tool calling via envelope JSON', () => {
     const model = createOpencodeCliModel('big-pickle') as unknown as {
       doGenerate: (o: unknown) => Promise<{
         content: Array<{ type: string; toolName?: string; input?: string; text?: string }>;
-        finishReason: string;
+        finishReason: { unified: string };
       }>;
     };
     const result = await model.doGenerate({
       prompt: [{ role: 'user', content: [{ type: 'text', text: 'Kerjakan.' }] }],
       tools: [{ type: 'function', name: 'jawab', inputSchema: { type: 'object' } }],
     });
-    expect(result.finishReason).toBe('tool-calls');
+    expect(result.finishReason).toMatchObject({ unified: 'tool-calls' });
     expect(result.content[0]).toMatchObject({ type: 'text', text: 'Siap, panggil tool dulu.' });
     expect(result.content[1]).toMatchObject({
       type: 'tool-call',
@@ -442,7 +494,7 @@ describe('opencode-cli tool calling via envelope JSON', () => {
     expect((result.content[1] as { toolCallId?: string }).toolCallId).toMatch(/^oc-/);
   }, 30_000);
 
-  it('doGenerate toolChoice none mengabaikan envelope', async () => {
+  it('doGenerate toolChoice none mengabaikan envelope (v3)', async () => {
     const stub = writeStub(
       'opencode-envelope-none',
       '#!/usr/bin/env bash\n' +
@@ -455,7 +507,7 @@ describe('opencode-cli tool calling via envelope JSON', () => {
     const model = createOpencodeCliModel('big-pickle') as unknown as {
       doGenerate: (o: unknown) => Promise<{
         content: Array<{ type: string }>;
-        finishReason: string;
+        finishReason: { unified: string };
       }>;
     };
     const result = await model.doGenerate({
@@ -463,9 +515,29 @@ describe('opencode-cli tool calling via envelope JSON', () => {
       tools: [{ type: 'function', name: 'jawab' }],
       toolChoice: { type: 'none' },
     });
-    expect(result.finishReason).toBe('stop');
+    expect(result.finishReason).toMatchObject({ unified: 'stop' });
     expect(result.content).toHaveLength(1);
     expect(result.content[0]?.type).toBe('text');
+  }, 30_000);
+
+  it('doGenerate stopSequences memotong nyata (paritas ber-key)', async () => {
+    const stub = writeStub(
+      'opencode-stop',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'cat > /dev/null\n' +
+        'echo \'{"type":"text","part":{"text":"halo STOP dunia"}}\'\n' +
+        'exit 0\n',
+    );
+    vi.stubEnv('OPENCODE_BIN', stub);
+    const model = createOpencodeCliModel('big-pickle') as unknown as {
+      doGenerate: (o: unknown) => Promise<{ content: Array<{ type: string; text?: string }> }>;
+    };
+    const result = await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hai.' }] }],
+      stopSequences: ['STOP'],
+    });
+    expect(result.content[0]).toMatchObject({ type: 'text', text: 'halo ' });
   }, 30_000);
 
   it('doStream dengan tools memancarkan tool-call + finish tool-calls (envelope tidak bocor)', async () => {
@@ -495,7 +567,7 @@ describe('opencode-cli tool calling via envelope JSON', () => {
     const types = parts.map((p) => p.type);
     expect(types).toContain('tool-call');
     expect(types[types.length - 1]).toBe('finish');
-    expect(parts[parts.length - 1]).toMatchObject({ finishReason: 'tool-calls' });
+    expect(parts[parts.length - 1]).toMatchObject({ finishReason: { unified: 'tool-calls' } });
     const toolCall = parts.find((p) => p.type === 'tool-call') as {
       toolName?: string;
       input?: string;

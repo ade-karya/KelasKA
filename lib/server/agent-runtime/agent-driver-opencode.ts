@@ -16,7 +16,8 @@
  * cocok) tetap milik lib/server/agent-runtime/agent-driver-model.ts — modul
  * ini hanya menegaskan varian CLI: memastikan route yang ter-resolve memang
  * CLI, lalu menyediakan opsi StreamFn yang benar untuk CLI (tanpa max_tokens
- * di wire, karena CLI mengabaikannya; thinking tetap disabled).
+ * di wire — batas disalurkan sebagai instruksi prompt di lib/ai/opencode-cli.ts
+ * agar paritas perilaku dengan cap wire jalur ber-key; thinking tetap disabled).
  */
 
 import {

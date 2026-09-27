@@ -15,7 +15,10 @@ export const UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS = 8_192;
 // nexu-io/open-design) — no HTTP, no API key. Function tools reach the model
 // via the ```tool_calls envelope and the pi loop executes them, so a free Zen
 // model behaves like a keyed LLM from the harness perspective (single-turn
-// emit → harness executes → follow-up). The route declares this with
+// emit → harness executes → follow-up). Sampling batas (max tokens,
+// temperature, stop) dipetakan ke instruksi prompt di opencode-cli.ts
+// (paritas perilaku; hanya seed yang tetap unsupported). Usage diestimasi
+// karakter/4 agar observability sama. The route declares this with
 // `"api":"opencode-cli"` (aliases `"cli"`, `"opencode"`); internally the pi
 // metadata still carries the `openai-completions` shim because pi's
 // Model<Api> union has no CLI member — the StreamFn ignores that stub and
@@ -120,9 +123,9 @@ export async function resolveAgentDriverModel(): Promise<{
   }
   const connection = await resolveModel({ stage: AGENT_DRIVER_STAGE });
   const isCliDriver = isOpencodeCliApi(route.api) || isOpencodeCliProvider(connection.providerId);
-  // CLI ignores maxTokens per-call (unsupported-setting warning only): never
-  // send a hard cap on the wire for the CLI transport. HTTP keeps the catalog
-  // output window as the API limit.
+  // CLI memetakan batas sampling ke instruksi prompt (bukan cap wire), jadi
+  // wire tidak pernah membawa max_tokens untuk transport CLI. HTTP memakai
+  // jendela output katalog sebagai batas API.
   const wireMaxOutputTokens = isCliDriver ? undefined : connection.modelInfo?.outputWindow;
   return {
     connection,

@@ -12,15 +12,16 @@
  * gagal dengan `FreeTierError`. Lewat CLI, eksekusi terjadi di dalam klien
  * sehingga model gratis bisa dipakai server-side tanpa API key.
  *
- * Batasan yang disengaja:
- * - Function tools OpenMAIC DIDUKUNG via envelope JSON (bukan protokol
- *   function-call asli — CLI tidak memilikinya). Bila caller menyertakan
- *   `tools`, prompt ditambah instruksi + skema, dan output teks CLI diparse:
- *   blok pagar ```tool_calls {"tool_calls":[{name, arguments}]} diubah menjadi
- *   tool-call parts SDK sehingga loop `generateText`/`streamText` + `stopWhen`
- *   caller berjalan normal (eksekusi tool tetap oleh SDK/pemanggil, hasil
- *   tool-result kembali sebagai teks di prompt berikutnya). Tanpa envelope =
- *   teks biasa, finish `stop`.
+ * Paritas dengan LLM ber-API-key (dijaga di sini, bukan di runner):
+ * - Spec AI SDK v3 (sama seperti provider HTTP): finishReason {unified,raw},
+ *   usage estimasi karakter/4 (bukan nol) agar usage-storage/cost/compaction
+ *   bekerja, dan tanpa warning compat-mode.
+ * - Sampling (maxOutputTokens/temperature/topP/topK/penalties) dipetakan ke
+ *   instruksi prompt; stopSequences didukung NYATA via pemotongan teks
+ *   (live + buffered). Hanya seed yang tetap diwarning (tak terwakili via CLI).
+ * - Riwayat tool-call/tool-result dipertahankan PENUH (nama+argumen+output,
+ *   tanpa potong 2000 char) agar badan skill + konteks multi-turn utuh —
+ *   sama seperti pesan terstruktur jalur HTTP.
  * - Setiap panggilan = sesi CLI baru (one-shot, tanpa `-s` resume) karena
  *   panggilan OpenMAIC stateless (prompt penuh dikirim tiap request).
  * - CLI dijalankan di direktori temp kosong agar baca/tulis file oleh agen
@@ -47,8 +48,8 @@ import type { LanguageModel } from 'ai';
 // Konfigurasi
 // ---------------------------------------------------------------------------
 
-/** Default eksekusi CLI: 10 menit (selaras OPENMAIC_AGENT_TOOL_TIMEOUT_MS). */
-export const OPENCODE_CLI_DEFAULT_TIMEOUT_MS = 600_000;
+/** Default eksekusi CLI: 15 menit (selaras LLM_FETCH_TIMEOUT_MS jalur HTTP ber-key). */
+export const OPENCODE_CLI_DEFAULT_TIMEOUT_MS = 900_000;
 
 /** Timeout probe ketersediaan binary (metadata, bukan run). */
 const BIN_PROBE_TIMEOUT_MS = 10_000;
@@ -195,13 +196,31 @@ function partText(part: PromptPart): string {
     return (part as { text: string }).text;
   }
   if (part.type === 'tool-call') {
+    // Paritas jalur ber-key: pertahankan NAMA + ARGUMEN penuh (bukan nama saja)
+    // agar turn lanjutan + riwayat skill tidak kehilangan konteks panggilan.
     const p = part as unknown as Record<string, unknown>;
-    return `[tool-call ${String(p.toolName ?? 'unknown')}]`;
+    const name = String(p.toolName ?? p.name ?? 'unknown');
+    let argsText = '';
+    try {
+      const raw = (p.input ?? p.args ?? p.arguments) as unknown;
+      argsText =
+        typeof raw === 'string' ? raw : JSON.stringify(raw ?? {});
+    } catch {
+      argsText = '{}';
+    }
+    return `[tool-call ${name} ${argsText}]`;
   }
   if (part.type === 'tool-result') {
+    // Paritas jalur ber-key: JANGAN potong 2000 karakter. Badan skill
+    // (SKILL.md) + hasil read_stage/material bisa >2000 dan model butuh utuh.
     const p = part as unknown as Record<string, unknown>;
-    const out = typeof p.output === 'string' ? p.output : JSON.stringify(p.output ?? '');
-    return `[tool-result ${String(p.toolName ?? '')}: ${out.slice(0, 2000)}]`;
+    const out =
+      typeof p.output === 'string'
+        ? p.output
+        : JSON.stringify(
+            (p.output ?? (p as { result?: unknown }).result ?? '') as unknown,
+          );
+    return `[tool-result ${String((p.toolName ?? p.name ?? '') as string)}: ${out}]`;
   }
   return '';
 }
@@ -691,23 +710,16 @@ type CliWarning =
 /** Peringatan jujur untuk opsi yang tidak didukung eksekusi CLI. */
 export function buildCliWarnings(options: CliCallOptions): CliWarning[] {
   const warnings: CliWarning[] = [];
-  for (const setting of [
-    'temperature',
-    'topP',
-    'topK',
-    'seed',
-    'presencePenalty',
-    'frequencyPenalty',
-    'stopSequences',
-    'maxOutputTokens',
-  ] as const) {
-    if (options[setting] !== undefined) {
-      warnings.push({
-        type: 'unsupported-setting',
-        setting,
-        details: 'opencode run tidak menerima batasan sampling per panggilan.',
-      });
-    }
+  // Paritas jalur ber-key: maxOutputTokens/temperature/topP/topK/
+  // presencePenalty/frequencyPenalty/stopSequences DIPETAKAN ke instruksi
+  // prompt (buildSamplingHints) + pemotongan stop-sequence nyata — bukan
+  // diwarning. Hanya seed yang benar-benar tak bisa diwakili via CLI.
+  if (options.seed !== undefined) {
+    warnings.push({
+      type: 'unsupported-setting',
+      setting: 'seed',
+      details: 'opencode run tidak menerima seed deterministik per panggilan.',
+    });
   }
   // Function tools DIDUKUNG via envelope JSON (lihat bawah); hanya
   // provider-defined tools yang benar-benar tidak bisa diteruskan.
@@ -721,6 +733,70 @@ export function buildCliWarnings(options: CliCallOptions): CliWarning[] {
     }
   }
   return warnings;
+}
+
+/**
+ * Paritas sampling dengan jalur HTTP ber-key.
+ *
+ * `opencode run` tidak punya flag sampling per panggilan, jadi batasan
+ * disalurkan sebagai instruksi prompt (pendekatan yang sama dipakai
+ * responseFormat JSON di bawah). Ini menghilangkan warning
+ * `unsupported-setting` yang membanjiri log agent-runtime sekaligus membuat
+ * perilaku CLI mendekati model ber-key dari sisi pemanggil.
+ */
+export function buildSamplingHints(options: CliCallOptions): string {
+  const hints: string[] = [];
+  if (options.maxOutputTokens !== undefined && Number.isFinite(options.maxOutputTokens)) {
+    hints.push(
+      `Batasi jawaban maksimal ~${Math.max(1, Math.floor(options.maxOutputTokens))} token; jawab ringkas dan jangan bertele-tele.`,
+    );
+  }
+  if (options.temperature !== undefined) {
+    const t = Number(options.temperature);
+    if (Number.isFinite(t)) {
+      hints.push(
+        t <= 0.2
+          ? 'Jawab deterministik dan faktual; hindari variasi kreatif.'
+          : t >= 1
+            ? 'Jawab ekspresif dan variatif bila relevan.'
+            : 'Seimbangkan ketepatan dan keluwesan dalam jawaban.',
+      );
+    }
+  }
+  if (options.topP !== undefined || options.topK !== undefined) {
+    hints.push('Pilih kata yang paling tepat dan umum; hindari pilihan kata yang aneh.');
+  }
+  if (options.presencePenalty !== undefined || options.frequencyPenalty !== undefined) {
+    hints.push('Hindari pengulangan frasa yang sama; variasikan kalimat.');
+  }
+  if (options.stopSequences && options.stopSequences.length > 0) {
+    const seqs = options.stopSequences.filter((s) => typeof s === 'string' && s.length > 0);
+    if (seqs.length > 0) {
+      hints.push(
+        `Akhiri jawaban SEBELUM memancarkan salah satu dari: ${seqs.map((s) => JSON.stringify(s)).join(', ')}. Jangan sertakan penanda itu.`,
+      );
+    }
+  }
+  if (hints.length === 0) return '';
+  return `[sampling]\n${hints.join('\n')}`;
+}
+
+/** Paritas stopSequences: potong teks pada kemunculan pertama sekuens setop. */
+export function applyStopSequences(text: string, stopSequences?: string[]): string {
+  if (!stopSequences || stopSequences.length === 0) return text;
+  let cut = -1;
+  for (const seq of stopSequences) {
+    if (!seq) continue;
+    const idx = text.indexOf(seq);
+    if (idx >= 0 && (cut < 0 || idx < cut)) cut = idx;
+  }
+  return cut >= 0 ? text.slice(0, cut) : text;
+}
+
+/** Estimasi token kasar (karakter/4) agar usage/cost/compaction CLI ~ jalur ber-key. */
+export function estimateTokens(text: string): number {
+  if (!text) return 0;
+  return Math.max(0, Math.ceil(text.length / 4));
 }
 
 function promptWithFormatHint(
@@ -804,6 +880,7 @@ export function buildToolCallingInstructions(
     '[tools] Tool-use protocol for THIS session (the harness intercepts it):',
     'You are a SINGLE-TURN function-calling language model, NOT an autonomous coding agent.',
     'Do NOT use your built-in file/shell/workspace tools for these functions and do NOT read the local workspace — the harness owns execution.',
+    'Kamu adalah model function-calling SATU giliran; JANGAN pakai tools bawaan untuk fungsi di bawah — pakai pagar fence, bukan tools bawaan.',
     'To use a tool, print exactly ONE fenced block as your ENTIRE response:',
     '```tool_calls',
     '{"tool_calls":[{"name":"<function-name>","arguments":{...}}]}',
@@ -812,8 +889,10 @@ export function buildToolCallingInstructions(
     '{"tool_calls":[{"name":"my_tool","arguments":{"q":"hello"}}]}',
     '```',
     'The harness executes each call and returns the result(s) to you as a follow-up message; then continue.',
-    'Rules:',
+    'Harness mengeksekusi tiap panggilan dan mengembalikan hasilnya sebagai pesan lanjutan; lalu lanjutkan.',
+    'Rules / Aturan:',
     '- These functions ARE available to you right now via the harness — use the fence, not your built-in tools, for them.',
+    '- Fungsi-fungsi ini TERSEDIA sekarang via harness — pakai fence untuknya.',
     '- "arguments" MUST be a JSON object matching the function parameters.',
     '- Emit the fence ONLY when you actually need one or more calls.',
     required
@@ -821,9 +900,7 @@ export function buildToolCallingInstructions(
       : '- When no call is needed, answer in plain text WITHOUT any fence.',
     'Available functions:',
     ...tools.map(
-      (t) =>
-        `- ${t.name}: ${(t.description ?? '(no description)').slice(0, 500)} ` +
-        `Parameters: ${JSON.stringify(t.inputSchema ?? {})}`,
+      (t) => `- ${t.name}: ${(t.description ?? '(no description)').trim() || '(no description)'} Parameters: ${JSON.stringify(t.inputSchema ?? {})}`,
     ),
   ];
   return lines.join('\n');
@@ -907,7 +984,7 @@ type CliContentPart =
   | { type: 'text'; text: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: string };
 
-/** Prompt stdin: flatten + instruksi tools (bila ada) + hint format. */
+/** Prompt stdin: flatten + hint sampling + instruksi tools (bila ada) + hint format. */
 function buildCliPrompt(options: CliCallOptions): {
   promptText: string;
   funcTools: CliFunctionToolDef[];
@@ -915,6 +992,8 @@ function buildCliPrompt(options: CliCallOptions): {
   const funcTools = functionToolDefs(options);
   const allowCalls = toolCallsAllowed(options.toolChoice);
   let promptText = flattenPromptToText(options.prompt);
+  const sampling = buildSamplingHints(options);
+  if (sampling) promptText += `\n\n${sampling}`;
   if (funcTools.length > 0 && allowCalls) {
     promptText += `\n\n${buildToolCallingInstructions(funcTools, options.toolChoice)}`;
   }
@@ -924,7 +1003,25 @@ function buildCliPrompt(options: CliCallOptions): {
   };
 }
 
-const ZERO_USAGE = { inputTokens: undefined, outputTokens: undefined, totalTokens: undefined };
+type V3Usage = {
+  inputTokens: { total: number | undefined; noCache: number | undefined; cacheRead: number | undefined; cacheWrite: number | undefined };
+  outputTokens: { total: number | undefined; text: number | undefined; reasoning: number | undefined };
+};
+
+type V3FinishReason = { unified: 'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'; raw: string | undefined };
+
+function v3UsageFor(inputText: string, outputText: string): V3Usage {
+  const input = estimateTokens(inputText);
+  const output = estimateTokens(outputText);
+  return {
+    inputTokens: { total: input, noCache: input, cacheRead: 0, cacheWrite: 0 },
+    outputTokens: { total: output, text: output, reasoning: 0 },
+  };
+}
+
+function v3Finish(unified: V3FinishReason['unified']): V3FinishReason {
+  return { unified, raw: unified };
+}
 
 /**
  * Model `opencode:*` / `opencode-go:*` untuk AI SDK. `provider`/`modelId`
@@ -933,7 +1030,7 @@ const ZERO_USAGE = { inputTokens: undefined, outputTokens: undefined, totalToken
  * dependensi `@ai-sdk/provider`.
  */
 export class OpencodeCliLanguageModel {
-  readonly specificationVersion = 'v2' as const;
+  readonly specificationVersion = 'v3' as const;
   readonly provider: string;
   readonly modelId: string;
   readonly supportedUrls: Record<string, RegExp[]> = {};
@@ -947,8 +1044,8 @@ export class OpencodeCliLanguageModel {
 
   async doGenerate(options: CliCallOptions): Promise<{
     content: Array<CliContentPart>;
-    finishReason: 'stop' | 'tool-calls';
-    usage: { inputTokens: undefined; outputTokens: undefined; totalTokens: undefined };
+    finishReason: V3FinishReason;
+    usage: V3Usage;
     warnings: CliWarning[];
   }> {
     const { promptText, funcTools } = buildCliPrompt(options);
@@ -958,8 +1055,9 @@ export class OpencodeCliLanguageModel {
       promptText,
       abortSignal: options.abortSignal,
     });
+    const stoppedText = applyStopSequences(result.text, options.stopSequences);
     if (funcTools.length > 0) {
-      const parsed = parseToolCallsFromText(result.text, new Set(funcTools.map((t) => t.name)));
+      const parsed = parseToolCallsFromText(stoppedText, new Set(funcTools.map((t) => t.name)));
       if (parsed && parsed.calls.length > 0) {
         const content: CliContentPart[] = [];
         if (parsed.leadingText) content.push({ type: 'text', text: parsed.leadingText });
@@ -973,16 +1071,16 @@ export class OpencodeCliLanguageModel {
         }
         return {
           content,
-          finishReason: 'tool-calls',
-          usage: ZERO_USAGE,
+          finishReason: v3Finish('tool-calls'),
+          usage: v3UsageFor(promptText, stoppedText),
           warnings: buildCliWarnings(options),
         };
       }
     }
     return {
-      content: [{ type: 'text', text: result.text }],
-      finishReason: 'stop',
-      usage: ZERO_USAGE,
+      content: [{ type: 'text', text: stoppedText }],
+      finishReason: v3Finish('stop'),
+      usage: v3UsageFor(promptText, stoppedText),
       warnings: buildCliWarnings(options),
     };
   }
@@ -992,6 +1090,7 @@ export class OpencodeCliLanguageModel {
   }> {
     const warnings = buildCliWarnings(options);
     const { promptText, funcTools } = buildCliPrompt(options);
+    const stopSequences = options.stopSequences;
     const modelId = this.modelId;
     const textId = 'opencode-text-0';
 
@@ -1005,17 +1104,40 @@ export class OpencodeCliLanguageModel {
         try {
           if (live) {
             controller.enqueue({ type: 'text-start', id: textId });
+            let collected = '';
+            let emitted = 0;
+            let stopped = false;
             await runOpencodeCli({
               modelId,
               cliProvider: this.cliProvider,
               promptText,
               abortSignal: options.abortSignal,
               onTextDelta: (delta) => {
+                if (stopped) return;
+                collected += delta;
+                // Paritas stopSequences live: pancarkan hanya sampai sekuens setop.
+                if (stopSequences && stopSequences.length > 0) {
+                  const cut = applyStopSequences(collected, stopSequences);
+                  if (cut.length < collected.length) {
+                    const fresh = cut.slice(emitted);
+                    if (fresh) controller.enqueue({ type: 'text-delta', id: textId, delta: fresh });
+                    emitted = cut.length;
+                    collected = cut;
+                    stopped = true;
+                    return;
+                  }
+                }
                 controller.enqueue({ type: 'text-delta', id: textId, delta });
+                emitted += delta.length;
               },
             });
             controller.enqueue({ type: 'text-end', id: textId });
-            controller.enqueue({ type: 'finish', finishReason: 'stop', usage: ZERO_USAGE });
+            const finalText = applyStopSequences(collected, stopSequences);
+            controller.enqueue({
+              type: 'finish',
+              finishReason: v3Finish('stop'),
+              usage: v3UsageFor(promptText, finalText),
+            });
           } else {
             const result = await runOpencodeCli({
               modelId,
@@ -1023,8 +1145,9 @@ export class OpencodeCliLanguageModel {
               promptText,
               abortSignal: options.abortSignal,
             });
+            const stoppedText = applyStopSequences(result.text, stopSequences);
             const parsed = parseToolCallsFromText(
-              result.text,
+              stoppedText,
               new Set(funcTools.map((t) => t.name)),
             );
             if (parsed && parsed.calls.length > 0) {
@@ -1046,12 +1169,20 @@ export class OpencodeCliLanguageModel {
                   input,
                 });
               }
-              controller.enqueue({ type: 'finish', finishReason: 'tool-calls', usage: ZERO_USAGE });
+              controller.enqueue({
+                type: 'finish',
+                finishReason: v3Finish('tool-calls'),
+                usage: v3UsageFor(promptText, stoppedText),
+              });
             } else {
               controller.enqueue({ type: 'text-start', id: textId });
-              controller.enqueue({ type: 'text-delta', id: textId, delta: result.text });
+              controller.enqueue({ type: 'text-delta', id: textId, delta: stoppedText });
               controller.enqueue({ type: 'text-end', id: textId });
-              controller.enqueue({ type: 'finish', finishReason: 'stop', usage: ZERO_USAGE });
+              controller.enqueue({
+                type: 'finish',
+                finishReason: v3Finish('stop'),
+                usage: v3UsageFor(promptText, stoppedText),
+              });
             }
           }
         } catch (err) {
