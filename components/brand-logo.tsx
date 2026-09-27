@@ -4,7 +4,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 export interface BrandLogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
   showText?: boolean;
   showLogos?: boolean;
@@ -17,6 +17,12 @@ export function BrandLogo({
   showLogos = true,
 }: BrandLogoProps) {
   const sizeClasses = {
+    xs: {
+      logo: 'h-6 w-auto object-contain',
+      text: 'text-sm font-bold tracking-tight',
+      gap: 'gap-1.5',
+      divider: 'h-4 w-px bg-border/60',
+    },
     sm: {
       logo: 'h-8 w-auto object-contain',
       text: 'text-base font-bold tracking-tight',

@@ -23,12 +23,16 @@ export interface BrandConfig {
   themeColor: string;
 }
 
-/** The default brand: the product itself, with no vendor overrides. */
+/** The default brand: Kelas KA, with no vendor overrides. */
 export const DEFAULT_BRAND: BrandConfig = {
   productName: 'Kelas KA',
   shortName: 'Kelas KA',
-  logoSrc: '/logo-horizontal.png',
-  logoHasWordmark: true,
-  markSrc: '/openmaic-mark.png',
-  themeColor: '#722ed1',
+  // Lockup Kelas KA dirender oleh `BrandLogo` (Kemendikdasmen + DPRD + teks
+  // "Kelas KA"), bukan satu file horizontal. `logoSrc` ini hanya fallback
+  // untuk permukaan yang belum migrasi — arahkan ke aset institusi agar tidak
+  // membocorkan logo OpenMAIC lama.
+  logoSrc: '/logo-kemendikdasmen.png',
+  logoHasWordmark: false,
+  markSrc: '/logo-kemendikdasmen.png',
+  themeColor: '#1d4ed8',
 };
