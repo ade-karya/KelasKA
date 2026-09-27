@@ -1785,6 +1785,32 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     ],
   },
 
+  'opencode-go': {
+    id: 'opencode-go',
+    name: 'OpenCode Go',
+    // Slug provider CLI `opencode-go/*` (terbukti via `opencode models`, mis.
+    // opencode-go/gpt-6-luna). Dieksekusi sebagai child process `opencode run`
+    // seperti provider `opencode` — BUKAN HTTP. Model berbayar butuh
+    // `opencode auth login` untuk jalur CLI, atau <PREFIX>_API_KEY
+    // (OPENCODE_GO_API_KEY) untuk jalur HTTP langsung (driver agen).
+    type: 'opencode',
+    defaultBaseUrl: 'https://opencode.ai/zen/v1',
+    requiresApiKey: false,
+    icon: '/logos/opencode.svg',
+    models: [
+      {
+        id: 'gpt-6-luna',
+        name: 'GPT 6 Luna',
+        // Angka cermin model Zen seinduk (terverifikasi: slug katalog CLI,
+        // bukan jendela konteks resmi). Hanya dipakai estimasi kompa ksi
+        // internal driver; tidak dikirim sebagai batas API.
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+    ],
+  },
+
   lemonade: {
     id: 'lemonade',
     name: 'Lemonade',
@@ -2703,7 +2729,9 @@ export function getModel(config: ModelConfig): ModelWithInfo {
     case 'opencode': {
       // Eksekusi CLI lokal (tanpa HTTP/API key): model = child process
       // `opencode run --format json`. baseUrl/key diabaikan di jalur ini.
-      model = createOpencodeCliModel(config.modelId);
+      // providerId diteruskan agar slug CLI benar (`opencode/*` vs
+      // `opencode-go/*`).
+      model = createOpencodeCliModel(config.modelId, config.providerId);
       break;
     }
 

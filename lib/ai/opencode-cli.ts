@@ -157,17 +157,17 @@ export function resetOpencodeBinCache(): void {
 // Argumen (mirip open-design `defs/opencode.ts` buildArgs)
 // ---------------------------------------------------------------------------
 
-/** `opencode:big-pickle` -> `opencode/big-pickle` (bentuk `-m` CLI). */
-export function toCliModelId(modelId: string): string {
+/** `opencode:big-pickle` -> `opencode/big-pickle`; `opencode-go:gpt-6-luna` -> `opencode-go/gpt-6-luna` (bentuk `-m` CLI). */
+export function toCliModelId(modelId: string, cliProvider = 'opencode'): string {
   const trimmed = modelId.trim();
-  return trimmed.includes('/') ? trimmed : `opencode/${trimmed}`;
+  return trimmed.includes('/') ? trimmed : `${cliProvider}/${trimmed}`;
 }
 
-export function buildOpencodeArgs(modelId: string): string[] {
+export function buildOpencodeArgs(modelId: string, cliProvider = 'opencode'): string[] {
   // v2 `opencode run` tidak punya --dir / --dangerously-skip-permissions
   // (flag v1): sandboxing dicapai via cwd proses = direktori temp kosong.
   // `--auto` = setujui permission yang tidak eksplisit ditolak (non-interaktif).
-  return ['run', '--format', 'json', '--auto', '-m', toCliModelId(modelId)];
+  return ['run', '--format', 'json', '--auto', '-m', toCliModelId(modelId, cliProvider)];
 }
 
 // ---------------------------------------------------------------------------
@@ -397,6 +397,12 @@ export function createOpencodeStreamParser(events: OpencodeParseEvents = {}): {
 
 export interface RunOpencodeCliOptions {
   modelId: string;
+  /**
+   * Slug provider CLI (`opencode` atau `opencode-go`). Default `opencode`
+   * agar pemanggil lama tidak berubah; diisi dari providerId registry oleh
+   * `OpencodeCliLanguageModel` / `getModel`.
+   */
+  cliProvider?: string;
   promptText: string;
   abortSignal?: AbortSignal;
   timeoutMs?: number;
@@ -496,6 +502,7 @@ export async function runOpencodeCli(
   options: RunOpencodeCliOptions,
 ): Promise<RunOpencodeCliResult> {
   const { modelId, promptText, abortSignal, onTextDelta } = options;
+  const cliProvider = options.cliProvider ?? 'opencode';
   const timeoutMs = options.timeoutMs ?? cliTimeoutMs();
 
   const bin = await findOpencodeBin();
@@ -513,7 +520,7 @@ export async function runOpencodeCli(
   // Sandbox: direktori temp kosong agar file-ops agen tidak menyentuh repo.
   const { spawn, fs, os, path } = await loadNodeBuiltins();
   const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'openmaic-opencode-'));
-  let args = buildOpencodeArgs(modelId);
+  let args = buildOpencodeArgs(modelId, cliProvider);
   let retriedWithoutFlags = false;
 
   const attempt = (): Promise<RunOpencodeCliResult> =>
@@ -915,19 +922,22 @@ function buildCliPrompt(options: CliCallOptions): {
 const ZERO_USAGE = { inputTokens: undefined, outputTokens: undefined, totalTokens: undefined };
 
 /**
- * Model `opencode:*` untuk AI SDK. `provider`/`modelId` mengikuti konvensi
- * registry agar logging + usage-meta OpenMAIC tetap benar. Di-cast ke
- * `LanguageModel` di batas modul (providers.ts) agar tidak menambah
+ * Model `opencode:*` / `opencode-go:*` untuk AI SDK. `provider`/`modelId`
+ * mengikuti konvensi registry agar logging + usage-meta OpenMAIC tetap benar.
+ * Di-cast ke `LanguageModel` di batas modul (providers.ts) agar tidak menambah
  * dependensi `@ai-sdk/provider`.
  */
 export class OpencodeCliLanguageModel {
   readonly specificationVersion = 'v2' as const;
-  readonly provider = 'opencode';
+  readonly provider: string;
   readonly modelId: string;
   readonly supportedUrls: Record<string, RegExp[]> = {};
+  private readonly cliProvider: string;
 
-  constructor(modelId: string) {
+  constructor(modelId: string, cliProvider = 'opencode') {
     this.modelId = modelId;
+    this.cliProvider = cliProvider;
+    this.provider = cliProvider;
   }
 
   async doGenerate(options: CliCallOptions): Promise<{
@@ -939,6 +949,7 @@ export class OpencodeCliLanguageModel {
     const { promptText, funcTools } = buildCliPrompt(options);
     const result = await runOpencodeCli({
       modelId: this.modelId,
+      cliProvider: this.cliProvider,
       promptText,
       abortSignal: options.abortSignal,
     });
@@ -991,6 +1002,7 @@ export class OpencodeCliLanguageModel {
             controller.enqueue({ type: 'text-start', id: textId });
             await runOpencodeCli({
               modelId,
+              cliProvider: this.cliProvider,
               promptText,
               abortSignal: options.abortSignal,
               onTextDelta: (delta) => {
@@ -1002,6 +1014,7 @@ export class OpencodeCliLanguageModel {
           } else {
             const result = await runOpencodeCli({
               modelId,
+              cliProvider: this.cliProvider,
               promptText,
               abortSignal: options.abortSignal,
             });
@@ -1049,6 +1062,6 @@ export class OpencodeCliLanguageModel {
 }
 
 /** Pabrik model CLI untuk dipakai `getModel` di providers.ts. */
-export function createOpencodeCliModel(modelId: string): LanguageModel {
-  return new OpencodeCliLanguageModel(modelId) as unknown as LanguageModel;
+export function createOpencodeCliModel(modelId: string, providerId = 'opencode'): LanguageModel {
+  return new OpencodeCliLanguageModel(modelId, providerId) as unknown as LanguageModel;
 }

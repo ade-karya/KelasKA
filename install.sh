@@ -11,7 +11,7 @@
 # Yang diinstal / disiapkan:
 #   1. Paket sistem (apt): hanya yang dipakai installer, Node, dan build native
 #      `canvas` (opsi jsdom) — rincian + alasannya di blok APT_PKGS. ffmpeg
-#      TIDAK dipasang default (lihat --with-ffmpeg). PostgreSQL 18 dari repo
+#      dipasang default native (lihat --no-ffmpeg). PostgreSQL 18 dari repo
 #      resmi PGDG (apt.postgresql.org) — bukan paket bawaan distro yang
 #      tertinggal (Ubuntu 24.04 = PG 16); ganti mayor dengan --pg-major=N.
 #   2. Node.js 24 (>= 24.21, sesuai `engines` di package.json) via NodeSource.
@@ -22,8 +22,14 @@
 #      --no-opencode). Ollama TIDAK diinstal lagi.
 #   6. File `.env.local` (dibuat dari template bila belum ada; bila sudah ada
 #      hanya dilengkapi variabel yang hilang — tidak menimpa isi user).
-#      LLM default: opencode:space-bunny-free (provider `opencode` terdaftar di
-#      lib/ai/providers.ts; gateway Zen https://opencode.ai/zen/v1).
+#      Pro Workbench: auto-tier model 1->2->3 dari API key yang terisi
+#      (provider terdaftar di lib/ai/providers.ts) —
+#      1 LLM murni (deepseek:deepseek-v4-flash), 2 OpenCode Go
+#      (opencode-go:gpt-6-luna), 3 OpenCode free CLI
+#      (opencode:muse-spark-1.3-contributor-free). API key
+#      (DEEPSEEK_API_KEY, OPENCODE_API_KEY/OPENCODE_GO_API_KEY, provider LLM,
+#      TTS/ASR, search) dibiarkan kosong untuk diisi manual. Tanpa docker:
+#      render MP4 tetap via ZIP, bukan render-service.
 #   7. Direktori `data/` untuk classroom store berbasis file.
 #   8. Dependensi JS via `pnpm install --frozen-lockfile`
 #      (postinstall otomatis build workspace packages + sync vendor importer).
@@ -32,9 +38,6 @@
 # Yang SENGAJA tidak dipasang (agar server tetap ringan):
 #   - postgresql-contrib: tidak ada `CREATE EXTENSION` di seluruh repo, jadi
 #     paket ekstensi hanya menambah bobot tanpa dipakai.
-#   - ffmpeg: hanya perlu untuk ekstraksi media lokal (provider `local-ffmpeg`).
-#     README menyatakan ffmpeg tidak diperlukan untuk start/menggunakan
-#     OpenMAIC. Pasang bila perlu: `./install.sh --with-ffmpeg`.
 #   - librsvg2-dev: dukungan SVG di `canvas` (node-canvas) tidak dipakai —
 #     render SVG ditangani @napi-rs/canvas yang membawa binary prebuilt-nya.
 #   - g++ (sudah ikut build-essential), openssl & python3 untuk generator
@@ -54,7 +57,9 @@
 #   --no-install        Lewati `pnpm install` (hanya siapkan sistem + env).
 #   --build             Jalankan `npm run build` di akhir sebagai pembuktian.
 #   --with-playwright   Instal browser Chromium untuk e2e Playwright.
-#   --with-ffmpeg       Instal ffmpeg (ekstraksi material audio/video lokal).
+#   --with-ffmpeg       Instal ffmpeg (default sudah ON; flag ini no-op,
+#                       disediakan agar eksplisit/kompatibel).
+#   --no-ffmpeg         Lewati instalasi ffmpeg (ekstraksi media lokal mati).
 #   --pg-major=N        Mayor PostgreSQL dari PGDG (default: 18, mayor stabil
 #                       terbaru — 19 masih beta per Sep 2026).
 #   --pg-password=PASS  Paksa password Postgres (default: dibuat acak).
@@ -108,7 +113,7 @@ WITH_POSTGRES=1
 WITH_INSTALL=1
 WITH_BUILD=0
 WITH_PLAYWRIGHT=0
-WITH_FFMPEG=0
+WITH_FFMPEG=1
 WITH_OPENCODE=1
 PG_PASSWORD="${PG_PASSWORD:-}"
 # Mayor Postgres target: 18 = stabil terbaru (19 masih beta per Sep 2026).
@@ -121,7 +126,7 @@ tampilkan_help() {
 Contoh:
   sudo ./install.sh --yes
   sudo ./install.sh --yes --build --with-playwright
-  sudo ./install.sh --yes --with-ffmpeg          # + ekstraksi media lokal
+  sudo ./install.sh --yes --no-ffmpeg              # tanpa ekstraksi media lokal
   sudo ./install.sh --yes --no-postgres          # tanpa Postgres (agent/persistence mati)
   sudo ./install.sh --yes --no-opencode          # tanpa OpenCode CLI
 EOF
@@ -135,10 +140,11 @@ for arg in "$@"; do
     --build)           WITH_BUILD=1 ;;
     --with-playwright) WITH_PLAYWRIGHT=1 ;;
     --with-ffmpeg)     WITH_FFMPEG=1 ;;
+    --no-ffmpeg)       WITH_FFMPEG=0 ;;
     --with-opencode)   WITH_OPENCODE=1 ;;
     --no-opencode)     WITH_OPENCODE=0 ;;
     --pg-major=*)      PG_MAJOR="${arg#*=}" ;;
-    --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (opencode:space-bunny-free). Hapus flag tersebut dan ulangi." ;;
+    --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (tier gratis: opencode:muse-spark-1.3-contributor-free). Hapus flag tersebut dan ulangi." ;;
     --pg-password=*)   PG_PASSWORD="${arg#*=}" ;;
     -h|--help)         tampilkan_help; exit 0 ;;
     *) fail "Opsi tidak dikenal: $arg (lihat --help)." ;;
@@ -160,9 +166,55 @@ fi
 run_as_root() {
   if [[ -n "${SUDO:-}" ]]; then
     $SUDO "$@"
-  else
-    "$@"
+    return
   fi
+  # Sudah root (SUDO=""): kupas flag gaya sudo di depan agar `"$@"` mentah
+  # tidak mencoba mengeksekusi `-E`/`-H`/`-u` sebagai perintah. Ini path utama
+  # `sudo ./install.sh`: SUDO="" tapi target user (OpenCode/Playwright) beda.
+  local want_home=0 target=""
+  while [[ $# -gt 0 ]]; do
+    case "${1:-}" in
+      -E) shift ;;                    # sudah root: env memang terwarisi
+      -H) want_home=1; shift ;;
+      -u) target="${2:-}"; shift 2 ;;
+      *) break ;;
+    esac
+  done
+  if [[ -z "$target" ]]; then
+    "$@"
+    return
+  fi
+  if [[ "$(id -un)" == "$target" ]]; then
+    "$@"
+    return
+  fi
+  # Sudah root -> pindah user tanpa password. Pakai sudo bila ada (tetap bisa
+  # dipanggil eksplisit walau $SUDO=""), kalau tidak pakai runuser/su.
+  if command -v sudo >/dev/null 2>&1; then
+    if [[ "$want_home" -eq 1 ]]; then
+      sudo -H -u "$target" "$@"
+    else
+      sudo -u "$target" "$@"
+    fi
+    return
+  fi
+  local thome=""
+  if [[ "$want_home" -eq 1 ]]; then
+    thome="$(getent passwd "$target" 2>/dev/null | cut -d: -f6 || true)"
+    [[ -n "$thome" ]] || thome="/home/$target"
+  fi
+  if command -v runuser >/dev/null 2>&1; then
+    if [[ -n "$thome" ]]; then
+      runuser -u "$target" -- env "HOME=$thome" "$@"
+    else
+      runuser -u "$target" -- "$@"
+    fi
+    return
+  fi
+  local q="" a
+  if [[ -n "$thome" ]]; then q="export HOME=$(printf '%q' "$thome");"; fi
+  for a in "$@"; do q="$q $(printf '%q' "$a")"; done
+  su "$target" -c "$q"
 }
 run_pipe_as_root() { run_as_root -E bash -; }
 
@@ -250,7 +302,7 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_BUILD" -eq 1 ]]; then
     echo "  - jalankan npm run build sebagai pembuktian"
   fi
-  echo "  - buat/lengkapi .env.local (DEFAULT_MODEL=opencode:space-bunny-free), direktori data/, pnpm install"
+  echo "  - buat/lengkapi .env.local (auto-tier Pro Workbench 1 LLM -> 2 opencode paid -> 3 free CLI), direktori data/, pnpm install"
   # Tanpa TTY, `read` langsung gagal dan `set -e` mematikan script tanpa pesan
   # yang berguna — lebih baik gagal dengan instruksi yang jelas.
   [[ -t 0 ]] || fail "Tidak ada TTY untuk konfirmasi. Jalankan ulang dengan --yes (non-interaktif)."
@@ -281,8 +333,8 @@ run_as_root apt-get update -o Acquire::Retries=3
 info "Menginstal paket sistem via apt: ${APT_PKGS[*]}"
 run_as_root apt-get install -y -o Acquire::Retries=3 "${APT_PKGS[@]}"
 
-# ffmpeg hanya untuk provider `local-ffmpeg` (ekstraksi transcript audio/video).
-# README: tidak diperlukan untuk start/menggunakan OpenMAIC → opt-in.
+# ffmpeg (native apt) untuk provider `local-ffmpeg` (ekstraksi transcript
+# audio/video). Default dipasang; lewati dengan --no-ffmpeg.
 if [[ "$WITH_FFMPEG" -eq 1 ]]; then
   info "Menginstal ffmpeg (ffprobe ikut dalam paket ffmpeg)..."
   run_as_root apt-get install -y -o Acquire::Retries=3 ffmpeg
@@ -322,7 +374,7 @@ if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     run_as_root chmod 0644 "$PGDG_KEYRING"
     # Codename distro dari /etc/os-release (paket lsb-release tidak dipakai).
     # shellcheck disable=SC1091  # /etc/os-release selalu ada di Ubuntu/Debian
-    CODENAME="$(. /etc/os-release 2>/dev/null && printf '%s' "${VERSION_CODENAME:-$UBUNTU_CODENAME}")"
+    CODENAME="$(. /etc/os-release 2>/dev/null && printf '%s' "${VERSION_CODENAME:-${UBUNTU_CODENAME:-}}")"
     [[ -n "$CODENAME" ]] || fail "Tidak bisa membaca VERSION_CODENAME dari /etc/os-release (Paket lsb-release sengaja tidak dipakai)."
     echo "deb [signed-by=$PGDG_KEYRING] https://apt.postgresql.org/pub/repos/apt ${CODENAME}-pgdg main" \
       | run_as_root tee "$PGDG_LIST" >/dev/null
@@ -377,7 +429,7 @@ PNPM_WANT="$(node -p "require('./package.json').packageManager || ''" | sed 's/.
 info "Menyiapkan pnpm@$PNPM_WANT via corepack..."
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 run_as_root corepack enable >/dev/null 2>&1 || corepack enable >/dev/null 2>&1 \
-  || warn "corepack enable gagal;=pnpm mungkin tetap tersedia lewat npm."
+  || warn "corepack enable gagal; pnpm mungkin tetap tersedia lewat npm."
 # corepack baru lebih suka `install --global`; `prepare --activate` dipakai
 # sebagai fallback untuk corepack lama.
 corepack install --global "pnpm@$PNPM_WANT" >/dev/null 2>&1 \
@@ -438,8 +490,11 @@ if [[ "$WITH_POSTGRES" -eq 1 ]]; then
   # .env.local yang ada > baru generate acak.
   if [[ -n "$PG_PASSWORD" ]]; then PG_PASSWORD_FORCED=1; fi
   if [[ "$PG_PASSWORD_FORCED" -eq 0 && -f .env.local ]]; then
+    # Password tersimpan dalam bentuk percent-encoded, jadi tidak ada `@` mentah.
+    # Pakai `(.*)` rakus sampai `@` TERAKHIR agar password yang mengandung `@`
+    # (mis. ditulis manual tanpa encode) tidak terpotong di `@` pertama.
     EXISTING_PG_PASS="$(env_get .env.local DATABASE_URL \
-      | sed -E -n 's|^postgres(ql)?://openmaic:([^@]*)@.*|\2|p')"
+      | sed -E -n 's|^postgres(ql)?://openmaic:(.*)@.*|\2|p')"
     if [[ -n "$EXISTING_PG_PASS" ]]; then
       PG_PASSWORD="$EXISTING_PG_PASS"
       info "Memakai ulang password Postgres dari .env.local yang ada (idempoten)."
@@ -472,7 +527,8 @@ if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     pg_as_postgres createdb -p "$PGPORT" -O openmaic openmaic
     info "Database 'openmaic' dibuat."
   fi
-  pg_as_postgres psql -p "$PGPORT" -d openmaic -c "GRANT ALL PRIVILEGES ON SCHEMA public TO openmaic;" >/dev/null
+  pg_as_postgres psql -p "$PGPORT" -d openmaic -c "GRANT ALL PRIVILEGES ON SCHEMA public TO openmaic;" >/dev/null \
+    || warn "GRANT ON SCHEMA public gagal; lanjutkan, cek manual sebagai postgres."
 
   DATABASE_URL_VALUE="postgres://openmaic:${PG_URL_ENCODED}@localhost:${PGPORT}/openmaic"
   if [[ "$PG_PASSWORD_GENERATED" -eq 1 ]]; then
@@ -493,30 +549,34 @@ DEV_TOKEN_NEW="$(rand_hex 16)"
 
 tulis_template_env() {
   local db_url="$1" access_code="$2" dev_token="$3" agent_runtime="$4" opencode_bin="$5"
+  local tier_name="$6" tier_default="$7" tier_driver="$8" tier_pin="$9"
+  local tier_key1_line="${10}" tier_key2_line="${11}" tier_key2go_line="${12}"
   cat <<EOF
 # =============================================================================
 # OpenMAIC dev/prod lokal — dibuat oleh install.sh pada $(date -u +%Y-%m-%d)
-# LLM default: OpenCode CLI v2 (provider 'opencode' terdaftar di
-# lib/ai/providers.ts, dieksekusi lokal pola nexu-io/open-design).
+# Pro Workbench: 3 tier model otomatis, urutan 1->2->3 (tier=${tier_name}).
+# Dipilih dari API key yang terisi; isi key lalu jalankan ulang install.sh
+# untuk naik tier, kosongkan key untuk turun tier (nilai kustom Anda tak
+# disentuh). Provider \`opencode\`/\`opencode-go\` = CLI lokal pola nexu-io/open-design.
+#   1. LLM murni + key  : ${TIER1_MODEL} (${TIER1_KEY_VAR} platform asli)
+#   2. OpenCode Go + key : ${TIER2_MODEL} (OPENCODE_API_KEY dan/atau
+#      OPENCODE_GO_API_KEY untuk jalur HTTP/driver; \`opencode auth login\`
+#      saja TIDAK cukup untuk driver HTTP)
+#   3. OpenCode free CLI : ${TIER3_MODEL} (tanpa auth sama sekali)
+# Slug tier2 persis katalog \`opencode models\` (terverifikasi); butuh
+# registrasi provider opencode-go di lib/ai/providers.ts (sudah ada).
 # CLI diinstal via: curl -fsSL https://opencode.ai/v2/install | bash
-# Default (opencode:space-bunny-free) adalah model FREE Zen: TIDAK butuh
-#   opencode auth login
-# karena eksekusi terjadi di dalam klien opencode, jadi instalasi langsung
-# bisa dipakai tanpa kredensial. Untuk model BERBAYAR, set DEFAULT_MODEL ke
-# id dari `opencode models` (mis. opencode:big-pickle) setelah auth login.
 # Dokumentasi semua variabel: lihat .env.example
 # =============================================================================
 
-# --- LLM default (OpenCode CLI v2) ---------------------------------------------
+# --- Tier model Pro Workbench (auto: ${tier_name}) --------------------------------
 # Harus \`provider:model\` dengan provider terdaftar; tanpa ini resolveModel throw.
-DEFAULT_MODEL=opencode:space-bunny-free
+DEFAULT_MODEL=${tier_default}
 # Route eksplisit maic-agent-driver (wajib + \`api\` saat agent runtime aktif).
-# CATATAN: driver (pi runner) memanggil HTTP OpenAI-compatible + function tools,
-# yang tidak bisa dipenuhi eksekusi CLI. Driver memakai model berbayar
-# (default opencode:space-bunny-free) via OPENCODE_API_KEY; tanpa key, runtime agen
-# gagal auth. Bila hanya perlu generasi teks, matikan
-# OPENMAIC_AGENT_RUNTIME_ENABLED.
-MODEL_ROUTES='{"maic-agent-driver":{"model":"opencode:space-bunny-free","api":"openai-completions"}}'
+# Driver (pi runner) memanggil HTTP OpenAI-compatible + function tools yang
+# tidak bisa dipenuhi eksekusi CLI — tier ber-key wajib agar driver auth OK.
+# Tanpa key (tier3), runtime agen dimatikan otomatis oleh installer.
+MODEL_ROUTES='${tier_driver}'
 
 # --- OpenCode CLI (eksekusi lokal, tanpa API key untuk model FREE) -------------
 # Server memanggil binary ini per request (prompt via stdin, JSON via stdout).
@@ -524,10 +584,15 @@ MODEL_ROUTES='{"maic-agent-driver":{"model":"opencode:space-bunny-free","api":"o
 # (OPENCODE_BIN, PATH, ~/.opencode/bin). Timeout per panggilan CLI.
 OPENCODE_BIN=${opencode_bin}
 # OPENCODE_CLI_TIMEOUT_MS=600000
-# Opsional (hanya untuk pemakaian HTTP/gateway langsung, bukan CLI):
-# OPENCODE_API_KEY=
+# Tier1 butuh key platform DeepSeek asli (ISI MANUAL):
+${tier_key1_line}
+# DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+# Tier2 butuh key (ISI MANUAL; jalur CLI paid butuh \`opencode auth login\`):
+${tier_key2_line}
+${tier_key2go_line}
 # OPENCODE_BASE_URL=https://opencode.ai/zen/v1
-# OPENCODE_MODELS=space-bunny-free
+# Pin katalog provider opencode untuk tier saat ini (boleh diisi manual):
+# OPENCODE_MODELS=${tier_pin}
 
 # --- Feature Flags: client (NEXT_PUBLIC_*) ------------------------------------
 # Nilai NEXT_PUBLIC_* dibaca saat start (dev) / saat build (produksi).
@@ -549,10 +614,17 @@ OPENMAIC_ENABLE_PI_NATIVE_CHILD_SPOTLIGHT=true
 # warning [config] dan route /api/agent/* menjawab 404.
 OPENMAIC_AGENT_RUNTIME_ENABLED=${agent_runtime}
 
-# --- Local/self-hosted: jaringan lokal -----------------------------------------
-# Tidak ada LLM lokal yang wajib jalan (Ollama sudah tidak dipakai).
-# Aktifkan hanya bila butuh URL privat/loopback (mis. SearXNG lokal).
-# ALLOW_LOCAL_NETWORKS=true
+# --- Local/self-hosted: jaringan lokal (native, tanpa docker) -------------------
+# ON agar URL privat/loopback bisa dipakai server: LLM lokal (Ollama,
+# Lemonade), ASR lokal (FunASR/Lemonade), SearXNG lokal. Tanpa ini URL
+# localhost dari client diblokir SSRF-guard di production.
+# PERINGATAN: hanya untuk deployment lokal/tepercaya. Jangan aktifkan bila
+# server terekspos ke publik.
+ALLOW_LOCAL_NETWORKS=true
+# ISI MANUAL bila pakai LLM/search lokal (butuh ALLOW_LOCAL_NETWORKS=true):
+# OLLAMA_BASE_URL=http://localhost:11434/v1
+# OLLAMA_MODELS=
+# SEARXNG_BASE_URL=
 
 # --- Persistence / Agent runtime (PostgreSQL) -----------------------------------
 DATABASE_URL=${db_url}
@@ -565,6 +637,13 @@ COOKIE_SECURE=0
 # --- Render service MP4 (opsional, butuh \`docker compose --profile video-export up\`)
 # RENDER_SERVICE_URL=http://localhost:9000
 
+# --- Performa (native, tanpa docker) ---------------------------------------------
+# Generate konten scene paralel (batas kode: 10). 0/unset = serial (default).
+# 5 = prioritas kecepatan; turunkan bila API key berkuota konkurensi rendah
+# (gejala: 429) atau naikkan s.d. 10 di server besar. Dibaca saat runtime
+# (restart cukup, tanpa rebuild).
+PARALLEL_SCENE_CONCURRENCY=5
+
 # --- Access control --------------------------------------------------------------
 # Password bersama pelindung deployment. Tanpa ini API fail-open (warning saat boot).
 ACCESS_CODE=${access_code}
@@ -572,6 +651,18 @@ ACCESS_CODE=${access_code}
 LOG_LEVEL=info
 LOG_FORMAT=pretty
 EOF
+}
+
+# Escape nilai agar aman sebagai replacement `sed s|||`: backslash dulu
+# (kalau belakangan, backslash hasil escape &/| ikut tergandakan), lalu & dan
+# delimiter |. Tanpa ini password paksa berisi `\` rusak (mis. `a\b` -> `ab`,
+# `p\a` -> BEL) di semua path sed di bawah.
+sed_escape_replacement() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//&/\\&}"
+  s="${s//|/\\|}"
+  printf '%s' "$s"
 }
 
 # Lengkapi satu variabel bila belum ada di file (tanpa menimpa nilai user).
@@ -582,12 +673,20 @@ pastikan_var_env() {
   local file="$1" key="$2" value="$3" escaped
   if grep -qE "^[[:space:]]*${key}=" "$file"; then return 0; fi
   if [[ -n "$value" ]] && grep -qE "^[[:space:]]*#[[:space:]]*${key}=" "$file"; then
-    escaped="${value//&/\\&}"
-    escaped="${escaped//|/\\|}"
+    escaped="$(sed_escape_replacement "$value")"
     sed -i -E "s|^[[:space:]]*#[[:space:]]*${key}=.*|${key}=${escaped}|" "$file"
   else
     echo "${key}=${value}" >> "$file"
   fi
+}
+
+# Pastikan placeholder KOMENTAR ada agar user tahu kolom manualnya, tanpa
+# mengaktifkan apa pun (tidak menimpa nilai user; tidak mengubah perilaku).
+pastikan_komentar_env() {
+  local file="$1" key="$2" placeholder="$3"
+  if grep -qE "^[[:space:]]*${key}=" "$file"; then return 0; fi
+  if grep -qE "^[[:space:]]*#[[:space:]]*${key}=" "$file"; then return 0; fi
+  echo "# ${key}=${placeholder}" >> "$file"
 }
 
 # Agent runtime aktif tanpa DATABASE_URL = warning [config] di setiap boot
@@ -599,12 +698,103 @@ set_agent_runtime_flag() {
   info "OPENMAIC_AGENT_RUNTIME_ENABLED=${enabled} (${reason})."
 }
 
+# ---------------- tier model Pro Workbench (urutan prioritas 1->2->3) ------------
+# Installer memilih otomatis berdasar API key yang TERISI (file .env.local
+# yang ada, fallback environment). Idempoten: isi key lalu jalankan ulang
+# untuk naik tier; kosongkan key untuk turun tier. Nilai kustom milik user
+# (provider/model di luar daftar milik installer) tidak disentuh.
+#   tier1 = LLM murni + key   : deepseek:deepseek-v4-flash
+#           (DEEPSEEK_API_KEY platform asli https://api.deepseek.com/v1)
+#   tier2 = OpenCode Go + key : opencode-go:gpt-6-luna — slug PERSIS katalog
+#           `opencode models` (terverifikasi RC=0). Kunci: OPENCODE_API_KEY
+#           (utama) dan/atau OPENCODE_GO_API_KEY (jalur HTTP/driver).
+#           `opencode auth login` saja tidak cukup untuk driver HTTP.
+#   tier3 = OpenCode free CLI : opencode:muse-spark-1.3-contributor-free
+#           (eksekusi lokal, tanpa auth; terverifikasi RC=0 tanpa kredensial)
+TIER1_MODEL="deepseek:deepseek-v4-flash"
+TIER1_KEY_VAR="DEEPSEEK_API_KEY"
+TIER2_MODEL="opencode-go:gpt-6-luna"
+TIER2_KEY_PRIMARY="OPENCODE_API_KEY"
+TIER2_KEY_HTTP="OPENCODE_GO_API_KEY"
+TIER3_MODEL="opencode:muse-spark-1.3-contributor-free"
+# Pin katalog provider `opencode` agar CLI gratis selalu discoverable.
+TIER_PIN="muse-spark-1.3-contributor-free"
+
+pilih_tier_model() {
+  local f="${1:-.env.local}" k1="" k2=""
+  k1="$(env_get "$f" "$TIER1_KEY_VAR")"
+  [[ -z "$k1" ]] && k1="${DEEPSEEK_API_KEY:-}"
+  k2="$(env_get "$f" "$TIER2_KEY_PRIMARY")"
+  [[ -z "$k2" ]] && k2="$(env_get "$f" "$TIER2_KEY_HTTP")"
+  [[ -z "$k2" ]] && k2="${OPENCODE_API_KEY:-}"
+  [[ -z "$k2" ]] && k2="${OPENCODE_GO_API_KEY:-}"
+  if [[ -n "$k1" ]]; then echo "tier1"
+  elif [[ -n "$k2" ]]; then echo "tier2"
+  else echo "tier3"
+  fi
+}
+
+tier_default_model() {
+  case "${1:-tier3}" in
+    tier1) printf '%s' "$TIER1_MODEL" ;;
+    tier2) printf '%s' "$TIER2_MODEL" ;;
+    *)     printf '%s' "$TIER3_MODEL" ;;
+  esac
+}
+tier_driver_route() {
+  printf '{"maic-agent-driver":{"model":"%s","api":"openai-completions"}}' "$(tier_default_model "$1")"
+}
+
+# Tulis key dari environment ke file bila kolom file masih kosong (append
+# mentah via printf, tanpa sed → aman untuk karakter apa pun). Tidak menimpa
+# nilai file. Dipanggil sebelum pilih tier agar tier dari env ikut permanen.
+selaraskan_key_env() {
+  local file="$1" key="$2" envval=""
+  case "$key" in
+    DEEPSEEK_API_KEY) envval="${DEEPSEEK_API_KEY:-}" ;;
+    OPENCODE_API_KEY) envval="${OPENCODE_API_KEY:-}" ;;
+    OPENCODE_GO_API_KEY) envval="${OPENCODE_GO_API_KEY:-}" ;;
+  esac
+  if [[ -z "$(env_get "$file" "$key")" && -n "$envval" ]]; then
+    printf '%s=%s\n' "$key" "$envval" >> "$file"
+    info "${key} diisi dari environment."
+  fi
+}
+
 if [[ ! -f .env.local ]]; then
   info "Membuat .env.local baru dari template..."
-  if [[ -n "$DATABASE_URL_VALUE" ]]; then
-    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "true" "" > .env.local
+  # Tier dari environment (file belum ada). Runtime agen butuh driver HTTP +
+  # key: ON hanya bila DB ada DAN tier ber-key; tier3 gratis khusus teks.
+  TIER="$(pilih_tier_model .env.local)"
+  TIER_DEFAULT="$(tier_default_model "$TIER")"
+  TIER_DRIVER="$(tier_driver_route "$TIER")"
+  # Baris key: aktif bila ada di environment (agar tier dari env permanen di
+  # file), komentar bila tidak. Isi mentah via variabel (heredoc tidak
+  # mengevaluasi ulang isi variabel) → aman untuk karakter apa pun.
+  if [[ -n "${DEEPSEEK_API_KEY:-}" ]]; then TIER1_KEY_LINE="DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}"; else TIER1_KEY_LINE="# DEEPSEEK_API_KEY="; fi
+  if [[ -n "${OPENCODE_API_KEY:-}" ]]; then TIER2_KEY_LINE="OPENCODE_API_KEY=${OPENCODE_API_KEY}"; else TIER2_KEY_LINE="# OPENCODE_API_KEY="; fi
+  if [[ -n "${OPENCODE_GO_API_KEY:-}" ]]; then
+    TIER2GO_KEY_LINE="OPENCODE_GO_API_KEY=${OPENCODE_GO_API_KEY}"
+  elif [[ -n "${OPENCODE_API_KEY:-}" ]]; then
+    # Driver HTTP tier2 membaca OPENCODE_GO_API_KEY; samakan dari kunci utama
+    # (gateway Zen yang sama) agar tier2 langsung jalan.
+    TIER2GO_KEY_LINE="OPENCODE_GO_API_KEY=${OPENCODE_API_KEY}"
+    GO_MIRRORED_FRESH=1
   else
-    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "false" "" > .env.local
+    TIER2GO_KEY_LINE="# OPENCODE_GO_API_KEY="
+  fi
+  if [[ -n "$DATABASE_URL_VALUE" && "$TIER" != "tier3" ]]; then AGENT_RT="true"; else AGENT_RT="false"; fi
+  info "Tier model Pro Workbench: ${TIER} (${TIER_DEFAULT})."
+  if [[ -n "${GO_MIRRORED_FRESH:-}" ]]; then
+    info "OPENCODE_GO_API_KEY disalin dari OPENCODE_API_KEY (gateway Zen yang sama) untuk driver HTTP."
+  fi
+  if [[ -n "$DATABASE_URL_VALUE" ]]; then
+    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > .env.local
+    if [[ "$AGENT_RT" == "false" ]]; then
+      info "Agent runtime nonaktif (tier3 tanpa API key; driver butuh HTTP+key). Isi ${TIER1_KEY_VAR}/${TIER2_KEY_PRIMARY}/${TIER2_KEY_HTTP} lalu ulangi install.sh untuk naik tier."
+    fi
+  else
+    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > .env.local
     # Tanpa Postgres, seluruh blok persistence dikomentari. Pola harus cocok
     # dengan nilai APA PUN (template mengisinya dengan token acak), bukan hanya
     # baris kosong — dulu `PERSISTENCE_DEV_TOKEN=` tidak pernah kena dan tetap
@@ -622,70 +812,87 @@ if [[ ! -f .env.local ]]; then
 else
   info ".env.local sudah ada — dilengkapi tanpa menimpa nilai Anda..."
   cp .env.local ".env.local.bak.$(date +%Y%m%d-%H%M%S)"
-  # Migrasi ke default OpenCode CLI v2 (space-bunny-free):
-  # - ollama:* (Ollama tidak lagi diinstal) -> default baru.
-  # - opencode:big-pickle / opencode:muse-spark-1.3-contributor-free
-  #   (default lama) -> default baru.
-  # - opencode:gpt-6-luna -> default baru. Model id ini TIDAK ada di katalog
-  #   opencode (hanya `opencode-go/gpt-6-luna`), jadi CLI menolak dengan
-  #   `provider.no-route: Model unavailable` dan tidak akan pernah berhasil;
-  #   setiap pemanggilan hanya menghasilkan exit 1 yang sama.
-  # Nilai kustom milik user (provider/model lain) tidak disentuh.
-  if grep -qE '^[[:space:]]*DEFAULT_MODEL=ollama:' .env.local; then
-    sed -i -E 's|^[[:space:]]*DEFAULT_MODEL=ollama:.*|DEFAULT_MODEL=opencode:space-bunny-free|' .env.local
-    info "DEFAULT_MODEL dimigrasi ollama -> opencode:space-bunny-free."
-  elif grep -qE '^[[:space:]]*DEFAULT_MODEL=opencode:gpt-6-luna[[:space:]]*$' .env.local; then
-    sed -i -E 's|^[[:space:]]*DEFAULT_MODEL=opencode:gpt-6-luna[[:space:]]*$|DEFAULT_MODEL=opencode:space-bunny-free|' .env.local
-    info "DEFAULT_MODEL dimigrasi opencode:gpt-6-luna -> opencode:space-bunny-free (model lama tidak tersedia)."
-  elif grep -qE '^[[:space:]]*DEFAULT_MODEL=opencode:big-pickle[[:space:]]*$' .env.local; then
-    sed -i -E 's|^[[:space:]]*DEFAULT_MODEL=opencode:big-pickle[[:space:]]*$|DEFAULT_MODEL=opencode:space-bunny-free|' .env.local
-    info "DEFAULT_MODEL dimigrasi opencode:big-pickle -> opencode:space-bunny-free."
-  elif grep -qE '^[[:space:]]*DEFAULT_MODEL=opencode:muse-spark-1\.3-contributor-free[[:space:]]*$' .env.local; then
-    sed -i -E 's|^[[:space:]]*DEFAULT_MODEL=opencode:muse-spark-1\.3-contributor-free[[:space:]]*$|DEFAULT_MODEL=opencode:space-bunny-free|' .env.local
-    info "DEFAULT_MODEL dimigrasi opencode:muse-spark-1.3-contributor-free -> opencode:space-bunny-free."
+  # Auto-tier Pro Workbench 1->2->3 berdasar API key yang terisi. Hanya nilai
+  # milik installer yang dipindah; nilai kustom user tidak disentuh.
+  # - ollama:* (Ollama tidak lagi diinstal) -> tier saat ini.
+  # - opencode:gpt-6-luna (slug lama, tanpa prefix go) -> tier saat ini.
+  # - deepseek:deepseek-v4-flash / opencode-go:gpt-6-luna /
+  #   opencode:muse-spark-1.3-contributor-free / opencode:space-bunny-free /
+  #   opencode:big-pickle / tokendance:deepseek-v4.1-flash = preset
+  #   installer -> tier saat ini.
+  for kk in DEEPSEEK_API_KEY OPENCODE_API_KEY OPENCODE_GO_API_KEY; do
+    selaraskan_key_env .env.local "$kk"
+  done
+  TIER="$(pilih_tier_model .env.local)"
+  TIER_DEFAULT="$(tier_default_model "$TIER")"
+  TIER_DRIVER="$(tier_driver_route "$TIER")"
+  info "Tier model Pro Workbench: ${TIER} (${TIER_DEFAULT})."
+  # Driver HTTP tier2 membaca OPENCODE_GO_API_KEY; samakan dari kunci utama
+  # bila kolom GO belum ada sama sekali (aktif maupun komentar) — gateway
+  # Zen yang sama. Nilai GO eksplisit tidak disentuh.
+  K2P="$(env_get .env.local "$TIER2_KEY_PRIMARY")"
+  if [[ -n "$K2P" && -z "$(env_get .env.local "$TIER2_KEY_HTTP")" ]] \
+    && ! grep -qE "^[[:space:]]*#[[:space:]]*${TIER2_KEY_HTTP}=" .env.local; then
+    printf '%s=%s\n' "$TIER2_KEY_HTTP" "$K2P" >> .env.local
+    info "${TIER2_KEY_HTTP} disalin dari ${TIER2_KEY_PRIMARY} (gateway Zen yang sama) untuk driver HTTP."
   fi
-  if grep -qE '^[[:space:]]*MODEL_ROUTES=.*ollama:' .env.local; then
-    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s|ollama:[^"\\} ]*|opencode:space-bunny-free|g' .env.local
-    info "MODEL_ROUTES dimigrasi ollama -> opencode:space-bunny-free."
-  elif grep -qE '^[[:space:]]*MODEL_ROUTES=.*opencode:gpt-6-luna' .env.local; then
-    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s|opencode:gpt-6-luna|opencode:space-bunny-free|g' .env.local
-    info "MODEL_ROUTES dimigrasi opencode:gpt-6-luna -> opencode:space-bunny-free (model lama tidak tersedia)."
-  elif grep -qE '^[[:space:]]*MODEL_ROUTES=.*opencode:big-pickle' .env.local; then
-    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s|opencode:big-pickle|opencode:space-bunny-free|g' .env.local
-    info "MODEL_ROUTES dimigrasi opencode:big-pickle -> opencode:space-bunny-free."
-  elif grep -qE '^[[:space:]]*MODEL_ROUTES=.*opencode:muse-spark-1\.3-contributor-free' .env.local; then
-    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s|opencode:muse-spark-1\.3-contributor-free|opencode:space-bunny-free|g' .env.local
-    info "MODEL_ROUTES dimigrasi opencode:muse-spark-1.3-contributor-free -> opencode:space-bunny-free."
-  fi
+  CUR_DEFAULT="$(env_get .env.local DEFAULT_MODEL)"
+  case "$CUR_DEFAULT" in
+    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash|deepseek:deepseek-v4-flash)
+      if [[ "$CUR_DEFAULT" != "$TIER_DEFAULT" ]]; then
+        DM_ESCAPED="$(sed_escape_replacement "$TIER_DEFAULT")"
+        sed -i -E "s|^[[:space:]]*DEFAULT_MODEL=.*|DEFAULT_MODEL=${DM_ESCAPED}|" .env.local
+        info "DEFAULT_MODEL dipindah ${CUR_DEFAULT} -> ${TIER_DEFAULT} (${TIER})."
+      fi
+      ;;
+  esac
+  CUR_DRIVER="$(sed -n -E 's/^[^#]*"maic-agent-driver"[^}]*"model"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' .env.local | head -1)"
+  case "$CUR_DRIVER" in
+    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash|deepseek:deepseek-v4-flash)
+      if [[ "$CUR_DRIVER" != "$TIER_DEFAULT" ]]; then
+        DR_RE='ollama:[^"\\} ]*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4\.1-flash|deepseek:deepseek-v4-flash'
+        DM_ESCAPED2="$(sed_escape_replacement "$TIER_DEFAULT")"
+        sed -i -E "/^[[:space:]]*MODEL_ROUTES=/ s#(${DR_RE})#${DM_ESCAPED2}#g" .env.local
+        info "MODEL_ROUTES maic-agent-driver dipindah ${CUR_DRIVER} -> ${TIER_DEFAULT} (${TIER})."
+      fi
+      ;;
+  esac
   # OPENCODE_MODELS: pastikan_var_env di bawah tidak menimpa nilai yang sudah
-  # ada, jadi pin default lama (big-pickle / muse-spark-1.3-contributor-free /
-  # gpt-6-luna) harus dimigrasi eksplisit di sini. Nilai kustom lain tidak
-  # disentuh.
-  if grep -qE '^[[:space:]]*OPENCODE_MODELS=big-pickle[[:space:]]*$' .env.local; then
-    sed -i -E 's|^[[:space:]]*OPENCODE_MODELS=big-pickle[[:space:]]*$|OPENCODE_MODELS=space-bunny-free|' .env.local
-    info "OPENCODE_MODELS dimigrasi big-pickle -> space-bunny-free."
-  elif grep -qE '^[[:space:]]*OPENCODE_MODELS=gpt-6-luna[[:space:]]*$' .env.local; then
-    sed -i -E 's|^[[:space:]]*OPENCODE_MODELS=gpt-6-luna[[:space:]]*$|OPENCODE_MODELS=space-bunny-free|' .env.local
-    info "OPENCODE_MODELS dimigrasi gpt-6-luna -> space-bunny-free (model lama tidak tersedia)."
-  elif grep -qE '^[[:space:]]*OPENCODE_MODELS=muse-spark-1\.3-contributor-free[[:space:]]*$' .env.local; then
-    sed -i -E 's|^[[:space:]]*OPENCODE_MODELS=muse-spark-1\.3-contributor-free[[:space:]]*$|OPENCODE_MODELS=space-bunny-free|' .env.local
-    info "OPENCODE_MODELS dimigrasi muse-spark-1.3-contributor-free -> space-bunny-free."
-  fi
-  pastikan_var_env .env.local DEFAULT_MODEL "opencode:space-bunny-free"
-  pastikan_var_env .env.local MODEL_ROUTES '{"maic-agent-driver":{"model":"opencode:space-bunny-free","api":"openai-completions"}}'
+  # ada, jadi pin milik installer harus dipindah eksplisit di sini. Nilai
+  # kustom lain tidak disentuh.
+  CUR_PIN="$(env_get .env.local OPENCODE_MODELS)"
+  case "$CUR_PIN" in
+    space-bunny-free|muse-spark-1.3-contributor-free|big-pickle|gpt-6-luna)
+      if [[ "$CUR_PIN" != "$TIER_PIN" ]]; then
+        PIN_ESCAPED="$(sed_escape_replacement "$TIER_PIN")"
+        sed -i -E "s|^[[:space:]]*OPENCODE_MODELS=.*|OPENCODE_MODELS=${PIN_ESCAPED}|" .env.local
+        info "OPENCODE_MODELS dipindah ${CUR_PIN} -> ${TIER_PIN} (${TIER})."
+      fi
+      ;;
+  esac
+  pastikan_var_env .env.local DEFAULT_MODEL "$TIER_DEFAULT"
+  pastikan_var_env .env.local MODEL_ROUTES "$TIER_DRIVER"
   pastikan_var_env .env.local OPENCODE_BIN ""
-  # OPENCODE_API_KEY/BASE_URL opsional (hanya HTTP langsung); jangan buat key
-  # kosong yang mengesankan wajib — cukup pastikan pin model tersedia.
-  pastikan_var_env .env.local OPENCODE_MODELS "space-bunny-free"
+  # Key tier1/tier2 opsional; jangan buat key kosong yang mengesankan wajib
+  # — tier dipilih dari key yang terisi. Cukup pastikan pin model tersedia.
+  pastikan_var_env .env.local OPENCODE_MODELS "$TIER_PIN"
+  pastikan_komentar_env .env.local DEEPSEEK_API_KEY ""
+  # Native tanpa docker: izinkan URL loopback/privat (Ollama/Lemonade/FunASR/
+  # SearXNG lokal). Baris berkomentar jejak template lama ikut diaktifkan.
+  pastikan_var_env .env.local ALLOW_LOCAL_NETWORKS "true"
+  # Placeholder manual (tetap nonaktif, hanya penanda kolom isian):
+  pastikan_komentar_env .env.local OPENCODE_API_KEY ""
+  pastikan_komentar_env .env.local OPENCODE_GO_API_KEY ""
+  pastikan_komentar_env .env.local OLLAMA_BASE_URL "http://localhost:11434/v1"
+  pastikan_komentar_env .env.local SEARXNG_BASE_URL ""
+  # Performa native: generate scene paralel (restart cukup, tanpa rebuild).
+  pastikan_var_env .env.local PARALLEL_SCENE_CONCURRENCY "5"
   pastikan_var_env .env.local ACCESS_CODE "$ACCESS_CODE_NEW"
   if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     if [[ "$PG_PASSWORD_FORCED" -eq 1 && -n "$DATABASE_URL_VALUE" ]]; then
       # Password dipaksa via --pg-password/PG_PASSWORD: sinkronkan file agar
       # tidak stale (kasus satu-satunya DATABASE_URL boleh ditimpa).
-      # Escape & dan | agar aman sebagai replacement sed (password sudah
-      # URL-encode, jadi seharusnya tidak ada, tapi tetap amankan).
-      DB_URL_SED_ESCAPED="${DATABASE_URL_VALUE//&/\\&}"
-      DB_URL_SED_ESCAPED="${DB_URL_SED_ESCAPED//|/\\|}"
+      DB_URL_SED_ESCAPED="$(sed_escape_replacement "$DATABASE_URL_VALUE")"
       if grep -qE '^[[:space:]]*DATABASE_URL=' .env.local; then
         sed -i -E "s|^[[:space:]]*DATABASE_URL=.*|DATABASE_URL=${DB_URL_SED_ESCAPED}|" .env.local
       else
@@ -701,7 +908,7 @@ else
     if [[ -z "$TOKEN_LAMA" ]]; then
       pastikan_var_env .env.local PERSISTENCE_DEV_TOKEN "$DEV_TOKEN_NEW"
       if grep -qE '^[[:space:]]*NEXT_PUBLIC_PERSISTENCE_TOKEN=' .env.local; then
-        TOKEN_SED_ESCAPED="${DEV_TOKEN_NEW//&/\\&}"
+        TOKEN_SED_ESCAPED="$(sed_escape_replacement "$DEV_TOKEN_NEW")"
         sed -i -E "s|^[[:space:]]*NEXT_PUBLIC_PERSISTENCE_TOKEN=.*|NEXT_PUBLIC_PERSISTENCE_TOKEN=${TOKEN_SED_ESCAPED}|" .env.local
         info "NEXT_PUBLIC_PERSISTENCE_TOKEN dicocokkan dengan PERSISTENCE_DEV_TOKEN yang baru."
       fi
@@ -716,16 +923,23 @@ else
     fi
     pastikan_var_env .env.local PERSISTENCE_ALLOW_INSECURE_DEV_AUTH "true"
     pastikan_var_env .env.local COOKIE_SECURE "0"
-    # Nyalakan agent runtime HANYA bila DATABASE_URL benar-benar terisi;
-    # kalau tidak, boot memunculkan warning [config] terus-menerus.
+    # Nyalakan agent runtime HANYA bila DATABASE_URL benar-benar terisi DAN
+    # tier ber-key (driver butuh HTTP + function tools + key). Tier3 gratis
+    # via CLI tidak bisa melayani driver — tanpanya boot hanya warning
+    # [config] dan panggilannya 401.
     DB_URL_ISI="$(env_get .env.local DATABASE_URL)"
-    if [[ -n "$DB_URL_ISI" ]]; then
-      set_agent_runtime_flag true "DATABASE_URL tersedia"
+    if [[ -n "$DB_URL_ISI" && "$TIER" != "tier3" ]]; then
+      set_agent_runtime_flag true "DATABASE_URL + ${TIER} ber-key tersedia"
       pastikan_var_env .env.local OPENMAIC_AGENT_RUNTIME_ENABLED "true"
     else
-      set_agent_runtime_flag false "DATABASE_URL kosong"
+      if [[ -z "$DB_URL_ISI" ]]; then
+        ALASAN_RT="DATABASE_URL kosong"
+      else
+        ALASAN_RT="${TIER} tanpa API key (driver butuh HTTP+key)"
+      fi
+      set_agent_runtime_flag false "$ALASAN_RT"
       pastikan_var_env .env.local OPENMAIC_AGENT_RUNTIME_ENABLED "false"
-      warn "DATABASE_URL kosong di .env.local — OPENMAIC_AGENT_RUNTIME_ENABLED dimatikan agar boot tidak memunculkan warning [config]."
+      warn "OPENMAIC_AGENT_RUNTIME_ENABLED=false (${ALASAN_RT}). Isi ${TIER1_KEY_VAR}/${TIER2_KEY_PRIMARY}/${TIER2_KEY_HTTP} lalu ulangi install.sh untuk naik tier."
     fi
   else
     # --no-postgres: flag aktif tanpa DATABASE_URL = warning [config] tiap boot
@@ -770,9 +984,16 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
   # `eval echo ~user` hanya berhasil bila user ada; getent lebih jujur.
   OPENCODE_TARGET_HOME="$(getent passwd "$OPENCODE_TARGET_USER" 2>/dev/null | cut -d: -f6 || true)"
   if [[ -z "$OPENCODE_TARGET_HOME" ]]; then
-    warn "User '${OPENCODE_TARGET_USER}' tidak ada di /etc/passwd — OpenCode CLI dipasang ke HOME user saat ini ($(id -un))."
-    OPENCODE_TARGET_USER="$(id -un)"
-    OPENCODE_TARGET_HOME="$HOME"
+    # $HOME saat sudo adalah /root, bukan home target — jangan pakai $HOME di
+    # sini. Coba /home/<user> dulu sebelum menyerah ke user saat ini.
+    if [[ -d "/home/${OPENCODE_TARGET_USER}" ]]; then
+      OPENCODE_TARGET_HOME="/home/${OPENCODE_TARGET_USER}"
+      warn "User '${OPENCODE_TARGET_USER}' tidak ada di /etc/passwd — pakai ${OPENCODE_TARGET_HOME} sebagai home."
+    else
+      warn "User '${OPENCODE_TARGET_USER}' tidak ada di /etc/passwd — OpenCode CLI dipasang ke HOME user saat ini ($(id -un))."
+      OPENCODE_TARGET_USER="$(id -un)"
+      OPENCODE_TARGET_HOME="$HOME"
+    fi
   fi
   # Lewati bila binary sudah versi terbaru (idempoten): bandingkan versi
   # terinstal dengan versi latest dari update API resmi — sumber yang sama
@@ -803,11 +1024,14 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
   if [[ "$OPENCODE_NEED_INSTALL" -eq 1 ]]; then
     info "Menginstal OpenCode CLI v2 untuk user ${OPENCODE_TARGET_USER}..."
     # Sumber resmi v2: https://opencode.ai/v2/install
+    # Catatan: `sudo -u <user> bash` TANPA -H mempertahankan HOME=/root sehingga
+    # installer menaruh binary di /root/.opencode (salah user). -H memaksa HOME
+    # milik target agar deteksi path di bawah menemukannya.
     if [[ "$(id -un)" == "${OPENCODE_TARGET_USER}" ]]; then
       curl -fsSL https://opencode.ai/v2/install | bash - \
         || warn "Instalasi OpenCode CLI gagal; jalankan manual: curl -fsSL https://opencode.ai/v2/install | bash"
     else
-      curl -fsSL https://opencode.ai/v2/install | run_as_root -u "${OPENCODE_TARGET_USER}" bash - \
+      curl -fsSL https://opencode.ai/v2/install | run_as_root -H -u "${OPENCODE_TARGET_USER}" bash - \
         || warn "Instalasi OpenCode CLI gagal; jalankan manual sebagai ${OPENCODE_TARGET_USER}: curl -fsSL https://opencode.ai/v2/install | bash"
     fi
   fi
@@ -830,8 +1054,7 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
   if [[ -n "${OPENCODE_BIN_DETECTED:-}" && -f .env.local ]]; then
     if grep -qE '^[[:space:]]*OPENCODE_BIN=' .env.local; then
       if grep -qE '^[[:space:]]*OPENCODE_BIN=[[:space:]]*$' .env.local; then
-        BIN_SED_ESCAPED="${OPENCODE_BIN_DETECTED//&/\\&}"
-        BIN_SED_ESCAPED="${BIN_SED_ESCAPED//|/\\|}"
+        BIN_SED_ESCAPED="$(sed_escape_replacement "$OPENCODE_BIN_DETECTED")"
         sed -i -E "s|^[[:space:]]*OPENCODE_BIN=.*|OPENCODE_BIN=${BIN_SED_ESCAPED}|" .env.local
         info "OPENCODE_BIN dicatat di .env.local."
       fi
@@ -852,8 +1075,19 @@ if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then
     warn "--with-playwright butuh dependensi terpasang; dilewati. Jalankan: pnpm install && pnpm exec playwright install --with-deps chromium"
   else
     info "Menginstal browser Playwright (chromium + dependensi OS)..."
-    pnpm exec playwright install --with-deps chromium \
-      || warn "Instalasi browser Playwright gagal; jalankan manual: pnpm exec playwright install --with-deps chromium"
+    # Browser harus milik user pemilik sesi, bukan root: bila installer jalan
+    # via sudo, `pnpm exec` sebagai root menaruh browser di /root/.cache lalu
+    # dev server (user biasa) tidak menemukannya. Jalankan sebagai pemilik sesi.
+    PLAYWRIGHT_USER="${SUDO_USER:-$(id -un)}"
+    if [[ "$(id -un)" == "$PLAYWRIGHT_USER" ]]; then
+      pnpm exec playwright install --with-deps chromium \
+        || warn "Instalasi browser Playwright gagal; jalankan manual: pnpm exec playwright install --with-deps chromium"
+    else
+      # -H agar HOME milik target (cache browser di ~/.cache, bukan /root);
+      # teruskan COREPACK_ENABLE_DOWNLOAD_PROMPT agar shim pnpm tidak prompt.
+      run_as_root -H -u "$PLAYWRIGHT_USER" env COREPACK_ENABLE_DOWNLOAD_PROMPT=0 pnpm exec playwright install --with-deps chromium \
+        || warn "Instalasi browser Playwright gagal; jalankan manual sebagai ${PLAYWRIGHT_USER}: pnpm exec playwright install --with-deps chromium"
+    fi
   fi
 fi
 
@@ -881,9 +1115,22 @@ if [[ -n "$OWNER_USER" && "$OWNER_USER" != "root" ]] && id -u "$OWNER_USER" >/de
     chown -R "$OWNER_USER" "$path" 2>/dev/null \
       || warn "Gagal chown $path ke ${OWNER_USER}; jalankan manual: sudo chown -R ${OWNER_USER} $path"
   done
+  # Backup .env.local dari run ini maupun run sebelumnya ikut dikembalikan —
+  # kalau tidak, backup milik root dan user tidak bisa membaca/menghapusnya.
+  for bak in .env.local.bak.*; do
+    [[ -e "$bak" ]] || continue
+    chown "$OWNER_USER" "$bak" 2>/dev/null \
+      || warn "Gagal chown $bak ke ${OWNER_USER}; jalankan manual: sudo chown ${OWNER_USER} $bak"
+  done
   if [[ -d packages ]]; then
     find packages -maxdepth 3 -name node_modules -type d -print0 2>/dev/null \
       | xargs -0 -r chown -R "$OWNER_USER" 2>/dev/null || true
+  fi
+  # Cache browser Playwright bila pernah terinstal sebagai root di run lama
+  # (sebelum step 9 dijalankan sebagai pemilik sesi). Bukan fatal bila absen.
+  OWNER_HOME="$(getent passwd "$OWNER_USER" 2>/dev/null | cut -d: -f6 || true)"
+  if [[ -n "$OWNER_HOME" && -d "$OWNER_HOME/.cache/ms-playwright" ]]; then
+    chown -R "$OWNER_USER" "$OWNER_HOME/.cache/ms-playwright" 2>/dev/null || true
   fi
 fi
 
@@ -911,7 +1158,7 @@ fi
 if command -v ffmpeg >/dev/null 2>&1; then
   info "  ffmpeg: OK (ekstraksi media lokal aktif)"
 else
-  info "  ffmpeg: tidak ada (ekstraksi audio/video lokal nonaktif) — pasang dengan: sudo ./install.sh --with-ffmpeg"
+  info "  ffmpeg: tidak ada (dilewati via --no-ffmpeg) — pasang dengan: sudo ./install.sh --yes (tanpa --no-ffmpeg)"
 fi
 echo ""
 # Tampilkan ACCESS_CODE agar user bisa login. Home menunda fetch library
@@ -942,20 +1189,35 @@ echo "Catatan:"
 echo "  - .env.local berisi secret (600). Jangan commit (sudah di .gitignore)."
 echo "  - Ambil ACCESS_CODE kapan saja: grep '^ACCESS_CODE=' .env.local"
 echo "  - Nilai NEXT_PUBLIC_* dibaca saat build: ubah nilainya lalu build ulang."
-echo "  - LLM default: opencode:space-bunny-free (OpenCode CLI v2, eksekusi lokal)."
-echo "    Model FREE: jalan tanpa credential, karena eksekusi terjadi di dalam"
-echo "    klien opencode. Untuk model BERBAYAR, login dulu via 'opencode auth"
-echo "    login' lalu set DEFAULT_MODEL ke id dari 'opencode models'."
-echo "    OPENCODE_BIN menunjuk binary absolut."
-echo "    Coba manual: opencode run -m opencode/space-bunny-free \"hi\""
-echo "    Model FREE (mis. opencode:muse-spark-1.3-contributor-free) tetap bisa"
-echo "    dipakai server-side tanpa API key via CLI yang sama."
-echo "    Pengecualian: pi agent-driver (MODEL_ROUTES maic-agent-driver) memanggil"
-echo "    HTTP + function tools — untuk runtime agen isi OPENCODE_API_KEY"
-echo "    (default route sudah memakai space-bunny-free). Tanpa key, panggilannya 401:"
-echo "    isi OPENCODE_API_KEY, atau set OPENMAIC_AGENT_RUNTIME_ENABLED=false."
-echo "  - Agent runtime + workbench butuh Postgres ${PG_MAJOR} + MODEL_ROUTES maic-agent-driver."
-echo "  - Ekstraksi material audio/video lokal butuh ffmpeg: sudo ./install.sh --with-ffmpeg"
+echo "  - Fitur native aktif semua tanpa docker: flag client+server true,"
+echo "    ALLOW_LOCAL_NETWORKS=true (Ollama/Lemonade/FunASR/SearXNG lokal bisa"
+echo "    dipakai; matikan bila server terekspos publik). Video MP4 tanpa"
+echo "    render-service: unduh ZIP lalu render via CLI lokal."
+echo "  - ISI MANUAL di .env.local: DEEPSEEK_API_KEY (tier1), OPENCODE_API_KEY /"
+echo "    OPENCODE_GO_API_KEY (tier2), OLLAMA_BASE_URL / OLLAMA_MODELS,"
+echo "    SEARXNG_BASE_URL, dan API key provider lain (lihat .env.example)."
+echo "    Server baca ulang tiap restart (flag server-only); flag NEXT_PUBLIC_*"
+echo "    butuh build ulang."
+echo "  - Tier model Pro Workbench (auto 1->2->3 dari API key; ulangi install.sh"
+echo "    setelah isi/kosongkan key untuk pindah tier, nilai kustom tak disentuh):"
+echo "    1. LLM murni + key   : deepseek:deepseek-v4-flash (ISI MANUAL"
+echo "       DEEPSEEK_API_KEY platform asli https://api.deepseek.com/v1)"
+echo "    2. OpenCode Go + key  : opencode-go:gpt-6-luna (slug persis katalog"
+echo "       'opencode models', terverifikasi; ISI MANUAL OPENCODE_API_KEY"
+echo "       dan/atau OPENCODE_GO_API_KEY untuk jalur HTTP/driver;"
+echo "       'opencode auth login' saja tidak cukup untuk driver)"
+echo "    3. OpenCode free CLI : opencode:muse-spark-1.3-contributor-free (tanpa auth;"
+echo '       coba manual: opencode run -m opencode/muse-spark-1.3-contributor-free "hi"'
+echo "       OPENCODE_BIN menunjuk binary absolut."
+echo "    Driver agen (MODEL_ROUTES maic-agent-driver) butuh HTTP + function tools"
+echo "    + key: tanpa key tier3, installer mematikan OPENMAIC_AGENT_RUNTIME_ENABLED"
+echo "    otomatis (isi key + ulangi install.sh untuk menyalakan)."
+echo "  - Agent runtime + workbench butuh Postgres ${PG_MAJOR} + tier ber-key."
+echo "  - Performa: PARALLEL_SCENE_CONCURRENCY=5 (scene paralel, maks kode 10;"
+echo "    turunkan bila kena 429, naikkan s.d. 10 di server besar) + ffmpeg apt"
+echo "    default terinstal (lewati via --no-ffmpeg). TTS tanpa pacing"
+echo "    (default kode: interval 0) dan asset collector auto-aktif bila ada DB."
+echo "  - Ekstraksi material audio/video lokal: ffmpeg (default ON)."
 echo "  - Video MP4 butuh: docker compose --profile video-export up (berat: Chromium+FFmpeg)."
 echo "  - e2e: pnpm exec playwright install --with-deps chromium && pnpm test:e2e"
 echo "  - Install ulang aman (idempoten): password Postgres dipakai ulang dari .env.local,"

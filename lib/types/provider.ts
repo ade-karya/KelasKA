@@ -25,6 +25,7 @@ export type BuiltInProviderId =
   | 'xiaomi'
   | 'tokendance'
   | 'opencode'
+  | 'opencode-go'
   | 'lemonade'
   | 'ollama';
 

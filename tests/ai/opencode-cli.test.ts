@@ -62,15 +62,49 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
     expect(toCliModelId('opencode/big-pickle')).toBe('opencode/big-pickle');
   });
 
-  it('membangun argumen run ala open-design (json, auto, model, tanpa prompt argv)', () => {
-    expect(buildOpencodeArgs('big-pickle')).toEqual([
+  it('memetakan slug provider go (opencode-go/gpt-6-luna)', () => {
+    expect(toCliModelId('gpt-6-luna', 'opencode-go')).toBe('opencode-go/gpt-6-luna');
+    expect(toCliModelId('opencode-go/gpt-6-luna', 'opencode')).toBe('opencode-go/gpt-6-luna');
+    expect(toCliModelId('big-pickle', 'opencode-go')).toBe('opencode-go/big-pickle');
+    expect(buildOpencodeArgs('gpt-6-luna', 'opencode-go')).toEqual([
       'run',
       '--format',
       'json',
       '--auto',
       '-m',
-      'opencode/big-pickle',
+      'opencode-go/gpt-6-luna',
     ]);
+  });
+
+  it('runOpencodeCli meneruskan slug go ke argv CLI', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openmaic-opencode-argv-'));
+    const argvPath = path.join(dir, 'argv');
+    const stub = writeStub(
+      'opencode-argv-capture',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'cat > /dev/null\n' +
+        'printf \'%s\\n\' "$@" > "$OPENCODE_STUB_ARGV_CAPTURE"\n' +
+        'echo \'{"type":"text","part":{"text":"ok"}}\'\n' +
+        'exit 0\n',
+    );
+    vi.stubEnv('OPENCODE_BIN', stub);
+    vi.stubEnv('OPENCODE_STUB_ARGV_CAPTURE', argvPath);
+    await runOpencodeCli({ modelId: 'gpt-6-luna', cliProvider: 'opencode-go', promptText: 'hi' });
+    const argv = fs.readFileSync(argvPath, 'utf8').split('\n').filter(Boolean);
+    expect(argv).toEqual(['run', '--format', 'json', '--auto', '-m', 'opencode-go/gpt-6-luna']);
+    delete process.env.OPENCODE_STUB_ARGV_CAPTURE;
+  });
+
+  it('createOpencodeCliModel mewarisi slug provider registry', () => {
+    const go = createOpencodeCliModel('gpt-6-luna', 'opencode-go') as unknown as {
+      provider: string;
+      modelId: string;
+    };
+    expect(go.provider).toBe('opencode-go');
+    expect(go.modelId).toBe('gpt-6-luna');
+    const def = createOpencodeCliModel('big-pickle') as unknown as { provider: string };
+    expect(def.provider).toBe('opencode');
   });
 
   it('meratakan prompt SDK menjadi teks berlabel peran', () => {

@@ -26,6 +26,8 @@ const ENV_PREFIXES_TO_CLEAR = [
   'MIMO',
   'TOKENDANCE',
   'HY3',
+  'OPENCODE',
+  'OPENCODE_GO',
   'OLLAMA',
   'BEDROCK',
   'TTS_OPENAI',
