@@ -7,19 +7,23 @@ import { createFakeDocumentStore } from './_fake-document-store';
 import { makeDocument, makeSlideScene } from './_stage-fixtures';
 
 /**
- * Every persistence-touching route must gate on `isAgentRuntimeConfigured()`
- * — the flag AND a DATABASE_URL — so an enabled-but-unconfigured runtime
- * answers the same clean 404 as a disabled one, never a 500 from a store that
- * cannot connect. This suite drives the REAL feature-flag predicates from the
- * environment (no feature-flags mock) across the three environment states:
+ * Persistence routes gate on `isServerPersistenceConfigured()` (DATABASE_URL
+ * only) while agent session routes gate on `isAgentRuntimeConfigured()` (flag
+ * AND DATABASE_URL). A deployment with a database but no agent runtime — the
+ * standard local/self-hosted setup — must therefore serve its course library
+ * (`/api/stages`, `/api/folders`, …) while its `/api/agent/*` and
+ * session-scoped `/api/materials` control plane stays 404. This suite drives
+ * the REAL feature-flag predicates from the environment (no feature-flags
+ * mock) across four environment states:
  *
- *   - flag off, no DATABASE_URL  -> routes 404 (the no-DB default)
- *   - flag on,  no DATABASE_URL  -> routes 404 (NOT 500)
- *   - flag on,  DATABASE_URL set -> routes serve
+ *   - flag off, no DATABASE_URL  -> all routes 404 (the no-DB default)
+ *   - flag on,  no DATABASE_URL  -> all routes 404 (NOT 500)
+ *   - flag off, DATABASE_URL set -> persistence routes serve, agent routes 404
+ *   - flag on,  DATABASE_URL set -> all routes serve
  *
  * The store seams are mocked (same facades as the per-route suites), so the
- * "serves" row is exercised hermetically. A future route added to the wrong
- * gate fails the middle row — the row that used to 500.
+ * "serves" rows are exercised hermetically. A future route added to the wrong
+ * gate fails the flag-off-with-DB row.
  */
 const ENV_KEYS = ['OPENMAIC_AGENT_RUNTIME_ENABLED', 'DATABASE_URL'] as const;
 
@@ -97,8 +101,10 @@ import { POST as postUnpublish } from '@/app/api/stages/[id]/unpublish/route';
 interface RouteCase {
   name: string;
   call: () => Promise<Response>;
-  /** The status the route must return when the runtime is configured. */
+  /** The status the route must return when its gate is satisfied. */
   happyStatus: number;
+  /** `persistence` needs only DATABASE_URL; `agent` needs the flag too. */
+  gate: 'persistence' | 'agent';
 }
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -109,6 +115,7 @@ const ROUTES: RouteCase[] = [
     name: 'GET /api/stages',
     call: () => getStages(new NextRequest('http://localhost/api/stages')),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'POST /api/stages',
@@ -121,12 +128,14 @@ const ROUTES: RouteCase[] = [
         }),
       ),
     happyStatus: 201,
+    gate: 'persistence',
   },
   {
     name: 'GET /api/stages/[id]',
     call: () =>
       getStage(new NextRequest(`http://localhost/api/stages/${STAGE_ID}`), params(STAGE_ID)),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'PATCH /api/stages/[id]',
@@ -140,6 +149,7 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'PUT /api/stages/[id]',
@@ -153,6 +163,7 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'DELETE /api/stages/[id]',
@@ -162,6 +173,7 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'GET /api/stages/[id]/scenes',
@@ -171,6 +183,7 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'GET /api/stages/[id]/manifest',
@@ -180,6 +193,7 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'GET /api/stages/[id]/freshness',
@@ -189,12 +203,14 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'GET /api/materials',
     call: () =>
       getMaterials(new NextRequest(`http://localhost/api/materials?sessionId=${SESSION_ID}`)),
     happyStatus: 200,
+    gate: 'agent',
   },
   {
     name: 'POST /api/materials',
@@ -207,6 +223,7 @@ const ROUTES: RouteCase[] = [
         }),
       ),
     happyStatus: 201,
+    gate: 'agent',
   },
   {
     name: 'GET /api/materials/[id]',
@@ -216,11 +233,13 @@ const ROUTES: RouteCase[] = [
         params(MATERIAL_ID),
       ),
     happyStatus: 200,
+    gate: 'agent',
   },
   {
     name: 'GET /api/folders',
     call: () => getFolders(new NextRequest('http://localhost/api/folders')),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'POST /api/folders',
@@ -233,6 +252,7 @@ const ROUTES: RouteCase[] = [
         }),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'PATCH /api/folders/[id]',
@@ -246,6 +266,7 @@ const ROUTES: RouteCase[] = [
         params(FOLDER_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'DELETE /api/folders/[id]',
@@ -255,6 +276,7 @@ const ROUTES: RouteCase[] = [
         params(FOLDER_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'POST /api/folders/members',
@@ -267,6 +289,7 @@ const ROUTES: RouteCase[] = [
         }),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'GET /api/stage-meta/[stageId]',
@@ -276,6 +299,7 @@ const ROUTES: RouteCase[] = [
         stageMetaParams(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'GET /api/stages/[id]/status',
@@ -285,6 +309,7 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'POST /api/stages/[id]/generation-complete',
@@ -296,6 +321,7 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'POST /api/stages/[id]/publish',
@@ -305,6 +331,7 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
   {
     name: 'POST /api/stages/[id]/unpublish',
@@ -314,6 +341,7 @@ const ROUTES: RouteCase[] = [
         params(STAGE_ID),
       ),
     happyStatus: 200,
+    gate: 'persistence',
   },
 ];
 
@@ -321,8 +349,12 @@ interface EnvState {
   label: string;
   runtimeFlag: string | undefined;
   databaseUrl: string | undefined;
-  /** Whether the routes must serve (true) or answer 404 (false). */
-  serves: boolean;
+  /**
+   * Which gates serve in this state. `none` = every route 404s; `persistence`
+   * = only DATABASE_URL-gated routes serve (the flag-off-with-DB deployment);
+   * `all` = every route serves.
+   */
+  serves: 'none' | 'persistence' | 'all';
 }
 
 const STATES: EnvState[] = [
@@ -330,14 +362,25 @@ const STATES: EnvState[] = [
     label: 'flag off, no DATABASE_URL',
     runtimeFlag: undefined,
     databaseUrl: undefined,
-    serves: false,
+    serves: 'none',
   },
-  { label: 'flag on, no DATABASE_URL', runtimeFlag: 'true', databaseUrl: undefined, serves: false },
+  {
+    label: 'flag on, no DATABASE_URL',
+    runtimeFlag: 'true',
+    databaseUrl: undefined,
+    serves: 'none',
+  },
+  {
+    label: 'flag off, DATABASE_URL present',
+    runtimeFlag: undefined,
+    databaseUrl: 'postgres://runtime',
+    serves: 'persistence',
+  },
   {
     label: 'flag on, DATABASE_URL present',
     runtimeFlag: 'true',
     databaseUrl: 'postgres://runtime',
-    serves: true,
+    serves: 'all',
   },
 ];
 
@@ -358,7 +401,7 @@ function material(): AgentSessionMaterial {
 }
 
 for (const state of STATES) {
-  describe(`agent runtime gate — ${state.label}`, () => {
+  describe(`persistence/agent gate — ${state.label}`, () => {
     const originals = new Map<string, string | undefined>();
 
     beforeEach(() => {
@@ -446,7 +489,9 @@ for (const state of STATES) {
 
     it.each(ROUTES.map((route) => [route.name, route] as const))('%s', async (_name, route) => {
       const response = await route.call();
-      if (state.serves) {
+      const shouldServe =
+        state.serves === 'all' || (state.serves === 'persistence' && route.gate === 'persistence');
+      if (shouldServe) {
         expect(response.status).toBe(route.happyStatus);
       } else {
         // The 404 must come from the gate, before any owner/store work —

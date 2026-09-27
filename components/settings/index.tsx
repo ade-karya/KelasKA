@@ -51,6 +51,7 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { toast } from 'sonner';
 import { type ProviderId } from '@/lib/ai/providers';
 import { PROVIDERS, MONO_LOGO_PROVIDERS } from '@/lib/ai/providers';
+import { HIDDEN_PROVIDER_IDS } from '@/lib/types/provider';
 import { cn } from '@/lib/utils';
 import { createCustomProviderSettings, modelInfoFromId } from './utils';
 import { ProviderList } from './provider-list';
@@ -455,20 +456,21 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
     setTimeout(() => setSaveStatus('idle'), 2000);
   };
 
-  const selectedProvider = providersConfig[selectedProviderId]
-    ? {
-        id: selectedProviderId,
-        name: providersConfig[selectedProviderId].name,
-        type: providersConfig[selectedProviderId].type,
-        defaultBaseUrl: providersConfig[selectedProviderId].defaultBaseUrl,
-        baseUrlPlaceholder: PROVIDERS[selectedProviderId]?.baseUrlPlaceholder,
-        supportsModelDiscovery: PROVIDERS[selectedProviderId]?.supportsModelDiscovery,
-        alternateBaseUrls: PROVIDERS[selectedProviderId]?.alternateBaseUrls,
-        icon: providersConfig[selectedProviderId].icon,
-        requiresApiKey: providersConfig[selectedProviderId].requiresApiKey,
-        models: providersConfig[selectedProviderId].models,
-      }
-    : undefined;
+  const selectedProvider =
+    providersConfig[selectedProviderId] && !HIDDEN_PROVIDER_IDS.has(selectedProviderId)
+      ? {
+          id: selectedProviderId,
+          name: providersConfig[selectedProviderId].name,
+          type: providersConfig[selectedProviderId].type,
+          defaultBaseUrl: providersConfig[selectedProviderId].defaultBaseUrl,
+          baseUrlPlaceholder: PROVIDERS[selectedProviderId]?.baseUrlPlaceholder,
+          supportsModelDiscovery: PROVIDERS[selectedProviderId]?.supportsModelDiscovery,
+          alternateBaseUrls: PROVIDERS[selectedProviderId]?.alternateBaseUrls,
+          icon: providersConfig[selectedProviderId].icon,
+          requiresApiKey: providersConfig[selectedProviderId].requiresApiKey,
+          models: providersConfig[selectedProviderId].models,
+        }
+      : undefined;
 
   // Handle model editing
   const handleEditModel = (pid: ProviderId, modelIndex: number) => {
@@ -640,7 +642,10 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
 
   // Get all providers from providersConfig
   // Kimi 推广位：置顶排序列表首位（稳定排序，其余保持原顺序）。
+  // Provider internal (HIDDEN_PROVIDER_IDS, mis. opencode) disembunyikan dari
+  // daftar layanan — backend tetap berfungsi, hanya tidak tampil di UI.
   const allProviders = Object.entries(providersConfig)
+    .filter(([id]) => !HIDDEN_PROVIDER_IDS.has(id))
     .map(([id, config]) => ({
       id: id as ProviderId,
       name: config.name,
@@ -653,6 +658,16 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
       isServerConfigured: config.isServerConfigured,
     }))
     .sort((a, b) => Number(b.id === PINNED_PROVIDER_ID) - Number(a.id === PINNED_PROVIDER_ID));
+
+  // Jika seleksi menunjuk ke provider tersembunyi (mis. state lama sebelum
+  // disembunyikan), pindahkan ke layanan terlihat pertama agar panel tidak
+  // menampilkan provider internal.
+  useEffect(() => {
+    if (HIDDEN_PROVIDER_IDS.has(selectedProviderId) && allProviders.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Migrate stale hidden selection to a visible provider
+      setSelectedProviderId(allProviders[0].id);
+    }
+  }, [selectedProviderId, allProviders]);
 
   // Get header content based on section
   const getHeaderContent = () => {

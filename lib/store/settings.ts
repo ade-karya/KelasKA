@@ -12,6 +12,7 @@ import { persist } from 'zustand/middleware';
 import type { ProviderId } from '@/lib/ai/providers';
 import type { ProvidersConfig } from '@/lib/types/settings';
 import { PROVIDERS } from '@/lib/ai/providers';
+import { HIDDEN_PROVIDER_IDS } from '@/lib/types/provider';
 import { findModelById, getCanonicalModelId } from '@/lib/ai/model-aliases';
 import type { ThinkingConfig } from '@/lib/types/provider';
 import { getThinkingConfigKey, supportsConfigurableThinking } from '@/lib/ai/thinking-config';
@@ -131,6 +132,44 @@ function pruneOperatorOnlyStageRoutes(
   if (!routes || !('maic-agent-driver' in routes)) return null;
   const { 'maic-agent-driver': _retired, ...rest } = routes;
   return rest;
+}
+
+/**
+ * Migrasi seleksi tersembunyi dari UI (HIDDEN_PROVIDER_IDS, mis. opencode):
+ * - mainline (providerId/modelId) yang menunjuk ke provider tersembunyi
+ *   dipindahkan ke provider terlihat usable pertama, atau State A bila tidak ada.
+ * - stage routes ke provider tersembunyi dihapus (tidak bisa dipilih lagi di UI).
+ * Backend server-side (DEFAULT_MODEL / MODEL_ROUTES) tidak terpengaruh.
+ */
+function migrateHiddenProviderSelection(state: Partial<SettingsState>): void {
+  if (!state.providersConfig) return;
+  const hiddenMain =
+    typeof state.providerId === 'string' && HIDDEN_PROVIDER_IDS.has(state.providerId);
+  if (hiddenMain) {
+    const fallback = (Object.keys(state.providersConfig) as ProviderId[]).find(
+      (id) =>
+        !HIDDEN_PROVIDER_IDS.has(id) &&
+        state.providersConfig![id]?.enabled !== false &&
+        isLLMProviderConfigured(
+          state.providersConfig![id] as Parameters<typeof isLLMProviderConfigured>[0],
+        ),
+    );
+    if (fallback) {
+      state.providerId = fallback;
+      state.modelId = state.providersConfig[fallback]?.models?.[0]?.id ?? '';
+    } else {
+      state.providerId = '' as ProviderId;
+      state.modelId = '';
+    }
+  }
+  if (state.llmStageRoutes) {
+    for (const stage of Object.keys(state.llmStageRoutes)) {
+      const route = state.llmStageRoutes[stage];
+      if (route && HIDDEN_PROVIDER_IDS.has(route.providerId)) {
+        delete state.llmStageRoutes[stage];
+      }
+    }
+  }
 }
 
 function pruneThinkingConfigs(
@@ -595,8 +634,14 @@ function resolveLLMSelection(
   // Usable = configured AND not switched off via the authorization-layer
   // per-provider toggle (ProviderSettings.enabled) — disabling the active
   // mainline provider re-resolves the selection to another usable one.
+  // Provider internal tersembunyi (HIDDEN_PROVIDER_IDS, mis. opencode) tidak
+  // pernah dipilih/diadopsi otomatis di UI — backend server-side tetap bisa
+  // memakainya via DEFAULT_MODEL / MODEL_ROUTES.
   const isUsable = (id: ProviderId) =>
-    !!config[id] && config[id].enabled !== false && isLLMProviderConfigured(config[id]);
+    !HIDDEN_PROVIDER_IDS.has(id) &&
+    !!config[id] &&
+    config[id].enabled !== false &&
+    isLLMProviderConfigured(config[id]);
   const providerId = isUsable(currentProviderId)
     ? currentProviderId
     : ((Object.keys(config) as ProviderId[]).find(isUsable) ?? ('' as ProviderId));
@@ -2494,6 +2539,7 @@ export const useSettingsStore = create<SettingsState>()(
         ensureValidProviderSelections(state);
         ensureBuiltInAudioProviders(state);
         ensureBuiltInWebSearchProviders(state);
+        migrateHiddenProviderSelection(state);
         state.thinkingConfigs = pruneThinkingConfigs(state.thinkingConfigs, state.providersConfig);
         const prunedOperatorOnly = pruneOperatorOnlyStageRoutes(state.llmStageRoutes);
         if (prunedOperatorOnly) state.llmStageRoutes = prunedOperatorOnly;
@@ -2538,6 +2584,7 @@ export const useSettingsStore = create<SettingsState>()(
         ensureValidProviderSelections(merged as Partial<SettingsState>);
         stripLegacyServerBaseUrl(merged as Partial<SettingsState>);
         const typedMerged = merged as Partial<SettingsState>;
+        migrateHiddenProviderSelection(typedMerged);
         typedMerged.thinkingConfigs = pruneThinkingConfigs(
           typedMerged.thinkingConfigs,
           typedMerged.providersConfig,

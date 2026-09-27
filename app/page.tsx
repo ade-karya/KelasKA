@@ -53,6 +53,7 @@ import type {
 } from '@/lib/types/generation';
 import { useSettingsStore } from '@/lib/store/settings';
 import { hasUsableLLMProvider } from '@/lib/store/settings-validation';
+import { HIDDEN_PROVIDER_IDS } from '@/lib/types/provider';
 import { useUserProfileStore, AVATAR_OPTIONS } from '@/lib/store/user-profile';
 import {
   StageListItem,
@@ -195,8 +196,15 @@ function HomePage() {
   // A usable LLM provider exists ⇒ a concrete model is always selected (#580
   // invariant). Gate generation on this single condition (state A vs B)
   // instead of inspecting modelId directly.
+  // Provider internal tersembunyi (opencode) tidak dihitung sebagai usable di UI.
   const providersConfig = useSettingsStore((s) => s.providersConfig);
-  const hasUsableProvider = hasUsableLLMProvider(providersConfig);
+  const visibleProvidersConfig = useMemo(() => {
+    if (!providersConfig) return providersConfig;
+    return Object.fromEntries(
+      Object.entries(providersConfig).filter(([id]) => !HIDDEN_PROVIDER_IDS.has(id)),
+    );
+  }, [providersConfig]);
+  const hasUsableProvider = hasUsableLLMProvider(visibleProvidersConfig);
   const [recentOpen, setRecentOpen] = useState(true);
   const persistRecentOpen = (next: boolean) => {
     setRecentOpen(next);

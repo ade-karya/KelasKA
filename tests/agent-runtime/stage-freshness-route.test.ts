@@ -5,13 +5,13 @@ import { createFakeDocumentStore } from './_fake-document-store';
 import { FIXED_NOW, makeDocument, makeSlideScene } from './_stage-fixtures';
 
 const mocks = vi.hoisted(() => ({
-  runtimeConfigured: true,
+  persistenceConfigured: true,
   resolveRequestOwnerId: vi.fn(),
   fakeStore: null as ReturnType<typeof createFakeDocumentStore> | null,
 }));
 
 vi.mock('@/lib/config/feature-flags', () => ({
-  isAgentRuntimeConfigured: () => mocks.runtimeConfigured,
+  isServerPersistenceConfigured: () => mocks.persistenceConfigured,
 }));
 vi.mock('@/lib/server/agent-runtime/owner', () => ({
   resolveRequestOwnerId: mocks.resolveRequestOwnerId,
@@ -50,7 +50,7 @@ async function readUntilFreshness(
 beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
-  mocks.runtimeConfigured = true;
+  mocks.persistenceConfigured = true;
   mocks.resolveRequestOwnerId.mockReturnValue('owner-1');
   mocks.fakeStore = createFakeDocumentStore();
   mocks.fakeStore.docs.set(
@@ -132,8 +132,8 @@ describe('GET /api/stages/[id]/freshness', () => {
     expect(response.headers.get('set-cookie')).toContain('anonymous_id=anon-2');
   });
 
-  it('answers 404 when the agent runtime is not configured', async () => {
-    mocks.runtimeConfigured = false;
+  it('answers 404 when server persistence is not configured', async () => {
+    mocks.persistenceConfigured = false;
     expect((await call()).status).toBe(404);
   });
 });

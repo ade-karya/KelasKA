@@ -1790,11 +1790,11 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     name: 'OpenCode Go',
     // Slug provider CLI `opencode-go/*` (terbukti via `opencode models`, mis.
     // opencode-go/gpt-6-luna). Dieksekusi sebagai child process `opencode run`
-    // seperti provider `opencode` — BUKAN HTTP. Model berbayar butuh
-    // `opencode auth login` untuk jalur CLI, atau <PREFIX>_API_KEY
-    // (OPENCODE_GO_API_KEY) untuk jalur HTTP langsung (driver agen).
+    // seperti provider `opencode` — BUKAN HTTP. Auth via `opencode auth login`
+    // / `/connect` TUI (tersimpan di CLI, tanpa API key di UI).
+    // Jalur HTTP langsung (driver agen) memakai baseUrl Go + OPENCODE_GO_API_KEY.
     type: 'opencode',
-    defaultBaseUrl: 'https://opencode.ai/zen/v1',
+    defaultBaseUrl: 'https://opencode.ai/zen/go/v1',
     requiresApiKey: false,
     icon: '/logos/opencode.svg',
     models: [

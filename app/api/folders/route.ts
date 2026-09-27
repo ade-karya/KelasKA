@@ -1,8 +1,8 @@
 /**
  * GET/POST /api/folders — the workbench's course-folder API (server-side
  * counterpart of the local `lib/utils/stage-storage.ts` folder API; the
- * configured runtime routes the seam through these handlers instead of the
- * Dexie tables).
+ * server persistence gate routes the seam through these handlers instead of
+ * the Dexie tables).
  *
  * Every handler is owner-scoped exactly like the other workbench routes: the
  * owner resolves from the anonymous cookie (`withRequestOwnerId`) and is never
@@ -15,15 +15,15 @@
  * = 1, ≤ 40) from `lib/utils/folder-name-validation.ts` — the same module the
  * client dialogs import, so the two ends cannot drift.
  *
- * The configured runtime gates the whole family (see `app/api/stages/route.ts`):
- * off, or on without a DATABASE_URL, answers the same plain 404.
+ * The server persistence gate controls the whole family (see `app/api/stages/route.ts`):
+ * without a DATABASE_URL it answers the same plain 404.
  */
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 import type { DocumentFolder, DocumentFolderStore } from '@openmaic/storage';
 
-import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
+import { isServerPersistenceConfigured } from '@/lib/config/feature-flags';
 import { getOwnerScopedDocumentStore } from '@/lib/server/agent-runtime/owner-scoped-documents';
 import { ownerJson } from '@/lib/server/agent-runtime/route-response';
 import { withRequestOwnerId } from '@/lib/server/agent-runtime/with-owner';
@@ -50,7 +50,7 @@ function jsonError(status: number, code: string, message: string, headers?: Head
 
 // GET /api/folders — list the caller's folders, ordered by `order` asc.
 export async function GET(req: NextRequest) {
-  if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
+  if (!isServerPersistenceConfigured()) return new Response('Not found', { status: 404 });
 
   return withRequestOwnerId(req, async (ownerId, responseHeaders) => {
     try {
@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
 // malformed body must not mint an anonymous cookie partition for a request
 // that will not proceed.
 export async function POST(req: NextRequest) {
-  if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
+  if (!isServerPersistenceConfigured()) return new Response('Not found', { status: 404 });
 
   let body: unknown;
   try {

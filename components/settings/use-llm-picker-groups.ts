@@ -10,6 +10,7 @@ import { useSettingsStore } from '@/lib/store/settings';
 import { isLLMProviderConfigured } from '@/lib/store/settings-validation';
 import { modelIdsMatch } from '@/lib/ai/model-aliases';
 import type { ProviderId } from '@/lib/ai/providers';
+import { HIDDEN_PROVIDER_IDS } from '@/lib/types/provider';
 import type { ModelInfo } from '@/lib/types/provider';
 import { TOKEN_PLAN_PRESETS } from '@/lib/config/token-plan-presets';
 import { activeTokenPlansInPriorityOrder } from '@/lib/config/apply-token-plan';
@@ -49,9 +50,12 @@ export function useLLMPickerGroups(): {
   const tokenPlanDisabled = useSettingsStore((s) => s.tokenPlanDisabled);
 
   // ── 可用 LLM 选项（已配置 provider 的模型目录，带思考能力供选择器渲染） ──
+  // Provider internal (HIDDEN_PROVIDER_IDS, mis. opencode) tidak tampil di UI
+  // mana pun — backend tetap bisa memakainya via server-side routes.
   const providers = useMemo(
     () =>
       Object.entries(providersConfig ?? {})
+        .filter(([id]) => !HIDDEN_PROVIDER_IDS.has(id))
         .filter(
           ([, config]) =>
             config.enabled !== false && // 授权层「启用此提供方」关闭时不展示

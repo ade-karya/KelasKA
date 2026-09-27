@@ -14,14 +14,14 @@
  *          bumps `stage.updatedAt` so the freshness signal sees the change.
  * - DELETE removes the course and its cascading child rows.
  *
- * The configured runtime gates the family (see `app/api/stages/route.ts`):
- * off, or on without a DATABASE_URL, answers the same plain 404.
+ * The server persistence gate controls the family (see `app/api/stages/route.ts`):
+ * without a DATABASE_URL it answers the same plain 404.
  */
 import type { NextRequest } from 'next/server';
 
 import { DocumentNotFoundError, DocumentVersionError, type MaicDocument } from '@openmaic/storage';
 
-import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
+import { isServerPersistenceConfigured } from '@/lib/config/feature-flags';
 import { apiError } from '@/lib/server/api-response';
 import { getOwnerScopedDocumentStore } from '@/lib/server/agent-runtime/owner-scoped-documents';
 import { ownerApiError, ownerJson, ownerNotFound } from '@/lib/server/agent-runtime/route-response';
@@ -63,7 +63,7 @@ function mapSaveError(error: unknown, headers: Headers) {
 
 // GET /api/stages/[id] — the full document.
 export async function GET(req: NextRequest, { params }: Params) {
-  if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
+  if (!isServerPersistenceConfigured()) return new Response('Not found', { status: 404 });
 
   return withRequestOwnerId(req, async (ownerId, responseHeaders) => {
     const { id } = await params;
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 // PATCH /api/stages/[id] — rename the course (owner-only).
 export async function PATCH(req: NextRequest, { params }: Params) {
-  if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
+  if (!isServerPersistenceConfigured()) return new Response('Not found', { status: 404 });
 
   let body: unknown;
   try {
@@ -116,7 +116,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
 // PUT /api/stages/[id] — save a whole document.
 export async function PUT(req: NextRequest, { params }: Params) {
-  if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
+  if (!isServerPersistenceConfigured()) return new Response('Not found', { status: 404 });
 
   let body: unknown;
   try {
@@ -178,7 +178,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 // DELETE /api/stages/[id] — remove the course and its scenes/outline.
 export async function DELETE(req: NextRequest, { params }: Params) {
-  if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
+  if (!isServerPersistenceConfigured()) return new Response('Not found', { status: 404 });
 
   return withRequestOwnerId(req, async (ownerId, responseHeaders) => {
     const { id } = await params;

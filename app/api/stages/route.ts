@@ -8,15 +8,15 @@
  * binds for the stage tools. A stage created here is visible to this browser
  * and to nobody else.
  *
- * The configured runtime gates the whole family: these routes serve the
- * workbench, which is agent-runtime territory, so a runtime that is off OR
- * enabled without a DATABASE_URL answers the same plain 404 as the agent
- * control-plane routes — never a 500 from a store that cannot connect.
+ * The server persistence gate controls the whole family: these routes serve
+ * persisted courses, which need only DATABASE_URL — never the agent runner —
+ * so a deployment without DATABASE_URL answers the same plain 404 as the
+ * persistence route itself.
  */
 import type { NextRequest } from 'next/server';
 import { randomBytes } from 'node:crypto';
 
-import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
+import { isServerPersistenceConfigured } from '@/lib/config/feature-flags';
 import type { AppDocumentOutline } from '@/lib/document-store/persistence-types';
 import { apiError } from '@/lib/server/api-response';
 import { getOwnerScopedDocumentStore } from '@/lib/server/agent-runtime/owner-scoped-documents';
@@ -33,7 +33,7 @@ function createStageId(): string {
 
 // GET /api/stages — list every stage document owned by the caller.
 export async function GET(req: NextRequest) {
-  if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
+  if (!isServerPersistenceConfigured()) return new Response('Not found', { status: 404 });
 
   return withRequestOwnerId(req, async (ownerId, responseHeaders) => {
     const store = await getOwnerScopedDocumentStore(ownerId);
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 // a malformed body must not mint an anonymous cookie partition for a request
 // that will not proceed.
 export async function POST(req: NextRequest) {
-  if (!isAgentRuntimeConfigured()) return new Response('Not found', { status: 404 });
+  if (!isServerPersistenceConfigured()) return new Response('Not found', { status: 404 });
 
   let body: unknown;
   try {

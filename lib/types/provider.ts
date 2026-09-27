@@ -200,3 +200,14 @@ export interface ModelConfig {
    */
   fetchImpl?: typeof fetch;
 }
+
+/**
+ * Provider internal (CLI) yang disembunyikan dari UI — pengaturan, pemilih
+ * model, toolbar. Backend tetap berfungsi (getModel / `opencode run`,
+ * DEFAULT_MODEL / MODEL_ROUTES server-side). Didefinisikan di sini (bukan di
+ * lib/ai/providers.ts) agar tidak ikut ke-mock pada test store.
+ *
+ * `opencode-go` TIDAK disembunyikan: auth-nya sudah connect via TUI
+ * (`opencode auth list` = stored) dan dipakai lewat CLI tanpa API key.
+ */
+export const HIDDEN_PROVIDER_IDS: ReadonlySet<string> = new Set(['opencode']);
