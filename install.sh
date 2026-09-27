@@ -145,7 +145,7 @@ for arg in "$@"; do
     --no-opencode)     WITH_OPENCODE=0 ;;
     --pg-major=*)      PG_MAJOR="${arg#*=}" ;;
     --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (tier gratis: opencode:muse-spark-1.3-contributor-free). Hapus flag tersebut dan ulangi." ;;
-    --pg-password=*)   PG_PASSWORD="${arg#*=}" ;;
+    --pg-password=*)   PG_PASSWORD="${arg#*=}"; [[ -n "$PG_PASSWORD" ]] || fail "--pg-password butuh nilai (contoh: --pg-password=rahasia)." ;;
     -h|--help)         tampilkan_help; exit 0 ;;
     *) fail "Opsi tidak dikenal: $arg (lihat --help)." ;;
   esac
@@ -246,6 +246,14 @@ rand_hex() {
 # yang dipakai versi lama script ini.
 url_encode() {
   node -e 'process.stdout.write(encodeURIComponent(process.argv[1]).replace(/[!'"'"'()*]/g, (c) => "%" + c.charCodeAt(0).toString(16).toUpperCase()))' "$1"
+}
+
+# Kebalikan url_encode. Dipakai saat memakai ulang password dari DATABASE_URL:
+# nilai di file sudah ter-encode, jadi harus di-decode dulu sebelum di-encode
+# ulang — kalau tidak `%40` menjadi `%2540` (double-encode) dan auth Postgres
+# gagal di run berikutnya.
+url_decode() {
+  node -e 'process.stdout.write(decodeURIComponent(process.argv[1]))' "$1"
 }
 
 # Nilai terakhir suatu var dari file env; "" bila tidak ada, dikomentari, atau
@@ -438,7 +446,16 @@ corepack install --global "pnpm@$PNPM_WANT" >/dev/null 2>&1 \
 hash -r 2>/dev/null || true
 command -v pnpm >/dev/null 2>&1 \
   || fail "pnpm tidak ditemukan setelah corepack. Pasang manual: npm i -g pnpm@$PNPM_WANT"
-info "pnpm $(pnpm -v)."
+# corepack hanya dicek keberadaannya saja tidak cukup: pnpm global lama (mis.
+# dari `npm i -g pnpm@9`) bisa membayangi shim corepack di PATH dan lolos cek
+# tapi gagal/lain perilaku saat `pnpm install`. Hanya peringatkan (tanpa fail)
+# agar lingkungan yang sengaja memakai pnpm lebih baru tidak rusak.
+PNPM_HAVE="$(pnpm -v 2>/dev/null || echo '?')"
+if [[ "$PNPM_HAVE" == "$PNPM_WANT" ]]; then
+  info "pnpm ${PNPM_HAVE}."
+else
+  warn "pnpm ${PNPM_HAVE} terpakai, tapi packageManager mengunci pnpm@${PNPM_WANT}. Selaraskan manual bila install bermasalah: npm i -g pnpm@${PNPM_WANT}"
+fi
 
 # ============================================================ 4. PostgreSQL
 LANGKAH="PostgreSQL ${PG_MAJOR}"
@@ -493,8 +510,16 @@ if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     # Password tersimpan dalam bentuk percent-encoded, jadi tidak ada `@` mentah.
     # Pakai `(.*)` rakus sampai `@` TERAKHIR agar password yang mengandung `@`
     # (mis. ditulis manual tanpa encode) tidak terpotong di `@` pertama.
-    EXISTING_PG_PASS="$(env_get .env.local DATABASE_URL \
+    EXISTING_PG_PASS_RAW="$(env_get .env.local DATABASE_URL \
       | sed -E -n 's|^postgres(ql)?://openmaic:(.*)@.*|\2|p')"
+    # Nilai di file sudah percent-encoded (ditulis installer via url_encode),
+    # jadi decode dulu sebelum dipakai — encode ulang di bawah tanpa decode
+    # akan double-encode (`%40` -> `%2540`) dan auth Postgres gagal. Bila
+    # decode gagal (password ditulis manual tanpa encode), pakai mentahnya.
+    EXISTING_PG_PASS=""
+    if [[ -n "$EXISTING_PG_PASS_RAW" ]]; then
+      EXISTING_PG_PASS="$(url_decode "$EXISTING_PG_PASS_RAW" 2>/dev/null || printf '%s' "$EXISTING_PG_PASS_RAW")"
+    fi
     if [[ -n "$EXISTING_PG_PASS" ]]; then
       PG_PASSWORD="$EXISTING_PG_PASS"
       info "Memakai ulang password Postgres dari .env.local yang ada (idempoten)."
@@ -535,6 +560,17 @@ if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     info "Password Postgres dibuat acak dan disimpan di .env.local (DATABASE_URL)."
   fi
   fi # tutup: if [[ -n "$PGPORT" ]]
+  # DATABASE_URL aktif tidak pernah ditimpa (pastikan_var_env), jadi port
+  # localhost yang basi (mis. cluster lama di 5433) harus ketahuan. Hanya
+  # untuk host lokal — URL remote (Neon/Supabase/dll.) bukan urusan installer.
+  if [[ -n "$PGPORT" && -f .env.local ]]; then
+    _DB_URL_AKTIF="$(env_get .env.local DATABASE_URL)"
+    _DB_PORT_AKTIF="$(printf '%s' "$_DB_URL_AKTIF" | sed -E -n 's#^postgres(ql)?://[^@]*@(localhost|127\.0\.0\.1|\[::1\]):([0-9]+)/.*#\3#p')"
+    if [[ -n "$_DB_PORT_AKTIF" && "$_DB_PORT_AKTIF" != "$PGPORT" ]]; then
+      warn "DATABASE_URL di .env.local menunjuk localhost:${_DB_PORT_AKTIF}, tapi cluster PostgreSQL ${PG_MAJOR}/main ada di port ${PGPORT}. Nilai Anda tidak ditimpa — perbaiki manual bila aplikasi gagal konek DB."
+    fi
+    unset _DB_URL_AKTIF _DB_PORT_AKTIF
+  fi
 else
   info "Lewati PostgreSQL (--no-postgres): agent runtime + persistence tetap nonaktif."
 fi
@@ -1188,7 +1224,7 @@ echo ""
 echo "Catatan:"
 echo "  - .env.local berisi secret (600). Jangan commit (sudah di .gitignore)."
 echo "  - Ambil ACCESS_CODE kapan saja: grep '^ACCESS_CODE=' .env.local"
-echo "  - Nilai NEXT_PUBLIC_* dibaca saat build: ubah nilainya lalu build ulang."
+echo "  - Nilai NEXT_PUBLIC_* dibaca saat start (dev) / saat build (produksi): restart dev server, atau build ulang untuk produksi."
 echo "  - Fitur native aktif semua tanpa docker: flag client+server true,"
 echo "    ALLOW_LOCAL_NETWORKS=true (Ollama/Lemonade/FunASR/SearXNG lokal bisa"
 echo "    dipakai; matikan bila server terekspos publik). Video MP4 tanpa"
