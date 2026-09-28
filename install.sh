@@ -587,6 +587,11 @@ tulis_template_env() {
   local db_url="$1" access_code="$2" dev_token="$3" agent_runtime="$4" opencode_bin="$5"
   local tier_name="$6" tier_default="$7" tier_driver="$8" tier_pin="$9"
   local tier_key1_line="${10}" tier_key2_line="${11}" tier_key2go_line="${12}"
+  # PENTING: heredoc di bawah SENGAJA tanpa quote (<<EOF) agar ${...} dan
+  # $(date ...) terekspansi. Konsekuensinya backtick literal dan $(...) ikut
+  # dieksekusi shell — jadi semua backtick literal WAJIB ditulis \`...\`.
+  # Satu saja backtick tak-terescape (apalagi ``` ganjil) berakibat fatal:
+  # "bad substitution", .env.local 0 byte, installer exit 1 di langkah ini.
   cat <<EOF
 # =============================================================================
 # OpenMAIC dev/prod lokal — dibuat oleh install.sh pada $(date -u +%Y-%m-%d)
@@ -609,10 +614,10 @@ tulis_template_env() {
 # Harus \`provider:model\` dengan provider terdaftar; tanpa ini resolveModel throw.
 DEFAULT_MODEL=${tier_default}
 # Route eksplisit maic-agent-driver (wajib + \`api\` saat agent runtime aktif).
-# Tier ber-key (1/2): HTTP OpenAI-compatible (`openai-completions`).
-# Tier-3 gratis: driver khusus CLI (`opencode-cli`, alias `cli`/`opencode`) —
-# eksekusi lokal `opencode run` tanpa key; function tools via envelope
-# ```tool_calls (lib/ai/opencode-cli.ts + lib/server/agent-runtime/agent-driver-model.ts).
+# Tier ber-key (1/2): HTTP OpenAI-compatible (\`openai-completions\`).
+# Tier-3 gratis: driver khusus CLI (\`opencode-cli\`, alias \`cli\`/\`opencode\`) —
+# eksekusi lokal \`opencode run\` tanpa key; function tools via envelope
+# \`\`\`tool_calls (lib/ai/opencode-cli.ts + lib/server/agent-runtime/agent-driver-model.ts).
 MODEL_ROUTES='${tier_driver}'
 
 # --- OpenCode CLI (eksekusi lokal, tanpa API key untuk model FREE) -------------
@@ -706,9 +711,21 @@ sed_escape_replacement() {
 # Bila yang ada hanya versi BERKOMENTARI (`# KEY=...`, jejak template
 # --no-postgres), baris itu diaktifkan ulang dengan nilai di sini — bukan
 # ditumpuk sebagai duplikat yang saling bertabrakan saat .env.local dibaca.
+# Bila baris aktif ada tapi nilainya KOSONG (mis. DATABASE_URL= dari run saat
+# Postgres belum siap, atau sisa run gagal), isi dengan nilai baru agar run
+# ulang pulih — nilai non-kosong milik user tidak pernah disentuh.
 pastikan_var_env() {
-  local file="$1" key="$2" value="$3" escaped
-  if grep -qE "^[[:space:]]*${key}=" "$file"; then return 0; fi
+  local file="$1" key="$2" value="$3" escaped current
+  if grep -qE "^[[:space:]]*${key}=" "$file"; then
+    if [[ -n "$value" ]]; then
+      current="$(env_get "$file" "$key")"
+      if [[ -z "$current" ]]; then
+        escaped="$(sed_escape_replacement "$value")"
+        sed -i -E "s|^[[:space:]]*${key}=.*|${key}=${escaped}|" "$file"
+      fi
+    fi
+    return 0
+  fi
   if [[ -n "$value" ]] && grep -qE "^[[:space:]]*#[[:space:]]*${key}=" "$file"; then
     escaped="$(sed_escape_replacement "$value")"
     sed -i -E "s|^[[:space:]]*#[[:space:]]*${key}=.*|${key}=${escaped}|" "$file"
@@ -802,6 +819,16 @@ selaraskan_key_env() {
   fi
 }
 
+# Run yang gagal di tengah (mis. heredoc template) meninggalkan .env.local
+# 0 byte, karena `> .env.local` memotong file SEBELUM isi ditulis. Anggap file
+# kosong sebagai tidak ada agar run ulang mengambil jalur buat-baru (atomik di
+# bawah), bukan jalur lengkapi.
+if [[ -f .env.local && ! -s .env.local ]]; then
+  warn ".env.local kosong (0 byte, sisa run yang gagal) — dibuat ulang dari template."
+  rm -f .env.local
+fi
+# Bersihkan file sementara dari run yang terinterupsi sebelum mulai yang baru.
+rm -f .env.local.tmp.*
 if [[ ! -f .env.local ]]; then
   info "Membuat .env.local baru dari template..."
   # Tier dari environment (file belum ada). Runtime agen ON bila DB ada —
@@ -830,12 +857,22 @@ if [[ ! -f .env.local ]]; then
     info "OPENCODE_GO_API_KEY disalin dari OPENCODE_API_KEY (gateway Zen yang sama) untuk driver HTTP."
   fi
   if [[ -n "$DATABASE_URL_VALUE" ]]; then
-    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > .env.local
+    # Tulis atomik via file sementara + mv: bila template gagal di tengah,
+    # .env.local tidak pernah ada dalam keadaan terpotong — run ulang aman.
+    TMP_ENV_BARU="$(mktemp .env.local.tmp.XXXXXX)"
+    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > "$TMP_ENV_BARU" \
+      || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
+    chmod 600 "$TMP_ENV_BARU"
+    mv -f "$TMP_ENV_BARU" .env.local
     if [[ "$AGENT_RT" == "false" ]]; then
       info "Agent runtime nonaktif (tanpa DATABASE_URL). Tier-3 tetap didukung driver CLI bila DB ada."
     fi
   else
-    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > .env.local
+    TMP_ENV_BARU="$(mktemp .env.local.tmp.XXXXXX)"
+    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > "$TMP_ENV_BARU" \
+      || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
+    chmod 600 "$TMP_ENV_BARU"
+    mv -f "$TMP_ENV_BARU" .env.local
     # Tanpa Postgres, seluruh blok persistence dikomentari. Pola harus cocok
     # dengan nilai APA PUN (template mengisinya dengan token acak), bukan hanya
     # baris kosong — dulu `PERSISTENCE_DEV_TOKEN=` tidak pernah kena dan tetap
