@@ -336,6 +336,46 @@ APT_PKGS=(
 )
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then APT_PKGS+=(gnupg); fi
 
+# ------------------------------------------------- sanitasi sumber r2u (deb-src)
+# r2u (https://r2u.stat.illinois.edu/ubuntu) hanya menyediakan paket binary
+# (deb), tanpa `main/source/Sources`. Bila entri deb-src-nya aktif — mis. dari
+# opsi "Enable source code", salin-tempel `Types: deb deb-src`, atau baris
+# `deb-src ...r2u...` — tiap `apt-get update` (di script ini ada beberapa
+# kali: awal, PGDG, NodeSource) memancarkan:
+#   W: Skipping acquire of configured file 'main/source/Sources' as repository
+#      'https://r2u.stat.illinois.edu/ubuntu noble InRelease' does not seem to
+#      provide it (sources.list entry misspelt?)
+# Ini peringatan saja (exit 0), tapi menutupi warning yang penting. Perbaiki
+# idempoten sebelum update pertama: komentari baris `deb-src ...r2u...`
+# (format one-line *.list) dan sederhanakan `Types: deb deb-src` -> `Types:
+# deb` hanya pada file yang isinya r2u (format DEB822 *.sources). Repo lain
+# tidak disentuh; run ulang aman (pola hanya cocok bila deb-src masih aktif).
+sanitasi_r2u_debsrc() {
+  local f
+  for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.list; do
+    [[ -f "$f" ]] || continue
+    if grep -Eq '^[[:space:]]*deb-src[[:space:]].*r2u\.stat\.illinois\.edu' "$f" 2>/dev/null; then
+      info "Menonaktifkan baris deb-src r2u di $f (r2u tidak menyediakan Sources)..."
+      run_as_root sed -i -E 's|^[[:space:]]*deb-src([[:space:]].*r2u\.stat\.illinois\.edu.*)|# deb-src\1  # dinonaktifkan install.sh: r2u tanpa Sources|' "$f"
+    fi
+  done
+  for f in /etc/apt/sources.list.d/*.sources; do
+    [[ -f "$f" ]] || continue
+    grep -q "r2u.stat.illinois.edu" "$f" 2>/dev/null || continue
+    grep -qE '^[[:space:]]*Types:.*deb-src' "$f" 2>/dev/null || continue
+    # File campuran (ada stanza non-r2u di file yang sama): jangan sed global
+    # agar repo lain tidak ikut kehilangan deb-src-nya.
+    if grep -Eq '^[[:space:]]*URIs:' "$f" 2>/dev/null \
+      && grep -E '^[[:space:]]*URIs:' "$f" | grep -qv "r2u.stat.illinois.edu"; then
+      warn "File $f memuat stanza r2u + repo lain; betulkan manual: ubah 'Types: deb deb-src' menjadi 'Types: deb' hanya pada stanza r2u."
+      continue
+    fi
+    info "Menonaktifkan Types deb-src r2u di $f (r2u tidak menyediakan Sources)..."
+    run_as_root sed -i -E 's|^[[:space:]]*Types:.*deb-src.*|Types: deb|' "$f"
+  done
+}
+sanitasi_r2u_debsrc
+
 info "Memperbarui daftar paket (apt-get update)..."
 run_as_root apt-get update -o Acquire::Retries=3
 info "Menginstal paket sistem via apt: ${APT_PKGS[*]}"
