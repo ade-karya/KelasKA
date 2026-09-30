@@ -747,9 +747,20 @@ export function buildCliWarnings(options: CliCallOptions): CliWarning[] {
 export function buildSamplingHints(options: CliCallOptions): string {
   const hints: string[] = [];
   if (options.maxOutputTokens !== undefined && Number.isFinite(options.maxOutputTokens)) {
-    hints.push(
-      `Batasi jawaban maksimal ~${Math.max(1, Math.floor(options.maxOutputTokens))} token; jawab ringkas dan jangan bertele-tele.`,
-    );
+    const max = Math.max(1, Math.floor(options.maxOutputTokens));
+    // Model FREE (opencode-cli, outputWindow 32000) sering dipakai untuk
+    // generate HTML simulasi yang WAJIB lengkap sampai </html>. Instruksi
+    // "jawab ringkas" membuat model memotong HTML -> extractHtml gagal ->
+    // "invalid-model-output". Untuk budget besar, tekankan kelengkapan.
+    if (max >= 8000) {
+      hints.push(
+        `Batasi jawaban maksimal ~${max} token; jawab LENGKAP sampai selesai (untuk HTML: sampai </html>) dan jangan memotong output. Jangan bertele-tele di luar kebutuhan.`,
+      );
+    } else {
+      hints.push(
+        `Batasi jawaban maksimal ~${max} token; jawab ringkas dan jangan bertele-tele.`,
+      );
+    }
   }
   if (options.temperature !== undefined) {
     const t = Number(options.temperature);

@@ -361,9 +361,9 @@ describe.skipIf(!contractUrl)('the legacy browser importer against the app route
     if (match) cookie = match[1];
   }
 
-  /** The browser loading a page: the document request, through the middleware. */
+  /** The browser loading a page: the document request, through the proxy. */
   async function loadPage(path = '/'): Promise<void> {
-    const { middleware } = await import('@/middleware');
+    const { proxy: middleware } = await import('@/proxy');
     const response = await middleware(
       new NextRequest(`http://localhost${path}`, {
         headers: {

@@ -10,7 +10,7 @@ import {
 import type { OwnerAuthMethod } from '@/lib/server/identity/types';
 import { resolveRequestOwner } from '@/lib/server/identity/resolve';
 import { isDocumentNavigation } from '@/lib/server/identity/navigation';
-import { middleware } from '@/middleware';
+import { proxy as middleware } from '@/proxy';
 
 /**
  * The page request establishes the anonymous owner (middleware.ts,

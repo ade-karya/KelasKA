@@ -1159,36 +1159,84 @@ async function generatePBLSceneContent(
 /**
  * Extract HTML document from AI response.
  * Tries to find <!DOCTYPE html>...</html> first, then falls back to code block extraction.
+ *
+ * Toleran untuk model FREE (opencode-cli, mis. muse-spark-1.3-contributor-free)
+ * yang sering: (1) membungkus HTML dalam ```html fence tanpa DOCTYPE,
+ * (2) menambahkan penjelasan + <think> reasoning prefix, (3) output terpotong
+ * tanpa </html> penutup, (4) hanya mengembalikan fragment <body>/<div>/<canvas>.
  */
+function stripReasoningPrefixForHtml(response: string): string {
+  const trimmed = response.trim();
+  const matches = [...trimmed.matchAll(/<\/(?:think|thinking|reasoning)>\s*/gi)];
+  const last = matches.at(-1);
+  if (!last || last.index === undefined) return trimmed;
+  return trimmed.slice(last.index + last[0].length).trim();
+}
+
+function wrapHtmlFragment(fragment: string): string {
+  const trimmed = fragment.trim();
+  if (!trimmed) return trimmed;
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body>${trimmed}</body></html>`;
+}
+
 function extractHtml(
   response: string,
   log: GenerationLogger = noopGenerationLogger,
 ): string | null {
-  // Strategy 1: Find complete HTML document
-  const doctypeStart = response.indexOf('<!DOCTYPE html>');
-  const htmlTagStart = response.indexOf('<html');
+  const cleaned = stripReasoningPrefixForHtml(response);
+  // Strategy 1: Find complete HTML document (case-insensitive DOCTYPE)
+  const lower = cleaned.toLowerCase();
+  const doctypeStart = lower.indexOf('<!doctype html>');
+  const htmlTagStart = lower.indexOf('<html');
   const start = doctypeStart !== -1 ? doctypeStart : htmlTagStart;
 
   if (start !== -1) {
-    const htmlEnd = response.lastIndexOf('</html>');
+    const htmlEnd = lower.lastIndexOf('</html>');
     if (htmlEnd !== -1) {
-      return response.substring(start, htmlEnd + 7);
+      return cleaned.substring(start, htmlEnd + 7);
+    }
+    // Terpotong tanpa </html>: tutup otomatis agar tidak invalid-model-output.
+    const truncated = cleaned.substring(start).trim();
+    if (truncated.length > 500 && /<(div|canvas|script|style|body|button|input)/i.test(truncated)) {
+      log.warn('HTML terpotong tanpa </html>; menutup otomatis untuk model free.');
+      if (/<\/body>\s*$/i.test(truncated)) return `${truncated}</html>`;
+      if (/<\/[^>]+>\s*$/.test(truncated)) return `${truncated}</body></html>`;
+      return `${truncated}</body></html>`;
     }
   }
 
-  // Strategy 2: Extract from code block
-  const codeBlockMatch = response.match(/```(?:html)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    const content = codeBlockMatch[1].trim();
-    if (content.includes('<html') || content.includes('<!DOCTYPE')) {
+  // Strategy 2: Extract from code block (ambil blok TERBESAR yang mirip HTML)
+  const codeBlocks = [...cleaned.matchAll(/```(?:html)?\s*([\s\S]*?)```/gi)].map((m) => m[1].trim());
+  // Blok terbesar dulu: model free kadang mengeluarkan contoh kecil + HTML asli.
+  codeBlocks.sort((a, b) => b.length - a.length);
+  for (const content of codeBlocks) {
+    if (content.includes('<html') || content.toLowerCase().includes('<!doctype')) {
       return content;
+    }
+  }
+  for (const content of codeBlocks) {
+    if (
+      content.length > 500 &&
+      /<(canvas|script|style|div|button|input|body)/i.test(content)
+    ) {
+      log.warn('HTML ditemukan di code fence tanpa <html>; membungkus sebagai dokumen.');
+      return wrapHtmlFragment(content);
     }
   }
 
   // Strategy 3: If response itself looks like HTML
-  const trimmed = response.trim();
-  if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+  const trimmed = cleaned.trim();
+  if (trimmed.startsWith('<!DOCTYPE') || trimmed.toLowerCase().startsWith('<html')) {
     return trimmed;
+  }
+  // Strategy 4 (baru, model free): fragment langsung tanpa wrapper
+  if (
+    trimmed.length > 500 &&
+    /<(canvas|script|style|div|body|button)/i.test(trimmed) &&
+    !trimmed.includes('```')
+  ) {
+    log.warn('Fragment HTML tanpa wrapper terdeteksi; membungkus sebagai dokumen.');
+    return wrapHtmlFragment(trimmed);
   }
 
   log.error('Could not extract HTML from response');
