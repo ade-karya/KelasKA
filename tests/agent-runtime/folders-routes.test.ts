@@ -12,9 +12,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/config/feature-flags', () => ({
   isServerPersistenceConfigured: () => mocks.persistenceConfigured,
 }));
-vi.mock('@/lib/server/agent-runtime/owner', () => ({
-  resolveRequestOwnerId: mocks.resolveRequestOwnerId,
-}));
+vi.mock('@/lib/server/identity/resolve', async () =>
+  (await import('../helpers/owner-resolution-mock')).ownerResolveModule(
+    mocks.resolveRequestOwnerId,
+  ),
+);
 vi.mock('@/lib/server/agent-runtime/owner-scoped-documents', () => ({
   getOwnerScopedDocumentStore: async () => mocks.fakeStore!.store,
 }));
@@ -42,7 +44,7 @@ beforeEach(() => {
 });
 
 describe('GET /api/folders', () => {
-  it('gates on server persistence', async () => {
+  it('gates on configured server persistence', async () => {
     mocks.persistenceConfigured = false;
     const response = await GET(routeRequest('http://localhost/api/folders'));
     expect(response.status).toBe(404);
