@@ -10,7 +10,7 @@ import { createLogger } from '@/lib/logger';
 import { PROVIDERS } from './providers';
 import { thinkingContext } from './thinking-context';
 import { isEmptyLlmOutput, shouldFallbackFor, logFallbackFired } from '@/lib/server/llm-fallback';
-import { getModelMetadataKey } from './model-metadata';
+import { getModelMetadataKey, getProbedThinkingCapability } from './model-metadata';
 import { getCanonicalModelId } from './model-aliases';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 import {
@@ -147,8 +147,13 @@ function buildThinkingProviderOptions(
   const info = providerId
     ? MODEL_THINKING_MAP.get(getModelMetadataKey(providerId, lookupModelId))
     : UNIQUE_MODEL_THINKING_MAP.get(lookupModelId);
-  if (!info?.thinking) return undefined; // model has no thinking capability
-  const thinking = info.thinking;
+  // Probed (fetched) model ids are not in the static catalog map — fall back
+  // to family-pattern inference so their thinking control actually takes
+  // effect at request time, not just in the settings UI.
+  const thinking =
+    info?.thinking ??
+    (providerId ? getProbedThinkingCapability(providerId, lookupModelId) : undefined);
+  if (!thinking) return undefined; // model has no thinking capability
   if (thinking.control === 'none') return undefined;
 
   const mode = getThinkingMode(config);

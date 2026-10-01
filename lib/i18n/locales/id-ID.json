@@ -1303,7 +1303,8 @@
     "capabilities": {
       "vision": "Vision",
       "tools": "Tool",
-      "streaming": "Streaming"
+      "streaming": "Streaming",
+      "thinking": "Penalaran"
     },
     "contextWindow": "Konteks",
     "contextShort": "ctx",

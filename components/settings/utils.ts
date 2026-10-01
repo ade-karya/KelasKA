@@ -1,25 +1,70 @@
 import type { ProviderId, ProviderType, ModelInfo } from '@/lib/types/provider';
 import type { ProviderSettings } from '@/lib/types/settings';
-import { getCatalogThinkingCapability } from '@/lib/ai/model-metadata';
+import { getProbedThinkingCapability } from '@/lib/ai/model-metadata';
+import { findModelById } from '@/lib/ai/model-aliases';
+import { PROVIDERS } from '@/lib/ai/providers';
 
 /** Heuristic: model ids matching this are treated as vision-capable. */
 const VISION_MODEL_PATTERN = /vision|vl|omni|4o|gpt-5|gemini|claude/i;
 
+/** Words always uppercased when prettifying a raw model id into a label. */
+const PRETTY_ACRONYMS = new Set(['gpt', 'llm', 'vl', 'tts', 'asr', 'ai', 'api', 'pbl']);
+
 /**
- * Builds a default ModelInfo from a probed model id. Vision capability is
- * inferred from the id via {@link VISION_MODEL_PATTERN}. Shared by the provider
- * panel and the token-plan apply flow so the heuristic stays in one place.
- *
- * When `providerId` is given, the built-in thinking capability for that
- * (provider, model) pair is overlaid — so a model that supports configurable
- * thinking keeps its `capabilities.thinking` instead of silently losing it
- * (which would hide InlineThinkingControl). Unknown pairs are unaffected.
+ * Turns a raw model id (`gemini-2.5-flash`) into a readable label
+ * (`Gemini 2.5 Flash`). Only a fallback — catalog names and provider
+ * `displayName`s win when available.
  */
-export function modelInfoFromId(id: string, providerId?: string): ModelInfo {
-  const thinking = providerId ? getCatalogThinkingCapability(providerId, id) : undefined;
+export function prettifyModelId(id: string): string {
+  return id
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((word) => {
+      const lower = word.toLowerCase();
+      if (PRETTY_ACRONYMS.has(lower)) return lower.toUpperCase();
+      if (/^[a-z]/.test(word)) return word[0].toUpperCase() + word.slice(1);
+      return word;
+    })
+    .join(' ');
+}
+
+/**
+ * Builds a default ModelInfo from a probed model id. Name resolution order:
+ * built-in catalog name → provider `displayName` → prettified id. Vision
+ * capability is inferred from the id via {@link VISION_MODEL_PATTERN}. Shared
+ * by the provider panel and the token-plan apply flow so the heuristic stays
+ * in one place.
+ *
+ * Thinking comes from {@link getProbedThinkingCapability}: exact catalog
+ * entries keep their configured control, and unknown ids of thinking
+ * families (e.g. a future `gemini-3.9-flash`) get an inferred control so the
+ * thinking UI keeps working for fetched models instead of silently hiding.
+ */
+export function modelInfoFromId(
+  id: string,
+  providerId?: string,
+  displayName?: string,
+): ModelInfo {
+  const catalogModel =
+    providerId && PROVIDERS[providerId as ProviderId]
+      ? findModelById(providerId, PROVIDERS[providerId as ProviderId].models, id)
+      : undefined;
+  if (catalogModel) {
+    // A catalog twin exists (e.g. re-fetching a known model): reuse its
+    // curated name and full capabilities verbatim.
+    return {
+      id,
+      name: catalogModel.name,
+      contextWindow: catalogModel.contextWindow,
+      outputWindow: catalogModel.outputWindow,
+      capabilities: { ...catalogModel.capabilities },
+    };
+  }
+  const thinking = providerId ? getProbedThinkingCapability(providerId, id) : undefined;
+  const trimmedDisplayName = displayName?.trim();
   return {
     id,
-    name: id,
+    name: trimmedDisplayName || prettifyModelId(id),
     capabilities: {
       streaming: true,
       tools: true,

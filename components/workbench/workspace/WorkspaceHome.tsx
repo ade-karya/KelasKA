@@ -42,6 +42,7 @@ import { cn } from '@/lib/utils/cn';
 import { BrandLogo } from '@/components/brand-logo';
 import { ProBadge } from '@/components/workbench/ProBadge';
 import { ProLaunchPanel } from '@/components/workbench/ProLaunchPanel';
+import { WorkbenchModelPicker } from './WorkbenchModelPicker';
 import type { CourseMentionSource } from '@/lib/workbench/course-mention';
 
 export function WorkspaceHome({
@@ -146,6 +147,9 @@ export function WorkspaceHome({
               craft spent on it. It gets the larger gap of the two, because the
               gap is what says which of them the page is actually about. */}
           <div className={cn('mt-8', !swapped && 'ws-enter ws-d2')}>
+            <div className="mb-2 flex justify-end">
+              <WorkbenchModelPicker />
+            </div>
             <ProLaunchPanel
               autoFocus
               focusSignal={composerReset}

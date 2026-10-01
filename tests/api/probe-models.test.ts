@@ -170,6 +170,62 @@ describe('POST /api/provider/probe-models', () => {
       });
     });
 
+    it('keeps only text-generation models for a Gemini target', async () => {
+      const provider = await answering(
+        200,
+        JSON.stringify({
+          models: [
+            {
+              name: 'models/gemini-2.5-flash',
+              displayName: 'Gemini 2.5 Flash',
+              supportedGenerationMethods: ['generateContent', 'countTokens'],
+            },
+            {
+              name: 'models/gemini-2.5-flash-image',
+              displayName: 'Nano Banana',
+              supportedGenerationMethods: ['generateContent', 'countTokens'],
+            },
+            {
+              name: 'models/nano-banana-pro-preview',
+              displayName: 'Nano Banana Pro',
+              supportedGenerationMethods: ['generateContent', 'countTokens'],
+            },
+            {
+              name: 'models/gemini-omni-flash-preview',
+              displayName: 'Gemini Omni Flash Preview',
+              supportedGenerationMethods: ['generateContent', 'countTokens'],
+            },
+            {
+              name: 'models/gemini-2.5-flash-preview-tts',
+              displayName: 'Gemini 2.5 Flash Preview TTS',
+              supportedGenerationMethods: ['generateContent', 'countTokens'],
+            },
+            {
+              name: 'models/text-embedding-004',
+              displayName: 'Text Embedding 004',
+              supportedGenerationMethods: ['embedContent'],
+            },
+          ],
+        }),
+      );
+
+      const res = await postProbeModels({
+        baseUrl: provider.origin,
+        apiKey: 'test-key',
+        providerType: 'google',
+      });
+
+      expect(res).toEqual({
+        status: 200,
+        json: {
+          success: true,
+          models: [{ id: 'gemini-2.5-flash', ownedBy: undefined, displayName: 'Gemini 2.5 Flash' }],
+          total: 5,
+          filtered: 4,
+        },
+      });
+    });
+
     it('reports only the status class of other errors, never the body', async () => {
       const provider = await answering(500, 'internal-secret-body');
 

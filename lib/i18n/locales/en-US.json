@@ -1303,7 +1303,8 @@
     "capabilities": {
       "vision": "Vision",
       "tools": "Tools",
-      "streaming": "Streaming"
+      "streaming": "Streaming",
+      "thinking": "Thinking"
     },
     "contextWindow": "Context",
     "contextShort": "ctx",

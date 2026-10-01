@@ -182,3 +182,114 @@ describe('fetchModels', () => {
     },
   );
 });
+
+describe('gemini native discovery (per ai.google.dev docs)', () => {
+  const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+
+  it('probes {base}/models first (v1beta is not an OpenAI /v{N} segment)', () => {
+    expect(
+      buildModelsUrlCandidates(GEMINI_BASE, { providerType: 'google' }),
+    ).toEqual([`${GEMINI_BASE}/models`, `${GEMINI_BASE}/openai/models`]);
+  });
+
+  it('detects the generativelanguage host even without providerType', () => {
+    expect(buildModelsUrlCandidates(GEMINI_BASE)).toEqual([
+      `${GEMINI_BASE}/models`,
+      `${GEMINI_BASE}/openai/models`,
+    ]);
+  });
+
+  it('parses the native schema with x-goog-api-key auth and drops non-text models', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({
+        models: [
+          { name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] },
+          { name: 'models/text-embedding-004', supportedGenerationMethods: ['embedContent'] },
+          { name: 'models/aqa', supportedGenerationMethods: ['generateAnswer'] },
+        ],
+      }),
+    } as unknown as Response);
+
+    await expect(
+      fetchModels(GEMINI_BASE, 'test-key', {
+        providerType: 'google',
+        fetchImpl: fetchMock as never,
+      }),
+    ).resolves.toEqual([{ id: 'gemini-2.5-flash', ownedBy: undefined }]);
+
+    const [calledUrl, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(calledUrl).toBe(`${GEMINI_BASE}/models?key=test-key&pageSize=100`);
+    expect(init.headers).toMatchObject({ 'x-goog-api-key': 'test-key' });
+    expect(init.headers).not.toHaveProperty('Authorization');
+  });
+
+  it('maps a native 400 (API key not valid) to the 401 auth contract', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 400 } as unknown as Response);
+
+    const error = await fetchModels(GEMINI_BASE, 'bad-key', {
+      providerType: 'google',
+      fetchImpl: fetchMock as never,
+    }).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(ModelFetchError);
+    expect(error).toMatchObject({ status: 401 });
+  });
+
+  it('falls back to the OpenAI-compat endpoint with Bearer auth', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 404 } as unknown as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: vi.fn().mockResolvedValue({ data: [{ id: 'gemini-3.8-flash' }] }),
+      } as unknown as Response);
+
+    await expect(
+      fetchModels(GEMINI_BASE, 'test-key', {
+        providerType: 'google',
+        fetchImpl: fetchMock as never,
+      }),
+    ).resolves.toEqual([{ id: 'gemini-3.8-flash', ownedBy: undefined }]);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `${GEMINI_BASE}/openai/models`,
+      expect.objectContaining({
+        method: 'GET',
+        headers: { Authorization: 'Bearer test-key' },
+      }),
+    );
+  });
+
+  it('orders Gemini models newest version first', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({
+        models: [
+          { name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] },
+          { name: 'models/gemini-flash-latest', supportedGenerationMethods: ['generateContent'] },
+          { name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] },
+          { name: 'models/gemma-4-31b-it', supportedGenerationMethods: ['generateContent'] },
+          { name: 'models/gemini-3.1-pro-preview', supportedGenerationMethods: ['generateContent'] },
+        ],
+      }),
+    } as unknown as Response);
+
+    const models = await fetchModels(GEMINI_BASE, 'test-key', {
+      providerType: 'google',
+      fetchImpl: fetchMock as never,
+    });
+
+    expect(models.map((m) => m.id)).toEqual([
+      'gemini-3.8-flash',
+      'gemini-3.1-pro-preview',
+      'gemini-2.5-flash',
+      'gemini-flash-latest',
+      'gemma-4-31b-it',
+    ]);
+  });
+});

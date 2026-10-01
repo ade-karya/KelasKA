@@ -506,19 +506,26 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
     setProviderConfig(pid, { models: newModels });
   };
 
-  // Merge probed model ids into the provider's model list. Previously
+  // Merge probed models into the provider's model list. Previously
   // probe-derived entries (`source: 'probed'`) are dropped first so a re-fetch
   // (after the user changes base URL / API key) REPLACES the stale set instead
-  // of accumulating dead ids. Catalog and manually-added models are preserved.
-  // `modelInfoFromId(id, pid)` keeps built-in thinking capability so the
-  // thinking control isn't silently hidden for fetched built-in models.
-  const handleModelsFetched = (pid: ProviderId, fetchedIds: string[]): number => {
+  // of accumulating dead ids. Catalog and manually-added models are preserved
+  // in place; new probed entries are appended in probe order — the server
+  // already orders them (Gemini newest version first, others by id).
+  // `modelInfoFromId` resolves each entry's display name (catalog name →
+  // provider displayName → prettified id) and thinking capability (exact
+  // catalog entry, else family-pattern inference) so fetched models behave
+  // like built-in ones.
+  const handleModelsFetched = (
+    pid: ProviderId,
+    fetched: Array<{ id: string; displayName?: string }>,
+  ): number => {
     const currentModels = providersConfig[pid]?.models || [];
     const kept = currentModels.filter((m) => m.source !== 'probed');
     const keptIds = new Set(kept.map((m) => m.id));
-    const additions = fetchedIds
-      .filter((id) => !keptIds.has(id))
-      .map((id) => ({ ...modelInfoFromId(id, pid), source: 'probed' as const }));
+    const additions = fetched
+      .filter((m) => !keptIds.has(m.id))
+      .map((m) => ({ ...modelInfoFromId(m.id, pid, m.displayName), source: 'probed' as const }));
     const next = [...kept, ...additions];
     // Write when the set changed at all — additions, or stale probed ids pruned.
     if (additions.length > 0 || next.length !== currentModels.length) {
@@ -1185,7 +1192,9 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
                             onEditModel={(index) => handleEditModel(selectedProviderId, index)}
                             onDeleteModel={(index) => handleDeleteModel(selectedProviderId, index)}
                             onAddModel={handleAddModel}
-                            onModelsFetched={(ids) => handleModelsFetched(selectedProviderId, ids)}
+                            onModelsFetched={(models) =>
+                              handleModelsFetched(selectedProviderId, models)
+                            }
                             modelsUrl={providersConfig[selectedProviderId]?.modelsUrl}
                             onResetToDefault={() => handleResetProvider(selectedProviderId)}
                             isBuiltIn={providersConfig[selectedProviderId]?.isBuiltIn ?? true}

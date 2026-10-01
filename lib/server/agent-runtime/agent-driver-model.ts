@@ -2,6 +2,11 @@ import type { Api, Model } from '@earendil-works/pi-ai';
 
 import { getStageRoute } from '@/lib/server/model-routes';
 import { resolveModel, type ResolvedModel } from '@/lib/server/resolve-model';
+import {
+  isActivatedOpencodeId,
+  normalizeOpencodeModelInput,
+  readActiveModelOverride,
+} from './opencode-models';
 
 export const AGENT_DRIVER_STAGE = 'maic-agent-driver' as const;
 export const UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS = 8_192;
@@ -96,6 +101,36 @@ export async function resolveAgentDriverModel(): Promise<{
   /** Raw `api` value from the route (e.g. "opencode-cli" vs "openai-completions"). */
   driverApi?: string;
 }> {
+  // Tombol pemilih model Pro Workbench (/workspace -> POST /api/agent/models)
+  // menyimpan override global di data/agent-driver-model.json. Override hanya
+  // berlaku untuk driver CLI free (provider `opencode`): bila MODEL_ROUTES
+  // menunjuk tier ber-key (mis. google gemini / opencode-go HTTP), override
+  // diabaikan agar pilihan operator ber-key tidak dibajak — tanpa restart,
+  // berlaku untuk run berikutnya. Override di luar allowlist juga diabaikan.
+  const override = readActiveModelOverride();
+  if (override) {
+    const bare = normalizeOpencodeModelInput(override.modelString);
+    const route = getStageRoute(AGENT_DRIVER_STAGE);
+    const routeIsCliFree =
+      !route ||
+      route.model.startsWith('opencode:') ||
+      isOpencodeCliApi(route.api) ||
+      (route && isOpencodeCliProvider(route.model.split(':')[0] ?? ''));
+    if (bare && isActivatedOpencodeId(bare) && routeIsCliFree) {
+      const connection = await resolveModel({ modelString: override.modelString });
+      const driverApi = override.api || 'opencode-cli';
+      const isCliDriver = true;
+      return {
+        connection,
+        piModel: buildPiDriverModel(connection, driverApi, undefined),
+        wireMaxOutputTokens: undefined,
+        reservedOutputTokens:
+          connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
+        isCliDriver,
+        driverApi,
+      };
+    }
+  }
   const route = getStageRoute(AGENT_DRIVER_STAGE);
   if (!route) {
     throw new Error(

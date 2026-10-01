@@ -27,7 +27,12 @@
 #      (provider terdaftar di lib/ai/providers.ts) —
 #      1 Gemini (google:gemini-3.5-flash-lite), 2 OpenCode Go
 #      (opencode-go:gpt-6-luna), 3 OpenCode free CLI
-#      (opencode:muse-spark-1.3-contributor-free). API key
+#      (opencode:muse-spark-1.3-contributor-free sebagai default, dengan
+#      OPENCODE_MODELS berisi SEMUA model free dari `opencode models`).
+#      Installer mengambil daftar model free via CLI (`opencode models`,
+#      fallback katalog lib/ai/providers.ts) lalu mengaktifkan semuanya di
+#      OPENCODE_MODELS (comma-separated) agar tombol pemilih model di halaman
+#      Pro Workbench (/workspace) bisa memilih di antaranya. API key
 #      (GOOGLE_API_KEY, OPENCODE_API_KEY/OPENCODE_GO_API_KEY, provider LLM,
 #      TTS/ASR, search) dibiarkan kosong untuk diisi manual. TTS browser-native
 #      (Web Speech API) default ON tanpa API key (lihat --no-browser-tts).
@@ -882,15 +887,102 @@ set_tts_browser_flag() {
 #           (utama) dan/atau OPENCODE_GO_API_KEY (jalur HTTP/driver).
 #           `opencode auth login` saja tidak cukup untuk driver HTTP.
 #   tier3 = OpenCode free CLI : opencode:muse-spark-1.3-contributor-free
-#           (eksekusi lokal, tanpa auth; terverifikasi RC=0 tanpa kredensial)
+#           (default; eksekusi lokal, tanpa auth; terverifikasi RC=0 tanpa
+#           kredensial). SEMUA model free dari `opencode models` diambil lalu
+#           diaktifkan di OPENCODE_MODELS (comma-separated); tombol pemilih model
+#           di /workspace memilih di antaranya (GET/POST /api/agent/models).
 TIER1_MODEL="google:gemini-3.5-flash-lite"
 TIER1_KEY_VAR="GOOGLE_API_KEY"
 TIER2_MODEL="opencode-go:gpt-6-luna"
 TIER2_KEY_PRIMARY="OPENCODE_API_KEY"
 TIER2_KEY_HTTP="OPENCODE_GO_API_KEY"
 TIER3_MODEL="opencode:muse-spark-1.3-contributor-free"
+# Fallback katalog provider `opencode` (lib/ai/providers.ts) bila CLI belum
+# ada / offline: SEMUA model free diaktifkan, bukan satu pin saja.
+OPENCODE_FREE_FALLBACK="space-bunny-free,muse-spark-1.3-contributor-free,big-pickle,longcat-2.5-preview-free,mimo-v2.6-flash-free,ling-3.0-flash-fin-free,nemotron-3-ultra-free,nemotron-3.5-lightning-free"
 # Pin katalog provider `opencode` agar CLI gratis selalu discoverable.
+# Kompatibel lama (single id) — nilai aktif kini daftar comma-separated
+# dari daftar_model_free_opencode (CLI `opencode models` atau fallback).
 TIER_PIN="muse-spark-1.3-contributor-free"
+
+# Ambil SEMUA model free opencode-cli (`opencode models`) sebagai daftar
+# comma-separated, lalu aktifkan di OPENCODE_MODELS. Idempoten, toleran offline:
+# gagal/CLI absen -> fallback katalog di atas.
+# Output: satu baris `id1,id2,...` (bare id tanpa prefix `opencode/`).
+daftar_model_free_opencode() {
+  local bin="${1:-}" out="" json_tmp="" txt_tmp="" _home="" _sudo_home=""
+  if [[ -z "$bin" ]]; then
+    # Saat sudo, $HOME=/root — cari home pemilik sesi dulu agar kandidat benar.
+    if [[ -n "${SUDO_USER:-}" ]]; then
+      _sudo_home="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)"
+    fi
+    for _home in "${_sudo_home:-}" "${OPENCODE_TARGET_HOME:-}" "$HOME"; do
+      [[ -n "$_home" ]] || continue
+      for cand in "$_home/.opencode/bin/opencode" "$_home/bin/opencode"; do
+        if [[ -x "$cand" ]]; then bin="$cand"; break 2; fi
+      done
+    done
+    [[ -z "$bin" ]] && bin="$(command -v opencode 2>/dev/null || true)"
+    [[ -z "$bin" ]] && bin="${OPENCODE_BIN_DETECTED:-}"
+  fi
+  if [[ -n "$bin" && -x "$bin" ]] && command -v timeout >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
+    json_tmp="$(mktemp 2>/dev/null || echo '')"
+    if [[ -n "$json_tmp" ]]; then
+      if timeout 30 "$bin" models --format json >"$json_tmp" 2>/dev/null; then
+        out="$(node -e '
+          const fs=require("node:fs");
+          try{
+            const raw=fs.readFileSync(process.argv[1],"utf8");
+            const j=JSON.parse(raw);
+            const arr=Array.isArray(j)?j:(Array.isArray(j.models)?j.models:(Array.isArray(j.data)?j.data:[]));
+            const ids=[];
+            for(const m of arr){
+              if(typeof m==="string"){ ids.push(m); continue; }
+              if(!m||typeof m!=="object") continue;
+              const id=String(m.id||m.slug||m.name||"");
+              if(!id) continue;
+              ids.push(id);
+            }
+            const free=ids.map((s)=>s.trim()).filter(Boolean)
+              .map((s)=>s.replace(/^opencode[\/:]/,""))
+              .filter((s)=>/free$|big-pickle/i.test(s));
+            console.log([...new Set(free)].join(","));
+          }catch{ process.exit(1); }
+        ' "$json_tmp" 2>/dev/null || true)"
+      fi
+      rm -f "$json_tmp"
+    fi
+    if [[ -z "$out" ]]; then
+      txt_tmp="$(mktemp 2>/dev/null || echo '')"
+      if [[ -n "$txt_tmp" ]]; then
+        if timeout 30 "$bin" models >"$txt_tmp" 2>/dev/null; then
+          out="$(grep -oE 'opencode[/:][A-Za-z0-9._-]+' "$txt_tmp" 2>/dev/null \
+            | sed -E 's|^opencode[/:]||' | grep -Ei 'free$|big-pickle' || true)"
+          out="$(printf '%s' "$out" | awk 'NF && !seen[$0]++' | paste -sd, - 2>/dev/null || true)"
+        fi
+        rm -f "$txt_tmp"
+      fi
+    fi
+  fi
+  if [[ -z "$out" ]]; then out="$OPENCODE_FREE_FALLBACK"; fi
+  # Pastikan default tier3 selalu ikut (idempoten, di depan bila belum ada).
+  if [[ ",${out}," != *",muse-spark-1.3-contributor-free,"* ]]; then
+    out="muse-spark-1.3-contributor-free${out:+,}${out}"
+  fi
+  printf '%s' "$out"
+}
+
+# Model default tier3 = entri pertama daftar free (preferensi muse-spark bila ada).
+tier3_default_dari_daftar() {
+  local daftar="${1:-$OPENCODE_FREE_FALLBACK}" pertama=""
+  if [[ ",${daftar}," == *",muse-spark-1.3-contributor-free,"* ]]; then
+    printf 'opencode:muse-spark-1.3-contributor-free'
+    return
+  fi
+  pertama="$(printf '%s' "$daftar" | cut -d, -f1 | tr -d '[:space:]')"
+  [[ -z "$pertama" ]] && pertama="muse-spark-1.3-contributor-free"
+  printf 'opencode:%s' "$pertama"
+}
 
 pilih_tier_model() {
   local f="${1:-.env.local}" k1="" k2=""
@@ -950,9 +1042,23 @@ if [[ ! -f .env.local ]]; then
   info "Membuat .env.local baru dari template..."
   # Tier dari environment (file belum ada). Runtime agen ON bila DB ada —
   # tier-3 gratis dilayani driver khusus CLI (opencode-cli, tanpa key).
+  # Ambil SEMUA model free opencode-cli lalu aktifkan di OPENCODE_MODELS.
+  OPENCODE_FREE_LIST="$(daftar_model_free_opencode "" 2>/dev/null || printf '%s' "$OPENCODE_FREE_FALLBACK")"
+  [[ -n "$OPENCODE_FREE_LIST" ]] || OPENCODE_FREE_LIST="$OPENCODE_FREE_FALLBACK"
+  if [[ "$OPENCODE_FREE_LIST" != "$OPENCODE_FREE_FALLBACK" ]]; then
+    info "Model free OpenCode terdeteksi (${OPENCODE_FREE_LIST})."
+  fi
   TIER="$(pilih_tier_model .env.local)"
-  TIER_DEFAULT="$(tier_default_model "$TIER")"
-  TIER_DRIVER="$(tier_driver_route "$TIER")"
+  if [[ "$TIER" == "tier3" ]]; then
+    TIER_DEFAULT="$(tier3_default_dari_daftar "$OPENCODE_FREE_LIST")"
+    # Konstruksi langsung (tanpa sed-replace) agar tak rapuh bila format berubah.
+    TIER_DRIVER="$(printf '{"maic-agent-driver":{"model":"%s","api":"opencode-cli"}}' "$TIER_DEFAULT")"
+    TIER_PIN="$OPENCODE_FREE_LIST"
+  else
+    TIER_DEFAULT="$(tier_default_model "$TIER")"
+    TIER_DRIVER="$(tier_driver_route "$TIER")"
+    TIER_PIN="$OPENCODE_FREE_LIST"
+  fi
   # Baris key: aktif bila ada di environment (agar tier dari env permanen di
   # file), komentar bila tidak. Isi mentah via variabel (heredoc tidak
   # mengevaluasi ulang isi variabel) → aman untuk karakter apa pun.
@@ -1025,10 +1131,21 @@ else
   for kk in GOOGLE_API_KEY OPENCODE_API_KEY OPENCODE_GO_API_KEY; do
     selaraskan_key_env .env.local "$kk"
   done
+  # Ambil SEMUA model free lalu aktifkan di OPENCODE_MODELS (tombol pemilih
+  # model /workspace memakai daftar ini via GET /api/agent/models).
+  OPENCODE_FREE_LIST="$(daftar_model_free_opencode "" 2>/dev/null || printf '%s' "$OPENCODE_FREE_FALLBACK")"
+  [[ -n "$OPENCODE_FREE_LIST" ]] || OPENCODE_FREE_LIST="$OPENCODE_FREE_FALLBACK"
+  TIER_PIN="$OPENCODE_FREE_LIST"
   TIER="$(pilih_tier_model .env.local)"
-  TIER_DEFAULT="$(tier_default_model "$TIER")"
-  TIER_DRIVER="$(tier_driver_route "$TIER")"
+  if [[ "$TIER" == "tier3" ]]; then
+    TIER_DEFAULT="$(tier3_default_dari_daftar "$OPENCODE_FREE_LIST")"
+    TIER_DRIVER="$(printf '{"maic-agent-driver":{"model":"%s","api":"opencode-cli"}}' "$TIER_DEFAULT")"
+  else
+    TIER_DEFAULT="$(tier_default_model "$TIER")"
+    TIER_DRIVER="$(tier_driver_route "$TIER")"
+  fi
   info "Tier model Pro Workbench: ${TIER} (${TIER_DEFAULT})."
+  info "Model free aktif (OPENCODE_MODELS): ${OPENCODE_FREE_LIST}."
   # Driver HTTP tier2 membaca OPENCODE_GO_API_KEY; samakan dari kunci utama
   # bila kolom GO belum ada sama sekali (aktif maupun komentar) — gateway
   # Zen yang sama. Nilai GO eksplisit tidak disentuh.
@@ -1049,7 +1166,7 @@ else
   fi
   CUR_DEFAULT="$(env_get .env.local DEFAULT_MODEL)"
   case "$CUR_DEFAULT" in
-    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash)
+    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|opencode:longcat-2.5-preview-free|opencode:mimo-v2.6-flash-free|opencode:ling-3.0-flash-fin-free|opencode:nemotron-3-ultra-free|opencode:nemotron-3.5-lightning-free|opencode:*-free|tokendance:deepseek-v4.1-flash)
       if [[ "$CUR_DEFAULT" != "$TIER_DEFAULT" ]]; then
         DM_ESCAPED="$(sed_escape_replacement "$TIER_DEFAULT")"
         sed -i -E "s|^[[:space:]]*DEFAULT_MODEL=.*|DEFAULT_MODEL=${DM_ESCAPED}|" .env.local
@@ -1059,9 +1176,9 @@ else
   esac
   CUR_DRIVER="$(sed -n -E 's/^[^#]*"maic-agent-driver"[^}]*"model"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' .env.local | head -1)"
   case "$CUR_DRIVER" in
-    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4.1-flash)
+    ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|opencode:longcat-2.5-preview-free|opencode:mimo-v2.6-flash-free|opencode:ling-3.0-flash-fin-free|opencode:nemotron-3-ultra-free|opencode:nemotron-3.5-lightning-free|opencode:*-free|tokendance:deepseek-v4.1-flash)
       if [[ "$CUR_DRIVER" != "$TIER_DEFAULT" ]]; then
-        DR_RE='ollama:[^"\\} ]*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3\.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle|tokendance:deepseek-v4\.1-flash'
+        DR_RE='ollama:[^"\\} ]*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3\.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle|opencode:longcat-2\.5-preview-free|opencode:mimo-v2\.6-flash-free|opencode:ling-3\.0-flash-fin-free|opencode:nemotron-3-ultra-free|opencode:nemotron-3\.5-lightning-free|opencode:[^"\\} ]*-free|tokendance:deepseek-v4\.1-flash'
         DM_ESCAPED2="$(sed_escape_replacement "$TIER_DEFAULT")"
         sed -i -E "/^[[:space:]]*MODEL_ROUTES=/ s#(${DR_RE})#${DM_ESCAPED2}#g" .env.local
         info "MODEL_ROUTES maic-agent-driver dipindah ${CUR_DRIVER} -> ${TIER_DEFAULT} (${TIER})."
@@ -1078,17 +1195,31 @@ else
   fi
   # OPENCODE_MODELS: pastikan_var_env di bawah tidak menimpa nilai yang sudah
   # ada, jadi pin milik installer harus dipindah eksplisit di sini. Nilai
-  # kustom lain tidak disentuh.
+  # kustom lain tidak disentuh. Model free kini daftar comma-separated berisi
+  # SEMUA model free (tombol /workspace memilih di antaranya). Hanya migrasi
+  # bila tiap entri adalah id milik installer (daftar fallback) — nilai kustom
+  # operator (mis. berisi id non-free) dipertahankan.
   CUR_PIN="$(env_get .env.local OPENCODE_MODELS)"
-  case "$CUR_PIN" in
-    space-bunny-free|muse-spark-1.3-contributor-free|big-pickle|gpt-6-luna)
-      if [[ "$CUR_PIN" != "$TIER_PIN" ]]; then
-        PIN_ESCAPED="$(sed_escape_replacement "$TIER_PIN")"
-        sed -i -E "s|^[[:space:]]*OPENCODE_MODELS=.*|OPENCODE_MODELS=${PIN_ESCAPED}|" .env.local
-        info "OPENCODE_MODELS dipindah ${CUR_PIN} -> ${TIER_PIN} (${TIER})."
-      fi
-      ;;
-  esac
+  if [[ -n "$CUR_PIN" ]]; then
+    _pin_milik_installer=1
+    _ifs_lama="$IFS"; IFS=','; set -f
+    for _satu in $CUR_PIN; do
+      _satu="$(printf '%s' "$_satu" | tr -d '[:space:]' | sed -E 's|^opencode[/:]||')"
+      case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna," in
+        *",${_satu},"*) ;;
+        *) _pin_milik_installer=0; break ;;
+      esac
+    done
+    set +f; IFS="$_ifs_lama"; unset _ifs_lama _satu
+    if [[ "$_pin_milik_installer" -eq 1 && "$CUR_PIN" != "$TIER_PIN" ]]; then
+      PIN_ESCAPED="$(sed_escape_replacement "$TIER_PIN")"
+      sed -i -E "s|^[[:space:]]*OPENCODE_MODELS=.*|OPENCODE_MODELS=${PIN_ESCAPED}|" .env.local
+      info "OPENCODE_MODELS dipindah ${CUR_PIN} -> ${TIER_PIN} (semua model free aktif)."
+    elif [[ "$_pin_milik_installer" -eq 0 ]]; then
+      info "OPENCODE_MODELS kustom dipertahankan (${CUR_PIN})."
+    fi
+    unset _pin_milik_installer
+  fi
   pastikan_var_env .env.local DEFAULT_MODEL "$TIER_DEFAULT"
   pastikan_var_env .env.local MODEL_ROUTES "$TIER_DRIVER"
   pastikan_var_env .env.local OPENCODE_BIN ""
@@ -1596,6 +1727,52 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
       info "OPENCODE_BIN dicatat di .env.local."
     fi
   fi
+  # Ambil SEMUA model free dari CLI lalu aktifkan di OPENCODE_MODELS
+  # (comma-separated). Template seksi 5 dibuat SEBELUM CLI terinstal sehingga
+  # nilainya masih fallback; segarkan di sini dengan hasil live `opencode models`.
+  # Tombol pemilih model /workspace (GET/POST /api/agent/models) memakai daftar ini.
+  if [[ -f .env.local ]]; then
+    OPENCODE_FREE_LIVE="$(daftar_model_free_opencode "${OPENCODE_BIN_DETECTED:-}" 2>/dev/null || printf '%s' "$OPENCODE_FREE_FALLBACK")"
+    [[ -n "$OPENCODE_FREE_LIVE" ]] || OPENCODE_FREE_LIVE="$OPENCODE_FREE_FALLBACK"
+    CUR_PIN_LIVE="$(env_get .env.local OPENCODE_MODELS)"
+    if [[ -z "$CUR_PIN_LIVE" ]]; then
+      echo "OPENCODE_MODELS=${OPENCODE_FREE_LIVE}" >> .env.local
+      info "OPENCODE_MODELS disegarkan ke semua model free: ${OPENCODE_FREE_LIVE}."
+    else
+      _live_milik_installer=1
+      _ifs_live="$IFS"; IFS=','; set -f
+      for _satu_live in $CUR_PIN_LIVE; do
+        _satu_live="$(printf '%s' "$_satu_live" | tr -d '[:space:]' | sed -E 's|^opencode[/:]||')"
+        case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna," in
+          *",${_satu_live},"*) ;;
+          *) _live_milik_installer=0; break ;;
+        esac
+      done
+      set +f; IFS="$_ifs_live"; unset _ifs_live _satu_live
+      if [[ "$_live_milik_installer" -eq 1 ]]; then
+        if [[ "$CUR_PIN_LIVE" != "$OPENCODE_FREE_LIVE" ]]; then
+          PIN_LIVE_ESCAPED="$(sed_escape_replacement "$OPENCODE_FREE_LIVE")"
+          sed -i -E "s|^[[:space:]]*OPENCODE_MODELS=.*|OPENCODE_MODELS=${PIN_LIVE_ESCAPED}|" .env.local
+          info "OPENCODE_MODELS disegarkan ke semua model free: ${OPENCODE_FREE_LIVE}."
+        else
+          info "OPENCODE_MODELS sudah memuat semua model free (${CUR_PIN_LIVE})."
+        fi
+      else
+        info "OPENCODE_MODELS kustom dipertahankan (${CUR_PIN_LIVE}); daftar free live: ${OPENCODE_FREE_LIVE}."
+      fi
+      unset _live_milik_installer
+    fi
+    # Sinkronkan DEFAULT_MODEL/MODEL_ROUTES tier3 bila masih pin lama single-id:
+    # jangan timpa kustom non-opencode, hanya preset installer.
+    if grep -qE '^[[:space:]]*DEFAULT_MODEL=opencode:(space-bunny-free|muse-spark-1.3-contributor-free|big-pickle)$' .env.local 2>/dev/null; then
+      TIER3_LIVE_DEFAULT="$(tier3_default_dari_daftar "$OPENCODE_FREE_LIVE")"
+      TIER3_LIVE_ESCAPED="$(sed_escape_replacement "$TIER3_LIVE_DEFAULT")"
+      sed -i -E "s|^[[:space:]]*DEFAULT_MODEL=.*|DEFAULT_MODEL=${TIER3_LIVE_ESCAPED}|" .env.local
+      DR_LIVE_RE='opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle'
+      sed -i -E "/^[[:space:]]*MODEL_ROUTES=/ s#(${DR_LIVE_RE})#${TIER3_LIVE_ESCAPED}#g" .env.local
+      info "DEFAULT_MODEL/MODEL_ROUTES diselaraskan ke default live ${TIER3_LIVE_DEFAULT}."
+    fi
+  fi
 else
   info "Lewati OpenCode CLI (--no-opencode). Instal manual nanti: curl -fsSL https://opencode.ai/v2/install | bash"
 fi
@@ -1767,9 +1944,13 @@ echo "    2. OpenCode Go + key  : opencode-go:gpt-6-luna (slug persis katalog"
 echo "       'opencode models', terverifikasi; ISI MANUAL OPENCODE_API_KEY"
 echo "       dan/atau OPENCODE_GO_API_KEY untuk jalur HTTP/driver;"
 echo "       'opencode auth login' saja tidak cukup untuk driver)"
-echo "    3. OpenCode free CLI : opencode:muse-spark-1.3-contributor-free (tanpa auth;"
+echo "    3. OpenCode free CLI : default opencode:muse-spark-1.3-contributor-free (tanpa auth;"
 echo '       coba manual: opencode run -m opencode/muse-spark-1.3-contributor-free "hi"'
 echo "       OPENCODE_BIN menunjuk binary absolut."
+echo "       SEMUA model free dari \`opencode models\` diambil + diaktifkan di"
+echo "       OPENCODE_MODELS (comma-separated); tombol pemilih model di /workspace"
+echo "       memilih di antaranya (GET/POST /api/agent/models, tersimpan di"
+echo "       data/agent-driver-model.json dan dipakai run berikutnya)."
 echo "    Driver agen (MODEL_ROUTES maic-agent-driver): tier ber-key via HTTP"
 echo "    (openai-completions/responses); tier-3 gratis via driver khusus CLI"
 echo "    (opencode-cli, tanpa key, envelope tool_calls)."

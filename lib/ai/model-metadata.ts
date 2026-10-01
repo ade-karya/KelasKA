@@ -522,6 +522,59 @@ export function getCatalogThinkingCapability(
   return undefined;
 }
 
+/**
+ * Thinking capability for a probed (fetched) model id. Exact catalog entries
+ * win; otherwise family patterns infer a capability so newly released models
+ * (e.g. a future `gemini-3.9-flash` that the catalog does not list yet) still
+ * get a working thinking control instead of silently losing it.
+ *
+ * Gemini rules follow https://ai.google.dev/gemini-api/docs/openai: thinking
+ * cannot be disabled on Gemini 3 / 2.5 Pro (level or budget-only control),
+ * while 2.5 Flash / Flash-Lite expose a toggleable budget.
+ */
+export function getProbedThinkingCapability(
+  providerId: string,
+  modelId: string,
+): ThinkingCapability | undefined {
+  const exact = getCatalogThinkingCapability(providerId, modelId);
+  if (exact) return exact;
+
+  if (providerId === 'google') {
+    const id = getCanonicalModelId(providerId, modelId).toLowerCase();
+    if (!id.includes('gemini')) return undefined;
+    if (/gemini-2\.5-pro/.test(id)) {
+      return budgetOnlyCapability(
+        'google',
+        { min: 128, max: 32768, step: 1024, allowDynamic: true },
+        -1,
+      );
+    }
+    if (/gemini-2\.5-flash-lite/.test(id)) {
+      return toggleBudgetCapability(
+        'google',
+        { min: 0, max: 24576, step: 1024, allowDynamic: true, disableValue: 0 },
+        false,
+        0,
+      );
+    }
+    if (/gemini-2\.5/.test(id)) {
+      return toggleBudgetCapability(
+        'google',
+        { min: 0, max: 24576, step: 1024, allowDynamic: true, disableValue: 0 },
+        true,
+        -1,
+      );
+    }
+    if (/gemini-3\.[87]/.test(id)) {
+      return levelCapability(['low', 'medium', 'high'], 'medium');
+    }
+    // Gemini 3 family and later: thinking always on, level-adjustable.
+    return levelCapability(['low', 'medium', 'high'], 'medium');
+  }
+
+  return undefined;
+}
+
 export function applyModelMetadata(providers: Record<ProviderId, ProviderConfig>): void {
   for (const provider of Object.values(providers)) {
     for (const model of provider.models) {

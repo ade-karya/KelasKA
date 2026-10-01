@@ -32,6 +32,7 @@ import {
   Send,
   Download,
   ExternalLink,
+  Brain,
 } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import type { ProviderConfig } from '@/lib/ai/providers';
@@ -51,8 +52,8 @@ interface ProviderConfigPanelProps {
   onEditModel: (index: number) => void;
   onDeleteModel: (index: number) => void;
   onAddModel: () => void;
-  /** Merge probed model ids into the provider's list; returns the count added. */
-  onModelsFetched?: (ids: string[]) => number;
+  /** Merge probed models into the provider's list; returns the count added. */
+  onModelsFetched?: (models: Array<{ id: string; displayName?: string }>) => number;
   /** Optional explicit /models URL override (from a preset). */
   modelsUrl?: string;
   onResetToDefault?: () => void; // Reset provider to default configuration
@@ -176,17 +177,30 @@ export function ProviderConfigPanel({
       const response = await fetch('/api/provider/probe-models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ baseUrl: effectiveBaseUrl, apiKey, modelsUrl }),
+        body: JSON.stringify({
+          baseUrl: effectiveBaseUrl,
+          apiKey,
+          modelsUrl,
+          providerType: provider.type,
+          providerId: provider.id,
+        }),
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        const ids: string[] = (data.models || []).map((m: { id: string }) => m.id);
-        const added = onModelsFetched?.(ids) ?? 0;
+        const fetched: Array<{ id: string; displayName?: string }> = (data.models || [])
+          .filter((m: { id?: unknown }) => typeof m?.id === 'string' && m.id.trim())
+          .map((m: { id: string; displayName?: unknown }) => ({
+            id: m.id,
+            ...(typeof m.displayName === 'string' && m.displayName.trim()
+              ? { displayName: m.displayName }
+              : {}),
+          }));
+        const added = onModelsFetched?.(fetched) ?? 0;
         setFetchStatus('success');
         setFetchMessage(
           t('settings.fetchModelsResult')
             .replace('{added}', String(added))
-            .replace('{total}', String(ids.length)),
+            .replace('{total}', String(fetched.length)),
         );
       } else if (response.status === 404) {
         setFetchStatus('error');
@@ -202,7 +216,7 @@ export function ProviderConfigPanel({
       setFetchStatus('error');
       setFetchMessage(t('settings.fetchModelsFailed'));
     }
-  }, [apiKey, effectiveBaseUrl, modelsUrl, onModelsFetched, t]);
+  }, [apiKey, effectiveBaseUrl, modelsUrl, onModelsFetched, provider.id, provider.type, t]);
 
   const models = providersConfig[provider.id]?.models || [];
   const isServerConfigured = providersConfig[provider.id]?.isServerConfigured;
@@ -480,7 +494,12 @@ export function ProviderConfigPanel({
                 className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card"
               >
                 <div className="flex-1">
-                  <div className="font-mono text-sm font-medium mb-1.5">{model.name}</div>
+                  <div className="text-sm font-medium mb-1.5">{model.name}</div>
+                  {model.name !== model.id && (
+                    <div className="font-mono text-[11px] text-muted-foreground mb-1.5 break-all">
+                      {model.id}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {/* Capabilities */}
                     <div className="flex items-center gap-1">
@@ -497,6 +516,11 @@ export function ProviderConfigPanel({
                       {model.capabilities?.streaming && (
                         <div title={t('settings.capabilities.streaming')}>
                           <Zap className="h-3 w-3" />
+                        </div>
+                      )}
+                      {model.capabilities?.thinking && (
+                        <div title={t('settings.capabilities.thinking')}>
+                          <Brain className="h-3 w-3" />
                         </div>
                       )}
                     </div>

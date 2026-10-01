@@ -7,14 +7,28 @@ import { fetchModels, ModelFetchError } from '@/lib/server/model-fetch';
 const log = createLogger('ProbeModels');
 
 /** Model ids that are not chat models — filtered out of probe results. */
-const NON_CHAT_PATTERN = /(tts|asr|whisper|embedding|rerank|mineru|image|video|voxcpm|moderation)/i;
+const NON_CHAT_PATTERN =
+  /(tts|asr|whisper|embedding|rerank|mineru|image|video|voxcpm|moderation|live|transcribe|audio|aqa|imagen)/i;
+
+/**
+ * Gemini-only non-text families. Verified against a live `GET /v1beta/models`
+ * response: every one of these advertises `generateContent`, so the methods
+ * filter in `fetchModels` cannot catch them. Kept Gemini-scoped (not merged
+ * into {@link NON_CHAT_PATTERN}) so other providers' models with overlapping
+ * substrings (e.g. Xiaomi `mimo-v2-omni`) are unaffected.
+ */
+const GEMINI_NON_TEXT_PATTERN =
+  /(banana|omni|lyria|robotics|computer-use|antigravity|deep-research)/i;
 
 /**
  * POST /api/provider/probe-models
  *
- * Discovers the chat models a base URL + key exposes, via the OpenAI-compatible
- * /models endpoint (with multi-candidate fallback). Returns the lit-up list, or
- * a typed status so the UI can fall back to manual model entry.
+ * Discovers the chat models a base URL + key exposes. OpenAI-compatible
+ * providers use the `/models` endpoint (with multi-candidate fallback);
+ * Gemini (`providerType: 'google'` or a `generativelanguage` base URL) uses
+ * the native `GET {base}/models` contract (`x-goog-api-key` / `?key=`).
+ * Returns the lit-up list, or a typed status so the UI can fall back to
+ * manual model entry.
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -22,10 +36,11 @@ export async function POST(req: NextRequest) {
     return apiError('INVALID_REQUEST', 400, 'Invalid JSON body');
   }
   try {
-    const { baseUrl, apiKey, modelsUrl } = body as {
+    const { baseUrl, apiKey, modelsUrl, providerType } = body as {
       baseUrl?: string;
       apiKey?: string;
       modelsUrl?: string;
+      providerType?: string;
     };
 
     if (!baseUrl) {
@@ -41,11 +56,21 @@ export async function POST(req: NextRequest) {
       if (ssrfError) return apiError('INVALID_REQUEST', 400, ssrfError);
     }
 
-    const models = await fetchModels(baseUrl, apiKey || '', { modelsUrlOverride: modelsUrl });
-    const chatModels = models.filter((m) => !NON_CHAT_PATTERN.test(m.id));
+    const models = await fetchModels(baseUrl, apiKey || '', {
+      modelsUrlOverride: modelsUrl,
+      providerType,
+    });
+    // Text-generation models only. The shared pattern applies to every
+    // provider; the Gemini families apply to Gemini targets only.
+    const isGemini =
+      providerType === 'google' ||
+      baseUrl.toLowerCase().includes('generativelanguage.googleapis.com');
+    const chatModels = models.filter(
+      (m) => !NON_CHAT_PATTERN.test(m.id) && (!isGemini || !GEMINI_NON_TEXT_PATTERN.test(m.id)),
+    );
 
     return apiSuccess({
-      models: chatModels.map((m) => ({ id: m.id, ownedBy: m.ownedBy })),
+      models: chatModels.map((m) => ({ id: m.id, ownedBy: m.ownedBy, displayName: m.displayName })),
       total: models.length,
       filtered: models.length - chatModels.length,
     });
