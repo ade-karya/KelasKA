@@ -34,6 +34,12 @@
 #   8. Dependensi JS via `pnpm install --frozen-lockfile`
 #      (postinstall otomatis build workspace packages + sync vendor importer).
 #   9. Verifikasi: vendor bundle PPTX + kontrak Node engine.
+#  10. pgAdmin4 web (default ON; lewati dengan --no-pgadmin): repo resmi
+#      pgadmin.org + paket `pgadmin4-web` + setup-web.sh non-interaktif
+#      (--yes + PGADMIN_SETUP_EMAIL/PASSWORD). Kredensial awal dibuat acak
+#      (atau via --pgadmin-email/--pgadmin-password) dan disimpan di
+#      .env.local (PGADMIN_EMAIL/PGADMIN_PASSWORD). Langsung bisa dibuka di
+#      http://localhost/pgadmin4 tanpa langkah manual.
 #
 # Yang SENGAJA tidak dipasang (agar server tetap ringan):
 #   - postgresql-contrib: tidak ada `CREATE EXTENSION` di seluruh repo, jadi
@@ -57,6 +63,18 @@
 #   --no-install        Lewati `pnpm install` (hanya siapkan sistem + env).
 #   --build             Jalankan `npm run build` di akhir sebagai pembuktian.
 #   --with-playwright   Instal browser Chromium untuk e2e Playwright.
+#   --with-pgadmin      Instal pgAdmin4 web (default sudah ON; flag ini
+#                       no-op, disediakan agar eksplisit).
+#   --no-pgadmin        Lewati instalasi & setup pgAdmin4 web.
+#   --pgadmin-email=E   Email login awal pgAdmin (default:
+#                       admin@openmaic.id; dipakai saat setup pertama,
+#                       atau disinkronkan bila dipaksa).
+#                       NOTE: jangan pakai domain .local (contoh lama
+#                       admin@openmaic.local) — ditolak validasi email
+#                       pgAdmin 9.x (special-use domain).
+#   --pgadmin-password=PASS
+#                       Password login awal pgAdmin (default: dibuat acak;
+#                       min. 6 karakter).
 #   --with-ffmpeg       Instal ffmpeg (default sudah ON; flag ini no-op,
 #                       disediakan agar eksplisit/kompatibel).
 #   --no-ffmpeg         Lewati instalasi ffmpeg (ekstraksi media lokal mati).
@@ -113,9 +131,16 @@ WITH_POSTGRES=1
 WITH_INSTALL=1
 WITH_BUILD=0
 WITH_PLAYWRIGHT=0
+WITH_PGADMIN=1
 WITH_FFMPEG=1
 WITH_OPENCODE=1
 PG_PASSWORD="${PG_PASSWORD:-}"
+# Kredensial login awal pgAdmin (setup-web.sh non-interaktif). Fallback ke
+# nama var upstream (PGADMIN_SETUP_*) bila user mengekspornya manual.
+PGADMIN_EMAIL="${PGADMIN_EMAIL:-${PGADMIN_SETUP_EMAIL:-}}"
+PGADMIN_PASSWORD="${PGADMIN_PASSWORD:-${PGADMIN_SETUP_PASSWORD:-}}"
+PGADMIN_EMAIL_DEFAULT="admin@openmaic.id"
+PGADMIN_CREDS_FORCED=0
 # Mayor Postgres target: 18 = stabil terbaru (19 masih beta per Sep 2026).
 PG_MAJOR="${PG_MAJOR:-18}"
 
@@ -126,6 +151,7 @@ tampilkan_help() {
 Contoh:
   sudo ./install.sh --yes
   sudo ./install.sh --yes --build --with-playwright
+  sudo ./install.sh --yes --no-pgadmin              # tanpa pgAdmin4 web
   sudo ./install.sh --yes --no-ffmpeg              # tanpa ekstraksi media lokal
   sudo ./install.sh --yes --no-postgres          # tanpa Postgres (agent/persistence mati)
   sudo ./install.sh --yes --no-opencode          # tanpa OpenCode CLI
@@ -139,6 +165,10 @@ for arg in "$@"; do
     --no-install)      WITH_INSTALL=0 ;;
     --build)           WITH_BUILD=1 ;;
     --with-playwright) WITH_PLAYWRIGHT=1 ;;
+    --with-pgadmin)    WITH_PGADMIN=1 ;;
+    --no-pgadmin)      WITH_PGADMIN=0 ;;
+    --pgadmin-email=*) PGADMIN_EMAIL="${arg#*=}"; [[ "$PGADMIN_EMAIL" == *"@"* ]] || fail "--pgadmin-email harus format email (contoh: --pgadmin-email=admin@openmaic.id)." ;;
+    --pgadmin-password=*) PGADMIN_PASSWORD="${arg#*=}"; [[ -n "$PGADMIN_PASSWORD" ]] || fail "--pgadmin-password butuh nilai (contoh: --pgadmin-password=rahasia)." ;;
     --with-ffmpeg)     WITH_FFMPEG=1 ;;
     --no-ffmpeg)       WITH_FFMPEG=0 ;;
     --with-opencode)   WITH_OPENCODE=1 ;;
@@ -294,7 +324,7 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   # Catatan: pakai `if`, bukan `[[ ... ]] && echo` — perintah `&&`/`||` di
   # tingkat atas yang berakhir false akan membuat `set -e` mematikan script.
   APT_RINGKAS="build tools + cairo/pango (build canvas), git, curl, ca-certificates"
-  if [[ "$WITH_POSTGRES" -eq 1 ]]; then APT_RINGKAS+=", gnupg"; fi
+  if [[ "$WITH_POSTGRES" -eq 1 || "$WITH_PGADMIN" -eq 1 ]]; then APT_RINGKAS+=", gnupg"; fi
   if [[ "$WITH_FFMPEG" -eq 1 ]]; then APT_RINGKAS+=", ffmpeg"; fi
   echo "Installer OpenMAIC akan:"
   echo "  - apt install: ${APT_RINGKAS}"
@@ -302,6 +332,11 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
     echo "  - setup database Postgres 'openmaic' di PG ${PG_MAJOR} (repo PGDG)"
   else
     echo "  - tanpa PostgreSQL (--no-postgres): agent runtime + persistence mati"
+  fi
+  if [[ "$WITH_PGADMIN" -eq 1 ]]; then
+    echo "  - instal pgAdmin4 web siap pakai (repo pgadmin.org + setup otomatis -> http://localhost/pgadmin4)"
+  else
+    echo "  - tanpa pgAdmin4 web (--no-pgadmin)"
   fi
   echo "  - instal Node.js 24 (bila belum memenuhi syarat) + pnpm 12.6.0"
   if [[ "$WITH_OPENCODE" -eq 1 ]]; then
@@ -328,13 +363,13 @@ LANGKAH="apt: paket sistem"
 #   build-essential  gcc/make untuk build `canvas` (sudah termasuk g++)
 #   pkg-config       cari cairo/pango saat build `canvas`
 #   lib*-dev         header cairo/pango/jpeg/gif untuk build `canvas`
-#   gnupg            dearmor kunci PGDG (hanya saat --no-postgres tidak dipakai)
+#   gnupg            dearmor kunci PGDG/pgAdmin (bila Postgres/pgAdmin dipakai)
 APT_PKGS=(
   ca-certificates curl git
   python3 build-essential pkg-config
   libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev
 )
-if [[ "$WITH_POSTGRES" -eq 1 ]]; then APT_PKGS+=(gnupg); fi
+if [[ "$WITH_POSTGRES" -eq 1 || "$WITH_PGADMIN" -eq 1 ]]; then APT_PKGS+=(gnupg); fi
 
 # ------------------------------------------------- sanitasi sumber r2u (deb-src)
 # r2u (https://r2u.stat.illinois.edu/ubuntu) hanya menyediakan paket binary
@@ -1084,6 +1119,315 @@ else
   fi
 fi
 
+# ============================================================ 5b. pgAdmin4 web
+# Default ON (lewati dengan --no-pgadmin). Server headless -> varian
+# pgadmin4-web saja (tanpa desktop). Sumber resmi:
+# https://www.pgadmin.org/download/pgadmin-4-apt/
+# Siap pakai: setup-web.sh dijalankan non-interaktif (--yes +
+# PGADMIN_SETUP_EMAIL/PASSWORD, mekanisme resmi upstream) sehingga
+# http://localhost/pgadmin4 langsung bisa login tanpa langkah manual.
+# Idempoten: repo dicek dulu; setup-web.sh hanya saat database konfigurasi
+# pgAdmin belum ada; kredensial dipakai ulang dari .env.local (jangan putar
+# password tiap run — login web yang tersimpan akan rusak).
+if [[ "$WITH_PGADMIN" -eq 1 ]]; then
+  LANGKAH="pgAdmin4: kredensial"
+  # Nilai flag/env yang sudah terisi = dipaksa (pola yang sama dipakai
+  # --pg-password/PG_PASSWORD di seksi 4). Cek SEBELUM baca .env.local.
+  if [[ -n "$PGADMIN_EMAIL" || -n "$PGADMIN_PASSWORD" ]]; then PGADMIN_CREDS_FORCED=1; fi
+  if [[ -z "$PGADMIN_EMAIL" && -f .env.local ]]; then
+    PGADMIN_EMAIL="$(env_get .env.local PGADMIN_EMAIL)"
+  fi
+  if [[ -z "$PGADMIN_EMAIL" ]]; then
+    PGADMIN_EMAIL="$PGADMIN_EMAIL_DEFAULT"
+    info "Email pgAdmin memakai default ${PGADMIN_EMAIL} (ubah via --pgadmin-email)."
+  fi
+  [[ "$PGADMIN_EMAIL" == *"@"* ]] \
+    || fail "Email pgAdmin tidak valid: '${PGADMIN_EMAIL}' (butuh format email)."
+  PGADMIN_DOMAIN="${PGADMIN_EMAIL##*@}"
+  [[ "$PGADMIN_DOMAIN" == *.* ]] \
+    || fail "Email pgAdmin tidak valid: '${PGADMIN_EMAIL}' (domain harus mengandung titik; contoh: admin@openmaic.id)."
+  # pgAdmin 9.x menolak domain .local (special-use, mDNS) via email_validator:
+  # login selalu gagal "Incorrect username or password" walau password benar.
+  if [[ "${PGADMIN_EMAIL,,}" == *.local ]]; then
+    fail "Email pgAdmin '${PGADMIN_EMAIL}' memakai domain .local yang ditolak pgAdmin 9.x. Pakai misalnya admin@openmaic.id (--pgadmin-email=admin@openmaic.id)."
+  fi
+  if [[ -z "$PGADMIN_PASSWORD" && -f .env.local ]]; then
+    PGADMIN_PASSWORD="$(env_get .env.local PGADMIN_PASSWORD)"
+  fi
+  if [[ -z "$PGADMIN_PASSWORD" ]]; then
+    PGADMIN_PASSWORD="$(rand_hex 16)"
+    info "Password pgAdmin dibuat acak dan disimpan di .env.local (PGADMIN_PASSWORD)."
+  fi
+  if [[ "${#PGADMIN_PASSWORD}" -lt 6 ]]; then
+    fail "Password pgAdmin minimal 6 karakter (ketentuan pgAdmin)."
+  fi
+
+  LANGKAH="apt: repo pgAdmin4"
+  # Deteksi via isi file sumber, bukan apt-cache policy | grep -q (alasan
+  # SIGPIPE sama seperti repo PGDG di atas).
+  PGADMIN_LIST=/etc/apt/sources.list.d/pgadmin4.list
+  PGADMIN_KEYRING=/etc/apt/keyrings/packages-pgadmin-org.gpg
+  pgadmin_sudah_terdaftar=1
+  for f in /etc/apt/sources.list /etc/apt/sources.list.d/*; do
+    [[ -f "$f" ]] || continue
+    if grep -qs "pgadmin" "$f"; then pgadmin_sudah_terdaftar=0; break; fi
+  done
+  if [[ "$pgadmin_sudah_terdaftar" -eq 0 ]]; then
+    info "Repo pgAdmin4 sudah terdaftar — lewati penambahan."
+  else
+    info "Menambahkan repo pgAdmin4 (pgadmin.org)..."
+    run_as_root install -d -m 0755 /etc/apt/keyrings
+    PGADMIN_TMP="$(mktemp)"
+    curl -fsSL https://www.pgadmin.org/static/packages_pgadmin_org.pub -o "$PGADMIN_TMP"
+    run_as_root gpg --batch --yes --dearmor -o "$PGADMIN_KEYRING" "$PGADMIN_TMP"
+    rm -f "$PGADMIN_TMP"
+    run_as_root chmod 0644 "$PGADMIN_KEYRING"
+    # Codename distro dari /etc/os-release (paket lsb-release sengaja tidak dipakai;
+    # setara lsb_release -cs pada panduan resmi pgAdmin).
+    # shellcheck disable=SC1091  # /etc/os-release selalu ada di Ubuntu/Debian
+    CODENAME="$(. /etc/os-release 2>/dev/null && printf '%s' "${VERSION_CODENAME:-${UBUNTU_CODENAME:-}}")"
+    [[ -n "$CODENAME" ]] || fail "Tidak bisa membaca VERSION_CODENAME dari /etc/os-release (Paket lsb-release sengaja tidak dipakai)."
+    echo "deb [signed-by=$PGADMIN_KEYRING] https://ftp.postgresql.org/pub/pgadmin/pgadmin4/apt/${CODENAME} pgadmin4 main" \
+      | run_as_root tee "$PGADMIN_LIST" >/dev/null
+    run_as_root apt-get update -o Acquire::Retries=3
+  fi
+  LANGKAH="apt: pgAdmin4 web"
+  info "Menginstal pgAdmin4 web (pgadmin4-web; desktop sengaja tidak)..."
+  run_as_root apt-get install -y -o Acquire::Retries=3 pgadmin4-web
+
+  # Sinkronkan user pgAdmin via setup.py. pgAdmin 9.x: setup-web.sh tidak
+  # membuat user (PGADMIN_SETUP_* diabaikan) dan setup-db hanya migrasi,
+  # jadi user dibuat/disinkronkan eksplisit. Idempoten: update bila ada,
+  # add bila belum ada.
+  pgadmin_sync_user() {
+    local pgadmin_py upd_out
+    pgadmin_py="/usr/pgadmin4/venv/bin/python3"
+    if [[ ! -x "$pgadmin_py" ]]; then
+      warn "Sinkronisasi user pgAdmin gagal (${pgadmin_py} tidak ada); kelola manual via http://localhost/pgadmin4."
+      return 1
+    fi
+    upd_out="$(run_as_root "$pgadmin_py" /usr/pgadmin4/web/setup.py update-user "$PGADMIN_EMAIL" --password "$PGADMIN_PASSWORD" --admin 2>&1 || true)"
+    if printf '%s' "$upd_out" | grep -qi "user not found"; then
+      if run_as_root "$pgadmin_py" /usr/pgadmin4/web/setup.py add-user "$PGADMIN_EMAIL" "$PGADMIN_PASSWORD" --admin >/dev/null 2>&1; then
+        info "User pgAdmin ${PGADMIN_EMAIL} dibuat."
+      else
+        warn "Buat user pgAdmin gagal; kelola manual via http://localhost/pgadmin4."
+        return 1
+      fi
+    elif printf '%s' "$upd_out" | grep -qiE "something went wrong|traceback"; then
+      warn "Sinkronisasi kredensial pgAdmin gagal; ubah manual via http://localhost/pgadmin4."
+      return 1
+    else
+      info "User pgAdmin ${PGADMIN_EMAIL} siap."
+    fi
+    # setup.py berjalan sebagai root sehingga file DB bisa berubah owner;
+    # kembalikan ke www-data agar Apache/WSGI bisa baca-tulis.
+    run_as_root chown -R www-data: /var/lib/pgadmin /var/log/pgadmin 2>/dev/null || true
+  }
+
+  # Daftarkan koneksi PostgreSQL 'openmaic' ke pgAdmin agar database bisa
+  # dijelajah dari web UI (Servers > openmaic). Idempoten (upsert by name):
+  # aman tiap run, sekaligus menyelaraskan ulang bila password/port berubah.
+  # Password server dienkripsi dengan password login pgAdmin (kunci crypt
+  # pgAdmin server-mode), jadi registrasi selalu memakai nilai PGADMIN_*
+  # aktif — panggil setelah pgadmin_sync_user + .env.local tersimpan.
+  # Selalu kembalikan 0 agar installer lanjut (gagal = warn saja).
+  pgadmin_register_server() {
+    local db_url pg_tmp pg_py
+    pg_py="/usr/pgadmin4/venv/bin/python3"
+    if [[ ! -x "$pg_py" ]]; then
+      warn "Registrasi server pgAdmin dilewati (${pg_py} tidak ada)."
+      return 0
+    fi
+    db_url="${DATABASE_URL_VALUE:-}"
+    if [[ -z "$db_url" && -f .env.local ]]; then
+      db_url="$(env_get .env.local DATABASE_URL)"
+    fi
+    if [[ "$db_url" != postgres*://* ]]; then
+      info "Lewati registrasi server pgAdmin (DATABASE_URL tidak tersedia)."
+      return 0
+    fi
+    pg_tmp="$(mktemp)"
+    chmod 600 "$pg_tmp"
+    cat >"$pg_tmp" <<'PGPYEOF'
+import os, sys
+sys.path.insert(0, '/usr/pgadmin4/web')
+import config
+from pgadmin import create_app
+from urllib.parse import urlparse, unquote
+
+email = os.environ['PGADMIN_EMAIL']
+pgadmin_pw = os.environ['PGADMIN_PASSWORD']
+u = urlparse(os.environ['OPENMAIC_DATABASE_URL'])
+pg_host = u.hostname or 'localhost'
+pg_port = u.port or 5432
+pg_user = unquote(u.username or '')
+pg_pass = unquote(u.password or '')
+pg_db = (u.path or '/openmaic').lstrip('/') or 'openmaic'
+if not pg_user or not pg_pass:
+    print('DB user/password kosong di DATABASE_URL.')
+    sys.exit(3)
+
+app = create_app(config.APP_NAME + '-cli')
+with app.test_request_context():
+    from pgadmin.model import db, User, Server, ServerGroup
+    from pgadmin.utils.constants import INTERNAL
+    from pgadmin.utils.crypto import encrypt
+    user = User.query.filter_by(username=email, auth_source=INTERNAL).first()
+    if user is None:
+        print('USER_NOT_FOUND ' + email)
+        sys.exit(2)
+    group = ServerGroup.query.filter_by(user_id=user.id, name='Servers').first()
+    if group is None:
+        group = ServerGroup(name='Servers', user_id=user.id)
+        db.session.add(group)
+        db.session.commit()
+    enc = encrypt(pg_pass, pgadmin_pw)
+    srv = Server.query.filter_by(user_id=user.id, name='openmaic').first()
+    if srv is None:
+        srv = Server(
+            user_id=user.id, servergroup_id=group.id, name='openmaic',
+            host=pg_host, port=pg_port, maintenance_db=pg_db,
+            username=pg_user, password=enc, save_password=1,
+            comment='OpenMAIC PostgreSQL (install.sh)',
+            use_ssh_tunnel=0, tunnel_authentication=0,
+            tunnel_prompt_password=1, shared=False,
+            kerberos_conn=False, cloud_status=0, is_adhoc=0,
+            connection_params={'sslmode': 'prefer'},
+        )
+        db.session.add(srv)
+        action = 'created'
+    else:
+        srv.servergroup_id = group.id
+        srv.host, srv.port = pg_host, pg_port
+        srv.maintenance_db, srv.username = pg_db, pg_user
+        srv.password, srv.save_password = enc, 1
+        srv.connection_params = {'sslmode': 'prefer'}
+        action = 'updated'
+    db.session.commit()
+    print('SERVER_%s id=%s host=%s port=%s db=%s user=%s' % (
+        action.upper(), srv.id, pg_host, pg_port, pg_db, pg_user))
+PGPYEOF
+    if run_as_root env PGADMIN_EMAIL="$PGADMIN_EMAIL" \
+        PGADMIN_PASSWORD="$PGADMIN_PASSWORD" \
+        OPENMAIC_DATABASE_URL="$db_url" \
+        "$pg_py" "$pg_tmp"; then
+      info "Server pgAdmin 'openmaic' terdaftar untuk ${PGADMIN_EMAIL}."
+    else
+      warn "Registrasi server pgAdmin gagal; daftarkan manual via http://localhost/pgadmin4 (Servers > Register > Server)."
+    fi
+    rm -f "$pg_tmp"
+    run_as_root chown -R www-data: /var/lib/pgadmin /var/log/pgadmin 2>/dev/null || true
+    return 0
+  }
+
+  # Setup awal non-interaktif bila database konfigurasi belum ada. Run ulang
+  # setup-db di atas database yang ada hanya migrasi (tidak menyentuh user),
+  # jadi setup-web.sh dilewati bila konfigurasi sudah lengkap.
+  # NOTE pgAdmin 9.x: path DB = /var/lib/pgadmin/pgadmin4.db (bukan
+  # /var/lib/pgadmin4/pgadmin4.db seperti versi lama).
+
+  LANGKAH="pgAdmin4: setup-web"
+  PGADMIN_DB="/var/lib/pgadmin/pgadmin4.db"
+  PGADMIN_DB_LEGACY="/var/lib/pgadmin4/pgadmin4.db"
+  if [[ ( ! -f "$PGADMIN_DB" && ! -f "$PGADMIN_DB_LEGACY" ) || ! -e /etc/apache2/conf-enabled/pgadmin4.conf ]]; then
+    info "Menjalankan setup-web.sh non-interaktif untuk ${PGADMIN_EMAIL}..."
+    # env di depan meneruskan kredensial lewat sudo yang env_reset
+    # (run_as_root meneruskannya sebagai argumen env, bukan variabel shell).
+    # Pada pgAdmin 9.x variabel ini diabaikan upstream, tapi tetap
+    # diteruskan untuk kompatibilitas versi lama.
+    run_as_root env PGADMIN_SETUP_EMAIL="$PGADMIN_EMAIL" \
+      PGADMIN_SETUP_PASSWORD="$PGADMIN_PASSWORD" \
+      /usr/pgadmin4/bin/setup-web.sh --yes \
+      || warn "setup-web.sh gagal; jalankan manual: sudo /usr/pgadmin4/bin/setup-web.sh --yes"
+    # pgAdmin 9.x tidak membuat user via setup-web.sh -> buat/sinkronkan
+    # eksplisit agar http://localhost/pgadmin4 langsung bisa login.
+    pgadmin_sync_user || true
+  else
+    info "Konfigurasi pgAdmin sudah ada — lewati setup-web.sh."
+    if [[ "$PGADMIN_CREDS_FORCED" -eq 1 ]]; then
+      # Kredensial dipaksa tapi user sudah ada: setup-db tidak menyentuh
+      # user lama, jadi sinkronkan via CLI setup.py (best effort).
+      pgadmin_sync_user || true
+    fi
+  fi
+
+  # Simpan kredensial ke .env.local. Nilai dipaksa = sinkronkan (satu-satunya
+  # kasus boleh menimpa, pola yang sama dipakai DATABASE_URL di seksi 5).
+  if [[ -f .env.local ]]; then
+    if [[ "$PGADMIN_CREDS_FORCED" -eq 1 ]]; then
+      PGADMIN_EMAIL_SED="$(sed_escape_replacement "$PGADMIN_EMAIL")"
+      PGADMIN_PASS_SED="$(sed_escape_replacement "$PGADMIN_PASSWORD")"
+      if grep -qE '^[[:space:]]*PGADMIN_EMAIL=' .env.local; then
+        sed -i -E "s|^[[:space:]]*PGADMIN_EMAIL=.*|PGADMIN_EMAIL=${PGADMIN_EMAIL_SED}|" .env.local
+      else
+        pastikan_var_env .env.local PGADMIN_EMAIL "$PGADMIN_EMAIL"
+      fi
+      if grep -qE '^[[:space:]]*PGADMIN_PASSWORD=' .env.local; then
+        sed -i -E "s|^[[:space:]]*PGADMIN_PASSWORD=.*|PGADMIN_PASSWORD=${PGADMIN_PASS_SED}|" .env.local
+      else
+        pastikan_var_env .env.local PGADMIN_PASSWORD "$PGADMIN_PASSWORD"
+      fi
+      info "PGADMIN_EMAIL/PGADMIN_PASSWORD di .env.local disinkronkan dengan nilai yang dipaksa."
+    else
+      pastikan_var_env .env.local PGADMIN_EMAIL "$PGADMIN_EMAIL"
+      pastikan_var_env .env.local PGADMIN_PASSWORD "$PGADMIN_PASSWORD"
+    fi
+  else
+    warn ".env.local tidak ada — kredensial pgAdmin tidak tersimpan. Ulangi ./install.sh untuk menyimpannya."
+  fi
+
+  # Daftarkan server database ke pgAdmin (butuh user + DATABASE_URL efektif).
+  # Dijalankan tiap run agar password/port yang berubah ikut selaras.
+  LANGKAH="pgAdmin4: register server"
+  pgadmin_register_server
+
+  # Pastikan Apache jalan (setup-web.sh memakai systemctl; tanpa systemd perlu
+  # fallback agar pgAdmin langsung bisa dibuka). Setelah setup, selalu reload
+  # agar conf pgadmin4 yang baru di-enable langsung aktif (sebelumnya hanya
+  # "sudah berjalan" tanpa reload sehingga /pgadmin4 belum tentu terdaftar).
+  LANGKAH="pgAdmin4: apache"
+  if pgrep -x apache2 >/dev/null 2>&1; then
+    info "Apache sudah berjalan."
+  elif command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+    if run_as_root systemctl enable --now apache2; then
+      info "Apache dinyalakan."
+    else
+      warn "Apache gagal dinyalakan — cek: sudo systemctl status apache2"
+    fi
+  elif command -v service >/dev/null 2>&1; then
+    if run_as_root service apache2 start; then
+      info "Apache dinyalakan."
+    else
+      warn "'service apache2 start' gagal; nyalakan manual."
+    fi
+  elif command -v apache2ctl >/dev/null 2>&1; then
+    if run_as_root apache2ctl start; then
+      info "Apache dinyalakan."
+    else
+      warn "apache2ctl start gagal; nyalakan manual."
+    fi
+  else
+    warn "Apache tidak terdeteksi berjalan; nyalakan manual: sudo systemctl start apache2"
+  fi
+  if pgrep -x apache2 >/dev/null 2>&1; then
+    if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+      run_as_root systemctl reload apache2 2>/dev/null || run_as_root systemctl restart apache2 2>/dev/null || true
+    elif command -v service >/dev/null 2>&1; then
+      run_as_root service apache2 reload 2>/dev/null || run_as_root service apache2 restart 2>/dev/null || true
+    elif command -v apache2ctl >/dev/null 2>&1; then
+      run_as_root apache2ctl graceful 2>/dev/null || run_as_root apache2ctl restart 2>/dev/null || true
+    fi
+  fi
+  if curl -fsSL -o /dev/null --max-time 15 http://localhost/pgadmin4 2>/dev/null; then
+    info "pgAdmin4 web: OK (http://localhost/pgadmin4, login ${PGADMIN_EMAIL})."
+  else
+    warn "pgAdmin4 belum merespons di http://localhost/pgadmin4 — tunggu Apache selesai restart lalu coba lagi."
+  fi
+else
+  info "Lewati pgAdmin4 web (--no-pgadmin)."
+fi
+
 # ============================================================ 6. Direktori data
 LANGKAH="direktori data/"
 info "Menyiapkan direktori data/..."
@@ -1291,6 +1635,16 @@ if command -v ffmpeg >/dev/null 2>&1; then
 else
   info "  ffmpeg: tidak ada (dilewati via --no-ffmpeg) — pasang dengan: sudo ./install.sh --yes (tanpa --no-ffmpeg)"
 fi
+if [[ "$WITH_PGADMIN" -eq 1 ]]; then
+  if dpkg -l pgadmin4-web 2>/dev/null | grep -q '^ii'; then
+    info "  pgAdmin4 web: OK (http://localhost/pgadmin4)"
+    if [[ ! -f /var/lib/pgadmin/pgadmin4.db && ! -f /var/lib/pgadmin4/pgadmin4.db ]]; then
+      warn "  pgAdmin4 DB belum ada — jalankan ulang: sudo ./install.sh --yes"
+    fi
+  else
+    warn "pgAdmin4 web tidak terdeteksi — cek: dpkg -l pgadmin4-web"
+  fi
+fi
 echo ""
 # Tampilkan ACCESS_CODE agar user bisa login. Home menunda fetch library
 # sampai modal selesai (pre-auth 401 ditelan diam-diam), jadi console bersih
@@ -1303,6 +1657,19 @@ if [[ -f .env.local ]]; then
     echo ""
   else
     warn "ACCESS_CODE tidak diset di .env.local — API fail-open (tanpa proteksi). Set ACCESS_CODE sebelum expose ke jaringan."
+  fi
+fi
+if [[ "$WITH_PGADMIN" -eq 1 && -f .env.local ]]; then
+  CURRENT_PGADMIN_EMAIL="$(env_get .env.local PGADMIN_EMAIL)"
+  CURRENT_PGADMIN_PASS="$(env_get .env.local PGADMIN_PASSWORD)"
+  if [[ -n "$CURRENT_PGADMIN_EMAIL" && -n "$CURRENT_PGADMIN_PASS" ]]; then
+    echo "pgAdmin4 (http://localhost/pgadmin4):"
+    echo "  email   : ${CURRENT_PGADMIN_EMAIL}"
+    echo "  password: ${CURRENT_PGADMIN_PASS}"
+    echo "  server  : openmaic (terdaftar otomatis dari DATABASE_URL)"
+    echo ""
+  else
+    warn "Kredensial pgAdmin tidak terbaca dari .env.local — cek PGADMIN_EMAIL/PGADMIN_PASSWORD."
   fi
 fi
 echo "Langkah berikutnya:"
@@ -1349,6 +1716,10 @@ echo "    turunkan bila kena 429, naikkan s.d. 10 di server besar) + ffmpeg apt"
 echo "    default terinstal (lewati via --no-ffmpeg). TTS tanpa pacing"
 echo "    (default kode: interval 0) dan asset collector auto-aktif bila ada DB."
 echo "  - Ekstraksi material audio/video lokal: ffmpeg (default ON)."
+echo "  - pgAdmin4 web (default ON, --no-pgadmin untuk lewati): http://localhost/pgadmin4"
+echo "    login awal = PGADMIN_EMAIL/PGADMIN_PASSWORD di .env.local (ambil:"
+echo "    grep '^PGADMIN_' .env.local). Tambah server: Host localhost,"
+echo "    Port <lihat DATABASE_URL>, user openmaic + password Postgres Anda."
 echo "  - Video MP4 butuh: docker compose --profile video-export up (berat: Chromium+FFmpeg)."
 echo "  - e2e: pnpm exec playwright install --with-deps chromium && pnpm test:e2e"
 echo "  - Install ulang aman (idempoten): password Postgres dipakai ulang dari .env.local,"
