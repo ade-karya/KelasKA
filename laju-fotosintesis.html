@@ -3,16 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulasi Laju Fotosintesis</title>
+<title>Simulasi Laju Fotosintesis — Cahaya, CO2, Suhu</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  input[type=range]{min-height:44px;width:100%;accent-color:#16a34a;cursor:pointer}
-  .preset-btn{min-height:44px}
-  #simCanvas{touch-action:none;display:block;width:100%;height:100%}
-  .fade{transition:all .3s ease}
-  .badge-dot{width:10px;height:10px;border-radius:9999px;display:inline-block}
-  @keyframes pulse-end{0%,100%{opacity:1}50%{opacity:.4}}
-  .ended-pulse{animation:pulse-end 1.2s infinite}
+  html,body{height:100%;}
+  input[type=range]{min-height:44px;width:100%;accent-color:#16a34a;cursor:pointer;touch-action:manipulation;}
+  input[type=range]::-webkit-slider-thumb{width:24px;height:24px;}
+  button{min-height:44px;touch-action:manipulation;}
+  #simCanvas{touch-action:none;display:block;width:100%;height:100%;}
+  .fade{transition:all .3s ease;}
+  .badge-dot{width:10px;height:10px;border-radius:9999px;display:inline-block;flex-shrink:0;}
+  @keyframes pulse-end{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(1.03)}}
+  .ended-pulse{animation:pulse-end 1.2s infinite;}
+  @keyframes pulse-highlight{0%,100%{outline-color:rgba(139,92,246,.8)}50%{outline-color:rgba(139,92,246,.4)}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .mono{font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,Consolas,monospace;}
+  #start-btn.restart{animation:pulse-end 1.2s infinite;background:#1d4ed8 !important;}
+  details summary::-webkit-details-marker{display:none;}
 </style>
 </head>
 <body class="bg-slate-100 text-slate-900 font-sans">
@@ -21,86 +28,107 @@
 {
   "type": "simulation",
   "concept": "laju fotosintesis",
-  "description": "Eksplorasi pengaruh intensitas cahaya, konsentrasi CO2, suhu, dan ketersediaan air terhadap laju fotosintesis. 6H2O + 6CO2 + cahaya menjadi C6H12O6 + 6O2.",
   "title": "Laju Fotosintesis",
   "subject": "Biologi",
+  "description": "Simulasi pengaruh intensitas cahaya, konsentrasi CO2, dan suhu terhadap laju fotosintesis. 6H2O + 6CO2 + cahaya -> C6H12O6 + 6O2.",
   "variables": [
-    {"name":"light","id":"light","label":"Intensitas Cahaya","unit":"lux (x100)","min":0,"max":1500,"step":10,"default":600},
-    {"name":"co2","id":"co2","label":"Konsentrasi CO2","unit":"ppm","min":0,"max":2000,"step":10,"default":420},
-    {"name":"temp","id":"temp","label":"Suhu","unit":"C","min":5,"max":45,"step":0.5,"default":27},
-    {"name":"water","id":"water","label":"Ketersediaan Air","unit":"%","min":0,"max":100,"step":1,"default":70}
+    {"name": "light", "label": "Intensitas Cahaya", "min": 0, "max": 1500, "step": 10, "default": 600, "unit": "µmol/m²/s"},
+    {"name": "co2", "label": "Konsentrasi CO2", "min": 0, "max": 1500, "step": 10, "default": 400, "unit": "ppm"},
+    {"name": "temp", "label": "Suhu", "min": 5, "max": 45, "step": 0.5, "default": 25, "unit": "°C"}
   ],
-  "keyVariables": ["intensitas cahaya", "konsentrasi CO2", "ketersediaan air", "laju produksi oksigen"],
   "presets": [
-    {"name":"Optimal","variables":{"light":1000,"co2":1000,"temp":28,"water":80}},
-    {"name":"Pagi Mendung","variables":{"light":200,"co2":420,"temp":22,"water":70}},
-    {"name":"Siang Terik dan Kering","variables":{"light":1400,"co2":420,"temp":38,"water":15}},
-    {"name":"Rumah Kaca CO2 Tinggi","variables":{"light":800,"co2":1500,"temp":30,"water":75}},
-    {"name":"Malam Hari","variables":{"light":0,"co2":420,"temp":20,"water":60}}
+    {"name": "Optimal", "variables": {"light": 1000, "co2": 1000, "temp": 25}},
+    {"name": "Pagi Mendung", "variables": {"light": 200, "co2": 400, "temp": 22}},
+    {"name": "Siang Terik", "variables": {"light": 1400, "co2": 400, "temp": 38}},
+    {"name": "Rumah Kaca CO2 Tinggi", "variables": {"light": 800, "co2": 1200, "temp": 28}},
+    {"name": "Malam Hari", "variables": {"light": 0, "co2": 400, "temp": 20}},
+    {"name": "Stres Dingin", "variables": {"light": 700, "co2": 500, "temp": 8}}
   ],
-  "model": "P = Pmax * f(light) * f(co2) * f(temp) * f(water)",
-  "duration_s": 180
+  "model": "P = Pmax * f(cahaya) * f(CO2) * f(suhu); fL=L/(L+200); fC=(C-50)/(C+350); fT=exp(-((T-25)^2)/(2*7.5^2))",
+  "duration_s": 120
 }
 </script>
 
 <div class="max-w-6xl mx-auto p-3 md:p-6">
-  <header class="mb-3 md:mb-4 flex flex-wrap items-center gap-2">
-    <h1 class="text-xl md:text-2xl font-bold text-green-800">Laju Fotosintesis</h1>
+  <header class="mb-3 flex flex-wrap items-center gap-2">
+    <h1 class="text-xl md:text-2xl font-bold text-green-800">🌿 Laju Fotosintesis</h1>
     <span id="stateBadge" class="fade text-sm font-semibold px-3 py-1.5 rounded-full bg-slate-300 text-slate-800 flex items-center gap-2">
       <span id="stateDot" class="badge-dot bg-slate-500"></span><span id="stateText">Siap</span>
     </span>
-    <span class="text-xs md:text-sm text-slate-600 w-full">6H2O + 6CO2 + cahaya -&gt; C6H12O6 + 6O2 &nbsp;|&nbsp; Eksplorasi cahaya, CO2, suhu, air</span>
+    <p class="text-xs md:text-sm text-slate-600 w-full">6H<sub>2</sub>O + 6CO<sub>2</sub> + cahaya → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> &nbsp;|&nbsp; Atur cahaya, CO<sub>2</sub>, suhu — amati gelembung O<sub>2</sub> &amp; grafik laju.</p>
   </header>
 
-  <div class="flex flex-col md:flex-row gap-3 md:gap-4">
+  <div class="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch">
     <!-- CONTROL PANEL -->
-    <aside class="w-full md:w-[340px] shrink-0 bg-white rounded-2xl shadow p-4 max-h-[40vh] md:max-h-screen overflow-y-auto order-1">
-      <div class="flex items-center gap-2 mb-3">
-        <button id="mainBtn" class="flex-1 min-h-[44px] rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold px-4 fade">Mulai</button>
-        <button id="resetBtn" class="min-h-[44px] min-w-[44px] rounded-xl bg-slate-200 hover:bg-slate-300 font-bold px-4 fade" title="Reset (R)">Ulang</button>
+    <aside id="controls" class="w-full md:w-[340px] shrink-0 bg-white rounded-2xl shadow p-4 max-h-[40vh] md:max-h-screen overflow-y-auto order-1" aria-label="Panel kontrol">
+      <div class="flex items-center gap-2 mb-2">
+        <button id="start-btn" class="flex-1 rounded-xl bg-green-600 hover:bg-green-700 active:scale-95 text-white font-bold px-4 fade" aria-label="Mulai atau jeda simulasi">Mulai</button>
+        <button id="reset-btn" class="rounded-xl bg-slate-200 hover:bg-slate-300 active:scale-95 font-bold px-4 fade" title="Reset (R)" aria-label="Ulangi simulasi">Ulang</button>
       </div>
-      <p class="text-[11px] text-slate-500 mb-3">Spasi = Mulai/Jeda &nbsp; R = Reset &nbsp; Geser kanvas = cahaya</p>
-      <div id="sliders" class="space-y-4"></div>
+      <p class="text-[11px] text-slate-500 mb-3">Spasi = Mulai/Jeda &nbsp;•&nbsp; R = Reset &nbsp;•&nbsp; Geser kanan-kiri di kanvas = ubah cahaya</p>
+
+      <div class="space-y-4">
+        <div>
+          <label for="light-slider" class="flex justify-between text-sm font-semibold"><span>☀️ Intensitas Cahaya</span><span id="light-display" class="text-amber-700 mono">600 µmol/m²/s</span></label>
+          <input id="light-slider" data-var="light" type="range" min="0" max="1500" step="10" value="600" aria-label="Intensitas Cahaya">
+          <div class="text-[11px] text-slate-500">0 = gelap • 1500 = sangat terik</div>
+        </div>
+        <div>
+          <label for="co2-slider" class="flex justify-between text-sm font-semibold"><span>💨 Konsentrasi CO2</span><span id="co2-display" class="text-slate-700 mono">400 ppm</span></label>
+          <input id="co2-slider" data-var="co2" type="range" min="0" max="1500" step="10" value="400" aria-label="Konsentrasi CO2">
+          <div class="text-[11px] text-slate-500">~400 = udara luar • &gt;1000 = rumah kaca</div>
+        </div>
+        <div>
+          <label for="temp-slider" class="flex justify-between text-sm font-semibold"><span>🌡️ Suhu</span><span id="temp-display" class="text-red-700 mono">25 °C</span></label>
+          <input id="temp-slider" data-var="temp" type="range" min="5" max="45" step="0.5" value="25" aria-label="Suhu">
+          <div class="text-[11px] text-slate-500">Optimum ≈ 25 °C • enzim rusak saat ekstrem</div>
+        </div>
+      </div>
+
       <div class="mt-4">
         <h3 class="font-bold text-sm mb-2">Preset Skenario</h3>
         <div class="grid grid-cols-1 gap-2" id="presets"></div>
       </div>
-      <div class="mt-4 bg-green-50 border border-green-200 rounded-xl p-3 text-sm">
-        <div class="font-bold text-green-800">Laju: <span id="rateLabel">0.0</span> umol/m2/s</div>
-        <div>Laju produksi O2: <b id="o2rateLabel">0.0</b> gelembung/dtk</div>
-        <div>Faktor pembatas: <b id="limitLabel">-</b></div>
-        <div class="text-xs text-slate-600 mt-1" id="explainLabel">Atur slider untuk memulai.</div>
+
+      <div class="mt-4 bg-green-50 border border-green-200 rounded-xl p-3 text-sm" aria-live="polite">
+        <div class="font-bold text-green-800 text-base">Laju: <span id="rateLabel" class="mono">0.0</span> µmol/m²/s</div>
+        <div>Gelembung O₂: <b id="o2rateLabel" class="mono">0.0</b>/dtk &nbsp;•&nbsp; Glukosa: <b id="glcLabel" class="mono">0.0</b></div>
+        <div>Faktor pembatas: <b id="limitLabel" class="text-amber-700">Cahaya</b></div>
+        <div class="text-xs text-slate-600 mt-1" id="explainLabel">Atur slider lalu tekan Mulai.</div>
+        <div class="mt-2 h-2 rounded-full bg-slate-200 overflow-hidden"><div id="rateBar" class="h-full bg-green-500 fade" style="width:0%"></div></div>
       </div>
     </aside>
 
     <!-- CANVAS -->
     <main class="flex-1 flex flex-col gap-3 order-2 min-w-0">
       <div class="bg-white rounded-2xl shadow p-2 md:p-3">
-        <div class="min-h-[300px] h-[52vh] md:h-[540px] relative rounded-xl overflow-hidden bg-sky-50 border">
-          <canvas id="simCanvas"></canvas>
-          <div class="absolute top-2 left-2 flex flex-wrap gap-1.5 text-[11px] md:text-xs font-semibold">
-            <span class="bg-black/70 text-white px-2 py-1 rounded-lg">Waktu <span id="ovTime">0s</span></span>
-            <span class="bg-black/70 text-white px-2 py-1 rounded-lg">Laju <span id="ovRate">0.0</span></span>
-            <span class="bg-black/70 text-amber-300 px-2 py-1 rounded-lg">O2: <span id="ovO2">0</span></span>
-            <span class="bg-black/70 text-green-300 px-2 py-1 rounded-lg">Glukosa: <span id="ovGlc">0</span></span>
+        <div class="min-h-[300px] h-[52vh] md:h-[540px] relative rounded-xl overflow-hidden bg-sky-50 border border-slate-200">
+          <canvas id="simCanvas" aria-label="Visualisasi fotosintesis"></canvas>
+          <div class="absolute top-2 left-2 flex flex-wrap gap-1.5 text-[11px] md:text-xs font-semibold pointer-events-none">
+            <span class="bg-black/70 text-white px-2 py-1 rounded-lg">⏱ <span id="ovTime" class="mono">0s</span></span>
+            <span class="bg-black/70 text-white px-2 py-1 rounded-lg">Laju <span id="ovRate" class="mono">0.0</span></span>
+            <span class="bg-black/70 text-sky-300 px-2 py-1 rounded-lg">O₂ <span id="ovO2" class="mono">0</span></span>
+            <span class="bg-black/70 text-green-300 px-2 py-1 rounded-lg">Gula <span id="ovGlc" class="mono">0</span></span>
           </div>
-          <div id="endBanner" class="hidden absolute inset-x-0 top-1/3 mx-auto w-fit bg-green-700 text-white font-bold px-5 py-3 rounded-2xl shadow-xl ended-pulse">Pengamatan selesai (180 dtk) - tekan Mulai Ulang</div>
+          <div class="absolute top-2 right-2 pointer-events-none">
+            <span id="ovLimit" class="bg-amber-500/90 text-white text-[11px] md:text-xs font-bold px-2 py-1 rounded-lg">Pembatas: -</span>
+          </div>
+          <div id="endBanner" class="hidden absolute inset-x-0 top-1/3 mx-auto w-fit max-w-[90%] text-center bg-blue-700 text-white font-bold px-5 py-3 rounded-2xl shadow-xl ended-pulse">🎉 Pengamatan selesai (120 dtk)!<br><span class="text-sm font-normal">Tekan Mulai Ulang untuk mengulang.</span></div>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-center text-xs md:text-sm">
-          <div class="bg-amber-50 border rounded-xl p-2">Cahaya<br><b id="statLight">600</b></div>
-          <div class="bg-slate-50 border rounded-xl p-2">CO2<br><b id="statCo2">420 ppm</b></div>
-          <div class="bg-red-50 border rounded-xl p-2">Suhu<br><b id="statTemp">27C</b></div>
-          <div class="bg-blue-50 border rounded-xl p-2">Air<br><b id="statWater">70%</b></div>
+        <div class="grid grid-cols-3 gap-2 mt-2 text-center text-xs md:text-sm">
+          <div class="bg-amber-50 border rounded-xl p-2">☀️ Cahaya<br><b id="statLight" class="mono">600</b></div>
+          <div class="bg-slate-50 border rounded-xl p-2">💨 CO₂<br><b id="statCo2" class="mono">400 ppm</b></div>
+          <div class="bg-red-50 border rounded-xl p-2">🌡️ Suhu<br><b id="statTemp" class="mono">25 °C</b></div>
         </div>
       </div>
       <details class="bg-white rounded-2xl shadow p-4 text-sm">
-        <summary class="font-bold cursor-pointer min-h-[44px] flex items-center">Cara pakai dan konsep</summary>
+        <summary class="font-bold cursor-pointer min-h-[44px] flex items-center">📖 Cara pakai &amp; konsep</summary>
         <ul class="list-disc ml-5 mt-2 space-y-1 text-slate-700">
-          <li>Cahaya dan CO2 mengikuti kinetika jenuh: naik cepat lalu mendatar.</li>
-          <li>Suhu optimum sekitar 28C; terlalu dingin/panas enzim tidak efisien.</li>
-          <li>Kekurangan air menutup stomata, CO2 sulit masuk, laju turun.</li>
-          <li>Gelembung O2 = laju sesaat. Daun membesar = glukosa terakumulasi. Grafik bawah = riwayat laju.</li>
-          <li>Faktor pembatas: laju ditentukan oleh faktor yang paling kurang (Hukum Minimum Liebig).</li>
+          <li><b>Cahaya:</b> energi reaksi terang. Kurva jenuh: f = L/(L+200). Di atas ~1000 tidak banyak menambah.</li>
+          <li><b>CO₂:</b> bahan Siklus Calvin. f = (C−50)/(C+350). Titik kompensasi 50 ppm.</li>
+          <li><b>Suhu:</b> aktivitas enzim, optimum 25 °C. Dingin = lambat, &gt;35 °C = denaturasi.</li>
+          <li><b>Hukum Minimum:</b> laju ditentukan faktor paling rendah (pembatas).</li>
+          <li>Gelembung = O₂ sesaat. Ukuran daun = gula terakumulasi. Grafik bawah = riwayat laju.</li>
         </ul>
       </details>
     </main>
@@ -108,164 +136,183 @@
 </div>
 
 <script>
-const cfg = JSON.parse(document.getElementById('widget-config').textContent);
-const DURATION = 180, PMAX = 32;
-const state = { running:false, ended:false, paused:true, time:0, o2:0, glc:0, history:[], bubbles:[], co2parts:[], leaf:0, velocity:0, position:0 };
-let vars = {};
-cfg.variables.forEach(v => vars[v.id] = v.default);
+(function(){
+"use strict";
+var cfg = JSON.parse(document.getElementById('widget-config').textContent);
+var DURATION = (cfg.duration_s || 120);
+var PMAX = 32;
 
-// sliders
-const sliderBox = document.getElementById('sliders');
-cfg.variables.forEach(v => {
-  const key = v.id;
-  const wrap = document.createElement('div');
-  wrap.innerHTML =
-    '<label class="flex justify-between text-sm font-semibold"><span>'+v.label+'</span><span id="val-'+key+'" class="text-green-700">'+vars[key]+' '+v.unit+'</span></label>' +
-    '<input id="sl-'+key+'" data-var="'+key+'" type="range" min="'+v.min+'" max="'+v.max+'" step="'+v.step+'" value="'+vars[key]+'" aria-label="'+v.label+'">';
-  sliderBox.appendChild(wrap);
-  const input = wrap.querySelector('input');
-  input.addEventListener('input', e => {
-    vars[key] = parseFloat(e.target.value);
-    document.getElementById('val-'+key).textContent = vars[key]+' '+v.unit;
-    liveUpdate();
-  });
-});
-function setSliders(o){
-  for(const k in o){
-    if(!(k in vars)) continue;
-    vars[k]=o[k];
-    const s=document.getElementById('sl-'+k);
-    if(s) s.value=o[k];
-    const meta=cfg.variables.find(v=>v.id===k);
-    const lbl=document.getElementById('val-'+k);
-    if(lbl) lbl.textContent=o[k]+' '+(meta?meta.unit:'');
-  }
-  liveUpdate();
-}
+// State machine: running / paused / ended  (Mulai=Start/启动, Jeda=Pause/暂停, Mulai Ulang=Restart/重新开始)
+var state = { running:false, ended:false, paused:true, time:0, position:0, velocity:0, o2:0, glc:0, leaf:0, history:[], bubbles:[], co2parts:[], sunAngle:0 };
+var vars = { light:600, co2:400, temp:25 };
+cfg.variables.forEach(function(v){ if(vars[v.name]===undefined) vars[v.name]=v.default; });
 
-// model: limiting factor
+var startBtn = document.getElementById('start-btn');
+startBtn.id = 'start-btn';
+startBtn.setAttribute('data-action','main');
+var mainBtn = startBtn; // alias required by spec naming
+var resetBtn = document.getElementById('reset-btn');
+var badge=document.getElementById('stateBadge'), dot=document.getElementById('stateDot'), txt=document.getElementById('stateText');
+
+// ---------- model ----------
 function factors(){
-  const L=vars.light, C=vars.co2, T=vars.temp, W=vars.water;
-  const fL = L<=0?0:L/(L+200);
-  const fC = C<=50?0:(C-50)/(C+350);
-  let fT = Math.exp(-Math.pow(T-28,2)/(2*8*8));
-  if(T>=45||T<=5) fT*=0.05;
-  const fW = Math.pow(Math.max(0,W)/100, 0.7);
-  return {fL:fL,fC:fC,fT:fT,fW:fW};
+  var L=vars.light, C=vars.co2, T=vars.temp;
+  var fL = L<=0?0:L/(L+200);
+  var fC = C<=50?0:(C-50)/(C+350);
+  var fT = Math.exp(-Math.pow(T-25,2)/(2*7.5*7.5));
+  if(T<=5||T>=45) fT*=0.2;
+  return {fL:fL,fC:fC,fT:fT};
 }
-function rate(){
-  const f=factors();
-  return { r: PMAX*f.fL*f.fC*f.fT*f.fW, fL:f.fL, fC:f.fC, fT:f.fT, fW:f.fW };
+function computeRate(){
+  var f=factors();
+  return { r: PMAX*f.fL*f.fC*f.fT, f:f };
 }
-function limiter(f){
-  const m=Math.min(f.fL,f.fC,f.fT,f.fW);
-  if(vars.light===0) return 'Gelap - tanpa cahaya';
+function limiterName(f){
+  if(vars.light===0) return 'Gelap — tanpa cahaya';
+  var m=Math.min(f.fL,f.fC,f.fT);
   if(m===f.fL) return 'Cahaya';
   if(m===f.fC) return 'CO2';
-  if(m===f.fT) return vars.temp>33?'Suhu terlalu tinggi':'Suhu';
-  return 'Air';
+  return vars.temp>30 ? 'Suhu (terlalu panas)' : (vars.temp<18 ? 'Suhu (terlalu dingin)' : 'Suhu');
 }
 
-// presets
-const PRESETS = {
-  'Optimal':{light:1000,co2:1000,temp:28,water:80},
-  'Pagi Mendung':{light:200,co2:420,temp:22,water:70},
-  'Siang Terik dan Kering':{light:1400,co2:420,temp:38,water:15},
-  'Rumah Kaca CO2 Tinggi':{light:800,co2:1500,temp:30,water:75},
-  'Malam Hari':{light:0,co2:420,temp:20,water:60}
-};
-const pBox=document.getElementById('presets');
-Object.keys(PRESETS).forEach(n=>{
-  const b=document.createElement('button');
+// ---------- sliders ----------
+function syncLabels(){
+  document.getElementById('light-display').textContent = Math.round(vars.light)+' µmol/m²/s';
+  document.getElementById('co2-display').textContent = Math.round(vars.co2)+' ppm';
+  document.getElementById('temp-display').textContent = vars.temp+' °C';
+}
+['light','co2','temp'].forEach(function(k){
+  var s=document.getElementById(k+'-slider');
+  if(s) s.addEventListener('input', function(e){
+    vars[k]=parseFloat(e.target.value);
+    syncLabels(); liveUpdate();
+  });
+});
+function setVars(o){
+  for(var k in o){
+    if(!(k in vars)) continue;
+    vars[k]=o[k];
+    var s=document.getElementById(k+'-slider');
+    if(s) s.value=o[k];
+  }
+  syncLabels(); liveUpdate();
+}
+
+// ---------- presets (apply + reset) ----------
+var pBox=document.getElementById('presets');
+cfg.presets.forEach(function(p){
+  var b=document.createElement('button');
   b.className='preset-btn text-left text-sm font-semibold px-3 py-2 rounded-xl bg-slate-100 hover:bg-green-100 border fade';
-  b.textContent=n; b.style.minHeight='44px';
-  b.onclick=()=>{ setSliders(PRESETS[n]); resetSim(false); };
+  b.style.minHeight='44px';
+  var desc='';
+  if(p.name==='Optimal') desc=' — semua ideal';
+  else if(p.name==='Malam Hari') desc=' — tanpa cahaya';
+  else if(p.name.indexOf('CO2')>=0) desc=' — CO2 melimpah';
+  b.textContent=p.name+desc;
+  b.setAttribute('aria-label','Preset '+p.name);
+  b.onclick=function(){ setVars(p.variables); resetSimulation(false); };
   pBox.appendChild(b);
 });
 
-// buttons / state : Mulai -> Jeda -> Mulai Ulang
-const mainBtn=document.getElementById('mainBtn'), resetBtn=document.getElementById('resetBtn');
-const badge=document.getElementById('stateBadge'), dot=document.getElementById('stateDot'), txt=document.getElementById('stateText');
-function refreshUI(){
-  const base='fade text-sm font-semibold px-3 py-1.5 rounded-full flex items-center gap-2 ';
-  if(state.ended){ mainBtn.textContent='Mulai Ulang'; badge.className=base+'bg-blue-600 text-white'; dot.className='badge-dot bg-white'; txt.textContent='Selesai'; }
-  else if(state.running){ mainBtn.textContent='Jeda'; badge.className=base+'bg-green-600 text-white'; dot.className='badge-dot bg-green-200'; txt.textContent='Berjalan'; }
-  else { mainBtn.textContent = state.time>0?'Lanjutkan':'Mulai'; badge.className=base+'bg-slate-300 text-slate-800'; dot.className='badge-dot bg-slate-500'; txt.textContent = state.time>0?'Jeda':'Siap'; }
+// ---------- button logic ----------
+function updateButton(){
+  // "启动"=Mulai, "暂停"=Jeda, "重新开始"=Mulai Ulang
+  if(state.ended){ mainBtn.textContent='Mulai Ulang'; mainBtn.classList.add('restart'); }
+  else if(state.running){ mainBtn.textContent='Jeda'; mainBtn.classList.remove('restart'); }
+  else { mainBtn.textContent = state.time>0 ? 'Lanjutkan' : 'Mulai'; mainBtn.classList.remove('restart'); }
+}
+function refreshBadge(){
+  var base='fade text-sm font-semibold px-3 py-1.5 rounded-full flex items-center gap-2 ';
+  if(state.ended){ badge.className=base+'bg-blue-600 text-white'; dot.className='badge-dot bg-white'; txt.textContent='Selesai'; }
+  else if(state.running){ badge.className=base+'bg-green-600 text-white'; dot.className='badge-dot bg-green-200'; txt.textContent='Berjalan'; }
+  else { badge.className=base+'bg-slate-300 text-slate-800'; dot.className='badge-dot bg-slate-500'; txt.textContent = state.time>0?'Jeda':'Siap'; }
   document.getElementById('endBanner').classList.toggle('hidden', !state.ended);
+  updateButton();
 }
-function resetSim(startAfter){
+function startSimulation(){ if(state.ended) return; state.running=true; state.paused=false; refreshBadge(); }
+function pauseSimulation(){ state.running=false; state.paused=true; refreshBadge(); }
+function resetSimulation(startAfter){
   state.running=false; state.ended=false; state.paused=true;
-  state.time=0; state.o2=0; state.glc=0; state.history=[]; state.bubbles=[];
-  state.leaf=0; state.velocity=0; state.position=0;
-  seedCo2(); refreshUI(); liveUpdate();
-  if(startAfter){ state.running=true; state.paused=false; refreshUI(); }
+  state.time=0; state.position=0; state.velocity=0;
+  state.o2=0; state.glc=0; state.leaf=0; state.sunAngle=0;
+  state.history=[]; state.bubbles=[];
+  seedCo2(); refreshBadge(); liveUpdate();
+  if(startAfter){ startSimulation(); }
 }
-function toggleMain(){
-  if(state.ended){ resetSim(true); return; }
-  if(state.running){ state.running=false; state.paused=true; }
-  else { state.running=true; state.paused=false; }
-  refreshUI();
+function handleMainButton(){
+  if(state.ended){ resetSimulation(true); return; } // 重新开始
+  if(state.running){ pauseSimulation(); }            // 暂停
+  else { startSimulation(); }                        // 启动
 }
-mainBtn.onclick=toggleMain;
-resetBtn.onclick=()=>resetSim(false);
-document.addEventListener('keydown',e=>{
-  const tag=(document.activeElement&&document.activeElement.tagName)||'';
-  if(e.code==='Space' && tag!=='INPUT' && tag!=='BUTTON'){ e.preventDefault(); toggleMain(); }
-  if(e.key==='r'||e.key==='R') resetSim(false);
+mainBtn.onclick=handleMainButton;
+if(resetBtn) resetBtn.onclick=function(){ resetSimulation(false); };
+document.addEventListener('keydown',function(e){
+  var tag=(document.activeElement&&document.activeElement.tagName)||'';
+  if(e.code==='Space' && tag!=='INPUT' && tag!=='BUTTON' && tag!=='TEXTAREA'){ e.preventDefault(); handleMainButton(); }
+  if((e.key==='r'||e.key==='R') && tag!=='INPUT' && tag!=='TEXTAREA'){ resetSimulation(false); }
 });
 
-// canvas
-const cv=document.getElementById('simCanvas'), ctx=cv.getContext('2d');
+// ---------- canvas ----------
+var cv=document.getElementById('simCanvas'), ctx=cv.getContext('2d');
 function resize(){
-  const r=cv.parentElement.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
-  cv.width=r.width*dpr; cv.height=r.height*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+  var r=cv.parentElement.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.max(1,r.width*dpr); cv.height=Math.max(1,r.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
 }
 window.addEventListener('resize', resize);
-function seedCo2(){ state.co2parts=[]; for(let i=0;i<60;i++) state.co2parts.push({x:Math.random(),y:Math.random()*0.6,s:1+Math.random()*2}); }
+if(window.ResizeObserver){ new ResizeObserver(resize).observe(cv.parentElement); }
+function seedCo2(){ state.co2parts=[]; for(var i=0;i<70;i++) state.co2parts.push({x:Math.random(),y:Math.random()*0.62,s:1+Math.random()*2.2}); }
 seedCo2();
 
-let tx=null;
-cv.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
-cv.addEventListener('touchmove',e=>{
+// touch gesture: horizontal drag = light
+var tx=null;
+cv.addEventListener('touchstart',function(e){ tx=e.touches[0].clientX; },{passive:true});
+cv.addEventListener('touchmove',function(e){
   if(tx===null)return;
-  const dx=e.touches[0].clientX-tx; tx=e.touches[0].clientX;
-  vars.light=Math.max(0,Math.min(1500,vars.light+dx*4));
-  const s=document.getElementById('sl-light');
-  if(s) s.value=vars.light;
-  document.getElementById('val-light').textContent=Math.round(vars.light)+' lux (x100)';
-  liveUpdate();
+  var dx=e.touches[0].clientX-tx; tx=e.touches[0].clientX;
+  vars.light=Math.max(0,Math.min(1500,vars.light+dx*5));
+  var s=document.getElementById('light-slider'); if(s) s.value=vars.light;
+  syncLabels(); liveUpdate();
 },{passive:true});
+cv.addEventListener('touchend',function(){tx=null;},{passive:true});
 
+// ---------- live text ----------
 function liveUpdate(){
-  const o=rate(), r=o.r;
+  var out=computeRate(), r=out.r, lim=limiterName(out.f);
   document.getElementById('rateLabel').textContent=r.toFixed(1);
-  document.getElementById('o2rateLabel').textContent=(r*0.9).toFixed(1);
-  document.getElementById('limitLabel').textContent=limiter(o);
-  const lim=limiter(o);
-  let msg='';
-  if(r<0.5) msg='Hampir tidak ada fotosintesis - periksa faktor pembatas.';
-  else if(r<8) msg='Laju rendah - naikkan '+lim+'.';
-  else if(r<18) msg='Laju sedang - '+lim+' paling membatasi.';
-  else msg='Laju tinggi - kondisi mendekati optimum!';
+  document.getElementById('o2rateLabel').textContent=(r*0.8).toFixed(1);
+  document.getElementById('glcLabel').textContent=state.glc.toFixed(1);
+  document.getElementById('limitLabel').textContent=lim;
+  document.getElementById('rateBar').style.width=Math.min(100,r/PMAX*100)+'%';
+  document.getElementById('ovLimit').textContent='Pembatas: '+lim;
+  var msg;
+  if(vars.light===0) msg='Gelap: tanpa cahaya reaksi terang berhenti.';
+  else if(r<0.5) msg='Hampir nol — periksa '+lim+'.';
+  else if(r<7) msg='Laju rendah — naikkan '+lim+'.';
+  else if(r<14) msg='Laju sedang — '+lim+' paling membatasi.';
+  else msg='Laju tinggi — mendekati optimum! 🎉';
   document.getElementById('explainLabel').textContent=msg;
   document.getElementById('statLight').textContent=Math.round(vars.light);
   document.getElementById('statCo2').textContent=Math.round(vars.co2)+' ppm';
-  document.getElementById('statTemp').textContent=vars.temp+'C';
-  document.getElementById('statWater').textContent=vars.water+'%';
+  document.getElementById('statTemp').textContent=vars.temp+' °C';
 }
 
-let last=performance.now();
+// ---------- loop ----------
+var last=performance.now();
 function loop(now){
-  const dt=Math.min(0.1,(now-last)/1000); last=now;
+  var dt=Math.min(0.1,(now-last)/1000); last=now;
   if(state.running && !state.ended){
-    const o=rate(), r=o.r;
+    var out=computeRate(), r=out.r;
     state.time+=dt;
-    state.o2+=r*dt; state.glc+=r*dt*0.12; state.leaf=Math.min(1,state.leaf+r*dt*0.002);
+    state.o2+=r*0.8*dt; state.glc+=r*0.12*dt;
+    state.leaf=Math.min(1,state.leaf+r*dt*0.004);
     state.position+=r*dt; state.velocity=r;
-    state.history.push(r); if(state.history.length>300)state.history.shift();
-    const n=r/PMAX*8;
-    for(let i=0;i<n;i++) if(Math.random()<0.5) state.bubbles.push({x:0.42+Math.random()*0.16,y:0.62,r:1.5+Math.random()*3,v:0.15+Math.random()*0.3+r*0.01});
-    if(state.time>=DURATION){ state.ended=true; state.running=false; state.paused=false; refreshUI(); }
+    state.sunAngle+=dt*(0.4+vars.light/600);
+    state.history.push(r); if(state.history.length>300) state.history.shift();
+    var spawn=r/PMAX*9;
+    for(var i=0;i<spawn;i++) if(Math.random()<0.6)
+      state.bubbles.push({x:0.40+Math.random()*0.20,y:0.60,r:1.5+Math.random()*3+ r*0.06,v:0.18+Math.random()*0.35+r*0.012});
+    if(state.time>=DURATION){ state.ended=true; state.running=false; state.paused=false; refreshBadge(); }
     document.getElementById('ovTime').textContent=Math.floor(state.time)+'s';
     document.getElementById('ovRate').textContent=r.toFixed(1);
     document.getElementById('ovO2').textContent=Math.round(state.o2);
@@ -276,75 +323,140 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 
-function roundRect(x,y,w,h,r){ctx.beginPath(); if(ctx.roundRect)ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h);}
+function roundRect(x,y,w,h,r){ ctx.beginPath(); if(ctx.roundRect) ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h); }
 function draw(t){
-  const W=cv.clientWidth||300,H=cv.clientHeight||400,sceneH=H*0.68;
+  var W=cv.clientWidth||300, H=cv.clientHeight||400;
+  var sceneH=Math.round(H*0.66);
   ctx.clearRect(0,0,W,H);
-  ctx.strokeStyle='rgba(100,116,139,.15)';ctx.lineWidth=1;
-  for(let x=0;x<W;x+=28){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-  for(let y=0;y<H;y+=28){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
-  const o=rate(), r=o.r, fL=o.fL, fT=o.fT;
-  const glow=vars.light/1500;
-  const grd=ctx.createLinearGradient(0,0,0,sceneH);
-  grd.addColorStop(0,'rgb('+Math.round(200+55*glow)+','+Math.round(225+30*glow)+',255)');
+  // grid
+  ctx.strokeStyle='rgba(100,116,139,.14)'; ctx.lineWidth=1;
+  var gx,gy;
+  for(gx=0;gx<W;gx+=28){ ctx.beginPath(); ctx.moveTo(gx,0); ctx.lineTo(gx,H); ctx.stroke(); }
+  for(gy=0;gy<H;gy+=28){ ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke(); }
+  var out=computeRate(), r=out.r, f=out.f;
+  var glow=vars.light/1500;
+  // sky
+  var grd=ctx.createLinearGradient(0,0,0,sceneH);
+  grd.addColorStop(0,'rgb('+Math.round(150+105*glow)+','+Math.round(200+55*glow)+',255)');
   grd.addColorStop(1,'#dcfce7');
-  ctx.fillStyle=grd;ctx.fillRect(0,0,W,sceneH);
-  const sx=W*0.85,sy=sceneH*0.22,sr=20+30*glow;
-  ctx.save();ctx.globalAlpha=0.25+0.6*glow;ctx.fillStyle='#facc15';
-  ctx.beginPath();ctx.arc(sx,sy,sr,0,7);ctx.fill();ctx.restore();
-  ctx.strokeStyle='#b45309';ctx.lineWidth=2;
-  for(let i=0;i<12;i++){const a=t*0.5+i*Math.PI/6,l1=sr+6,l2=sr+14+8*glow;
-    ctx.beginPath();ctx.moveTo(sx+Math.cos(a)*l1,sy+Math.sin(a)*l1);ctx.lineTo(sx+Math.cos(a)*l2,sy+Math.sin(a)*l2);ctx.stroke();}
-  ctx.fillStyle='#78350f';ctx.font='bold 12px sans-serif';ctx.fillText('cahaya '+Math.round(vars.light),sx-32,sy+sr+24);
-  const dens=vars.co2/2000;
-  ctx.fillStyle='rgba(71,85,105,.7)';ctx.font='10px sans-serif';
-  state.co2parts.forEach((p,i)=>{ if(i/60>dens)return;
-    const x=(p.x*W+t*10*(1+p.s*0.3))%W, y=p.y*sceneH;
-    ctx.beginPath();ctx.arc(x,y,p.s+1,0,7);ctx.fill();ctx.fillText('CO2',x+5,y+3); });
-  const soilY=sceneH*0.78;
-  ctx.fillStyle='#92400e';ctx.fillRect(0,soilY,W,sceneH-soilY);
-  const wl=(vars.water/100)*(sceneH-soilY);
-  ctx.fillStyle='rgba(59,130,246,.75)';ctx.fillRect(0,sceneH-wl,W,wl);
-  const px=W*0.5, base=soilY, hgt=40+70*state.leaf+sceneH*0.18;
-  ctx.strokeStyle='#15803d';ctx.lineWidth=6;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(px,base);ctx.quadraticCurveTo(px+8,base-hgt*0.6,px,base-hgt);ctx.stroke();
-  const ls=14+26*state.leaf+fL*8;
-  ctx.fillStyle=r<0.5?'#a16207':'#16a34a';
-  const leaves=[[-1,-0.55],[1,-0.7],[-1,-0.85]];
-  for(let i=0;i<leaves.length;i++){
-    const s=leaves[i][0], yy=leaves[i][1];
-    const wob=Math.sin(t*2+i)*3;
-    ctx.save();ctx.translate(px,base+hgt*yy);ctx.rotate(s*0.6+wob*0.02);ctx.scale(s,1);
-    ctx.beginPath();ctx.ellipse(ls*0.7,0,ls*0.7,ls*0.32,0,0,7);ctx.fill();ctx.restore();
+  ctx.fillStyle=grd; ctx.fillRect(0,0,W,sceneH);
+  // sun (rotating rays = obvious motion)
+  var sx=W*0.85, sy=sceneH*0.24, sr=18+30*glow;
+  ctx.save(); ctx.globalAlpha=0.25+0.65*glow; ctx.fillStyle='#facc15';
+  ctx.beginPath(); ctx.arc(sx,sy,Math.max(8,sr),0,7); ctx.fill(); ctx.restore();
+  ctx.strokeStyle='#b45309'; ctx.lineWidth=2;
+  for(var i=0;i<12;i++){ var a=state.sunAngle+i*Math.PI/6, l1=sr+5, l2=sr+13+9*glow;
+    ctx.beginPath(); ctx.moveTo(sx+Math.cos(a)*l1,sy+Math.sin(a)*l1); ctx.lineTo(sx+Math.cos(a)*l2,sy+Math.sin(a)*l2); ctx.stroke(); }
+  ctx.fillStyle='#78350f'; ctx.font='bold 11px sans-serif';
+  ctx.fillText(Math.round(vars.light)+'',sx-20,sy+sr+22);
+  // CO2 particles drift
+  var dens=vars.co2/1500;
+  ctx.fillStyle='rgba(71,85,105,.75)'; ctx.font='9px sans-serif';
+  for(var c=0;c<state.co2parts.length;c++){
+    if(c/70>dens) continue;
+    var p=state.co2parts[c];
+    var drift = state.running ? t*14*(0.5+p.s*0.3) : t*4;
+    var x=((p.x*W)+drift)%W, y=p.y*sceneH+8;
+    ctx.beginPath(); ctx.arc(x,y,p.s+1.2,0,7); ctx.fill();
+    if(W>360){ ctx.fillText('CO2',x+5,y+3); }
   }
-  ctx.fillStyle='rgba(0,0,0,.65)';roundRect(8,8,80,54,8);ctx.fill();
-  ctx.fillStyle=vars.temp>35?'#f87171':vars.temp<15?'#60a5fa':'#4ade80';
-  ctx.font='bold 13px sans-serif';ctx.fillText(vars.temp+' C',16,30);
-  ctx.font='10px sans-serif';ctx.fillStyle='#fff';ctx.fillText(fT>0.8?'optimum':fT>0.4?'sedang':'stres',16,48);
-  state.bubbles=state.bubbles.filter(b=>b.y>0.05);
-  state.bubbles.forEach(b=>{ b.y-=b.v*0.016; ctx.strokeStyle='rgba(22,163,74,.9)';ctx.lineWidth=1.5;
-    ctx.beginPath();ctx.arc(b.x*W,b.y*sceneH,b.r,0,7);ctx.stroke(); });
-  ctx.fillStyle='rgba(0,0,0,.65)';roundRect(W-118,8,110,54,8);ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='10px sans-serif';ctx.fillText('LAJU',W-110,22);
-  ctx.fillStyle=r<8?'#f87171':r<18?'#facc15':'#4ade80';
-  ctx.fillRect(W-110,28,100*(r/PMAX),10);
-  ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.fillText(r.toFixed(1),W-110,54);
-  const gy=sceneH+8,gh=H-sceneH-16;
-  ctx.fillStyle='#0f172a';roundRect(8,gy,W-16,gh,10);ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.fillText('Grafik laju - maks '+PMAX,W*0.04,gy+16);
-  ctx.strokeStyle='rgba(255,255,255,.2)';
-  const qs=[0.25,0.5,0.75];
-  for(let qi=0;qi<qs.length;qi++){const q=qs[qi];ctx.beginPath();ctx.moveTo(12,gy+gh*q);ctx.lineTo(W-12,gy+gh*q);ctx.stroke();}
+  // soil
+  var soilY=sceneH*0.78;
+  ctx.fillStyle='#92400e'; ctx.fillRect(0,soilY,W,sceneH-soilY);
+  ctx.fillStyle='#65a30d'; ctx.fillRect(0,soilY,W,4);
+  // plant
+  var px=W*0.5, base=soilY, hgt=46+70*state.leaf+sceneH*0.16;
+  var sway=Math.sin(t*(state.running?2.5:1))* (2+r*0.25);
+  ctx.strokeStyle='#15803d'; ctx.lineWidth=6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(px,base); ctx.quadraticCurveTo(px+8+sway,base-hgt*0.6,px+sway,base-hgt); ctx.stroke();
+  var ls=13+30*state.leaf+f.fL*7;
+  ctx.fillStyle = r<0.5 ? '#a16207' : (r<7 ? '#65a30d' : '#16a34a');
+  var leaves=[[-1,-0.5],[1,-0.65],[-1,-0.8],[1,-0.9]];
+  for(var li=0;li<leaves.length;li++){
+    var sgn=leaves[li][0], yy=leaves[li][1];
+    ctx.save(); ctx.translate(px+sway*0.5,base+hgt*yy); ctx.rotate(sgn*0.6+Math.sin(t*2+li)*0.06); ctx.scale(sgn,1);
+    ctx.beginPath(); ctx.ellipse(ls*0.7,0,ls*0.7,ls*0.34,0,0,7); ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(ls*1.3,0); ctx.stroke();
+    ctx.restore();
+  }
+  // thermometer box
+  ctx.fillStyle='rgba(0,0,0,.65)'; roundRect(8,8,86,56,8); ctx.fill();
+  ctx.fillStyle=vars.temp>33?'#f87171':vars.temp<15?'#60a5fa':'#4ade80';
+  ctx.font='bold 13px sans-serif'; ctx.fillText(vars.temp+'°C',16,30);
+  ctx.font='10px sans-serif'; ctx.fillStyle='#fff';
+  ctx.fillText(f.fT>0.8?'optimum':(f.fT>0.4?'sedang':'stres'),16,48);
+  // bubbles (rise only when running)
+  state.bubbles=state.bubbles.filter(function(b){return b.y>0.04;});
+  for(var bi=0;bi<state.bubbles.length;bi++){
+    var b=state.bubbles[bi];
+    b.y-=b.v*0.016; b.x+=Math.sin(t*4+bi)*0.0006;
+    ctx.strokeStyle='rgba(22,163,74,.95)'; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.arc(b.x*W,b.y*sceneH,b.r,0,7); ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.9)';
+    ctx.beginPath(); ctx.arc(b.x*W-b.r*0.3,b.y*sceneH-b.r*0.3,0.8,0,7); ctx.fill();
+  }
+  // rate meter top-right area (canvas-drawn, high contrast)
+  ctx.fillStyle='rgba(0,0,0,.65)'; roundRect(W-126,64,118,52,8); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='10px sans-serif'; ctx.fillText('LAJU',W-118,78);
+  ctx.fillStyle='#334155'; ctx.fillRect(W-118,82,102,10);
+  ctx.fillStyle=r<7?'#f87171':r<14?'#facc15':'#4ade80';
+  ctx.fillRect(W-118,82,102*Math.min(1,r/PMAX),10);
+  ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif'; ctx.fillText(r.toFixed(1)+' µmol',W-118,108);
+  // graph
+  var gyy=sceneH+8, gh=H-sceneH-16;
+  ctx.fillStyle='#0f172a'; roundRect(8,gyy,W-16,gh,10); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif';
+  ctx.fillText('Grafik laju — maks '+PMAX+'  ('+Math.floor(state.time)+'s / '+DURATION+'s)',W*0.05,gyy+16);
+  ctx.strokeStyle='rgba(255,255,255,.18)';
+  [0.3,0.55,0.8].forEach(function(q){ ctx.beginPath(); ctx.moveTo(12,gyy+gh*q); ctx.lineTo(W-12,gyy+gh*q); ctx.stroke(); });
   if(state.history.length>1){
-    ctx.strokeStyle='#4ade80';ctx.lineWidth=2.5;ctx.beginPath();
-    state.history.forEach((v,i)=>{const x=12+(W-24)*i/299, y=gy+gh-8-(gh-28)*(v/PMAX);
-      if(i)ctx.lineTo(x,y); else ctx.moveTo(x,y);});
+    ctx.strokeStyle='#4ade80'; ctx.lineWidth=2.5; ctx.beginPath();
+    state.history.forEach(function(v,i){
+      var x=12+(W-24)*i/299, y=gyy+gh-8-(gh-30)*(Math.min(PMAX,v)/PMAX);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
     ctx.stroke();
-  } else { ctx.fillStyle='rgba(255,255,255,.6)';ctx.font='12px sans-serif';ctx.fillText('Tekan Mulai - grafik terekam 180 detik',W*0.25,gy+gh/2); }
+    var lastV=state.history[state.history.length-1];
+    var lx=12+(W-24)*(state.history.length-1)/299, ly=gyy+gh-8-(gh-30)*(Math.min(PMAX,lastV)/PMAX);
+    ctx.fillStyle='#4ade80'; ctx.beginPath(); ctx.arc(lx,ly,4,0,7); ctx.fill();
+  } else {
+    ctx.fillStyle='rgba(255,255,255,.65)'; ctx.font='12px sans-serif';
+    ctx.fillText('Tekan Mulai — grafik terekam '+DURATION+' detik',Math.max(16,W*0.22),gyy+gh/2);
+  }
 }
-function boot(){ resize(); refreshUI(); liveUpdate(); requestAnimationFrame(loop); }
+
+// REQUIRED: postMessage listener for widget actions
+window.addEventListener('message', function(event) {
+  var d = event.data || {};
+  var type = d.type, target = d.target, st = d.state, content = d.content;
+  if(type==='SET_WIDGET_STATE' && st){
+    Object.entries(st).forEach(function(kv){
+      var slider=document.getElementById(kv[0]+'-slider')||document.querySelector('[data-var="'+kv[0]+'"]');
+      if(slider){ slider.value=kv[1]; slider.dispatchEvent(new Event('input',{bubbles:true})); }
+    });
+  } else if(type==='HIGHLIGHT_ELEMENT'){
+    var el=target&&document.querySelector(target);
+    if(el){ el.style.outline='3px solid rgba(139,92,246,0.8)'; el.style.outlineOffset='4px'; el.style.animation='pulse-highlight 2s infinite';
+      setTimeout(function(){ el.style.outline=''; el.style.animation=''; },3000); }
+  } else if(type==='ANNOTATE_ELEMENT'){
+    var ael=target&&document.querySelector(target);
+    if(ael&&content){ var rc=ael.getBoundingClientRect(); var tip=document.createElement('div');
+      tip.style.cssText='position:fixed;top:'+(rc.top-40)+'px;left:'+rc.left+'px;background:rgba(139,92,246,0.95);color:white;padding:8px 12px;border-radius:8px;font-size:14px;z-index:1000;animation:fadeIn 0.3s;';
+      tip.textContent=content; document.body.appendChild(tip); setTimeout(function(){ tip.remove(); },4000); }
+  } else if(type==='REVEAL_ELEMENT'){
+    var rel=target&&document.querySelector(target);
+    if(rel){ rel.style.display=''; rel.style.opacity='1'; }
+  }
+});
+var _s=document.createElement('style');
+_s.textContent='@keyframes pulse-highlight{0%,100%{outline-color:rgba(139,92,246,0.8)}50%{outline-color:rgba(139,92,246,0.4)}}@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}';
+document.head.appendChild(_s);
+
+function boot(){ resize(); syncLabels(); refreshBadge(); liveUpdate(); requestAnimationFrame(loop); }
 if(document.readyState==='complete') boot(); else window.addEventListener('load', boot);
-setTimeout(resize, 50);
+setTimeout(resize, 60);
+})();
 </script>
 </body>
 </html>
