@@ -1103,6 +1103,7 @@ export class OpencodeCliLanguageModel {
     const { promptText, funcTools } = buildCliPrompt(options);
     const stopSequences = options.stopSequences;
     const modelId = this.modelId;
+    const cliProvider = this.cliProvider;
     const textId = 'opencode-text-0';
 
     // Tanpa tools: teruskan delta live. Dengan tools: buffer dulu agar blok
@@ -1120,7 +1121,7 @@ export class OpencodeCliLanguageModel {
             let stopped = false;
             await runOpencodeCli({
               modelId,
-              cliProvider: this.cliProvider,
+              cliProvider,
               promptText,
               abortSignal: options.abortSignal,
               onTextDelta: (delta) => {
@@ -1152,7 +1153,7 @@ export class OpencodeCliLanguageModel {
           } else {
             const result = await runOpencodeCli({
               modelId,
-              cliProvider: this.cliProvider,
+              cliProvider,
               promptText,
               abortSignal: options.abortSignal,
             });
