@@ -1104,14 +1104,14 @@ export interface ValidatedToolCalls extends ParsedToolCalls {
  * berurutan (paritas beberapa tool-call paralel native dalam satu giliran);
  * teks sebelum blok PERTAMA menjadi leadingText. Argumen divalidasi terhadap
  * inputSchema tiap tool; panggilan tak valid dicatat di diagnostics dan TIDAK
- * dieksekusi (native menolaknya server-side). null bila tak ada panggilan
- * valid (diperlakukan sebagai teks).
+ * dieksekusi (native menolaknya server-side). Selalu mengembalikan objek
+ * (calls kosong bila tak ada panggilan valid — diperlakukan sebagai teks).
  */
 export function parseAndValidateToolCalls(
   text: string,
   tools: CliFunctionToolDef[],
   treatStrayMarkerAsAttempt = true,
-): ValidatedToolCalls | null {
+): ValidatedToolCalls {
   const allowedNames = new Set(tools.map((t) => t.name));
   const schemas = new Map(tools.map((t) => [t.name, t.inputSchema]));
   const candidates: Array<{ raw: string; start: number }> = [];
