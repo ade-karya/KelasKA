@@ -197,7 +197,7 @@ function HomePage() {
   // A usable LLM provider exists ⇒ a concrete model is always selected (#580
   // invariant). Gate generation on this single condition (state A vs B)
   // instead of inspecting modelId directly.
-  // Provider internal tersembunyi (opencode) tidak dihitung sebagai usable di UI.
+  // Provider internal tersembunyi (opencode/opencode-go) tidak dihitung sebagai usable di UI.
   const providersConfig = useSettingsStore((s) => s.providersConfig);
   const visibleProvidersConfig = useMemo(() => {
     if (!providersConfig) return providersConfig;

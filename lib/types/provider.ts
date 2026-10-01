@@ -207,7 +207,7 @@ export interface ModelConfig {
  * DEFAULT_MODEL / MODEL_ROUTES server-side). Didefinisikan di sini (bukan di
  * lib/ai/providers.ts) agar tidak ikut ke-mock pada test store.
  *
- * `opencode-go` TIDAK disembunyikan: auth-nya sudah connect via TUI
- * (`opencode auth list` = stored) dan dipakai lewat CLI tanpa API key.
+ * Semua varian opencode disembunyikan (`opencode`, `opencode-go`): keduanya
+ * auth-nya via CLI/TUI (`opencode auth login`), bukan via API key di UI.
  */
-export const HIDDEN_PROVIDER_IDS: ReadonlySet<string> = new Set(['opencode']);
+export const HIDDEN_PROVIDER_IDS: ReadonlySet<string> = new Set(['opencode', 'opencode-go']);

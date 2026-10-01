@@ -135,7 +135,7 @@ function pruneOperatorOnlyStageRoutes(
 }
 
 /**
- * Migrasi seleksi tersembunyi dari UI (HIDDEN_PROVIDER_IDS, mis. opencode):
+ * Migrasi seleksi tersembunyi dari UI (HIDDEN_PROVIDER_IDS, mis. opencode/opencode-go):
  * - mainline (providerId/modelId) yang menunjuk ke provider tersembunyi
  *   dipindahkan ke provider terlihat usable pertama, atau State A bila tidak ada.
  * - stage routes ke provider tersembunyi dihapus (tidak bisa dipilih lagi di UI).
@@ -634,7 +634,7 @@ function resolveLLMSelection(
   // Usable = configured AND not switched off via the authorization-layer
   // per-provider toggle (ProviderSettings.enabled) — disabling the active
   // mainline provider re-resolves the selection to another usable one.
-  // Provider internal tersembunyi (HIDDEN_PROVIDER_IDS, mis. opencode) tidak
+  // Provider internal tersembunyi (HIDDEN_PROVIDER_IDS, mis. opencode/opencode-go) tidak
   // pernah dipilih/diadopsi otomatis di UI — backend server-side tetap bisa
   // memakainya via DEFAULT_MODEL / MODEL_ROUTES.
   const isUsable = (id: ProviderId) =>

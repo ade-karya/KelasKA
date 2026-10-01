@@ -50,7 +50,7 @@ export function useLLMPickerGroups(): {
   const tokenPlanDisabled = useSettingsStore((s) => s.tokenPlanDisabled);
 
   // ── 可用 LLM 选项（已配置 provider 的模型目录，带思考能力供选择器渲染） ──
-  // Provider internal (HIDDEN_PROVIDER_IDS, mis. opencode) tidak tampil di UI
+  // Provider internal (HIDDEN_PROVIDER_IDS, mis. opencode/opencode-go) tidak tampil di UI
   // mana pun — backend tetap bisa memakainya via server-side routes.
   const providers = useMemo(
     () =>

@@ -642,7 +642,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
 
   // Get all providers from providersConfig
   // Kimi 推广位：置顶排序列表首位（稳定排序，其余保持原顺序）。
-  // Provider internal (HIDDEN_PROVIDER_IDS, mis. opencode) disembunyikan dari
+  // Provider internal (HIDDEN_PROVIDER_IDS, mis. opencode/opencode-go) disembunyikan dari
   // daftar layanan — backend tetap berfungsi, hanya tidak tampil di UI.
   const allProviders = Object.entries(providersConfig)
     .filter(([id]) => !HIDDEN_PROVIDER_IDS.has(id))
