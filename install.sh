@@ -21,15 +21,17 @@
 #      dilewati bila sudah versi terbaru; bisa dilewati total dengan
 #      --no-opencode). Ollama TIDAK diinstal lagi.
 #   6. File `.env.local` (dibuat dari template bila belum ada; bila sudah ada
-#      hanya dilengkapi variabel yang hilang — tidak menimpa isi user).
+#      hanya dilengkapi variabel yang hilang — tidak menimpa isi user,
+#      kecuali TTS browser-native + agent runtime yang diselaraskan flag).
 #      Pro Workbench: auto-tier model 1->2->3 dari API key yang terisi
 #      (provider terdaftar di lib/ai/providers.ts) —
 #      1 Gemini (google:gemini-3.5-flash-lite), 2 OpenCode Go
 #      (opencode-go:gpt-6-luna), 3 OpenCode free CLI
 #      (opencode:muse-spark-1.3-contributor-free). API key
 #      (GOOGLE_API_KEY, OPENCODE_API_KEY/OPENCODE_GO_API_KEY, provider LLM,
-#      TTS/ASR, search) dibiarkan kosong untuk diisi manual. Tanpa docker:
-#      render MP4 tetap via ZIP, bukan render-service.
+#      TTS/ASR, search) dibiarkan kosong untuk diisi manual. TTS browser-native
+#      (Web Speech API) default ON tanpa API key (lihat --no-browser-tts).
+#      Tanpa docker: render MP4 tetap via ZIP, bukan render-service.
 #   7. Direktori `data/` untuk classroom store berbasis file.
 #   8. Dependensi JS via `pnpm install --frozen-lockfile`
 #      (postinstall otomatis build workspace packages + sync vendor importer).
@@ -78,6 +80,10 @@
 #   --with-ffmpeg       Instal ffmpeg (default sudah ON; flag ini no-op,
 #                       disediakan agar eksplisit/kompatibel).
 #   --no-ffmpeg         Lewati instalasi ffmpeg (ekstraksi media lokal mati).
+#   --with-browser-tts  Aktifkan TTS browser-native tanpa API key (default sudah
+#                       ON; flag ini no-op, disediakan agar eksplisit).
+#   --no-browser-tts    Matikan TTS browser-native (narasi butuh provider TTS
+#                       ber-key; lihat .env.example bagian TTS).
 #   --pg-major=N        Mayor PostgreSQL dari PGDG (default: 18, mayor stabil
 #                       terbaru — 19 masih beta per Sep 2026).
 #   --pg-password=PASS  Paksa password Postgres (default: dibuat acak).
@@ -134,6 +140,7 @@ WITH_PLAYWRIGHT=0
 WITH_PGADMIN=1
 WITH_FFMPEG=1
 WITH_OPENCODE=1
+WITH_BROWSER_TTS=1
 PG_PASSWORD="${PG_PASSWORD:-}"
 # Kredensial login awal pgAdmin (setup-web.sh non-interaktif). Fallback ke
 # nama var upstream (PGADMIN_SETUP_*) bila user mengekspornya manual.
@@ -153,6 +160,7 @@ Contoh:
   sudo ./install.sh --yes --build --with-playwright
   sudo ./install.sh --yes --no-pgadmin              # tanpa pgAdmin4 web
   sudo ./install.sh --yes --no-ffmpeg              # tanpa ekstraksi media lokal
+  sudo ./install.sh --yes --no-browser-tts         # tanpa TTS browser-native (butuh key TTS)
   sudo ./install.sh --yes --no-postgres          # tanpa Postgres (agent/persistence mati)
   sudo ./install.sh --yes --no-opencode          # tanpa OpenCode CLI
 EOF
@@ -171,6 +179,8 @@ for arg in "$@"; do
     --pgadmin-password=*) PGADMIN_PASSWORD="${arg#*=}"; [[ -n "$PGADMIN_PASSWORD" ]] || fail "--pgadmin-password butuh nilai (contoh: --pgadmin-password=rahasia)." ;;
     --with-ffmpeg)     WITH_FFMPEG=1 ;;
     --no-ffmpeg)       WITH_FFMPEG=0 ;;
+    --with-browser-tts) WITH_BROWSER_TTS=1 ;;
+    --no-browser-tts)  WITH_BROWSER_TTS=0 ;;
     --with-opencode)   WITH_OPENCODE=1 ;;
     --no-opencode)     WITH_OPENCODE=0 ;;
     --pg-major=*)      PG_MAJOR="${arg#*=}" ;;
@@ -341,6 +351,11 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   echo "  - instal Node.js 24 (bila belum memenuhi syarat) + pnpm 12.6.0"
   if [[ "$WITH_OPENCODE" -eq 1 ]]; then
     echo "  - instal OpenCode CLI v2"
+  fi
+  if [[ "$WITH_BROWSER_TTS" -eq 1 ]]; then
+    echo "  - aktifkan TTS browser-native tanpa API key (Web Speech API)"
+  else
+    echo "  - tanpa TTS browser-native (--no-browser-tts): narasi butuh provider TTS ber-key"
   fi
   if [[ "$WITH_BUILD" -eq 1 ]]; then
     echo "  - jalankan npm run build sebagai pembuktian"
@@ -662,6 +677,7 @@ tulis_template_env() {
   local db_url="$1" access_code="$2" dev_token="$3" agent_runtime="$4" opencode_bin="$5"
   local tier_name="$6" tier_default="$7" tier_driver="$8" tier_pin="$9"
   local tier_key1_line="${10}" tier_key2_line="${11}" tier_key2go_line="${12}"
+  local tts_browser_line="${13:-TTS_BROWSER_NATIVE_ENABLED=true}"
   # PENTING: heredoc di bawah SENGAJA tanpa quote (<<EOF) agar ${...} dan
   # $(date ...) terekspansi. Konsekuensinya backtick literal dan $(...) ikut
   # dieksekusi shell — jadi semua backtick literal WAJIB ditulis \`...\`.
@@ -742,6 +758,16 @@ ALLOW_LOCAL_NETWORKS=true
 # OLLAMA_BASE_URL=http://localhost:11434/v1
 # OLLAMA_MODELS=
 # SEARXNG_BASE_URL=
+
+# --- TTS tanpa API key (browser-native, Web Speech API) ---------------------------
+# Default ON: narasi bunyi langsung tanpa key/server. Nilai dibaca server saat
+# runtime (restart cukup, tanpa rebuild); client default juga ON sehingga fresh
+# install langsung bersuara. Matikan via --no-browser-tts (nilai false) bila
+# ingin mewajibkan provider TTS ber-key (lihat .env.example bagian TTS).
+${tts_browser_line}
+# Provider TTS ber-key tetap opsional (ISI MANUAL bila dipakai):
+# TTS_OPENAI_API_KEY=
+# TTS_MINIMAX_API_KEY=
 
 # --- Persistence / Agent runtime (PostgreSQL) -----------------------------------
 DATABASE_URL=${db_url}
@@ -825,6 +851,22 @@ set_agent_runtime_flag() {
   if grep -qE "^[[:space:]]*OPENMAIC_AGENT_RUNTIME_ENABLED=${enabled}$" .env.local; then return 0; fi
   sed -i -E "s|^[[:space:]]*OPENMAIC_AGENT_RUNTIME_ENABLED=.*|OPENMAIC_AGENT_RUNTIME_ENABLED=${enabled}|" .env.local
   info "OPENMAIC_AGENT_RUNTIME_ENABLED=${enabled} (${reason})."
+}
+
+# TTS browser-native (Web Speech API, tanpa API key) default ON. Flag installer
+# adalah sumber kebenaran (pola set_agent_runtime_flag): run default menulis
+# true, --no-browser-tts menulis false. Idempoten, aman tiap run.
+set_tts_browser_flag() {
+  local enabled="$1" reason="$2"
+  if grep -qE "^[[:space:]]*TTS_BROWSER_NATIVE_ENABLED=${enabled}$" .env.local; then return 0; fi
+  if grep -qE "^[[:space:]]*TTS_BROWSER_NATIVE_ENABLED=" .env.local; then
+    sed -i -E "s|^[[:space:]]*TTS_BROWSER_NATIVE_ENABLED=.*|TTS_BROWSER_NATIVE_ENABLED=${enabled}|" .env.local
+  elif grep -qE "^[[:space:]]*#[[:space:]]*TTS_BROWSER_NATIVE_ENABLED=" .env.local; then
+    sed -i -E "s|^[[:space:]]*#[[:space:]]*TTS_BROWSER_NATIVE_ENABLED=.*|TTS_BROWSER_NATIVE_ENABLED=${enabled}|" .env.local
+  else
+    echo "TTS_BROWSER_NATIVE_ENABLED=${enabled}" >> .env.local
+  fi
+  info "TTS_BROWSER_NATIVE_ENABLED=${enabled} (${reason})."
 }
 
 # ---------------- tier model Pro Workbench (urutan prioritas 1->2->3) ------------
@@ -927,15 +969,21 @@ if [[ ! -f .env.local ]]; then
     TIER2GO_KEY_LINE="# OPENCODE_GO_API_KEY="
   fi
   if [[ -n "$DATABASE_URL_VALUE" ]]; then AGENT_RT="true"; else AGENT_RT="false"; fi
+  if [[ "$WITH_BROWSER_TTS" -eq 1 ]]; then TTS_BROWSER_LINE="TTS_BROWSER_NATIVE_ENABLED=true"; else TTS_BROWSER_LINE="TTS_BROWSER_NATIVE_ENABLED=false"; fi
   info "Tier model Pro Workbench: ${TIER} (${TIER_DEFAULT})."
   if [[ -n "${GO_MIRRORED_FRESH:-}" ]]; then
     info "OPENCODE_GO_API_KEY disalin dari OPENCODE_API_KEY (gateway Zen yang sama) untuk driver HTTP."
+  fi
+  if [[ "$WITH_BROWSER_TTS" -eq 1 ]]; then
+    info "TTS browser-native: AKTIF tanpa API key (Web Speech API)."
+  else
+    info "TTS browser-native: NONAKTIF (--no-browser-tts) — narasi butuh provider TTS ber-key."
   fi
   if [[ -n "$DATABASE_URL_VALUE" ]]; then
     # Tulis atomik via file sementara + mv: bila template gagal di tengah,
     # .env.local tidak pernah ada dalam keadaan terpotong — run ulang aman.
     TMP_ENV_BARU="$(mktemp .env.local.tmp.XXXXXX)"
-    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > "$TMP_ENV_BARU" \
+    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" > "$TMP_ENV_BARU" \
       || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
     chmod 600 "$TMP_ENV_BARU"
     mv -f "$TMP_ENV_BARU" .env.local
@@ -944,7 +992,7 @@ if [[ ! -f .env.local ]]; then
     fi
   else
     TMP_ENV_BARU="$(mktemp .env.local.tmp.XXXXXX)"
-    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" > "$TMP_ENV_BARU" \
+    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" > "$TMP_ENV_BARU" \
       || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
     chmod 600 "$TMP_ENV_BARU"
     mv -f "$TMP_ENV_BARU" .env.local
@@ -1051,6 +1099,16 @@ else
   # Native tanpa docker: izinkan URL loopback/privat (Ollama/Lemonade/FunASR/
   # SearXNG lokal). Baris berkomentar jejak template lama ikut diaktifkan.
   pastikan_var_env .env.local ALLOW_LOCAL_NETWORKS "true"
+  # TTS browser-native tanpa API key (Web Speech API) default ON. Flag installer
+  # adalah sumber kebenaran: default menulis true, --no-browser-tts menulis
+  # false (narasi lalu butuh provider TTS ber-key, lihat .env.example TTS).
+  if [[ "$WITH_BROWSER_TTS" -eq 1 ]]; then
+    set_tts_browser_flag true "browser-native default ON (tanpa API key)"
+    pastikan_var_env .env.local TTS_BROWSER_NATIVE_ENABLED "true"
+  else
+    set_tts_browser_flag false "--no-browser-tts (butuh provider TTS ber-key)"
+    pastikan_var_env .env.local TTS_BROWSER_NATIVE_ENABLED "false"
+  fi
   # Placeholder manual (tetap nonaktif, hanya penanda kolom isian):
   pastikan_komentar_env .env.local OPENCODE_API_KEY ""
   pastikan_komentar_env .env.local OPENCODE_GO_API_KEY ""
@@ -1635,6 +1693,11 @@ if command -v ffmpeg >/dev/null 2>&1; then
 else
   info "  ffmpeg: tidak ada (dilewati via --no-ffmpeg) — pasang dengan: sudo ./install.sh --yes (tanpa --no-ffmpeg)"
 fi
+if [[ "$WITH_BROWSER_TTS" -eq 1 ]]; then
+  info "  TTS browser-native: ON tanpa API key (Web Speech API)"
+else
+  info "  TTS browser-native: OFF (--no-browser-tts) — narasi butuh provider TTS ber-key"
+fi
 if [[ "$WITH_PGADMIN" -eq 1 ]]; then
   if dpkg -l pgadmin4-web 2>/dev/null | grep -q '^ii'; then
     info "  pgAdmin4 web: OK (http://localhost/pgadmin4)"
@@ -1715,6 +1778,10 @@ echo "  - Performa: PARALLEL_SCENE_CONCURRENCY=5 (scene paralel, maks kode 10;"
 echo "    turunkan bila kena 429, naikkan s.d. 10 di server besar) + ffmpeg apt"
 echo "    default terinstal (lewati via --no-ffmpeg). TTS tanpa pacing"
 echo "    (default kode: interval 0) dan asset collector auto-aktif bila ada DB."
+echo "  - TTS tanpa API key: browser-native (Web Speech API) default ON"
+echo "    (TTS_BROWSER_NATIVE_ENABLED=true di .env.local + default client ON,"
+echo "    fresh install langsung bersuara; matikan via --no-browser-tts bila"
+echo "    ingin mewajibkan provider TTS ber-key seperti OpenAI/MiniMax)."
 echo "  - Ekstraksi material audio/video lokal: ffmpeg (default ON)."
 echo "  - pgAdmin4 web (default ON, --no-pgadmin untuk lewati): http://localhost/pgadmin4"
 echo "    login awal = PGADMIN_EMAIL/PGADMIN_PASSWORD di .env.local (ambil:"

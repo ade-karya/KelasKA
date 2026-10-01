@@ -735,9 +735,9 @@ const getDefaultAudioConfig = () => ({
       modelId: 'kokoro-v1',
       enabled: true,
     },
-    // Browser-native is OFF by default — fully opt-in. Native voice quality is
-    // poor; it must never be a silent default (#665).
-    'browser-native-tts': { apiKey: '', baseUrl: '', enabled: false },
+    // Browser-native ON by default — Web Speech API, tanpa API key / server.
+    // Narasi langsung bunyi di fresh install; user bisa opt-out via toggle.
+    'browser-native-tts': { apiKey: '', baseUrl: '', enabled: true },
   } as Record<
     TTSProviderId,
     { apiKey: string; baseUrl: string; modelId?: string; enabled: boolean }
@@ -1176,10 +1176,10 @@ export const useSettingsStore = create<SettingsState>()(
         videoGenerationEnabled: false,
         reviewOutlineEnabled: false,
 
-        // TTS is OFF by default; auto-enabled on first server-sync when a TTS
-        // provider is configured (mirrors image/video). Fresh installs with no
-        // provider stay off and show an "enable browser-native" CTA (#665).
-        ttsEnabled: false,
+        // TTS ON by default via browser-native (tanpa API key / server).
+        // Fresh install langsung bunyi; server-sync hanya memindahkan ke
+        // provider server bila ada yang terkonfigurasi.
+        ttsEnabled: true,
         asrEnabled: true,
 
         // Off until the server reports a concurrency via fetchServerProviders.
@@ -1467,16 +1467,15 @@ export const useSettingsStore = create<SettingsState>()(
             }
             // Settings can configure a hosted provider after first-run auto-config
             // has already run. The global flag has no control on that page, so
-            // becoming usable (empty -> key) must also turn narration on (#1288).
-            // Do not re-enable on later edits if the user turned the flag off.
+            // becoming usable (empty -> key, atau browser-native diaktifkan)
+            // must also turn narration on (#1288). Tanpa API key tetap bunyi
+            // via Web Speech API.
             const wasUsable = isTTSProviderEnabled(
               providerId,
               state.ttsProvidersConfig[providerId],
             );
             const nowUsable = isTTSProviderEnabled(providerId, mergedProvider);
-            const turnOnNarration =
-              providerId !== 'browser-native-tts' &&
-              shouldTurnOn(state.ttsEnabled, !wasUsable && nowUsable);
+            const turnOnNarration = shouldTurnOn(state.ttsEnabled, !wasUsable && nowUsable);
             return {
               ttsProvidersConfig,
               ...(turnOnNarration ? { ttsEnabled: true } : {}),
@@ -2165,9 +2164,17 @@ export const useSettingsStore = create<SettingsState>()(
                   autoTtsVoice =
                     DEFAULT_TTS_VOICES[autoTtsProvider as BuiltInTTSProviderId] || 'default';
                 }
-                // Auto-enable TTS on first run when a server provider exists
-                // (mirrors image/video). No provider ⇒ stays off + CTA.
+                // Auto-enable TTS on first run: server provider ada -> ON
+                // (mirrors image/video). Tanpa server provider pun tetap ON via
+                // browser-native (tanpa API key), kecuali operator menonaktifkan
+                // eksplisit via TTS_BROWSER_NATIVE_ENABLED=false.
                 if (serverTtsIds.length > 0 && !state.ttsEnabled) {
+                  autoTtsEnabled = true;
+                } else if (
+                  serverTtsIds.length === 0 &&
+                  !state.ttsEnabled &&
+                  !newTTSConfig['browser-native-tts']?.serverDisabled
+                ) {
                   autoTtsEnabled = true;
                 }
 
@@ -2433,10 +2440,11 @@ export const useSettingsStore = create<SettingsState>()(
           state.reviewOutlineEnabled = false;
         }
 
-        // Add default audio toggles if missing. TTS defaults OFF (opt-in / CTA);
-        // first server-sync auto-enables it when a provider is configured (#665).
+        // Add default audio toggles if missing. TTS defaults ON via
+        // browser-native (tanpa API key); first server-sync memindahkan ke
+        // provider server bila ada yang terkonfigurasi.
         if ((state as Record<string, unknown>).ttsEnabled === undefined) {
-          (state as Record<string, unknown>).ttsEnabled = false;
+          (state as Record<string, unknown>).ttsEnabled = true;
         }
         if ((state as Record<string, unknown>).asrEnabled === undefined) {
           (state as Record<string, unknown>).asrEnabled = true;
@@ -2527,12 +2535,12 @@ export const useSettingsStore = create<SettingsState>()(
         // v3 → v4: the per-provider `enabled` flag becomes live under the
         // unified enablement model (#665). Before v4 it was never user-editable,
         // so any persisted value is just a stale default — normalize it:
-        // browser-native OFF (opt-in), every other built-in ON (it only surfaces
-        // once configured, so a server-managed provider must not stay hidden).
+        // semua built-in ON (browser-native tanpa API key ikut ON agar
+        // fresh install langsung bunyi).
         if (version < 4 && state.ttsProvidersConfig) {
           for (const pid of Object.keys(TTS_PROVIDERS) as BuiltInTTSProviderId[]) {
             const cfg = state.ttsProvidersConfig[pid];
-            if (cfg) cfg.enabled = pid !== 'browser-native-tts';
+            if (cfg) cfg.enabled = true;
           }
         }
 
