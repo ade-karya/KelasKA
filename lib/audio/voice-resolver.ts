@@ -378,9 +378,17 @@ export interface BrowserVoiceLike {
  * resolution, so the teacher and student agents never diverge (#665).
  *
  * = enabled server/custom providers (getEnabledProvidersWithVoices) PLUS
- * browser-native when the user has enabled it and the browser exposes voices
- * (browser-native voices are dynamic, so they can only be supplied at the
- * client layer; server-side generation uses getEnabledProvidersWithVoices).
+ * browser-native when the user has enabled it and the browser supports
+ * speechSynthesis (browser-native voices are dynamic, so they can only be
+ * supplied at the client layer; server-side generation uses
+ * getEnabledProvidersWithVoices).
+ *
+ * When the browser supports speechSynthesis but voices haven't loaded yet
+ * (Chrome loads them async via `voiceschanged`, headless returns [] on first
+ * paint), a registry placeholder (`default`) is shown so the option doesn't
+ * disappear. Callers refresh `browserVoices` on `voiceschanged` to swap in
+ * the real OS voices. When `browserSupported` is false (no Web Speech API),
+ * browser-native is omitted.
  */
 export function getSelectableProvidersWithVoices(
   ttsProvidersConfig: Record<
@@ -393,22 +401,36 @@ export function getSelectableProvidersWithVoices(
   >,
   voiceProfiles: UserVoiceProfile[] = [],
   browserVoices: BrowserVoiceLike[] = [],
+  browserSupported = true,
 ): ProviderWithVoices[] {
   const providers = getEnabledProvidersWithVoices(ttsProvidersConfig, voiceProfiles);
   if (
     isTTSProviderEnabled(
       BROWSER_NATIVE_TTS_PROVIDER_ID,
       ttsProvidersConfig[BROWSER_NATIVE_TTS_PROVIDER_ID],
-    ) &&
-    browserVoices.length > 0
+    )
   ) {
-    const voices = browserVoices.map((v) => ({ id: v.voiceURI, name: v.name }));
-    providers.push({
-      providerId: BROWSER_NATIVE_TTS_PROVIDER_ID,
-      providerName: 'Browser Native',
-      voices,
-      modelGroups: [{ modelId: '', modelName: 'Browser Native', voices }],
-    });
+    if (browserVoices.length > 0) {
+      const voices = browserVoices.map((v) => ({ id: v.voiceURI, name: v.name }));
+      providers.push({
+        providerId: BROWSER_NATIVE_TTS_PROVIDER_ID,
+        providerName: 'Browser Native',
+        voices,
+        modelGroups: [{ modelId: '', modelName: 'Browser Native', voices }],
+      });
+    } else if (browserSupported) {
+      const fallbackVoices = TTS_PROVIDERS[BROWSER_NATIVE_TTS_PROVIDER_ID]?.voices.map((v) => ({
+        id: v.id,
+        name: v.name,
+        language: v.language,
+      })) ?? [{ id: 'default', name: 'Default' }];
+      providers.push({
+        providerId: BROWSER_NATIVE_TTS_PROVIDER_ID,
+        providerName: 'Browser Native',
+        voices: fallbackVoices,
+        modelGroups: [{ modelId: '', modelName: 'Browser Native', voices: fallbackVoices }],
+      });
+    }
   }
   return providers;
 }

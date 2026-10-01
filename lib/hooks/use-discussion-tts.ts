@@ -131,13 +131,22 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
 
   // Browser-native voices (dynamic, client-only) — same source the AgentBar
   // picker uses, so discussion resolution and the picker stay in sync.
+  // Poll briefly: Chrome exposes voices async via voiceschanged.
   const [browserVoices, setBrowserVoices] = useState<SpeechSynthesisVoice[]>([]);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const load = () => setBrowserVoices(window.speechSynthesis.getVoices());
+    const synth = window.speechSynthesis;
+    const load = () => {
+      const voices = synth.getVoices();
+      if (voices.length > 0) setBrowserVoices(voices);
+    };
     load();
-    window.speechSynthesis.addEventListener('voiceschanged', load);
-    return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
+    const timers = [250, 750, 1500].map((ms) => window.setTimeout(load, ms));
+    synth.addEventListener('voiceschanged', load);
+    return () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      synth.removeEventListener('voiceschanged', load);
+    };
   }, []);
 
   const resolveVoiceForAgent = useCallback(
@@ -146,10 +155,12 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
       // server/custom providers + opt-in browser-native. Students resolve against
       // it (fixes the #665 student-silence bug); the teacher uses the global
       // lecture voice (below).
+      const browserSupported = typeof window !== 'undefined' && !!window.speechSynthesis;
       const providers = getSelectableProvidersWithVoices(
         ttsProvidersConfig,
         voiceProfiles,
         browserVoices,
+        browserSupported,
       );
       const firstVoice = (): ResolvedVoice | null =>
         providers.length > 0

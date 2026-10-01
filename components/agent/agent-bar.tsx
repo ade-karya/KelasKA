@@ -627,13 +627,22 @@ export function AgentBar() {
   const { profiles: voiceProfiles } = useAllVoiceProfiles();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Load browser native TTS voices
+  // Load browser native TTS voices (Chrome loads async via voiceschanged;
+  // poll briefly so the picker upgrades from the placeholder to OS voices).
   useEffect(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const loadVoices = () => setBrowserVoices(speechSynthesis.getVoices());
+    const synth = window.speechSynthesis;
+    const loadVoices = () => {
+      const voices = synth.getVoices();
+      if (voices.length > 0) setBrowserVoices(voices);
+    };
     loadVoices();
-    speechSynthesis.addEventListener('voiceschanged', loadVoices);
-    return () => speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+    const timers = [250, 750, 1500].map((ms) => window.setTimeout(loadVoices, ms));
+    synth.addEventListener('voiceschanged', loadVoices);
+    return () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      synth.removeEventListener('voiceschanged', loadVoices);
+    };
   }, []);
 
   const allAgents = listAgents();
@@ -644,10 +653,14 @@ export function AgentBar() {
 
   // Single source of truth for selectable provider+voice options (enabled
   // providers + opt-in browser-native), shared with discussion TTS (#665).
+  // browserSupported=false (no Web Speech API) hides browser-native entirely;
+  // supported-but-empty shows the registry placeholder until OS voices load.
+  const browserSupported = typeof window !== 'undefined' && !!window.speechSynthesis;
   const availableProviders = getSelectableProvidersWithVoices(
     ttsProvidersConfig,
     voiceProfiles,
     browserVoices,
+    browserSupported,
   );
 
   useEffect(() => {

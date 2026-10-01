@@ -48,6 +48,12 @@ import type {
   BuiltInTTSProviderId,
   TTSProviderId,
 } from '@/lib/audio/types';
+import { isCustomASRProvider, isCustomTTSProvider } from '@/lib/audio/types';
+import { isTTSProviderEnabled } from '@/lib/audio/provider-enablement';
+import {
+  resolveASRProviderName,
+  resolveTTSProviderName,
+} from '@/lib/audio/provider-display';
 import { IMAGE_PROVIDERS } from '@/lib/media/image-providers';
 import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
 import {
@@ -155,6 +161,64 @@ function ttsBuiltIn(id: string) {
 }
 function asrBuiltIn(id: string) {
   return ASR_PROVIDERS[id as BuiltInASRProviderId];
+}
+
+function hasText(value: string | undefined): boolean {
+  return !!value && value.trim().length > 0;
+}
+
+type AudioProviderConfigLike = {
+  apiKey?: string;
+  baseUrl?: string;
+  customDefaultBaseUrl?: string;
+  enabled?: boolean;
+  isServerConfigured?: boolean;
+  serverDisabled?: boolean;
+  requiresApiKey?: boolean;
+  customName?: string;
+  customModels?: Array<{ id: string; name: string }>;
+};
+
+/** Nama tampilan TTS: built-in via i18n, kustom via customName. */
+function ttsDisplayName(
+  id: string,
+  cfg: AudioProviderConfigLike | undefined,
+  t: (key: string) => string,
+): string {
+  if (isCustomTTSProvider(id)) return cfg?.customName || id;
+  return resolveTTSProviderName(id, t);
+}
+
+/** Nama tampilan ASR: built-in via i18n, kustom via customName. */
+function asrDisplayName(
+  id: string,
+  cfg: AudioProviderConfigLike | undefined,
+  t: (key: string) => string,
+): string {
+  if (isCustomASRProvider(id)) return cfg?.customName || id;
+  return resolveASRProviderName(id, t);
+}
+
+/** ASR layak dipilih: terkonfigurasi + tidak serverDisabled + tidak dimatikan user. */
+function isASRUsable(
+  id: string,
+  cfg: AudioProviderConfigLike | undefined,
+): boolean {
+  if (cfg?.serverDisabled) return false;
+  if (cfg?.enabled === false) return false;
+  if (isCustomASRProvider(id)) {
+    if (cfg?.isServerConfigured) return true;
+    if (hasText(cfg?.apiKey) || hasText(cfg?.baseUrl) || hasText(cfg?.customDefaultBaseUrl))
+      return true;
+    if (cfg?.requiresApiKey === false) return true;
+    return false;
+  }
+  const def = ASR_PROVIDERS[id as BuiltInASRProviderId];
+  if (!def) return false;
+  if (cfg?.isServerConfigured) return true;
+  if (hasText(cfg?.apiKey)) return true;
+  if (cfg?.requiresApiKey === false || def.requiresApiKey === false) return true;
+  return false;
 }
 
 /** 圆角折线 path：每个中间点用二次曲线切角 */
@@ -532,26 +596,34 @@ export function CourseModelConfigPanel({}) {
   // ── 站点状态 ──
   const stationState = (def: StationDef) => {
     switch (def.id) {
-      case 'doc-parse':
+      case 'doc-parse': {
+        const asrDisplay = asrDisplayName(asrProviderId, asrProvidersConfig[asrProviderId], t);
+        const asrLine =
+          asrDisplay && asrModelName ? `${asrDisplay} · ${asrModelName}` : (asrDisplay || asrModelName);
         return {
           following: true,
-          mediaLines: [pdfProvider?.name ?? pdfProviderId, asrEnabled ? asrModelName : null].filter(
+          mediaLines: [pdfProvider?.name ?? pdfProviderId, asrEnabled ? asrLine : null].filter(
             (v): v is string => !!v,
           ),
           allOff: false,
         };
+      }
       case 'web-research':
         return {
           following: !llmStageRoutes['web-search-query-rewrite'],
           mediaLines: webSearchEnabled ? [webSearchDisplayName] : [],
           allOff: !webSearchEnabled,
         };
-      case 'tts':
+      case 'tts': {
+        const ttsDisplay = ttsDisplayName(ttsProviderId, ttsProvidersConfig[ttsProviderId], t);
+        const ttsLine =
+          ttsDisplay && ttsModelName ? `${ttsDisplay} · ${ttsModelName}` : (ttsDisplay || ttsModelName);
         return {
           following: true,
-          mediaLines: ttsEnabled ? [ttsModelName] : [],
+          mediaLines: ttsEnabled ? [ttsLine].filter((v): v is string => !!v) : [],
           allOff: !ttsEnabled,
         };
+      }
       case 'media': {
         const lines = [
           imageGenerationEnabled ? imageModelName : null,
@@ -831,6 +903,13 @@ function Inspector(props: {
         modelId?: string;
         customModels?: Array<{ id: string; name: string }>;
         isServerConfigured?: boolean;
+        apiKey?: string;
+        baseUrl?: string;
+        customDefaultBaseUrl?: string;
+        customName?: string;
+        enabled?: boolean;
+        serverDisabled?: boolean;
+        requiresApiKey?: boolean;
       }
     >;
   };
@@ -845,6 +924,13 @@ function Inspector(props: {
         modelId?: string;
         customModels?: Array<{ id: string; name: string }>;
         isServerConfigured?: boolean;
+        apiKey?: string;
+        baseUrl?: string;
+        customDefaultBaseUrl?: string;
+        customName?: string;
+        enabled?: boolean;
+        serverDisabled?: boolean;
+        requiresApiKey?: boolean;
       }
     >;
   };
@@ -1065,7 +1151,7 @@ function Inspector(props: {
           </div>
         )}
 
-        {/* 语音合成 */}
+        {/* 语音合成：提供方选择 + 模型选择 */}
         {def.id === 'tts' && (
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
@@ -1077,33 +1163,96 @@ function Inspector(props: {
                 className="scale-90"
               />
             </div>
-            <ModelPicker
-              groups={[
-                {
-                  id: props.tts.providerId,
-                  name: ttsBuiltIn(props.tts.providerId)?.name ?? props.tts.providerId,
-                  models: (() => {
-                    const builtIn = ttsBuiltIn(props.tts.providerId);
-                    const config = props.tts.providersConfig[props.tts.providerId];
-                    return builtIn
-                      ? [...builtIn.models, ...(config?.customModels ?? [])]
-                      : (config?.customModels ?? []);
-                  })(),
-                },
-              ]}
-              value={{
-                providerId: props.tts.providerId,
-                modelId:
-                  props.tts.providersConfig[props.tts.providerId]?.modelId ||
-                  ttsBuiltIn(props.tts.providerId)?.defaultModelId ||
-                  '',
-              }}
-              onSelect={(_, mid) =>
-                props.tts.setProviderConfig(props.tts.providerId, { modelId: mid })
-              }
+            <Select
+              value={props.tts.providerId}
+              onValueChange={(v) => props.tts.setProvider(v)}
               disabled={!props.tts.enabled}
-              t={t}
-            />
+            >
+              <SelectTrigger size="sm" className="h-7 w-full text-[11px]">
+                <SelectValue placeholder={t(`${cm}.pickProvider`)} />
+              </SelectTrigger>
+              <SelectContent align="start">
+                {[
+                  ...Object.values(TTS_PROVIDERS).map((p) => ({
+                    id: p.id as string,
+                    name: ttsDisplayName(p.id, props.tts.providersConfig[p.id], t),
+                  })),
+                  ...Object.entries(props.tts.providersConfig)
+                    .filter(([id]) => isCustomTTSProvider(id))
+                    .map(([id, cfg]) => ({
+                      id,
+                      name: ttsDisplayName(id, cfg, t),
+                    })),
+                ]
+                  .filter((provider) => {
+                    const cfg = props.tts.providersConfig[provider.id];
+                    const usable = isTTSProviderEnabled(
+                      provider.id as TTSProviderId,
+                      cfg,
+                    );
+                    return (
+                      usable ||
+                      // 当前失效的选中项保留为一行灰提示，避免 SelectValue 空白。
+                      provider.id === props.tts.providerId
+                    );
+                  })
+                  .map((provider) => {
+                    const cfg = props.tts.providersConfig[provider.id];
+                    const usable = isTTSProviderEnabled(
+                      provider.id as TTSProviderId,
+                      cfg,
+                    );
+                    return (
+                      <SelectItem
+                        key={provider.id}
+                        value={provider.id}
+                        disabled={!usable}
+                        className="text-[11px]"
+                      >
+                        {usable
+                          ? provider.name
+                          : `${provider.name} · ${t(`${cm}.optionInvalid`)}`}
+                      </SelectItem>
+                    );
+                  })}
+              </SelectContent>
+            </Select>
+            {(() => {
+              const builtIn = ttsBuiltIn(props.tts.providerId);
+              const config = props.tts.providersConfig[props.tts.providerId];
+              const models = builtIn
+                ? [...builtIn.models, ...(config?.customModels ?? [])]
+                : (config?.customModels ?? []);
+              if (models.length === 0) return null;
+              return (
+                <ModelPicker
+                  groups={[
+                    {
+                      id: props.tts.providerId,
+                      name: ttsDisplayName(
+                        props.tts.providerId,
+                        props.tts.providersConfig[props.tts.providerId],
+                        t,
+                      ),
+                      models,
+                    },
+                  ]}
+                  value={{
+                    providerId: props.tts.providerId,
+                    modelId:
+                      props.tts.providersConfig[props.tts.providerId]?.modelId ||
+                      ttsBuiltIn(props.tts.providerId)?.defaultModelId ||
+                      '',
+                  }}
+                  onSelect={(_, mid) =>
+                    props.tts.setProviderConfig(props.tts.providerId, { modelId: mid })
+                  }
+                  disabled={!props.tts.enabled}
+                  placeholder={t(`${cm}.pickModel`)}
+                  t={t}
+                />
+              );
+            })()}
           </div>
         )}
 
@@ -1167,33 +1316,94 @@ function Inspector(props: {
                   className="scale-90"
                 />
               </div>
-              <ModelPicker
-                groups={[
-                  {
-                    id: props.asr.providerId,
-                    name: asrBuiltIn(props.asr.providerId)?.name ?? props.asr.providerId,
-                    models: (() => {
-                      const builtIn = asrBuiltIn(props.asr.providerId);
-                      const config = props.asr.providersConfig[props.asr.providerId];
-                      return builtIn
-                        ? [...builtIn.models, ...(config?.customModels ?? [])]
-                        : (config?.customModels ?? []);
-                    })(),
-                  },
-                ]}
-                value={{
-                  providerId: props.asr.providerId,
-                  modelId:
-                    props.asr.providersConfig[props.asr.providerId]?.modelId ||
-                    asrBuiltIn(props.asr.providerId)?.defaultModelId ||
-                    '',
-                }}
-                onSelect={(_, mid) =>
-                  props.asr.setProviderConfig(props.asr.providerId, { modelId: mid })
-                }
+              <Select
+                value={props.asr.providerId}
+                onValueChange={(v) => props.asr.setProvider(v)}
                 disabled={!props.asr.enabled}
-                t={t}
-              />
+              >
+                <SelectTrigger size="sm" className="h-7 w-full text-[11px]">
+                  <SelectValue placeholder={t(`${cm}.pickProvider`)} />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  {[
+                    ...Object.values(ASR_PROVIDERS).map((p) => ({
+                      id: p.id as string,
+                      name: asrDisplayName(p.id, props.asr.providersConfig[p.id], t),
+                    })),
+                    ...Object.entries(props.asr.providersConfig)
+                      .filter(([id]) => isCustomASRProvider(id))
+                      .map(([id, cfg]) => ({
+                        id,
+                        name: asrDisplayName(id, cfg, t),
+                      })),
+                  ]
+                    .filter((provider) => {
+                      const usable = isASRUsable(
+                        provider.id,
+                        props.asr.providersConfig[provider.id],
+                      );
+                      return (
+                        usable ||
+                        // 当前失效的选中项保留为一行灰提示，避免 SelectValue 空白。
+                        provider.id === props.asr.providerId
+                      );
+                    })
+                    .map((provider) => {
+                      const usable = isASRUsable(
+                        provider.id,
+                        props.asr.providersConfig[provider.id],
+                      );
+                      return (
+                        <SelectItem
+                          key={provider.id}
+                          value={provider.id}
+                          disabled={!usable}
+                          className="text-[11px]"
+                        >
+                          {usable
+                            ? provider.name
+                            : `${provider.name} · ${t(`${cm}.optionInvalid`)}`}
+                        </SelectItem>
+                      );
+                    })}
+                </SelectContent>
+              </Select>
+              {(() => {
+                const builtIn = asrBuiltIn(props.asr.providerId);
+                const config = props.asr.providersConfig[props.asr.providerId];
+                const models = builtIn
+                  ? [...builtIn.models, ...(config?.customModels ?? [])]
+                  : (config?.customModels ?? []);
+                if (models.length === 0) return null;
+                return (
+                  <ModelPicker
+                    groups={[
+                      {
+                        id: props.asr.providerId,
+                        name: asrDisplayName(
+                          props.asr.providerId,
+                          props.asr.providersConfig[props.asr.providerId],
+                          t,
+                        ),
+                        models,
+                      },
+                    ]}
+                    value={{
+                      providerId: props.asr.providerId,
+                      modelId:
+                        props.asr.providersConfig[props.asr.providerId]?.modelId ||
+                        asrBuiltIn(props.asr.providerId)?.defaultModelId ||
+                        '',
+                    }}
+                    onSelect={(_, mid) =>
+                      props.asr.setProviderConfig(props.asr.providerId, { modelId: mid })
+                    }
+                    disabled={!props.asr.enabled}
+                    placeholder={t(`${cm}.pickModel`)}
+                    t={t}
+                  />
+                );
+              })()}
             </div>
           </div>
         )}
