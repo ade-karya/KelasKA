@@ -9,17 +9,20 @@ import {
   buildCliWarnings,
   buildOpencodeArgs,
   buildSamplingHints,
+  buildToolCallRepairInstructions,
   buildToolCallingInstructions,
   createOpencodeCliModel,
   createOpencodeStreamParser,
   estimateTokens,
   findOpencodeBin,
   flattenPromptToText,
+  parseAndValidateToolCalls,
   parseToolCallsFromText,
   resetOpencodeBinCache,
   runOpencodeCli,
   toCliModelId,
   toolCallsAllowed,
+  validateToolCallArgs,
 } from '@/lib/ai/opencode-cli';
 
 function writeStub(name: string, body: string): string {
@@ -213,9 +216,9 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
           w.type === 'unsupported-tool' && (w.tool as { name?: string }).name === 'catat_nilai',
       ),
     ).toEqual([]);
-    expect(
-      buildCliWarnings({ prompt: [], seed: 42 }),
-    ).toContainEqual(expect.objectContaining({ type: 'unsupported-setting', setting: 'seed' }));
+    expect(buildCliWarnings({ prompt: [], seed: 42 })).toContainEqual(
+      expect.objectContaining({ type: 'unsupported-setting', setting: 'seed' }),
+    );
     expect(buildCliWarnings({ prompt: [] })).toEqual([]);
   });
 
@@ -453,13 +456,64 @@ describe('opencode-cli tool calling via envelope JSON', () => {
     expect(parseToolCallsFromText('```json\n{"bukan":"envelope"}\n```', new Set(['a']))).toBeNull();
   });
 
-  it('parse: arguments string-JSON diterima; blok terakhir yang menang', () => {
+  it('parse: arguments string-JSON diterima; SEMUA blok valid dipakai berurutan (paritas paralel native)', () => {
     const parsed = parseToolCallsFromText(
       '```tool_calls\n{"tool_calls":[{"name":"a","arguments":{"x":1}}]}\n```\nlanjut\n```tool_calls\n{"tool_calls":[{"name":"a","arguments":"{\\"x\\":2}"}]}\n```',
       new Set(['a']),
     );
-    expect(parsed?.calls).toEqual([{ name: 'a', args: { x: 2 } }]);
-    expect(parsed?.leadingText).toContain('lanjut');
+    expect(parsed?.calls).toEqual([
+      { name: 'a', args: { x: 1 } },
+      { name: 'a', args: { x: 2 } },
+    ]);
+    // leadingText = teks sebelum blok PERTAMA (tengah antar-blok bukan narasi).
+    expect(parsed?.leadingText).toBe('');
+  });
+
+  it('validateToolCallArgs: required/type/enum/additionalProperties; komposit dilewati', () => {
+    const schema = {
+      type: 'object',
+      required: ['q'],
+      properties: {
+        q: { type: 'string' },
+        n: { type: 'integer', enum: [1, 2] },
+      },
+      additionalProperties: false,
+    };
+    expect(validateToolCallArgs(schema, { q: 'halo', n: 1 })).toEqual([]);
+    expect(validateToolCallArgs(schema, { n: 1 })[0]).toMatch(/\.q wajib diisi/);
+    expect(validateToolCallArgs(schema, { q: 42 })[0]).toMatch(/bertipe string/);
+    expect(validateToolCallArgs(schema, { q: 'x', n: 3 })[0]).toMatch(/salah satu dari/);
+    expect(validateToolCallArgs(schema, { q: 'x', asing: 1 })[0]).toMatch(/tidak dikenal/);
+    // Bersarang + array items ikut divalidasi.
+    const nested = {
+      type: 'object',
+      properties: { daftar: { type: 'array', items: { type: 'object', required: ['id'] } } },
+    };
+    expect(validateToolCallArgs(nested, { daftar: [{ id: 1 }, {}] })[0]).toMatch(
+      /daftar\[1\]\.id wajib diisi/,
+    );
+    // Skema komposit / bukan-objek tak pernah false-reject.
+    expect(validateToolCallArgs({ anyOf: [{ type: 'string' }] }, { apa: 'saja' })).toEqual([]);
+    expect(validateToolCallArgs(undefined, { apa: 'saja' })).toEqual([]);
+    expect(validateToolCallArgs('bukan-skema', { apa: 'saja' })).toEqual([]);
+  });
+
+  it('parseAndValidateToolCalls: nama asing + schema error jadi diagnostics (bukan panggilan)', () => {
+    const tools = [{ name: 'jawab', inputSchema: { type: 'object', required: ['teks'] } }];
+    const parsed = parseAndValidateToolCalls(
+      '```tool_calls\n{"tool_calls":[{"name":"asing","arguments":{}},{"name":"jawab","arguments":{}}]}\n```',
+      tools,
+    );
+    expect(parsed.calls).toEqual([]);
+    expect(parsed.attempted).toBe(true);
+    expect(parsed.diagnostics.join(' | ')).toMatch(/tidak terdaftar/);
+    expect(parsed.diagnostics.join(' | ')).toMatch(/wajib diisi/);
+  });
+
+  it('buildToolCallRepairInstructions memuat alasan + format fence', () => {
+    const text = buildToolCallRepairInstructions(['tool "x" tidak terdaftar']);
+    expect(text).toContain('```tool_calls');
+    expect(text).toContain('tool "x" tidak terdaftar');
   });
 
   it('doGenerate dengan tools mengembalikan tool-call + finish tool-calls (v3)', async () => {
@@ -518,6 +572,104 @@ describe('opencode-cli tool calling via envelope JSON', () => {
     expect(result.finishReason).toMatchObject({ unified: 'stop' });
     expect(result.content).toHaveLength(1);
     expect(result.content[0]?.type).toBe('text');
+  }, 30_000);
+
+  it('doGenerate me-repair SEKALI bila fence pertama tak valid (lalu tool-calls)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openmaic-opencode-repair-'));
+    const countFile = path.join(dir, 'count');
+    const stub = writeStub(
+      'opencode-repair',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'cat > /dev/null\n' +
+        'n=$(cat "$OPENCODE_STUB_COUNT" 2>/dev/null || echo 0)\n' +
+        'n=$((n+1)); echo "$n" > "$OPENCODE_STUB_COUNT"\n' +
+        'if [[ "$n" == "1" ]]; then\n' +
+        '  echo \'{"type":"text","part":{"text":"```tool_calls\\n{\\"tool_calls\\":[{\\"name\\":\\"asing\\",\\"arguments\\":{}}]}\\n```"}}\'\n' +
+        'else\n' +
+        '  echo \'{"type":"text","part":{"text":"```tool_calls\\n{\\"tool_calls\\":[{\\"name\\":\\"jawab\\",\\"arguments\\":{\\"teks\\":\\"halo\\"}}]}\\n```"}}\'\n' +
+        'fi\n' +
+        'exit 0\n',
+    );
+    vi.stubEnv('OPENCODE_BIN', stub);
+    vi.stubEnv('OPENCODE_STUB_COUNT', countFile);
+    const model = createOpencodeCliModel('big-pickle') as unknown as {
+      doGenerate: (o: unknown) => Promise<{
+        content: Array<{ type: string; toolName?: string; input?: string }>;
+        finishReason: { unified: string };
+      }>;
+    };
+    const result = await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Kerjakan.' }] }],
+      tools: [{ type: 'function', name: 'jawab', inputSchema: { type: 'object' } }],
+    });
+    expect(result.finishReason).toMatchObject({ unified: 'tool-calls' });
+    expect(result.content[0]).toMatchObject({
+      type: 'tool-call',
+      toolName: 'jawab',
+      input: '{"teks":"halo"}',
+    });
+    expect(Number(fs.readFileSync(countFile, 'utf8').trim())).toBe(2);
+    delete process.env.OPENCODE_STUB_COUNT;
+  }, 30_000);
+
+  it('doGenerate TIDAK me-repair jawaban teks biasa (hemat panggilan)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openmaic-opencode-norepair-'));
+    const countFile = path.join(dir, 'count');
+    const stub = writeStub(
+      'opencode-norepair',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'cat > /dev/null\n' +
+        'n=$(cat "$OPENCODE_STUB_COUNT" 2>/dev/null || echo 0)\n' +
+        'n=$((n+1)); echo "$n" > "$OPENCODE_STUB_COUNT"\n' +
+        'echo \'{"type":"text","part":{"text":"Sudah selesai, tidak perlu tool."}}\'\n' +
+        'exit 0\n',
+    );
+    vi.stubEnv('OPENCODE_BIN', stub);
+    vi.stubEnv('OPENCODE_STUB_COUNT', countFile);
+    const model = createOpencodeCliModel('big-pickle') as unknown as {
+      doGenerate: (o: unknown) => Promise<{
+        content: Array<{ type: string; text?: string }>;
+        finishReason: { unified: string };
+      }>;
+    };
+    const result = await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hai.' }] }],
+      tools: [{ type: 'function', name: 'jawab' }],
+    });
+    expect(result.finishReason).toMatchObject({ unified: 'stop' });
+    expect(result.content[0]).toMatchObject({ type: 'text' });
+    expect(Number(fs.readFileSync(countFile, 'utf8').trim())).toBe(1);
+    delete process.env.OPENCODE_STUB_COUNT;
+  }, 30_000);
+
+  it('prompt stdin: responseFormat JSON + tools memakai instruksi gabungan (fence utama)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'openmaic-opencode-fmt-'));
+    const stdinPath = path.join(dir, 'stdin');
+    const stub = writeStub(
+      'opencode-fmt',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'cat > "$OPENCODE_STUB_STDIN_CAPTURE"\n' +
+        'echo \'{"type":"text","part":{"text":"{\\"ok\\":true}"}}\'\n' +
+        'exit 0\n',
+    );
+    vi.stubEnv('OPENCODE_BIN', stub);
+    vi.stubEnv('OPENCODE_STUB_STDIN_CAPTURE', stdinPath);
+    const model = createOpencodeCliModel('big-pickle') as unknown as {
+      doGenerate: (o: unknown) => Promise<{ content: Array<{ type: string }> }>;
+    };
+    await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hai.' }] }],
+      tools: [{ type: 'function', name: 'jawab' }],
+      responseFormat: { type: 'json' },
+    });
+    const stdin = fs.readFileSync(stdinPath, 'utf8');
+    expect(stdin).toContain('```tool_calls');
+    expect(stdin).toContain('fence lebih utama');
+    expect(stdin).not.toContain('Balas HANYA dengan JSON valid, tanpa teks lain di luar JSON.');
+    delete process.env.OPENCODE_STUB_STDIN_CAPTURE;
   }, 30_000);
 
   it('doGenerate stopSequences memotong nyata (paritas ber-key)', async () => {

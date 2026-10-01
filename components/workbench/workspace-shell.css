@@ -1296,6 +1296,16 @@
   color: var(--ws-ink-mute);
 }
 
+/* Narrow screens: the chat header holds status + title + status word + model
+   picker + fold — too much for ~360px. The eyebrow word is redundant with the
+   dot/spinner beside it, so it yields first and the picker label is never the
+   thing that gets cut. */
+@media (max-width: 520px) {
+  .ws-pane-head .ws-pane-eyebrow {
+    display: none;
+  }
+}
+
 .ws-pane-title {
   font-size: 12.5px;
   font-weight: 500;

@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Check, ChevronDown, LoaderCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils/cn';
+import { ModelPicker } from '@/components/settings/model-picker';
+import { useI18n } from '@/lib/hooks/use-i18n';
 
 interface AgentModelItem {
   id: string;
@@ -19,13 +19,32 @@ interface AgentModelsResponse {
 
 const STORAGE_KEY = 'openmaic-workbench-model';
 
-function shortLabel(modelString: string): string {
-  const bare = modelString.replace(/^opencode[/:]/, '');
-  return bare.length > 28 ? `${bare.slice(0, 26)}…` : bare;
+/** "Muse Spark 1.3 Free (Zen)" -> "Muse Spark 1.3 Free". */
+function displayNameOf(model: Pick<AgentModelItem, 'id' | 'name'>): string {
+  const name = (model.name || '').trim();
+  if (name && name !== model.id) return name.replace(/\s*\(Zen\)\s*$/i, '').trim() || name;
+  return prettifyId(model.id);
+}
+
+/** "muse-spark-1.3-contributor-free" -> "Muse Spark 1.3 Contributor". */
+function prettifyId(id: string): string {
+  return id
+    .replace(/-contributor-free$/i, '')
+    .replace(/-free$/i, '')
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function bareIdOf(modelString: string): string {
+  return modelString.replace(/^opencode[/:]/, '');
 }
 
 /**
- * Tombol pemilih model Pro Workbench.
+ * Pemilih model Pro Workbench — memakai ulang `ModelPicker` chat classic
+ * (Popover + kolom cari fixed + daftar scroll + ring violet) agar tampilan
+ * dan perilaku identik.
  *
  * Membaca SEMUA model free yang diaktifkan installer (OPENCODE_MODELS via
  * GET /api/agent/models) dan memilih aktif via POST (data/agent-driver-model.json,
@@ -33,77 +52,59 @@ function shortLabel(modelString: string): string {
  * home composer — satu komponen untuk seluruh halaman /workspace.
  */
 export function WorkbenchModelPicker() {
+  const { t } = useI18n();
   const [models, setModels] = useState<AgentModelItem[]>([]);
   const [active, setActive] = useState<string>('');
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const boxRef = useRef<HTMLDivElement>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch('/api/agent/models', { credentials: 'include' });
-        if (!res.ok) return;
-        const body = (await res.json()) as AgentModelsResponse;
-        if (cancelled) return;
-        const list = Array.isArray(body.models) ? body.models : [];
-        setModels(list);
-        const serverActive = typeof body.active === 'string' ? body.active : '';
-        if (serverActive) {
-          setActive(serverActive);
-          try {
-            localStorage.setItem(STORAGE_KEY, serverActive);
-          } catch {
-            /* abaikan */
-          }
-        } else {
-          try {
-            const cached = localStorage.getItem(STORAGE_KEY);
-            if (cached) setActive(cached);
-          } catch {
-            /* abaikan */
-          }
-        }
-      } catch {
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch('/api/agent/models', { credentials: 'include' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = (await res.json()) as AgentModelsResponse;
+      const list = Array.isArray(body.models) ? body.models : [];
+      setModels(list);
+      const serverActive = typeof body.active === 'string' ? body.active : '';
+      if (serverActive) {
+        setActive(serverActive);
         try {
-          const cached = localStorage.getItem(STORAGE_KEY);
-          if (cached && !cancelled) setActive(cached);
+          localStorage.setItem(STORAGE_KEY, serverActive);
         } catch {
           /* abaikan */
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      if (list.length === 0) setLoadError('Daftar model kosong.');
+    } catch {
+      setLoadError('Gagal memuat daftar model.');
+      try {
+        const cached = localStorage.getItem(STORAGE_KEY);
+        if (cached) setActive(cached);
+      } catch {
+        /* abaikan */
+      }
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    const onDown = (e: PointerEvent) => {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('pointerdown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('pointerdown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+    // Label instan dari cache agar header tidak berkedip, lalu sinkronkan.
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (cached) setActive(cached);
+    } catch {
+      /* abaikan */
+    }
+    void load();
+  }, [load]);
 
   const choose = useCallback(
     async (modelString: string) => {
-      if (!modelString || modelString === active || saving) {
-        setOpen(false);
-        return;
-      }
+      if (!modelString || modelString === active || saving) return;
       setSaving(true);
       try {
         const res = await fetch('/api/agent/models', {
@@ -127,92 +128,37 @@ export function WorkbenchModelPicker() {
         } catch {
           /* abaikan */
         }
-        toast.success(`Model aktif: ${shortLabel(next)} (berlaku untuk run berikutnya)`);
+        const picked = models.find((m) => m.modelString === next);
+        toast.success(
+          `Model aktif: ${picked ? displayNameOf(picked) : next} (berlaku untuk run berikutnya)`,
+        );
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Gagal memilih model');
       } finally {
         setSaving(false);
-        setOpen(false);
       }
     },
-    [active, saving],
+    [active, saving, models],
   );
 
-  const label = loading ? 'Model…' : active ? shortLabel(active) : 'Pilih model';
+  const activeBare = active ? bareIdOf(active) : '';
 
   return (
-    <div ref={boxRef} className="relative shrink-0">
-      <button
-        type="button"
-        data-testid="workbench-model-picker"
-        onClick={() => setOpen((v) => !v)}
-        disabled={loading}
-        title="Pilih model free OpenCode yang diaktifkan (OPENCODE_MODELS)"
-        aria-label="Pilih model Pro Workbench"
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        className={cn(
-          'ws-quiet inline-flex h-7 max-w-[220px] items-center gap-1.5 rounded-md px-2 py-1 text-[12px]',
-        )}
-      >
-        {loading || saving ? (
-          <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
-        ) : (
-          <Bot aria-hidden="true" className="size-3.5 shrink-0" />
-        )}
-        <span data-testid="workbench-model-picker-label" className="truncate">
-          {label}
-        </span>
-        <ChevronDown
-          aria-hidden="true"
-          className={cn('size-3 shrink-0 transition-transform', open && 'rotate-180')}
-        />
-      </button>
-      {open ? (
-        <div
-          role="listbox"
-          aria-label="Daftar model aktif"
-          data-testid="workbench-model-picker-list"
-          className="ws-pop absolute right-0 z-50 mt-1 max-h-[320px] w-[300px] overflow-y-auto rounded-lg border p-1 shadow-lg"
-        >
-          <p className="px-2 pb-1 pt-1.5 text-[11px] text-muted-foreground">
-            Model free OpenCode yang diaktifkan ({models.length}) — berlaku untuk run berikutnya.
-          </p>
-          {models.length === 0 ? (
-            <p className="px-2 py-2 text-[12px] text-muted-foreground">
-              Daftar model belum tersedia. Jalankan ulang install.sh atau cek /api/agent/models.
-            </p>
-          ) : (
-            models.map((m) => {
-              const selected = m.modelString === active;
-              return (
-                <button
-                  key={m.modelString}
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  data-testid={`workbench-model-option-${m.id}`}
-                  onClick={() => void choose(m.modelString)}
-                  className={cn(
-                    'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12px]',
-                    selected ? 'bg-violet-600/10' : 'hover:bg-muted',
-                  )}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{m.name || m.id}</span>
-                    <span className="block truncate text-[11px] text-muted-foreground">
-                      {m.modelString}
-                    </span>
-                  </span>
-                  {selected ? (
-                    <Check aria-hidden="true" className="size-3.5 shrink-0 text-violet-600" />
-                  ) : null}
-                </button>
-              );
-            })
-          )}
-        </div>
-      ) : null}
-    </div>
+    <ModelPicker
+      groups={[
+        {
+          id: 'opencode',
+          name: 'OpenCode CLI',
+          models: models.map((m) => ({ id: m.id, name: displayNameOf(m) })),
+        },
+      ]}
+      value={activeBare ? { providerId: 'opencode', modelId: activeBare } : null}
+      onSelect={(_providerId, modelId) => void choose(`opencode:${modelId}`)}
+      placeholder={loading ? 'Memuat…' : loadError ? 'Gagal memuat model' : 'Pilih model'}
+      disabled={loading || saving}
+      ariaLabel="Pilih model Pro Workbench"
+      className="w-auto min-w-0 max-w-full shrink-0"
+      t={t}
+    />
   );
 }

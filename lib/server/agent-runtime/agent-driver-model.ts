@@ -107,30 +107,8 @@ export async function resolveAgentDriverModel(): Promise<{
   // menunjuk tier ber-key (mis. google gemini / opencode-go HTTP), override
   // diabaikan agar pilihan operator ber-key tidak dibajak — tanpa restart,
   // berlaku untuk run berikutnya. Override di luar allowlist juga diabaikan.
-  const override = readActiveModelOverride();
-  if (override) {
-    const bare = normalizeOpencodeModelInput(override.modelString);
-    const route = getStageRoute(AGENT_DRIVER_STAGE);
-    const routeIsCliFree =
-      !route ||
-      route.model.startsWith('opencode:') ||
-      isOpencodeCliApi(route.api) ||
-      (route && isOpencodeCliProvider(route.model.split(':')[0] ?? ''));
-    if (bare && isActivatedOpencodeId(bare) && routeIsCliFree) {
-      const connection = await resolveModel({ modelString: override.modelString });
-      const driverApi = override.api || 'opencode-cli';
-      const isCliDriver = true;
-      return {
-        connection,
-        piModel: buildPiDriverModel(connection, driverApi, undefined),
-        wireMaxOutputTokens: undefined,
-        reservedOutputTokens:
-          connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
-        isCliDriver,
-        driverApi,
-      };
-    }
-  }
+  // Route yang hilang tetap gagal keras (kontrak "must explicitly configure")
+  // sebelum override dipertimbangkan.
   const route = getStageRoute(AGENT_DRIVER_STAGE);
   if (!route) {
     throw new Error(
@@ -155,6 +133,28 @@ export async function resolveAgentDriverModel(): Promise<{
       `MODEL_ROUTES stage "${AGENT_DRIVER_STAGE}" must not set thinking.effort because ` +
         `${modelId} cannot combine reasoning_effort with function tools on this transport.`,
     );
+  }
+  const override = readActiveModelOverride();
+  if (override) {
+    const bare = normalizeOpencodeModelInput(override.modelString);
+    const routeIsCliFree =
+      route.model.startsWith('opencode:') ||
+      isOpencodeCliApi(route.api) ||
+      isOpencodeCliProvider(route.model.split(':')[0] ?? '');
+    if (bare && isActivatedOpencodeId(bare) && routeIsCliFree) {
+      const connection = await resolveModel({ modelString: override.modelString });
+      const driverApi = override.api || 'opencode-cli';
+      const isCliDriver = true;
+      return {
+        connection,
+        piModel: buildPiDriverModel(connection, driverApi, undefined),
+        wireMaxOutputTokens: undefined,
+        reservedOutputTokens:
+          connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
+        isCliDriver,
+        driverApi,
+      };
+    }
   }
   const connection = await resolveModel({ stage: AGENT_DRIVER_STAGE });
   const isCliDriver = isOpencodeCliApi(route.api) || isOpencodeCliProvider(connection.providerId);

@@ -203,8 +203,7 @@ function partText(part: PromptPart): string {
     let argsText = '';
     try {
       const raw = (p.input ?? p.args ?? p.arguments) as unknown;
-      argsText =
-        typeof raw === 'string' ? raw : JSON.stringify(raw ?? {});
+      argsText = typeof raw === 'string' ? raw : JSON.stringify(raw ?? {});
     } catch {
       argsText = '{}';
     }
@@ -217,9 +216,7 @@ function partText(part: PromptPart): string {
     const out =
       typeof p.output === 'string'
         ? p.output
-        : JSON.stringify(
-            (p.output ?? (p as { result?: unknown }).result ?? '') as unknown,
-          );
+        : JSON.stringify((p.output ?? (p as { result?: unknown }).result ?? '') as unknown);
     return `[tool-result ${String((p.toolName ?? p.name ?? '') as string)}: ${out}]`;
   }
   return '';
@@ -757,9 +754,7 @@ export function buildSamplingHints(options: CliCallOptions): string {
         `Batasi jawaban maksimal ~${max} token; jawab LENGKAP sampai selesai (untuk HTML: sampai </html>) dan jangan memotong output. Jangan bertele-tele di luar kebutuhan.`,
       );
     } else {
-      hints.push(
-        `Batasi jawaban maksimal ~${max} token; jawab ringkas dan jangan bertele-tele.`,
-      );
+      hints.push(`Batasi jawaban maksimal ~${max} token; jawab ringkas dan jangan bertele-tele.`);
     }
   }
   if (options.temperature !== undefined) {
@@ -813,12 +808,22 @@ export function estimateTokens(text: string): number {
 function promptWithFormatHint(
   promptText: string,
   responseFormat: CliCallOptions['responseFormat'],
+  /** true bila instruksi fence tools ikut ditempel (hindari perintah ganda). */
+  hasTools = false,
 ): string {
   if (responseFormat?.type !== 'json') return promptText;
   const schema =
     'schema' in responseFormat && responseFormat.schema !== undefined
       ? `\nSkema (ringkas): ${JSON.stringify(responseFormat.schema).slice(0, 4000)}`
       : '';
+  if (hasTools) {
+    // Tanpa ini dua perintah bertabrakan ("HANYA JSON" vs "pakai fence"):
+    // fence menang untuk memanggil, JSON mentah untuk jawaban teks.
+    return (
+      `${promptText}\n\n[format] Bila memanggil tool, pakai pagar \`\`\`tool_calls ` +
+      `di atas (fence lebih utama). Bila tidak memanggil, balas HANYA dengan JSON valid, tanpa teks lain di luar JSON.${schema}`
+    );
+  }
   return `${promptText}\n\n[format] Balas HANYA dengan JSON valid, tanpa teks lain di luar JSON.${schema}`;
 }
 
@@ -827,14 +832,24 @@ function promptWithFormatHint(
 //
 // CLI tidak mengenal protokol function-call, jadi function tools dijelaskan
 // ke model sebagai instruksi + skema, dan model memanggil dengan memancarkan
-// SATU blok pagar:
+// blok pagar:
 //
 // ```tool_calls
 // {"tool_calls":[{"name":"<nama-fungsi>","arguments":{...}}]}
 // ```
 //
-// Parser mengekstrak blok itu menjadi tool-call parts SDK. Tanpa blok yang
-// valid = teks biasa. Bila `toolChoice` = none, envelope diabaikan.
+// Paritas dengan native (jalur ber-key):
+// - SEMUA blok valid dipakai berurutan (multi-fence), seperti beberapa
+//   tool-call paralel dalam satu giliran native — bukan hanya blok terakhir.
+// - Argumen divalidasi terhadap `inputSchema` masing-masing tool
+//   (validateToolCallArgs: required/type/enum/const/additionalProperties;
+//   komposit anyOf/oneOf/$ref dilewati konservatif agar tak ada false-reject).
+// - Bila model tampak BERUSAHA memanggil (ada pagar/marker) tapi hasilnya
+//   tak bisa dieksekusi, CLI dipanggil SEKALI lagi dengan instruksi perbaikan
+//   berisi alasan konkret (unknown name, JSON rusak, schema error). Jawaban
+//   teks biasa tanpa marker TIDAK di-retry (hemat panggilan).
+// - Tanpa blok yang valid = teks biasa. Bila `toolChoice` = none, envelope
+//   diabaikan.
 // ---------------------------------------------------------------------------
 
 export interface CliFunctionToolDef {
@@ -892,7 +907,7 @@ export function buildToolCallingInstructions(
     'You are a SINGLE-TURN function-calling language model, NOT an autonomous coding agent.',
     'Do NOT use your built-in file/shell/workspace tools for these functions and do NOT read the local workspace — the harness owns execution.',
     'Kamu adalah model function-calling SATU giliran; JANGAN pakai tools bawaan untuk fungsi di bawah — pakai pagar fence, bukan tools bawaan.',
-    'To use a tool, print exactly ONE fenced block as your ENTIRE response:',
+    'To use a tool, print fenced block(s) holding your call(s) — one block may carry several calls, or emit one block per call:',
     '```tool_calls',
     '{"tool_calls":[{"name":"<function-name>","arguments":{...}}]}',
     '```',
@@ -911,7 +926,8 @@ export function buildToolCallingInstructions(
       : '- When no call is needed, answer in plain text WITHOUT any fence.',
     'Available functions:',
     ...tools.map(
-      (t) => `- ${t.name}: ${(t.description ?? '(no description)').trim() || '(no description)'} Parameters: ${JSON.stringify(t.inputSchema ?? {})}`,
+      (t) =>
+        `- ${t.name}: ${(t.description ?? '(no description)').trim() || '(no description)'} Parameters: ${JSON.stringify(t.inputSchema ?? {})}`,
     ),
   ];
   return lines.join('\n');
@@ -929,15 +945,175 @@ function coerceArgs(value: unknown): Record<string, unknown> | null {
   return isRecord(args) ? args : null;
 }
 
+// ---------------------------------------------------------------------------
+// Validasi argumen terhadap inputSchema (paritas validasi server-side native)
+// ---------------------------------------------------------------------------
+
+/** Batas rekursi validasi agar skema patologis tak merambat dalam. */
+const SCHEMA_VALIDATION_MAX_DEPTH = 6;
+
+function deepEqualJson(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, i) => deepEqualJson(item, (b as unknown[])[i]));
+  }
+  if (isRecord(a) && isRecord(b)) {
+    const ka = Object.keys(a);
+    const kb = Object.keys(b);
+    if (ka.length !== kb.length) return false;
+    return ka.every((k) => Object.hasOwn(b, k) && deepEqualJson(a[k], b[k]));
+  }
+  return false;
+}
+
+function jsonTypeMatches(type: unknown, value: unknown): boolean {
+  const check = (t: string): boolean => {
+    switch (t) {
+      case 'string':
+        return typeof value === 'string';
+      case 'number':
+        return typeof value === 'number' && Number.isFinite(value);
+      case 'integer':
+        return typeof value === 'number' && Number.isInteger(value);
+      case 'boolean':
+        return typeof value === 'boolean';
+      case 'null':
+        return value === null;
+      case 'object':
+        return isRecord(value);
+      case 'array':
+        return Array.isArray(value);
+      default:
+        return true;
+    }
+  };
+  if (typeof type === 'string') return check(type);
+  if (Array.isArray(type)) return type.some((t) => typeof t === 'string' && check(t));
+  return true;
+}
+
+function isObjectLike(schema: Record<string, unknown>): boolean {
+  const type = schema.type;
+  if (type === 'object') return true;
+  if (Array.isArray(type) && (type as unknown[]).includes('object')) return true;
+  return (
+    type === undefined &&
+    (isRecord(schema.properties) ||
+      Array.isArray(schema.required) ||
+      schema.additionalProperties === false)
+  );
+}
+
+function validateAgainstSchema(
+  schema: unknown,
+  value: unknown,
+  path: string,
+  depth: number,
+): string[] {
+  if (!isRecord(schema) || depth > SCHEMA_VALIDATION_MAX_DEPTH) return [];
+  // Kata kunci komposit tak bisa dinilai konservatif (risiko false-reject) → lolos.
+  if (
+    'anyOf' in schema ||
+    'oneOf' in schema ||
+    'allOf' in schema ||
+    '$ref' in schema ||
+    'not' in schema ||
+    'if' in schema
+  ) {
+    return [];
+  }
+  const errors: string[] = [];
+  const rec = schema as Record<string, unknown>;
+  if (rec.type !== undefined && !jsonTypeMatches(rec.type, value)) {
+    const want = Array.isArray(rec.type) ? (rec.type as unknown[]).join('/') : String(rec.type);
+    errors.push(`${path} harus bertipe ${want}`);
+    return errors;
+  }
+  if (isObjectLike(rec) && isRecord(value)) {
+    const required = rec.required;
+    if (Array.isArray(required)) {
+      for (const key of required) {
+        if (typeof key === 'string' && !(key in value)) {
+          errors.push(`${path}.${key} wajib diisi`);
+        }
+      }
+    }
+    const props = rec.properties;
+    if (isRecord(props)) {
+      for (const [key, sub] of Object.entries(props)) {
+        if (key in value) {
+          errors.push(
+            ...validateAgainstSchema(
+              sub,
+              (value as Record<string, unknown>)[key],
+              `${path}.${key}`,
+              depth + 1,
+            ),
+          );
+        }
+      }
+      if (rec.additionalProperties === false) {
+        for (const key of Object.keys(value)) {
+          if (!Object.hasOwn(props, key)) {
+            errors.push(`${path}.${key} tidak dikenal oleh skema`);
+          }
+        }
+      }
+    }
+  }
+  if (Array.isArray(value) && isRecord(rec.items)) {
+    value.forEach((item, i) => {
+      errors.push(...validateAgainstSchema(rec.items, item, `${path}[${i}]`, depth + 1));
+    });
+  }
+  if (Array.isArray(rec.enum) && !rec.enum.some((e) => deepEqualJson(e, value))) {
+    errors.push(`${path} harus salah satu dari ${JSON.stringify(rec.enum).slice(0, 200)}`);
+  }
+  if ('const' in rec && !deepEqualJson(rec.const, value)) {
+    errors.push(`${path} harus ${JSON.stringify(rec.const).slice(0, 200)}`);
+  }
+  return errors;
+}
+
 /**
- * Ekstrak envelope tool_calls dari teks output CLI. Mengambil blok pagar
- * TERAKHIR yang menghasilkan >=1 panggilan valid (nama harus terdaftar).
- * Kembalikan null bila tidak ada panggilan valid (diperlakukan sebagai teks).
+ * Validasi argumen tool_call terhadap `inputSchema` tool (JSON Schema).
+ * Konservatif seperti validasi server-side native: hanya menolak pelanggaran
+ * yang jelas (required/type/enum/const/additionalProperties:false); kata
+ * kunci yang tak bisa dinilai aman dilewati. Murni (aman untuk client bundle).
  */
-export function parseToolCallsFromText(
+export function validateToolCallArgs(schema: unknown, args: Record<string, unknown>): string[] {
+  if (!isRecord(schema)) return [];
+  return validateAgainstSchema(schema, args, 'arguments', 0);
+}
+
+export interface ValidatedToolCalls extends ParsedToolCalls {
+  /**
+   * true bila model tampak BERUSAHA memanggil (ada pagar/marker tool_calls,
+   * atau toolChoice mewajibkan panggilan) — pembeda antara "jawaban teks
+   * biasa" (jangan retry) dan "upaya call yang gagal parse" (layak repair).
+   */
+  attempted: boolean;
+  /** Alasan konkret tiap kegagalan (nama asing, JSON rusak, schema error). */
+  diagnostics: string[];
+}
+
+/**
+ * Ekstrak envelope tool_calls dari teks output CLI. SEMUA blok valid dipakai
+ * berurutan (paritas beberapa tool-call paralel native dalam satu giliran);
+ * teks sebelum blok PERTAMA menjadi leadingText. Argumen divalidasi terhadap
+ * inputSchema tiap tool; panggilan tak valid dicatat di diagnostics dan TIDAK
+ * dieksekusi (native menolaknya server-side). null bila tak ada panggilan
+ * valid (diperlakukan sebagai teks).
+ */
+export function parseAndValidateToolCalls(
   text: string,
-  allowedNames: Set<string>,
-): ParsedToolCalls | null {
+  tools: CliFunctionToolDef[],
+  treatStrayMarkerAsAttempt = true,
+): ValidatedToolCalls | null {
+  const allowedNames = new Set(tools.map((t) => t.name));
+  const schemas = new Map(tools.map((t) => [t.name, t.inputSchema]));
   const candidates: Array<{ raw: string; start: number }> = [];
   for (const m of text.matchAll(/```tool_calls\s*([\s\S]*?)```/g)) {
     candidates.push({ raw: (m[1] ?? '').trim(), start: m.index ?? 0 });
@@ -955,32 +1131,94 @@ export function parseToolCallsFromText(
       candidates.push({ raw: trimmed, start: 0 });
     }
   }
-  for (let i = candidates.length - 1; i >= 0; i--) {
-    const { raw, start } = candidates[i]!;
+  const attempted =
+    candidates.length > 0 || (treatStrayMarkerAsAttempt && text.includes('"tool_calls"'));
+  const calls: CliToolCallRequest[] = [];
+  const diagnostics: string[] = [];
+  let firstStart: number | null = null;
+  if (candidates.length === 0) return { leadingText: '', calls, attempted, diagnostics };
+  let blockNo = 0;
+  for (const { raw, start } of candidates) {
+    blockNo += 1;
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw) as unknown;
     } catch {
+      diagnostics.push(`blok pagar ke-${blockNo} bukan JSON valid`);
       continue;
     }
     const list =
       isRecord(parsed) && Array.isArray((parsed as { tool_calls?: unknown }).tool_calls)
         ? ((parsed as { tool_calls?: unknown }).tool_calls as unknown[])
         : null;
-    if (!list) continue;
-    const calls: CliToolCallRequest[] = [];
+    if (!list) {
+      diagnostics.push('blok pagar tidak berisi array "tool_calls"');
+      continue;
+    }
+    let blockValid = false;
     for (const item of list) {
       if (!isRecord(item) || typeof item.name !== 'string') continue;
       const name = item.name.trim();
-      if (!name || !allowedNames.has(name)) continue;
+      if (!name || !allowedNames.has(name)) {
+        if (name) diagnostics.push(`tool "${name}" tidak terdaftar`);
+        continue;
+      }
       const args = coerceArgs((item as { arguments?: unknown }).arguments);
-      if (!args) continue;
+      if (!args) {
+        diagnostics.push(`arguments untuk "${name}" bukan objek JSON`);
+        continue;
+      }
+      const schemaErrors = validateToolCallArgs(schemas.get(name), args);
+      if (schemaErrors.length > 0) {
+        diagnostics.push(`arguments "${name}" tak sesuai skema: ${schemaErrors.join('; ')}`);
+        continue;
+      }
+      if (firstStart === null) firstStart = start;
+      blockValid = true;
       calls.push({ name, args });
     }
-    if (calls.length === 0) continue;
-    return { leadingText: start > 0 ? text.slice(0, start).trim() : '', calls };
+    if (!blockValid && list.length > 0) {
+      diagnostics.push('satu blok pagar tidak menghasilkan panggilan valid');
+    }
   }
-  return null;
+  return {
+    leadingText: firstStart !== null && firstStart > 0 ? text.slice(0, firstStart).trim() : '',
+    calls,
+    attempted,
+    diagnostics,
+  };
+}
+
+/**
+ * Ekstrak envelope tool_calls (kompatibel lama): seperti
+ * parseAndValidateToolCalls tanpa validasi skema dan tanpa diagnostik.
+ */
+export function parseToolCallsFromText(
+  text: string,
+  allowedNames: Set<string>,
+): ParsedToolCalls | null {
+  const tools = [...allowedNames].map((name) => ({ name }));
+  const parsed = parseAndValidateToolCalls(
+    text,
+    tools.map((t) => ({ ...t, inputSchema: undefined })),
+    false,
+  );
+  if (parsed.calls.length === 0) return null;
+  return { leadingText: parsed.leadingText, calls: parsed.calls };
+}
+
+/** Instruksi perbaikan satu-shot: alasan konkret + format yang dituntut. */
+export function buildToolCallRepairInstructions(reasons: string[]): string {
+  const capped = reasons.slice(0, 5).map((r) => (r.length > 200 ? `${r.slice(0, 197)}…` : r));
+  return [
+    '[tool-repair] Your previous response attempted tool call(s) but NONE could be executed:',
+    ...capped.map((r) => `- ${r}`),
+    'Print EXACTLY ONE ```tool_calls fenced block with the corrected call(s):',
+    '```tool_calls',
+    '{"tool_calls":[{"name":"<registered-function-name>","arguments":{...}}]}',
+    '```',
+    '"arguments" MUST be a JSON object matching the function Parameters above. Emit only the fence (a short leading sentence is allowed).',
+  ].join('\n');
 }
 
 let toolCallSeq = 0;
@@ -1002,24 +1240,118 @@ function buildCliPrompt(options: CliCallOptions): {
 } {
   const funcTools = functionToolDefs(options);
   const allowCalls = toolCallsAllowed(options.toolChoice);
+  const withTools = funcTools.length > 0 && allowCalls;
   let promptText = flattenPromptToText(options.prompt);
   const sampling = buildSamplingHints(options);
   if (sampling) promptText += `\n\n${sampling}`;
-  if (funcTools.length > 0 && allowCalls) {
+  if (withTools) {
     promptText += `\n\n${buildToolCallingInstructions(funcTools, options.toolChoice)}`;
   }
   return {
-    promptText: promptWithFormatHint(promptText, options.responseFormat),
-    funcTools: funcTools.length > 0 && allowCalls ? funcTools : [],
+    promptText: promptWithFormatHint(promptText, options.responseFormat, withTools),
+    funcTools: withTools ? funcTools : [],
+  };
+}
+
+/**
+ * Jalankan CLI + parse envelope, dengan SEKALI repair bila model tampak
+ * berusaha memanggil tapi hasilnya tak bisa dieksekusi (nama asing, JSON
+ * rusak, argumen tak sesuai skema) — paritas kegagalan validasi server-side
+ * native yang dikembalikan ke model. Jawaban teks biasa tanpa marker TIDAK
+ * di-retry. Hasil repair dipakai apa adanya (gagal lagi = fallback teks,
+ * sama seperti sebelumnya).
+ */
+async function runCliWithToolRepair(input: {
+  modelId: string;
+  cliProvider: string;
+  basePromptText: string;
+  funcTools: CliFunctionToolDef[];
+  requiredTool: string | null;
+  treatStrayMarkerAsAttempt: boolean;
+  stopSequences?: string[];
+  abortSignal?: AbortSignal;
+  timeoutMs?: number;
+}): Promise<{
+  promptText: string;
+  stoppedText: string;
+  leadingText: string;
+  calls: CliToolCallRequest[];
+  repaired: boolean;
+}> {
+  const runOnce = (promptText: string) =>
+    runOpencodeCli({
+      modelId: input.modelId,
+      cliProvider: input.cliProvider,
+      promptText,
+      abortSignal: input.abortSignal,
+      timeoutMs: input.timeoutMs,
+    });
+  const parseOnce = (rawText: string) => {
+    const stoppedText = applyStopSequences(rawText, input.stopSequences);
+    const parsed = parseAndValidateToolCalls(
+      stoppedText,
+      input.funcTools,
+      input.treatStrayMarkerAsAttempt,
+    );
+    return { stoppedText, parsed };
+  };
+  const first = await runOnce(input.basePromptText);
+  const firstParsed = parseOnce(first.text);
+  if (firstParsed.parsed.calls.length > 0) {
+    return {
+      promptText: input.basePromptText,
+      stoppedText: firstParsed.stoppedText,
+      leadingText: firstParsed.parsed.leadingText,
+      calls: firstParsed.parsed.calls,
+      repaired: false,
+    };
+  }
+  const needsCall = input.requiredTool !== null;
+  if (!firstParsed.parsed.attempted && !needsCall) {
+    return {
+      promptText: input.basePromptText,
+      stoppedText: firstParsed.stoppedText,
+      leadingText: '',
+      calls: [],
+      repaired: false,
+    };
+  }
+  const reasons =
+    firstParsed.parsed.diagnostics.length > 0
+      ? firstParsed.parsed.diagnostics
+      : needsCall
+        ? [`tool "${input.requiredTool}" wajib dipanggil pada giliran ini`]
+        : ['respons tidak mengandung blok ```tool_calls yang valid'];
+  const repairPrompt = `${input.basePromptText}\n\n${buildToolCallRepairInstructions(reasons)}`;
+  const second = await runOnce(repairPrompt);
+  const secondParsed = parseOnce(second.text);
+  return {
+    promptText: repairPrompt,
+    stoppedText: secondParsed.stoppedText,
+    leadingText: secondParsed.parsed.leadingText,
+    calls: secondParsed.parsed.calls,
+    repaired: true,
   };
 }
 
 type V3Usage = {
-  inputTokens: { total: number | undefined; noCache: number | undefined; cacheRead: number | undefined; cacheWrite: number | undefined };
-  outputTokens: { total: number | undefined; text: number | undefined; reasoning: number | undefined };
+  inputTokens: {
+    total: number | undefined;
+    noCache: number | undefined;
+    cacheRead: number | undefined;
+    cacheWrite: number | undefined;
+  };
+  outputTokens: {
+    total: number | undefined;
+    text: number | undefined;
+    reasoning: number | undefined;
+  };
 };
 
-type V3FinishReason = { unified: 'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other'; raw: string | undefined };
+type V3FinishReason = {
+  unified: 'stop' | 'length' | 'content-filter' | 'tool-calls' | 'error' | 'other';
+  raw: string | undefined;
+};
 
 function v3UsageFor(inputText: string, outputText: string): V3Usage {
   const input = estimateTokens(inputText);
@@ -1060,19 +1392,21 @@ export class OpencodeCliLanguageModel {
     warnings: CliWarning[];
   }> {
     const { promptText, funcTools } = buildCliPrompt(options);
-    const result = await runOpencodeCli({
-      modelId: this.modelId,
-      cliProvider: this.cliProvider,
-      promptText,
-      abortSignal: options.abortSignal,
-    });
-    const stoppedText = applyStopSequences(result.text, options.stopSequences);
     if (funcTools.length > 0) {
-      const parsed = parseToolCallsFromText(stoppedText, new Set(funcTools.map((t) => t.name)));
-      if (parsed && parsed.calls.length > 0) {
+      const resolved = await runCliWithToolRepair({
+        modelId: this.modelId,
+        cliProvider: this.cliProvider,
+        basePromptText: promptText,
+        funcTools,
+        requiredTool: requiredToolName(options.toolChoice),
+        treatStrayMarkerAsAttempt: options.responseFormat?.type !== 'json',
+        stopSequences: options.stopSequences,
+        abortSignal: options.abortSignal,
+      });
+      if (resolved.calls.length > 0) {
         const content: CliContentPart[] = [];
-        if (parsed.leadingText) content.push({ type: 'text', text: parsed.leadingText });
-        for (const call of parsed.calls) {
+        if (resolved.leadingText) content.push({ type: 'text', text: resolved.leadingText });
+        for (const call of resolved.calls) {
           content.push({
             type: 'tool-call',
             toolCallId: nextToolCallId(),
@@ -1083,11 +1417,24 @@ export class OpencodeCliLanguageModel {
         return {
           content,
           finishReason: v3Finish('tool-calls'),
-          usage: v3UsageFor(promptText, stoppedText),
+          usage: v3UsageFor(resolved.promptText, resolved.stoppedText),
           warnings: buildCliWarnings(options),
         };
       }
+      return {
+        content: [{ type: 'text', text: resolved.stoppedText }],
+        finishReason: v3Finish('stop'),
+        usage: v3UsageFor(resolved.promptText, resolved.stoppedText),
+        warnings: buildCliWarnings(options),
+      };
     }
+    const result = await runOpencodeCli({
+      modelId: this.modelId,
+      cliProvider: this.cliProvider,
+      promptText,
+      abortSignal: options.abortSignal,
+    });
+    const stoppedText = applyStopSequences(result.text, options.stopSequences);
     return {
       content: [{ type: 'text', text: stoppedText }],
       finishReason: v3Finish('stop'),
@@ -1151,24 +1498,24 @@ export class OpencodeCliLanguageModel {
               usage: v3UsageFor(promptText, finalText),
             });
           } else {
-            const result = await runOpencodeCli({
+            const resolved = await runCliWithToolRepair({
               modelId,
               cliProvider,
-              promptText,
+              basePromptText: promptText,
+              funcTools,
+              requiredTool: requiredToolName(options.toolChoice),
+              treatStrayMarkerAsAttempt: options.responseFormat?.type !== 'json',
+              stopSequences,
               abortSignal: options.abortSignal,
             });
-            const stoppedText = applyStopSequences(result.text, stopSequences);
-            const parsed = parseToolCallsFromText(
-              stoppedText,
-              new Set(funcTools.map((t) => t.name)),
-            );
-            if (parsed && parsed.calls.length > 0) {
-              if (parsed.leadingText) {
+            const stoppedText = resolved.stoppedText;
+            if (resolved.calls.length > 0) {
+              if (resolved.leadingText) {
                 controller.enqueue({ type: 'text-start', id: textId });
-                controller.enqueue({ type: 'text-delta', id: textId, delta: parsed.leadingText });
+                controller.enqueue({ type: 'text-delta', id: textId, delta: resolved.leadingText });
                 controller.enqueue({ type: 'text-end', id: textId });
               }
-              for (const call of parsed.calls) {
+              for (const call of resolved.calls) {
                 const id = nextToolCallId();
                 const input = JSON.stringify(call.args);
                 controller.enqueue({ type: 'tool-input-start', id, toolName: call.name });
@@ -1184,7 +1531,7 @@ export class OpencodeCliLanguageModel {
               controller.enqueue({
                 type: 'finish',
                 finishReason: v3Finish('tool-calls'),
-                usage: v3UsageFor(promptText, stoppedText),
+                usage: v3UsageFor(resolved.promptText, stoppedText),
               });
             } else {
               controller.enqueue({ type: 'text-start', id: textId });
@@ -1193,7 +1540,7 @@ export class OpencodeCliLanguageModel {
               controller.enqueue({
                 type: 'finish',
                 finishReason: v3Finish('stop'),
-                usage: v3UsageFor(promptText, stoppedText),
+                usage: v3UsageFor(resolved.promptText, stoppedText),
               });
             }
           }

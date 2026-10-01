@@ -699,7 +699,8 @@ tulis_template_env() {
 #   2. OpenCode Go + key : ${TIER2_MODEL} (OPENCODE_API_KEY dan/atau
 #      OPENCODE_GO_API_KEY untuk jalur HTTP/driver; \`opencode auth login\`
 #      saja TIDAK cukup untuk driver HTTP)
-#   3. OpenCode free CLI : ${TIER3_MODEL} (tanpa auth sama sekali)
+#   3. OpenCode free CLI : ${tier_default} (tanpa auth sama sekali; default =
+#      muse-spark bila ada di daftar free, else entri pertama OPENCODE_MODELS)
 # Slug tier2 persis katalog \`opencode models\` (terverifikasi); butuh
 # registrasi provider opencode-go di lib/ai/providers.ts (sudah ada).
 # CLI diinstal via: curl -fsSL https://opencode.ai/v2/install | bash
@@ -714,6 +715,10 @@ DEFAULT_MODEL=${tier_default}
 # Tier-3 gratis: driver khusus CLI (\`opencode-cli\`, alias \`cli\`/\`opencode\`) —
 # eksekusi lokal \`opencode run\` tanpa key; function tools via envelope
 # \`\`\`tool_calls (lib/ai/opencode-cli.ts + lib/server/agent-runtime/agent-driver-model.ts).
+# Paritas tool-calling dengan LLM ber-key: SEMUA blok fence valid dipakai
+# berurutan, argumen divalidasi terhadap skema tool, sekali repair otomatis
+# bila upaya call gagal parse, dan skills disajikan identik (prompt sama) —
+# hanya seed yang tetap unsupported.
 MODEL_ROUTES='${tier_driver}'
 
 # --- OpenCode CLI (eksekusi lokal, tanpa API key untuk model FREE) -------------
@@ -729,7 +734,8 @@ ${tier_key1_line}
 ${tier_key2_line}
 ${tier_key2go_line}
 # OPENCODE_BASE_URL=https://opencode.ai/zen/v1
-# Pin katalog provider opencode untuk tier saat ini (boleh diisi manual):
+# OPENCODE_MODELS: SEMUA model free yang diaktifkan (comma-separated, diambil
+# dari `opencode models` oleh install.sh; boleh diisi manual):
 # OPENCODE_MODELS=${tier_pin}
 
 # --- Feature Flags: client (NEXT_PUBLIC_*) ------------------------------------
@@ -1006,10 +1012,9 @@ tier_default_model() {
   esac
 }
 tier_driver_route() {
-  case "${1:-tier3}" in
-    tier3) printf '{"maic-agent-driver":{"model":"%s","api":"opencode-cli"}}' "$(tier_default_model "$1")" ;;
-    *) printf '{"maic-agent-driver":{"model":"%s","api":"openai-completions"}}' "$(tier_default_model "$1")" ;;
-  esac
+  # Hanya untuk tier ber-key (1/2). Tier-3 membangun route langsung via printf
+  # dengan default dinamis tier3_default_dari_daftar (lihat 2 situs pemanggil).
+  printf '{"maic-agent-driver":{"model":"%s","api":"openai-completions"}}' "$(tier_default_model "$1")"
 }
 
 # Tulis key dari environment ke file bila kolom file masih kosong (append
@@ -1946,14 +1951,19 @@ echo "       dan/atau OPENCODE_GO_API_KEY untuk jalur HTTP/driver;"
 echo "       'opencode auth login' saja tidak cukup untuk driver)"
 echo "    3. OpenCode free CLI : default opencode:muse-spark-1.3-contributor-free (tanpa auth;"
 echo '       coba manual: opencode run -m opencode/muse-spark-1.3-contributor-free "hi"'
-echo "       OPENCODE_BIN menunjuk binary absolut."
+echo "       OPENCODE_BIN menunjuk binary absolut. Tool-calling paritas ber-key:"
+echo "       multi-blok fence, validasi skema argumen, sekali repair otomatis;"
+echo "       skills disajikan identik (hanya seed unsupported)."
 echo "       SEMUA model free dari \`opencode models\` diambil + diaktifkan di"
 echo "       OPENCODE_MODELS (comma-separated); tombol pemilih model di /workspace"
-echo "       memilih di antaranya (GET/POST /api/agent/models, tersimpan di"
-echo "       data/agent-driver-model.json dan dipakai run berikutnya)."
+echo "       (tampilan sama dengan chat classic) memilih di antaranya"
+echo "       (GET/POST /api/agent/models, tersimpan di"
+echo "       data/agent-driver-model.json dan dipakai run berikutnya TANPA restart;"
+echo "       hanya berlaku saat driver tier-3 CLI free, tier ber-key tak dibajak)."
 echo "    Driver agen (MODEL_ROUTES maic-agent-driver): tier ber-key via HTTP"
 echo "    (openai-completions/responses); tier-3 gratis via driver khusus CLI"
-echo "    (opencode-cli, tanpa key, envelope tool_calls)."
+echo "    (opencode-cli, tanpa key, envelope tool_calls). Route yang hilang tetap"
+echo "    gagal keras (wajib dikonfigurasi eksplisit)."
 echo "  - Agent runtime + workbench butuh Postgres ${PG_MAJOR} (semua tier, termasuk tier-3 CLI)."
 echo "  - Performa: PARALLEL_SCENE_CONCURRENCY=5 (scene paralel, maks kode 10;"
 echo "    turunkan bila kena 429, naikkan s.d. 10 di server besar) + ffmpeg apt"
