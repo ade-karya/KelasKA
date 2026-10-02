@@ -93,6 +93,46 @@ describe('OpenRouter image adapter', () => {
       ),
     ).rejects.toThrow(/no image data/i);
   });
+
+  it('retries once with the minimal body when optional params are rejected', async () => {
+    // Models with a strict parameter allowlist (no `aspect_ratio` knob) answer
+    // the full shape with 400; the minimal `{ model, prompt }` shape from the
+    // API example must then be attempted before failing.
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse((init?.body ?? '{}') as string) as Record<string, unknown>;
+      if ('aspect_ratio' in body || 'n' in body) {
+        return jsonResponse({ error: { code: 400, message: 'Unknown parameter' } }, 400);
+      }
+      return jsonResponse({ created: 1, data: [{ b64_json: 'DDDD', media_type: 'image/png' }] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await generateWithOpenRouterImage(
+      { providerId: 'openrouter-image', apiKey: 'k', model: 'inclusionai/ming-image-0.1-design' },
+      { prompt: 'a fox', aspectRatio: '16:9' },
+    );
+
+    expect(result.base64).toBe('DDDD');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(JSON.parse((fetchMock.mock.calls[1] as unknown as [string, RequestInit])[1].body as string)).toEqual({
+      model: 'inclusionai/ming-image-0.1-design',
+      prompt: 'a fox',
+    });
+  });
+
+  it('surfaces the retry failure when the minimal body is also rejected', async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ error: { code: 400, message: 'Bad model' } }, 400),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(
+      generateWithOpenRouterImage(
+        { providerId: 'openrouter-image', apiKey: 'k', model: 'x' },
+        { prompt: 'a fox', aspectRatio: '1:1' },
+      ),
+    ).rejects.toThrow(/\(400\)/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('OpenRouter video adapter', () => {

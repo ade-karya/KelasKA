@@ -81,13 +81,24 @@ export function useOpenRouterModels(
         }
         if (cancelled) return;
         const hasPricing = pricingById.size > 0;
-        const models = (catalogData.data as Array<{ id?: string; slug?: string; name?: string }>)
+        const models = (
+          catalogData.data as Array<{
+            id?: string;
+            slug?: string;
+            name?: string;
+            supported_parameters?: { input_references?: { min?: number } };
+          }>
+        )
           .map((model) => {
             const id = (model.id || model.slug || '').trim();
             const name = pricingNameById.get(id) || (model.name || '').trim() || id;
-            return { id, name, pricing: pricingById.get(id) };
+            // Image-to-image-only entries (require an input reference) can
+            // never serve a text-only generation — drop them here as well.
+            const minRefs = model.supported_parameters?.input_references?.min;
+            const textCapable = !(typeof minRefs === 'number' && minRefs >= 1);
+            return { id, name, pricing: pricingById.get(id), textCapable };
           })
-          .filter((model) => model.id)
+          .filter((model) => model.id && model.textCapable)
           .filter((model) =>
             !hasPricing || !model.pricing
               ? true

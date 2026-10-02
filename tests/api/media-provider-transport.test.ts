@@ -176,7 +176,11 @@ describe('media provider routes on the strict transport', () => {
 
       expect(res).toEqual({
         status: 500,
-        json: { success: false, errorCode: 'INTERNAL_ERROR', error: 'Image generation failed' },
+        json: {
+          success: false,
+          errorCode: 'INTERNAL_ERROR',
+          error: 'Image generation failed (openai-image / gpt-image-2)',
+        },
       });
     });
 
@@ -216,7 +220,7 @@ describe('media provider routes on the strict transport', () => {
       expect(res.json).toEqual({
         success: false,
         errorCode: 'INTERNAL_ERROR',
-        error: 'Image generation failed',
+        error: 'Image generation failed (openai-image / gpt-image-2)',
       });
       expect(origin.requests()).toBe(1);
       expect(target.requests()).toBe(0);
@@ -359,7 +363,7 @@ describe('media provider routes on the strict transport', () => {
     expect(res.json).toEqual({
       success: false,
       errorCode: 'INTERNAL_ERROR',
-      error: 'Image generation failed',
+      error: 'Image generation failed (openai-image / gpt-image-2)',
     });
   });
 

@@ -43,6 +43,10 @@ const log = createLogger('ImageGeneration API');
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
+  // Hoisted for the catch block so failures before resolution (bad headers,
+  // SSRF refusal) still produce a safe message without a ReferenceError.
+  let providerId: ImageProviderId | undefined;
+  let model: string | undefined;
   try {
     const body = (await request.json()) as ImageGenerationOptions;
 
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     // The client may express no provider preference (empty header) — fall back
     // to the first server-configured image provider, else fail loud.
-    const providerId = (request.headers.get('x-image-provider')?.trim() ||
+    providerId = (request.headers.get('x-image-provider')?.trim() ||
       resolveServerImageProviderId()) as ImageProviderId;
     if (!providerId) {
       return apiError('MISSING_PROVIDER', 400, 'No image provider configured');
@@ -91,7 +95,7 @@ export async function POST(request: NextRequest) {
     // (IMAGE_<PREFIX>_MODELS): an allowlisted client choice wins, otherwise the
     // first pinned entry is the managed default; unmanaged providers use the
     // client header directly.
-    const model = resolveImageModel(providerId, clientModel);
+    model = resolveImageModel(providerId, clientModel);
     // Workflow-based providers (e.g. comfyui-image) have no model catalog and
     // need no model; everyone else must resolve one.
     if (!model && provider?.models && provider.models.length > 0) {
@@ -125,8 +129,8 @@ export async function POST(request: NextRequest) {
     return apiSuccess({ result });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    // The provider's error text is logged only; the caller gets a fixed message
-    // so an upstream body never reaches the response.
+    // The provider's error text is logged only; the caller gets a fixed,
+    // categorized message (no upstream body) so the UI can act on it.
     // Detect content safety filter rejections (e.g. Seedream OutputImageSensitiveContentDetected)
     if (message.includes('SensitiveContent') || message.includes('sensitive information')) {
       log.warn(`Image blocked by content safety filter: ${message}`);
@@ -136,7 +140,52 @@ export async function POST(request: NextRequest) {
         'The image provider rejected this prompt under its content safety policy',
       );
     }
+    const upstreamStatus = message.match(/\((\d{3})\)/)?.[1];
+    // Provider + model context is safe to expose (no key, no upstream body)
+    // and tells the user exactly which selection failed. May be undefined
+    // when the failure happened before resolution.
+    const where = `(${providerId ?? 'unknown provider'} / ${model || 'default model'})`;
+    switch (upstreamStatus) {
+      case '401':
+      case '403':
+        log.warn(`Image generation unauthorized: ${message}`);
+        return apiError(
+          'INVALID_REQUEST',
+          401,
+          `The image provider rejected the API key ${where} (401/403). Check the key for this provider.`,
+        );
+      case '402':
+        log.warn(`Image generation payment required: ${message}`);
+        return apiError(
+          'UPSTREAM_ERROR',
+          402,
+          `The image provider reports insufficient credits or exhausted quota ${where} (402). Even $0 models need an OpenRouter key with remaining free quota — check the account, or wait for the daily free reset.`,
+        );
+      case '404':
+        log.warn(`Image generation unknown model: ${message}`);
+        return apiError(
+          'INVALID_REQUEST',
+          400,
+          `The image provider does not recognize this model ${where}. Re-fetch the model list (Ambil model) and pick a current id.`,
+        );
+      case '400':
+        log.warn(`Image generation bad request: ${message}`);
+        return apiError(
+          'INVALID_REQUEST',
+          400,
+          `The image provider rejected the request parameters for this model ${where} (400). Try another model.`,
+        );
+      case '429':
+        log.warn(`Image generation rate-limited: ${message}`);
+        return apiError(
+          'UPSTREAM_ERROR',
+          429,
+          `The image provider is rate-limiting requests ${where} (429). Wait a moment and retry.`,
+        );
+      default:
+        break;
+    }
     log.error(`Image generation failed: ${message}`, error);
-    return apiError('INTERNAL_ERROR', 500, 'Image generation failed');
+    return apiError('INTERNAL_ERROR', 500, `Image generation failed ${where}`);
   }
 }

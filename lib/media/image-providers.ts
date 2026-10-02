@@ -30,6 +30,10 @@ import {
   testLemonadeImageConnectivity,
 } from './adapters/lemonade-image-adapter';
 import {
+  generateWithHuggingFaceImage,
+  testHuggingFaceImageConnectivity,
+} from './adapters/huggingface-image-adapter';
+import {
   generateWithOpenRouterImage,
   testOpenRouterImageConnectivity,
   OPENROUTER_DEFAULT_BASE_URL,
@@ -169,15 +173,28 @@ export const IMAGE_PROVIDERS: Record<ImageProviderId, ImageProviderConfig> = {
     requiresApiKey: true,
     defaultBaseUrl: OPENROUTER_DEFAULT_BASE_URL,
     // Model list is fetched live from OpenRouter's public GET /images/models
-    // catalog (filtered $0-only); this seed keeps the picker usable offline
-    // and mirrors the current free catalog.
+    // catalog (filtered text-to-image $0-only); this seed keeps the picker
+    // usable offline and mirrors the current free catalog. Note: the sibling
+    // `ming-image-0.1-design-layer` is deliberately excluded — it is an
+    // image-to-image model (requires an input reference) and always fails a
+    // text-only generation.
     models: [
       { id: 'inclusionai/ming-image-0.1-design', name: 'inclusionAI: Ming Image 0.1 Design' },
-      {
-        id: 'inclusionai/ming-image-0.1-design-layer',
-        name: 'inclusionAI: Ming Image 0.1 Design Layer',
-      },
     ],
+    supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
+  },
+  'huggingface-image': {
+    id: 'huggingface-image',
+    name: 'Hugging Face FLUX',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://black-forest-labs-flux-1-dev.hf.space',
+    icon: '/logos/huggingface.svg',
+    // The model id is the Hugging Face Space repo served through its Gradio
+    // `/infer` endpoint (black-forest-labs/FLUX.1-dev). Generation needs a
+    // user access token (hf_...) whose account accepted the gated model
+    // license — the Settings panel's "Login with Hugging Face" entry point
+    // walks the user through that.
+    models: [{ id: 'black-forest-labs/FLUX.1-dev', name: 'FLUX.1-dev' }],
     supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
   },
 };
@@ -204,6 +221,8 @@ export async function testImageConnectivity(
       return testLemonadeImageConnectivity(config);
     case 'openrouter-image':
       return testOpenRouterImageConnectivity(config);
+    case 'huggingface-image':
+      return testHuggingFaceImageConnectivity(config);
     default:
       return {
         success: false,
@@ -235,6 +254,8 @@ export async function generateImage(
       return generateWithLemonadeImage(config, options);
     case 'openrouter-image':
       return generateWithOpenRouterImage(config, options);
+    case 'huggingface-image':
+      return generateWithHuggingFaceImage(config, options);
     default:
       throw new Error(`Unsupported image provider: ${config.providerId}`);
   }

@@ -122,6 +122,7 @@ const IMAGE_ENV_MAP: Record<string, string> = {
   IMAGE_GROK: 'grok-image',
   IMAGE_LEMONADE: 'lemonade',
   IMAGE_OPENROUTER: 'openrouter-image',
+  IMAGE_HUGGINGFACE: 'huggingface-image',
 };
 
 const VIDEO_ENV_MAP: Record<string, string> = {

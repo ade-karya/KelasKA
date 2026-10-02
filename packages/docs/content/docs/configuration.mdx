@@ -121,7 +121,7 @@ You can also add a custom OpenAI-compatible ASR provider in Settings by entering
 
 Image generation providers use `IMAGE_<PROVIDER>_API_KEY` and optionally `IMAGE_<PROVIDER>_BASE_URL`. Supported prefixes include:
 
-`IMAGE_OPENAI_`, `IMAGE_SEEDREAM_`, `IMAGE_QWEN_IMAGE_`, `IMAGE_NANO_BANANA_`, `IMAGE_MINIMAX_`, `IMAGE_GROK_`, and `IMAGE_LEMONADE_`.
+`IMAGE_OPENAI_`, `IMAGE_SEEDREAM_`, `IMAGE_QWEN_IMAGE_`, `IMAGE_NANO_BANANA_`, `IMAGE_MINIMAX_`, `IMAGE_GROK_`, `IMAGE_LEMONADE_`, and `IMAGE_HUGGINGFACE_`.
 
 Lemonade is a local service and does not require a key:
 
@@ -130,6 +130,12 @@ IMAGE_LEMONADE_BASE_URL=http://localhost:13305/v1
 ```
 
 ComfyUI Image does not require an API key and connects to `http://localhost:8188` by default. Enter the ComfyUI Base URL in Settings, and place workflow JSON exported in API format in OpenMAIC's `public/` directory. Use filenames matching `comfyui-*.json` or containing `workflow`; the Settings page discovers these files automatically and offers them as workflows. With Docker, add the workflow before building the image or mount an individual workflow file into `/app/public/` in the container. Because `comfyui-image` is not a server-managed provider, production deployments connecting to host-side ComfyUI must also set `ALLOW_LOCAL_NETWORKS=true`.
+
+Hugging Face FLUX serves `black-forest-labs/FLUX.1-dev` through its Gradio Space (`/infer` endpoint). It needs a user access token (`IMAGE_HUGGINGFACE_API_KEY=hf-...`) whose account accepted the gated model license at https://huggingface.co/black-forest-labs/FLUX.1-dev:
+
+```bash
+IMAGE_HUGGINGFACE_API_KEY=hf-...
+```
 
 ## Video generation providers
 

@@ -22,6 +22,8 @@ import {
   RefreshCw,
   Download,
   RotateCcw,
+  LogIn,
+  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ImageProviderId } from '@/lib/media/types';
@@ -65,6 +67,7 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
 
   const isComfyUI = selectedProviderId === 'comfyui-image';
   const isOpenRouterImage = selectedProviderId === 'openrouter-image';
+  const isHuggingFaceImage = selectedProviderId === 'huggingface-image';
 
   // Reset test/fetch state when provider changes (derived state pattern)
   const [prevSelectedProviderId, setPrevSelectedProviderId] = useState(selectedProviderId);
@@ -167,8 +170,7 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
     setFetchStatus('fetching');
     setFetchMessage('');
     try {
-      const effectiveBaseUrl =
-        currentConfig?.baseUrl || currentProvider?.defaultBaseUrl || '';
+      const effectiveBaseUrl = currentConfig?.baseUrl || currentProvider?.defaultBaseUrl || '';
       const response = await fetch('/api/provider/probe-image-models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -183,8 +185,7 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
           .filter((m: { id?: unknown }) => typeof m?.id === 'string' && m.id.trim())
           .map((m: { id: string; name?: unknown }) => ({
             id: m.id.trim(),
-            name:
-              typeof m.name === 'string' && m.name.trim() ? m.name.trim() : m.id.trim(),
+            name: typeof m.name === 'string' && m.name.trim() ? m.name.trim() : m.id.trim(),
           }));
         const prevIds = new Set(customModels.map((m) => m.id));
         const added = fetched.filter((m) => !prevIds.has(m.id)).length;
@@ -192,6 +193,13 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
           customModels: fetched,
           replaceBuiltInModels: true,
         });
+        // Seleksi basi (mis. model image-to-image yang kini dikecualikan)
+        // menunjuk ke id yang tak lagi ada — arahkan ke entri gratis pertama
+        // agar generate berikutnya tidak 404.
+        if (fetched.length > 0 && !fetched.some((m) => m.id === imageModelId)) {
+          setImageProvider(selectedProviderId);
+          _setImageModelId(fetched[0].id);
+        }
         setFetchStatus('success');
         setFetchMessage(
           t('settings.fetchModelsResult')
@@ -209,7 +217,18 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
       setFetchStatus('error');
       setFetchMessage(t('settings.fetchModelsFailed'));
     }
-  }, [currentConfig?.apiKey, currentConfig?.baseUrl, currentProvider?.defaultBaseUrl, customModels, selectedProviderId, setImageProviderConfig, t]);
+  }, [
+    currentConfig?.apiKey,
+    currentConfig?.baseUrl,
+    currentProvider?.defaultBaseUrl,
+    customModels,
+    imageModelId,
+    selectedProviderId,
+    setImageProvider,
+    setImageProviderConfig,
+    _setImageModelId,
+    t,
+  ]);
 
   const handleResetFreeModels = useCallback(() => {
     setImageProviderConfig(selectedProviderId, {
@@ -274,6 +293,58 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
           are hidden (server ignores client-sent overrides for these). */}
       {!isServerConfigured && (
         <>
+          {/* Hugging Face login: FLUX.1-dev is a gated model, so generation
+              needs a user access token (hf_...) whose account accepted the
+              model license. This entry point walks the user through login →
+              token → license acceptance; the token itself goes in API Key
+              below and "Test Connection" validates it via whoami. */}
+          {isHuggingFaceImage && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3 space-y-2.5">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                {t('settings.huggingfaceTokenHint')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="gap-1.5 bg-white dark:bg-transparent"
+                >
+                  <a href="https://huggingface.co/login" target="_blank" rel="noreferrer">
+                    <LogIn className="h-3.5 w-3.5" />
+                    {t('settings.huggingfaceLogin')}
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="gap-1.5 bg-white dark:bg-transparent"
+                >
+                  <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {t('settings.huggingfaceGetToken')}
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="gap-1.5 bg-white dark:bg-transparent"
+                >
+                  <a
+                    href="https://huggingface.co/black-forest-labs/FLUX.1-dev"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {t('settings.huggingfaceAcceptLicense')}
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* API Key + Test inline */}
           <div className="space-y-2">
             <Label>API Key</Label>
@@ -453,11 +524,13 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <Label className="text-base">{t('settings.models')}</Label>
-              {isOpenRouterImage && currentConfig?.replaceBuiltInModels && customModels.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800">
-                  $0
-                </span>
-              )}
+              {isOpenRouterImage &&
+                currentConfig?.replaceBuiltInModels &&
+                customModels.length > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800">
+                    $0
+                  </span>
+                )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               {isOpenRouterImage && (
@@ -515,7 +588,11 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
             {/* Built-in models — disembunyikan saat daftar gratis $0 hasil fetch
                 menggantikannya, agar tidak duplikat dan picker kursus konsisten
                 (pemilih memakai customModels saat replaceBuiltInModels). */}
-            {!(isOpenRouterImage && currentConfig?.replaceBuiltInModels && customModels.length > 0) &&
+            {!(
+              isOpenRouterImage &&
+              currentConfig?.replaceBuiltInModels &&
+              customModels.length > 0
+            ) &&
               builtInModels.map((model) => (
                 <div
                   key={model.id}

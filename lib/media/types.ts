@@ -79,6 +79,7 @@ export type ImageProviderId =
   | 'grok-image'
   | 'comfyui-image'
   | 'openrouter-image'
+  | 'huggingface-image'
   | 'lemonade';
 // Add new image providers below (uncomment and modify):
 // | 'dall-e'

@@ -218,6 +218,7 @@ const IMAGE_PROVIDER_ICONS: Record<ImageProviderId, string> = {
   'grok-image': '/logos/grok.svg',
   'comfyui-image': '/logos/comfyui.svg',
   'openrouter-image': '/logos/openrouter.svg',
+  'huggingface-image': '/logos/huggingface.svg',
   lemonade: '/logos/lemonade.svg',
 };
 

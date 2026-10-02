@@ -42,7 +42,15 @@ export interface OpenRouterMediaModel {
 }
 
 interface MediaCatalogResponse {
-  data?: Array<{ id?: string; slug?: string; name?: string }>;
+  data?: Array<{
+    id?: string;
+    slug?: string;
+    name?: string;
+    architecture?: { input_modalities?: string[] };
+    supported_parameters?: {
+      input_references?: { type?: string; min?: number; max?: number };
+    };
+  }>;
 }
 
 interface PricingCatalogResponse {
@@ -105,9 +113,25 @@ async function getJson(
 }
 
 /**
+ * Whether a catalog entry can do text-to-image (no input image required).
+ * Image-to-image-only models (e.g. a layer-decomposition model with
+ * `input_references.min >= 1`) always fail a text-only `POST /images`, so
+ * they are excluded from discovery. Entries without the metadata (custom
+ * gateways, older shapes) are kept.
+ */
+function isTextToImageCapable(entry: {
+  supported_parameters?: { input_references?: { min?: number } };
+}): boolean {
+  const min = entry.supported_parameters?.input_references?.min;
+  return !(typeof min === 'number' && min >= 1);
+}
+
+/**
  * Fetches the free ($0) OpenRouter image or video models.
  * Returns `{ id, name }` sorted by name (proper catalog `name`, never a
- * prettified id). Throws {@link ModelFetchError} on transport/HTTP failure.
+ * prettified id). Image-to-image-only entries (require an input reference)
+ * are excluded — they cannot serve a text-only `POST /images`.
+ * Throws {@link ModelFetchError} on transport/HTTP failure.
  */
 export async function fetchOpenRouterMediaModels(
   kind: 'image' | 'video',
@@ -125,6 +149,7 @@ export async function fetchOpenRouterMediaModels(
     FETCH_TIMEOUT_MS,
   )) as MediaCatalogResponse;
   const catalog = (catalogBody?.data ?? [])
+    .filter((m) => isTextToImageCapable(m))
     .map((m) => ({ id: (m.id || m.slug || '').trim(), name: (m.name || '').trim() }))
     .filter((m) => m.id);
   if (catalog.length === 0) return [];

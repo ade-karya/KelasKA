@@ -15,6 +15,7 @@ export const IMAGE_PROVIDER_NAMES: Record<ImageProviderId, string> = {
   'grok-image': 'providerGrokImage',
   'comfyui-image': 'providerComfyUIImage',
   'openrouter-image': 'providerOpenRouterImage',
+  'huggingface-image': 'providerHuggingFaceImage',
   lemonade: 'providerLemonadeImage',
 };
 
