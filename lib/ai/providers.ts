@@ -47,6 +47,7 @@ import type {
   ProviderConfig,
   ModelInfo,
   ModelConfig,
+  ThinkingCapability,
   ThinkingConfig,
 } from '@/lib/types/provider';
 import { applyModelMetadata, getCatalogThinkingCapability } from './model-metadata';
@@ -73,6 +74,23 @@ export type { ProviderId, ProviderConfig, ModelInfo, ModelConfig };
 
 /** Provider IDs whose logos are monochrome-dark and need `dark:invert` in dark mode */
 export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'openrouter', 'ollama']);
+
+/**
+ * Fallback thinking untuk id CLI live yang belum terdaftar di
+ * THINKING_CAPABILITIES (model-metadata.ts, sumber utama capability —
+ * applyModelMetadata menimpa inline di bawah). Set generik prompt-hint yang
+ * aman: disalurkan sebagai instruksi prompt oleh lib/ai/opencode-cli.ts
+ * (buildThinkingHints), tak pernah sebagai `#variant` natif.
+ */
+export const OPENCODE_CLI_THINKING: ThinkingCapability = {
+  control: 'effort',
+  requestAdapter: 'opencode',
+  effortValues: ['none', 'low', 'medium', 'high', 'max'],
+  defaultEffort: 'medium',
+  toggleable: true,
+  budgetAdjustable: false,
+  defaultEnabled: true,
+};
 
 /**
  * Provider registry
@@ -1769,6 +1787,13 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         outputWindow: 32000,
         capabilities: { streaming: true, tools: true, vision: false },
       },
+      {
+        id: 'fledge-alpha-free',
+        name: 'Fledge Alpha Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
     ],
   },
 
@@ -1785,12 +1810,209 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     requiresApiKey: false,
     icon: '/logos/opencode.svg',
     models: [
+      // Daftar cermin `opencode models` (provider opencode-go/*). Angka
+      // konteks = cermin model Zen seinduk, hanya estimasi kompaksi internal
+      // driver; tidak dikirim sebagai batas API. Thinking per model via
+      // OPENCODE_CLI_THINKING (prompt-level, lihat atas).
+      {
+        id: 'deepseek-v4-flash',
+        name: 'DeepSeek V4 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek-v4-flash-vision-exp',
+        name: 'DeepSeek V4 Flash Vision Exp (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek-v4-pro',
+        name: 'DeepSeek V4 Pro (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek-v4.1-flash',
+        name: 'DeepSeek V4.1 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'glm-5.2',
+        name: 'GLM 5.2 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'glm-5.3',
+        name: 'GLM 5.3 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'glm-5.3-flash',
+        name: 'GLM 5.3 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'gpt-5.6-luna',
+        name: 'GPT 5.6 Luna (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
       {
         id: 'gpt-6-luna',
-        name: 'GPT 6 Luna',
-        // Angka cermin model Zen seinduk (terverifikasi: slug katalog CLI,
-        // bukan jendela konteks resmi). Hanya dipakai estimasi kompa ksi
-        // internal driver; tidak dikirim sebagai batas API.
+        name: 'GPT 6 Luna (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'grok-4.6',
+        name: 'Grok 4.6 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'grok-4.7',
+        name: 'Grok 4.7 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'hy3',
+        name: 'Hy3 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'hy4-preview',
+        name: 'Hy4 Preview (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'kimi-k2.7-code',
+        name: 'Kimi K2.7 Code (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'kimi-k3',
+        name: 'Kimi K3 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'longcat-2.0',
+        name: 'LongCat 2.0 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'longcat-2.5-preview-free',
+        name: 'LongCat 2.5 Preview Free (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.5',
+        name: 'MiMo V2.5 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.5-pro',
+        name: 'MiMo V2.5 Pro (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.6-flash',
+        name: 'MiMo V2.6 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.6-pro',
+        name: 'MiMo V2.6 Pro (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'minimax-m2.7',
+        name: 'MiniMax M2.7 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'minimax-m3',
+        name: 'MiniMax M3 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'muse-spark-1.2-contributor',
+        name: 'Muse Spark 1.2 Contributor (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'muse-spark-1.3-contributor',
+        name: 'Muse Spark 1.3 Contributor (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'qwen3.7-plus',
+        name: 'Qwen3.7 Plus (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'qwen3.8-flash',
+        name: 'Qwen3.8 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'qwen3.8-max',
+        name: 'Qwen3.8 Max (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'space-bunny-free',
+        name: 'Space Bunny Free (Go)',
         contextWindow: 256000,
         outputWindow: 32000,
         capabilities: { streaming: true, tools: true, vision: false },

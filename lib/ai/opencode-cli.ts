@@ -164,11 +164,64 @@ export function toCliModelId(modelId: string, cliProvider = 'opencode'): string 
   return trimmed.includes('/') ? trimmed : `${cliProvider}/${trimmed}`;
 }
 
-export function buildOpencodeArgs(modelId: string, cliProvider = 'opencode'): string[] {
+/**
+ * Varian thinking NATIF CLI (`-m <provider>/<id>#<variant>`, /variants TUI)
+ * yang TERVERIFIKASI LIVE per model — variant tak dikenal ditolak CLI
+ * ("Variant unavailable"), jadi tabel ini harus persis hasil probe:
+ * - opencode/muse-spark-1.3-contributor-free: minimal,low,medium,high,xhigh
+ * - opencode/space-bunny-free: low,medium,high,max,xhigh
+ * - opencode/fledge-alpha-free: low,high,max
+ * Model lain (big-pickle, longcat, mimo, ling, nemotron, dan semua yang
+ * terprobe tanpa varian — kimi, deepseek, glm-5.2, qwen, minimax, hy4)
+ * TIDAK punya varian natif: effort disalurkan sebagai instruksi prompt
+ * (buildThinkingHints). Model `opencode-go/*` yang tak terprobe (401 di
+ * kredensial ini) sengaja tak didaftarkan — prompt-hint tak pernah error.
+ */
+export const OPENCODE_NATIVE_VARIANTS: Readonly<Record<string, readonly string[]>> = {
+  'opencode:muse-spark-1.3-contributor-free': ['minimal', 'low', 'medium', 'high', 'xhigh'],
+  'opencode:space-bunny-free': ['low', 'medium', 'high', 'max', 'xhigh'],
+  'opencode:fledge-alpha-free': ['low', 'high', 'max'],
+  // Inferensi keluarga (belum terverifikasi live — kredensial ini 401 untuk
+  // semua `opencode-go/*`, sehingga probe varian tak bisa jalan; cermin
+  // varian keluarga seinduk di `opencode/*` + bukti parsial `gpt-6-luna#low`
+  // lolos validasi saat backend melayani). Bila inferensi meleset,
+  // runOpencodeCli otomatis ulangi SEKALI tanpa variant + hint prompt
+  // (lihat bawah), jadi tak pernah menjadi error fatal bagi user.
+  'opencode-go:muse-spark-1.2-contributor': ['minimal', 'low', 'medium', 'high', 'xhigh'],
+  'opencode-go:muse-spark-1.3-contributor': ['minimal', 'low', 'medium', 'high', 'xhigh'],
+  'opencode-go:space-bunny-free': ['low', 'medium', 'high', 'max', 'xhigh'],
+  'opencode-go:gpt-5.6-luna': ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+  'opencode-go:gpt-6-luna': ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+};
+
+/**
+ * Varian natif untuk model+effort, atau undefined (pakai prompt-hint).
+ * Kunci `${cliProvider}:${modelId}` dengan modelId bare (tanpa `#variant`).
+ */
+export function cliNativeVariant(
+  modelId: string,
+  cliProvider: string,
+  effort: string | undefined,
+): string | undefined {
+  if (!effort) return undefined;
+  const bare = modelId.trim().split('#')[0];
+  const list = OPENCODE_NATIVE_VARIANTS[`${cliProvider}:${bare}`];
+  return list?.includes(effort) ? effort : undefined;
+}
+
+export function buildOpencodeArgs(
+  modelId: string,
+  cliProvider = 'opencode',
+  variant?: string,
+): string[] {
   // v2 `opencode run` tidak punya --dir / --dangerously-skip-permissions
   // (flag v1): sandboxing dicapai via cwd proses = direktori temp kosong.
   // `--auto` = setujui permission yang tidak eksplisit ditolak (non-interaktif).
-  return ['run', '--format', 'json', '--auto', '-m', toCliModelId(modelId, cliProvider)];
+  // Varian natif ditempel sebagai `#variant` (`-m provider/id#variant`,
+  // /variants TUI); tanpa varian = model dasar.
+  const base = ['run', '--format', 'json', '--auto', '-m', toCliModelId(modelId, cliProvider)];
+  if (variant) base[base.length - 1] += `#${variant}`;
+  return base;
 }
 
 // ---------------------------------------------------------------------------
@@ -423,6 +476,11 @@ export interface RunOpencodeCliOptions {
   abortSignal?: AbortSignal;
   timeoutMs?: number;
   onTextDelta?: (delta: string) => void;
+  /**
+   * Varian thinking natif (`#variant` /variants TUI). Ditempel ke `-m` sebagai
+   * `provider/id#variant`; tanpa ini = model dasar.
+   */
+  variant?: string;
 }
 
 export interface RunOpencodeCliResult {
@@ -536,8 +594,10 @@ export async function runOpencodeCli(
   // Sandbox: direktori temp kosong agar file-ops agen tidak menyentuh repo.
   const { spawn, fs, os, path } = await loadNodeBuiltins();
   const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'openmaic-opencode-'));
-  let args = buildOpencodeArgs(modelId, cliProvider);
+  let args = buildOpencodeArgs(modelId, cliProvider, options.variant);
+  let activePromptText = promptText;
   let retriedWithoutFlags = false;
+  let retriedWithoutVariant = false;
 
   const attempt = (): Promise<RunOpencodeCliResult> =>
     new Promise((resolve, reject) => {
@@ -658,7 +718,7 @@ export async function runOpencodeCli(
       // Prompt via stdin (open-design: hindari ENAMETOOLONG + parsing `-`).
       try {
         child.stdin?.on('error', () => {});
-        child.stdin?.write(promptText);
+        child.stdin?.write(activePromptText);
         child.stdin?.end();
       } catch (err) {
         fail(err instanceof Error ? err : new Error(String(err)));
@@ -668,12 +728,28 @@ export async function runOpencodeCli(
   try {
     return await attempt();
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    // Varian ditolak backend ("Variant unavailable"): katalog varian berubah
+    // atau inferensi keluarga di OPENCODE_NATIVE_VARIANTS meleset. Ulangi
+    // SEKALI tanpa `#variant` + hint prompt sebagai gantinya — validasi
+    // varian bersifat lokal (tanpa kuota), jadi retry ini murah dan tak
+    // pernah mengubah error auth/model menjadi sukses palsu.
+    if (options.variant && !retriedWithoutVariant && /variant unavailable/i.test(message)) {
+      retriedWithoutVariant = true;
+      args = buildOpencodeArgs(modelId, cliProvider);
+      const hint = buildThinkingHints(options.variant);
+      if (hint) activePromptText += `\n\n${hint}`;
+      return await attempt().catch((retryErr) => {
+        // Gagal lagi tanpa varian = masalah model/auth yang sesungguhnya.
+        throw retryErr;
+      });
+    }
     // Fallback: CLI lama tanpa --auto -> ulangi tanpa flag tersebut
     // (sekali saja).
-    const message = err instanceof Error ? err.message : String(err);
     if (!retriedWithoutFlags && /unrecognized flag|unknown (flag|option)/i.test(message)) {
       retriedWithoutFlags = true;
       args = ['run', '--format', 'json', '-m', toCliModelId(modelId)];
+      if (options.variant && !retriedWithoutVariant) args[args.length - 1] += `#${options.variant}`;
       return attempt();
     }
     throw err;
@@ -698,6 +774,15 @@ type CliCallOptions = {
   tools?: Array<{ type: string; name?: string; description?: string; inputSchema?: unknown }>;
   toolChoice?: string | { type?: string; toolName?: string };
   abortSignal?: AbortSignal;
+  /**
+   * Opsi provider dari AI SDK (diteruskan generateText/streamText). Jalur CLI
+   * hanya membaca `opencode.thinkingEffort` (diisi lib/ai/llm.ts dari
+   * ThinkingConfig per model) menjadi instruksi prompt — bukan wire-param.
+   */
+  providerOptions?: {
+    opencode?: { thinkingEffort?: string };
+    [key: string]: unknown;
+  };
 };
 
 type CliWarning =
@@ -803,6 +888,46 @@ export function applyStopSequences(text: string, stopSequences?: string[]): stri
 export function estimateTokens(text: string): number {
   if (!text) return 0;
   return Math.max(0, Math.ceil(text.length / 4));
+}
+
+/**
+ * Ambil varian thinking untuk transport CLI dari providerOptions
+ * (`opencode.thinkingEffort`, diisi lib/ai/llm.ts dari ThinkingConfig
+ * per-model pilihan workbench). Tanpa config eksplisit -> undefined (tanpa
+ * hint, perilaku lama dipertahankan).
+ */
+export function cliThinkingEffort(options: CliCallOptions): string | undefined {
+  const raw = options.providerOptions?.opencode?.thinkingEffort;
+  if (typeof raw !== 'string') return undefined;
+  const effort = raw.trim().toLowerCase();
+  return ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].includes(effort)
+    ? effort
+    : undefined;
+}
+
+/**
+ * Paritas thinking varian dengan jalur HTTP ber-key — untuk transport CLI
+ * yang tidak punya wire-param reasoning, varian disalurkan sebagai instruksi
+ * prompt (pendekatan yang sama dipakai buildSamplingHints di atas).
+ * Tanpa effort eksplisit -> '' (tanpa hint).
+ */
+export function buildThinkingHints(effort: string | undefined): string {
+  switch (effort) {
+    case 'none':
+    case 'minimal':
+      return '[thinking]\nJawab LANGSUNG ke intinya tanpa penalaran panjang: hasil akhir saja, ringkas.';
+    case 'low':
+      return '[thinking]\nBernalarlah ringkas sebelum menjawab; utamakan kecepatan dan jawaban pendek yang tepat.';
+    case 'high':
+      return '[thinking]\nBernalarlah MENDALAM sebelum menjawab: pertimbangkan alternatif, edge case, dan konsekuensi; jawaban boleh panjang bila perlu.';
+    case 'xhigh':
+    case 'max':
+      return '[thinking]\nBernalarlah SEMAKSIMAL mungkin sebelum menjawab: eksplorasi menyeluruh, verifikasi silang setiap langkah, dan jelaskan alasan kuncinya; kedalaman lebih penting dari kecepatan.';
+    case 'medium':
+      return '[thinking]\nSeimbangkan penalaran dan ketepatan: bernalar secukupnya sebelum menjawab.';
+    default:
+      return '';
+  }
 }
 
 function promptWithFormatHint(
@@ -1233,8 +1358,11 @@ type CliContentPart =
   | { type: 'text'; text: string }
   | { type: 'tool-call'; toolCallId: string; toolName: string; input: string };
 
-/** Prompt stdin: flatten + hint sampling + instruksi tools (bila ada) + hint format. */
-function buildCliPrompt(options: CliCallOptions): {
+/** Prompt stdin: flatten + hint sampling + hint thinking + instruksi tools (bila ada) + hint format. */
+function buildCliPrompt(
+  options: CliCallOptions,
+  cli?: { modelId: string; cliProvider: string },
+): {
   promptText: string;
   funcTools: CliFunctionToolDef[];
 } {
@@ -1244,6 +1372,12 @@ function buildCliPrompt(options: CliCallOptions): {
   let promptText = flattenPromptToText(options.prompt);
   const sampling = buildSamplingHints(options);
   if (sampling) promptText += `\n\n${sampling}`;
+  // Varian natif (`#variant`) sudah mengatur reasoning di sisi CLI — hint
+  // prompt hanya untuk model tanpa varian natif (agar tak ganda).
+  const effort = cliThinkingEffort(options);
+  const native = cli ? cliNativeVariant(cli.modelId, cli.cliProvider, effort) : undefined;
+  const thinking = buildThinkingHints(native ? undefined : effort);
+  if (thinking) promptText += `\n\n${thinking}`;
   if (withTools) {
     promptText += `\n\n${buildToolCallingInstructions(funcTools, options.toolChoice)}`;
   }
@@ -1271,6 +1405,7 @@ async function runCliWithToolRepair(input: {
   stopSequences?: string[];
   abortSignal?: AbortSignal;
   timeoutMs?: number;
+  variant?: string;
 }): Promise<{
   promptText: string;
   stoppedText: string;
@@ -1285,6 +1420,7 @@ async function runCliWithToolRepair(input: {
       promptText,
       abortSignal: input.abortSignal,
       timeoutMs: input.timeoutMs,
+      variant: input.variant,
     });
   const parseOnce = (rawText: string) => {
     const stoppedText = applyStopSequences(rawText, input.stopSequences);
@@ -1391,7 +1527,9 @@ export class OpencodeCliLanguageModel {
     usage: V3Usage;
     warnings: CliWarning[];
   }> {
-    const { promptText, funcTools } = buildCliPrompt(options);
+    const cliRef = { modelId: this.modelId, cliProvider: this.cliProvider };
+    const variant = cliNativeVariant(this.modelId, this.cliProvider, cliThinkingEffort(options));
+    const { promptText, funcTools } = buildCliPrompt(options, cliRef);
     if (funcTools.length > 0) {
       const resolved = await runCliWithToolRepair({
         modelId: this.modelId,
@@ -1402,6 +1540,7 @@ export class OpencodeCliLanguageModel {
         treatStrayMarkerAsAttempt: options.responseFormat?.type !== 'json',
         stopSequences: options.stopSequences,
         abortSignal: options.abortSignal,
+        variant,
       });
       if (resolved.calls.length > 0) {
         const content: CliContentPart[] = [];
@@ -1433,6 +1572,7 @@ export class OpencodeCliLanguageModel {
       cliProvider: this.cliProvider,
       promptText,
       abortSignal: options.abortSignal,
+      variant,
     });
     const stoppedText = applyStopSequences(result.text, options.stopSequences);
     return {
@@ -1447,7 +1587,11 @@ export class OpencodeCliLanguageModel {
     stream: ReadableStream<Record<string, unknown>>;
   }> {
     const warnings = buildCliWarnings(options);
-    const { promptText, funcTools } = buildCliPrompt(options);
+    const variant = cliNativeVariant(this.modelId, this.cliProvider, cliThinkingEffort(options));
+    const { promptText, funcTools } = buildCliPrompt(options, {
+      modelId: this.modelId,
+      cliProvider: this.cliProvider,
+    });
     const stopSequences = options.stopSequences;
     const modelId = this.modelId;
     const cliProvider = this.cliProvider;
@@ -1471,6 +1615,7 @@ export class OpencodeCliLanguageModel {
               cliProvider,
               promptText,
               abortSignal: options.abortSignal,
+              variant,
               onTextDelta: (delta) => {
                 if (stopped) return;
                 collected += delta;
@@ -1507,6 +1652,7 @@ export class OpencodeCliLanguageModel {
               treatStrayMarkerAsAttempt: options.responseFormat?.type !== 'json',
               stopSequences,
               abortSignal: options.abortSignal,
+              variant,
             });
             const stoppedText = resolved.stoppedText;
             if (resolved.calls.length > 0) {

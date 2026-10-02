@@ -159,6 +159,14 @@ function buildThinkingProviderOptions(
   const mode = getThinkingMode(config);
 
   switch (thinking.requestAdapter) {
+    case 'opencode': {
+      // Transport CLI tidak punya wire-param reasoning: effort diteruskan
+      // sebagai providerOptions `opencode.thinkingEffort`, dibaca
+      // OpencodeCliLanguageModel menjadi instruksi prompt (buildThinkingHints).
+      const effort = pickThinkingEffort(thinking, config);
+      return effort ? { opencode: { thinkingEffort: effort } } : undefined;
+    }
+
     case 'openai': {
       const effort = pickThinkingEffort(thinking, config);
       return effort ? { openai: { reasoningEffort: effort } } : undefined;

@@ -4,7 +4,7 @@ import { getStageRoute } from '@/lib/server/model-routes';
 import { resolveModel, type ResolvedModel } from '@/lib/server/resolve-model';
 import {
   isActivatedOpencodeId,
-  normalizeOpencodeModelInput,
+  parseOpencodeModelInput,
   readActiveModelOverride,
 } from './opencode-models';
 
@@ -102,9 +102,10 @@ export async function resolveAgentDriverModel(): Promise<{
   driverApi?: string;
 }> {
   // Tombol pemilih model Pro Workbench (/workspace -> POST /api/agent/models)
-  // menyimpan override global di data/agent-driver-model.json. Override hanya
-  // berlaku untuk driver CLI free (provider `opencode`): bila MODEL_ROUTES
-  // menunjuk tier ber-key (mis. google gemini / opencode-go HTTP), override
+  // menyimpan override global di data/agent-driver-model.json: model
+  // `opencode:*` / `opencode-go:*` + varian thinking per model. Override hanya
+  // berlaku untuk driver CLI (provider `opencode`/`opencode-go`): bila
+  // MODEL_ROUTES menunjuk tier ber-key (mis. google gemini via HTTP), override
   // diabaikan agar pilihan operator ber-key tidak dibajak — tanpa restart,
   // berlaku untuk run berikutnya. Override di luar allowlist juga diabaikan.
   // Route yang hilang tetap gagal keras (kontrak "must explicitly configure")
@@ -128,7 +129,12 @@ export async function resolveAgentDriverModel(): Promise<{
         `received ${JSON.stringify(route.model)}.`,
     );
   }
-  if (route.thinking?.effort !== undefined) {
+  // Transport CLI menyalurkan thinking sebagai instruksi prompt (bukan
+  // wire-param reasoning), jadi thinking.effort legal di sini. Untuk transport
+  // HTTP, effort + function tools tetap dilarang (kontrak lama).
+  const routeIsCliTransport =
+    isOpencodeCliApi(route.api) || isOpencodeCliProvider(route.model.split(':')[0] ?? '');
+  if (route.thinking?.effort !== undefined && !routeIsCliTransport) {
     throw new Error(
       `MODEL_ROUTES stage "${AGENT_DRIVER_STAGE}" must not set thinking.effort because ` +
         `${modelId} cannot combine reasoning_effort with function tools on this transport.`,
@@ -136,13 +142,18 @@ export async function resolveAgentDriverModel(): Promise<{
   }
   const override = readActiveModelOverride();
   if (override) {
-    const bare = normalizeOpencodeModelInput(override.modelString);
+    const input = parseOpencodeModelInput(override.modelString);
     const routeIsCliFree =
       route.model.startsWith('opencode:') ||
       isOpencodeCliApi(route.api) ||
       isOpencodeCliProvider(route.model.split(':')[0] ?? '');
-    if (bare && isActivatedOpencodeId(bare) && routeIsCliFree) {
-      const connection = await resolveModel({ modelString: override.modelString });
+    if (input && isActivatedOpencodeId(input.bare, input.provider) && routeIsCliFree) {
+      const connection = await resolveModel({
+        modelString: override.modelString,
+        // Varian thinking tombol workbench menang; bila tak diset, pakai
+        // thinking stage operator (bila ada) agar default operator ikut.
+        thinkingConfig: override.thinking ?? route.thinking,
+      });
       const driverApi = override.api || 'opencode-cli';
       const isCliDriver = true;
       return {
@@ -166,7 +177,8 @@ export async function resolveAgentDriverModel(): Promise<{
     connection,
     piModel: buildPiDriverModel(connection, route.api, route.contextWindow),
     wireMaxOutputTokens,
-    reservedOutputTokens: connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
+    reservedOutputTokens:
+      connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
     isCliDriver,
     driverApi: route.api,
   };

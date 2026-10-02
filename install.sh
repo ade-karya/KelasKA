@@ -28,8 +28,15 @@
 #      1 Gemini (google:gemini-3.5-flash-lite), 2 OpenCode Go
 #      (opencode-go:gpt-6-luna), 3 OpenCode free CLI
 #      (opencode:muse-spark-1.3-contributor-free sebagai default, dengan
-#      OPENCODE_MODELS berisi SEMUA model free dari `opencode models`).
-#      Installer mengambil daftar model free via CLI (`opencode models`,
+#      OPENCODE_MODELS berisi SEMUA model opencode yang tersedia: bila
+#      `opencode auth login` sudah dilakukan user pemilik sesi, SEMUA model
+#      dari `opencode models` diaktifkan; bila belum login, hanya model free —
+#      plus OPENCODE_GO_MODELS untuk SEMUA model `opencode-go/*` (grup kedua
+#      pemilih model; bila sudah login berisi semua, bila belum login
+#      dikosongkan = grup Go disembunyikan; login lalu jalankan ulang
+#      installer untuk memunculkannya).
+#      Installer mengecek status login dulu (`opencode auth list` + file
+#      auth.json milik pemilik sesi) via CLI (`opencode models`,
 #      fallback katalog lib/ai/providers.ts) lalu mengaktifkan semuanya di
 #      OPENCODE_MODELS (comma-separated) agar tombol pemilih model di halaman
 #      Pro Workbench (/workspace) bisa memilih di antaranya. API key
@@ -683,6 +690,8 @@ tulis_template_env() {
   local tier_name="$6" tier_default="$7" tier_driver="$8" tier_pin="$9"
   local tier_key1_line="${10}" tier_key2_line="${11}" tier_key2go_line="${12}"
   local tts_browser_line="${13:-TTS_BROWSER_NATIVE_ENABLED=true}"
+  # Tanpa colon (`-` bukan `:-`): "" eksplisit = disembunyikan, bukan fallback.
+  local tier_gopin="${14-$OPENCODE_GO_FREE_FALLBACK}"
   # PENTING: heredoc di bawah SENGAJA tanpa quote (<<EOF) agar ${...} dan
   # $(date ...) terekspansi. Konsekuensinya backtick literal dan $(...) ikut
   # dieksekusi shell — jadi semua backtick literal WAJIB ditulis \`...\`.
@@ -734,9 +743,15 @@ ${tier_key1_line}
 ${tier_key2_line}
 ${tier_key2go_line}
 # OPENCODE_BASE_URL=https://opencode.ai/zen/v1
-# OPENCODE_MODELS: SEMUA model free yang diaktifkan (comma-separated, diambil
-# dari `opencode models` oleh install.sh; boleh diisi manual):
+# OPENCODE_MODELS: daftar login-aware (comma-separated, diambil
+# dari \`opencode models\` oleh install.sh; boleh diisi manual):
+# sudah \`opencode auth login\` -> SEMUA model tersedia; belum -> hanya free.
 # OPENCODE_MODELS=${tier_pin}
+# OPENCODE_GO_MODELS: grup kedua pemilih model (provider \`opencode-go\`,
+# comma-separated bare id; login -> semua, belum login -> KOSONG =
+# grup Go disembunyikan; login lalu jalankan ulang installer).
+# Baris AKTIF (bukan komentar) agar kosong berarti hidden, bukan fallback.
+OPENCODE_GO_MODELS=${tier_gopin}
 
 # --- Feature Flags: client (NEXT_PUBLIC_*) ------------------------------------
 # Nilai NEXT_PUBLIC_* dibaca saat start (dev) / saat build (produksi).
@@ -894,9 +909,11 @@ set_tts_browser_flag() {
 #           `opencode auth login` saja tidak cukup untuk driver HTTP.
 #   tier3 = OpenCode free CLI : opencode:muse-spark-1.3-contributor-free
 #           (default; eksekusi lokal, tanpa auth; terverifikasi RC=0 tanpa
-#           kredensial). SEMUA model free dari `opencode models` diambil lalu
-#           diaktifkan di OPENCODE_MODELS (comma-separated); tombol pemilih model
-#           di /workspace memilih di antaranya (GET/POST /api/agent/models).
+#           kredensial). Daftar model login-aware: sudah `opencode auth login`
+#           -> SEMUA model `opencode` tersedia; belum login -> hanya model free.
+#           Daftar diaktifkan di OPENCODE_MODELS (comma-separated); tombol
+#           pemilih model di /workspace memilih di antaranya
+#           (GET/POST /api/agent/models).
 TIER1_MODEL="google:gemini-3.5-flash-lite"
 TIER1_KEY_VAR="GOOGLE_API_KEY"
 TIER2_MODEL="opencode-go:gpt-6-luna"
@@ -905,36 +922,168 @@ TIER2_KEY_HTTP="OPENCODE_GO_API_KEY"
 TIER3_MODEL="opencode:muse-spark-1.3-contributor-free"
 # Fallback katalog provider `opencode` (lib/ai/providers.ts) bila CLI belum
 # ada / offline: SEMUA model free diaktifkan, bukan satu pin saja.
-OPENCODE_FREE_FALLBACK="space-bunny-free,muse-spark-1.3-contributor-free,big-pickle,longcat-2.5-preview-free,mimo-v2.6-flash-free,ling-3.0-flash-fin-free,nemotron-3-ultra-free,nemotron-3.5-lightning-free"
+OPENCODE_FREE_FALLBACK="space-bunny-free,muse-spark-1.3-contributor-free,big-pickle,longcat-2.5-preview-free,mimo-v2.6-flash-free,ling-3.0-flash-fin-free,nemotron-3-ultra-free,nemotron-3.5-lightning-free,fledge-alpha-free"
+# Nilai lama installer (sebelum grup Go disembunyikan saat belum login):
+# dikenali saat migrasi agar instalasi lama dimigrasi ke kosong, bukan
+# dianggap kustom. Kini bila belum login daftar Go = kosong (hidden).
+OPENCODE_GO_FREE_FALLBACK="space-bunny-free,longcat-2.5-preview-free"
+# Cermin `opencode models` provider opencode-go/* (dipakai bila sudah login
+# tapi fetch live gagal, atau CLI absen — lalu disegarkan saat CLI ada).
+OPENCODE_GO_ALL_FALLBACK="deepseek-v4-flash,deepseek-v4-flash-vision-exp,deepseek-v4-pro,deepseek-v4.1-flash,glm-5.2,glm-5.3,glm-5.3-flash,gpt-5.6-luna,gpt-6-luna,grok-4.6,grok-4.7,hy3,hy4-preview,kimi-k2.7-code,kimi-k3,longcat-2.0,longcat-2.5-preview-free,mimo-v2.5,mimo-v2.5-pro,mimo-v2.6-flash,mimo-v2.6-pro,minimax-m2.7,minimax-m3,muse-spark-1.2-contributor,muse-spark-1.3-contributor,qwen3.7-plus,qwen3.8-flash,qwen3.8-max,space-bunny-free"
 # Pin katalog provider `opencode` agar CLI gratis selalu discoverable.
 # Kompatibel lama (single id) — nilai aktif kini daftar comma-separated
-# dari daftar_model_free_opencode (CLI `opencode models` atau fallback).
+# dari daftar_model_aktif_opencode (login: semua model `opencode models`;
+# belum login: hanya free; fallback katalog bila CLI absen/offline).
 TIER_PIN="muse-spark-1.3-contributor-free"
+
+# User + home pemilik sesi OpenCode (bukan /root saat sudo). Dipakai cek login
+# + fetch `opencode models` agar membaca auth.json milik user yang benar.
+# Didefinisikan awal karena dipakai seksi .env.local (sebelum seksi 8 tahu
+# OPENCODE_TARGET_HOME). Idempoten, tanpa efek samping.
+opencode_target_user() {
+  local tu="${SUDO_USER:-}"
+  if [[ -z "$tu" ]]; then tu="$(id -un 2>/dev/null || printf '%s' "${USER:-}")"; fi
+  # SUDO_USER bisa basi (user dihapus setelah sudo) — fallback ke user aktif.
+  if ! id -u "$tu" >/dev/null 2>&1; then tu="$(id -un)"; fi
+  printf '%s' "$tu"
+}
+opencode_target_home() {
+  local tu="" th=""
+  tu="$(opencode_target_user)"
+  th="$(getent passwd "$tu" 2>/dev/null | cut -d: -f6 || true)"
+  if [[ -z "$th" ]]; then
+    if [[ -n "${OPENCODE_TARGET_HOME:-}" ]]; then th="$OPENCODE_TARGET_HOME";
+    elif [[ "$(id -un)" == "$tu" ]]; then th="$HOME";
+    else th="/home/$tu"; fi
+  fi
+  printf '%s' "$th"
+}
+# Jalankan perintah sebagai pemilik sesi (agar HOME/auth.json benar). Bila sudah
+# sebagai pemilik, jalan langsung; bila root-via-sudo, via run_as_root -H -u.
+# Dipakai untuk `opencode auth list` + `opencode models` (non-interaktif).
+opencode_sebagai_pemilik() {
+  local tu=""
+  tu="$(opencode_target_user)"
+  if [[ "$(id -un)" == "$tu" ]]; then
+    "$@"
+  else
+    run_as_root -H -u "$tu" "$@"
+  fi
+}
+# Cari binary opencode (dipakai cek login + fetch model). Hasil: path atau "".
+opencode_cari_bin() {
+  local bin="${1:-}" _home="" _sudo_home="" cand=""
+  if [[ -n "$bin" && -x "$bin" ]]; then printf '%s' "$bin"; return 0; fi
+  if [[ -n "${SUDO_USER:-}" ]]; then
+    _sudo_home="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)"
+  fi
+  for _home in "${_sudo_home:-}" "${OPENCODE_TARGET_HOME:-}" "$(opencode_target_home)" "$HOME"; do
+    [[ -n "$_home" ]] || continue
+    for cand in "$_home/.opencode/bin/opencode" "$_home/bin/opencode"; do
+      if [[ -x "$cand" ]]; then printf '%s' "$cand"; return 0; fi
+    done
+  done
+  bin="$(command -v opencode 2>/dev/null || true)"
+  if [[ -n "$bin" ]]; then printf '%s' "$bin"; return 0; fi
+  if [[ -n "${OPENCODE_BIN_DETECTED:-}" && -x "${OPENCODE_BIN_DETECTED:-}" ]]; then
+    printf '%s' "$OPENCODE_BIN_DETECTED"; return 0
+  fi
+  printf '%s' ""
+}
+# 0 bila `opencode auth login` sudah pernah dilakukan pemilik sesi (ada kredensial),
+# 1 bila belum. Cek berlapis (file dulu, lalu `auth list`), non-interaktif +
+# timeout agar tak menggantung. Gagal/offline = belum login (caller fallback free).
+opencode_sudah_login() {
+  local bin="" th="" auth_json="" out="" _auth_tmp=""
+  bin="$(opencode_cari_bin "${1:-}")"
+  [[ -n "$bin" && -x "$bin" ]] || return 1
+  th="$(opencode_target_home)"
+  # 1. File kredensial milik pemilik (dibaca root langsung, tanpa su).
+  # Lokasi resmi: ~/.local/share/opencode/auth.json (CLI docs).
+  for auth_json in "$th/.local/share/opencode/auth.json" "$th/.config/opencode/auth.json"; do
+    if [[ -f "$auth_json" && -s "$auth_json" ]] && command -v node >/dev/null 2>&1; then
+      if node -e '
+        const fs=require("node:fs");
+        try{
+          const j=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+          if(!j||typeof j!=="object"||Array.isArray(j)) process.exit(1);
+          const keys=Object.keys(j);
+          if(keys.length===0) process.exit(1);
+          const ada=keys.some((k)=>{
+            const v=j[k];
+            if(!v) return false;
+            if(typeof v==="string") return v.trim().length>0;
+            if(typeof v==="object") return Object.keys(v).length>0;
+            return true;
+          });
+          process.exit(ada?0:1);
+        }catch{ process.exit(1); }
+      ' "$auth_json" 2>/dev/null; then
+        return 0
+      fi
+    fi
+  done
+  # 2. `auth list` sebagai pemilik: hanya dianggap login bila perintah SUKSES dan
+  # output memuat penanda terautentikasi. Exit 0 saja tak cukup (perintah sukses
+  # juga saat tabel kosong / belum login), dan teks help (`auth ls` tidak ada
+  # di CLI v2 — mencetak USAGE/SUBCOMMANDS + "active account") tidak boleh
+  # dianggap login. Bentuk output antar versi beda: lama tabel `✓ Authed`,
+  # v2 `OpenCode Go ... stored`.
+  if ! command -v timeout >/dev/null 2>&1; then return 1; fi
+  out=""
+  _auth_tmp="$(mktemp 2>/dev/null || echo '')"
+  if [[ -n "$_auth_tmp" ]]; then
+    if opencode_sebagai_pemilik timeout 15 "$bin" auth list >"$_auth_tmp" 2>/dev/null; then
+      out="$(cat "$_auth_tmp" 2>/dev/null || true)"
+    else
+      # `auth list` gagal (CLI sangat lama?): coba alias `ls` sekali saja.
+      # Bila ini pun gagal / mencetak help, di bawah ditolak sebagai help.
+      out="$(opencode_sebagai_pemilik timeout 15 "$bin" auth ls 2>/dev/null || true)"
+    fi
+    rm -f "$_auth_tmp"
+  else
+    out="$(opencode_sebagai_pemilik timeout 15 "$bin" auth list 2>/dev/null || true)"
+    # Tanpa info exit code di jalur ini: output help ditolak di bawah anyway,
+    # output kosong berarti belum login.
+  fi
+  unset _auth_tmp
+  [[ -n "$out" ]] || return 1
+  # Tolak teks help/usage lebih dulu (mengandung "active account" + "stored
+  # credentials" sehingga lolos penanda bila tidak disaring).
+  if printf '%s' "$out" | grep -qiE 'USAGE|SUBCOMMANDS|DESCRIPTION|Unknown subcommand|^ERROR'; then
+    return 1
+  fi
+  # Tolak pesan BELUM login ("No providers authenticated...", "not logged in"):
+  # kalimatnya sendiri mengandung kata penanda ("authenticated"/"logged in").
+  if printf '%s' "$out" | grep -qiE 'no .*auth|not .*log|not .*auth|unauthenticated|no credentials|not connected|please .*login|run.*auth login'; then
+    return 1
+  fi
+  if printf '%s' "$out" | grep -qiE '✓|✔|●|authed|authenticated|logged.?in|stored'; then
+    # Hindari false-positive baris header/help ("Authentication management"):
+    # wajib ada juga nama provider / garis tabel selain header.
+    if printf '%s' "$out" | grep -qiE 'opencode|anthropic|openai|google|deepseek|zhipu|moonshot|minimax|azure|grok|qwen|kimi|glm|doubao|hunyuan|xiaomi|provider.*status|│|\|'; then
+      return 0
+    fi
+  fi
+  return 1
+}
+# Flag hasil cek login terakhir oleh daftar_model_aktif_opencode (1=sudah login
+# sehingga daftar berisi SEMUA model; 0=belum login sehingga hanya free).
+# Dipakai pesan log caller tanpa cek ulang (hemat 1x `auth list` ~15 detik).
+OPENCODE_LOGIN_DETECTED=0
 
 # Ambil SEMUA model free opencode-cli (`opencode models`) sebagai daftar
 # comma-separated, lalu aktifkan di OPENCODE_MODELS. Idempoten, toleran offline:
 # gagal/CLI absen -> fallback katalog di atas.
+# Dijalankan sebagai pemilik sesi (bukan /root saat sudo) agar auth + HOME benar.
 # Output: satu baris `id1,id2,...` (bare id tanpa prefix `opencode/`).
 daftar_model_free_opencode() {
-  local bin="${1:-}" out="" json_tmp="" txt_tmp="" _home="" _sudo_home=""
-  if [[ -z "$bin" ]]; then
-    # Saat sudo, $HOME=/root — cari home pemilik sesi dulu agar kandidat benar.
-    if [[ -n "${SUDO_USER:-}" ]]; then
-      _sudo_home="$(getent passwd "$SUDO_USER" 2>/dev/null | cut -d: -f6 || true)"
-    fi
-    for _home in "${_sudo_home:-}" "${OPENCODE_TARGET_HOME:-}" "$HOME"; do
-      [[ -n "$_home" ]] || continue
-      for cand in "$_home/.opencode/bin/opencode" "$_home/bin/opencode"; do
-        if [[ -x "$cand" ]]; then bin="$cand"; break 2; fi
-      done
-    done
-    [[ -z "$bin" ]] && bin="$(command -v opencode 2>/dev/null || true)"
-    [[ -z "$bin" ]] && bin="${OPENCODE_BIN_DETECTED:-}"
-  fi
+  local bin="" out="" json_tmp="" txt_tmp=""
+  bin="$(opencode_cari_bin "${1:-}")"
   if [[ -n "$bin" && -x "$bin" ]] && command -v timeout >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
     json_tmp="$(mktemp 2>/dev/null || echo '')"
     if [[ -n "$json_tmp" ]]; then
-      if timeout 30 "$bin" models --format json >"$json_tmp" 2>/dev/null; then
+      if opencode_sebagai_pemilik timeout 30 "$bin" models --format json >"$json_tmp" 2>/dev/null; then
         out="$(node -e '
           const fs=require("node:fs");
           try{
@@ -950,7 +1099,10 @@ daftar_model_free_opencode() {
               ids.push(id);
             }
             const free=ids.map((s)=>s.trim()).filter(Boolean)
-              .map((s)=>s.replace(/^opencode[\/:]/,""))
+              // Hanya provider `opencode` (pola mengecualikan `opencode-go/*`
+              // karena setelah `opencode` wajib `/`/`:` bukan `-`).
+              .filter((s)=>/^opencode[\/:]/i.test(s))
+              .map((s)=>s.replace(/^opencode[\/:]/i,""))
               .filter((s)=>/free$|big-pickle/i.test(s));
             console.log([...new Set(free)].join(","));
           }catch{ process.exit(1); }
@@ -961,7 +1113,7 @@ daftar_model_free_opencode() {
     if [[ -z "$out" ]]; then
       txt_tmp="$(mktemp 2>/dev/null || echo '')"
       if [[ -n "$txt_tmp" ]]; then
-        if timeout 30 "$bin" models >"$txt_tmp" 2>/dev/null; then
+        if opencode_sebagai_pemilik timeout 30 "$bin" models >"$txt_tmp" 2>/dev/null; then
           out="$(grep -oE 'opencode[/:][A-Za-z0-9._-]+' "$txt_tmp" 2>/dev/null \
             | sed -E 's|^opencode[/:]||' | grep -Ei 'free$|big-pickle' || true)"
           out="$(printf '%s' "$out" | awk 'NF && !seen[$0]++' | paste -sd, - 2>/dev/null || true)"
@@ -974,6 +1126,176 @@ daftar_model_free_opencode() {
   # Pastikan default tier3 selalu ikut (idempoten, di depan bila belum ada).
   if [[ ",${out}," != *",muse-spark-1.3-contributor-free,"* ]]; then
     out="muse-spark-1.3-contributor-free${out:+,}${out}"
+  fi
+  printf '%s' "$out"
+}
+
+# Ambil SEMUA model provider `opencode` yang tersedia untuk akun login
+# (`opencode models --format json`, tanpa filter free). Dipakai HANYA bila
+# opencode_sudah_login=0 (lihat wrapper di bawah). Provider lain (anthropic,
+# openai, ...) sengaja diabaikan: OPENCODE_MODELS menyimpan bare id untuk
+# provider `opencode` (`opencode:<id>`, lihat lib/server/agent-runtime/
+# opencode-models.ts), sehingga id luar-opencode akan menjadi salah prefix.
+# Dijalankan sebagai pemilik sesi. Output "" bila gagal (caller fallback free).
+# Satu baris `id1,id2,...` (bare id tanpa prefix `opencode/`).
+daftar_model_semua_opencode() {
+  local bin="" out="" json_tmp="" txt_tmp=""
+  bin="$(opencode_cari_bin "${1:-}")"
+  [[ -n "$bin" && -x "$bin" ]] || return 1
+  command -v timeout >/dev/null 2>&1 || return 1
+  command -v node >/dev/null 2>&1 || return 1
+  json_tmp="$(mktemp 2>/dev/null || echo '')"
+  if [[ -n "$json_tmp" ]]; then
+    if opencode_sebagai_pemilik timeout 30 "$bin" models --format json >"$json_tmp" 2>/dev/null; then
+      out="$(node -e '
+        const fs=require("node:fs");
+        try{
+          const raw=fs.readFileSync(process.argv[1],"utf8");
+          const j=JSON.parse(raw);
+          const arr=Array.isArray(j)?j:(Array.isArray(j.models)?j.models:(Array.isArray(j.data)?j.data:[]));
+          const ids=[];
+          for(const m of arr){
+            if(typeof m==="string"){ ids.push(m); continue; }
+            if(!m||typeof m!=="object") continue;
+            const prov=String(m.provider||m.providerID||"");
+            let id=String(m.id||m.slug||m.name||"");
+            if(!id) continue;
+            id=id.trim();
+            // Bentuk "provider/model" penuh (mis. opencode/gpt-5): pakai apa adanya.
+            // Bentuk bare + kolom provider terpisah: gabungkan bila provider opencode.
+            if(!id.includes("/") && prov && /^opencode$/i.test(prov.trim())){
+              id="opencode/"+id;
+            }
+            ids.push(id);
+          }
+          const semua=ids.map((s)=>s.trim()).filter(Boolean)
+            .filter((s)=>/^opencode[\/:]/i.test(s))
+            .map((s)=>s.replace(/^opencode[\/:]/i,""))
+            .map((s)=>s.trim()).filter(Boolean);
+          console.log([...new Set(semua)].join(","));
+        }catch{ process.exit(1); }
+      ' "$json_tmp" 2>/dev/null || true)"
+    fi
+    rm -f "$json_tmp"
+  fi
+  if [[ -z "$out" ]]; then
+    txt_tmp="$(mktemp 2>/dev/null || echo '')"
+    if [[ -n "$txt_tmp" ]]; then
+      if opencode_sebagai_pemilik timeout 30 "$bin" models >"$txt_tmp" 2>/dev/null; then
+        out="$(grep -oE 'opencode[/:][A-Za-z0-9._-]+' "$txt_tmp" 2>/dev/null \
+          | sed -E 's|^opencode[/:]||' || true)"
+        out="$(printf '%s' "$out" | awk 'NF && !seen[$0]++' | paste -sd, - 2>/dev/null || true)"
+      fi
+      rm -f "$txt_tmp"
+    fi
+  fi
+  [[ -n "$out" ]] || return 1
+  if [[ ",${out}," != *",muse-spark-1.3-contributor-free,"* ]]; then
+    out="muse-spark-1.3-contributor-free${out:+,}${out}"
+  fi
+  printf '%s' "$out"
+}
+
+# Wrapper login-aware: bila pemilik sesi sudah `opencode auth login`, stdout
+# = SEMUA model opencode yang tersedia (free + berbayar ter-autentikasi) agar
+# bisa dipakai; bila belum login, stdout = hanya model free (perilaku lama).
+# Sekaligus mengeset OPENCODE_GO_LIST (daftar opencode-go: login -> semua,
+# belum login -> KOSONG = grup Go disembunyikan dari pemilih workbench)
+# + OPENCODE_LOGIN_DETECTED=1/0 untuk pesan log caller.
+# PENTING: panggil TANPA command substitution (output -> file sementara lalu
+# dibaca) — `var=$(fungsi)` jalan di subshell sehingga global di atas hilang.
+# Idempoten, toleran offline: login tapi fetch gagal -> fallback free.
+# Contoh:
+#   tmp="$(mktemp)"; daftar_model_aktif_opencode "" >"$tmp" 2>/dev/null
+#   OPENCODE_FREE_LIST="$(cat "$tmp")"; rm -f "$tmp"
+#   # dipakai: $OPENCODE_FREE_LIST (stdout), $OPENCODE_GO_LIST, $OPENCODE_LOGIN_DETECTED
+daftar_model_aktif_opencode() {
+  local bin=""
+  bin="$(opencode_cari_bin "${1:-}")"
+  OPENCODE_LOGIN_DETECTED=0
+  OPENCODE_GO_LIST=""
+  if [[ -n "$bin" ]] && opencode_sudah_login "$bin"; then
+    local semua="" go_semua=""
+    semua="$(daftar_model_semua_opencode "$bin" 2>/dev/null || true)"
+    go_semua="$(daftar_model_go_opencode "$bin" all 2>/dev/null || true)"
+    [[ -n "$go_semua" ]] || go_semua="$OPENCODE_GO_ALL_FALLBACK"
+    OPENCODE_GO_LIST="$go_semua"
+    if [[ -n "$semua" ]]; then
+      OPENCODE_LOGIN_DETECTED=1
+      printf '%s' "$semua"
+      return 0
+    fi
+    # Login tapi fetch gagal: jatuh ke free di bawah (jangan gagalkan installer).
+  else
+    # Belum login: grup Go disembunyikan (daftar kosong) — tak perlu fetch.
+    OPENCODE_GO_LIST=""
+  fi
+  daftar_model_free_opencode "$bin"
+}
+
+# Ambil daftar model provider `opencode-go` (`$2` = free|all) sebagai
+# comma-separated bare id. free = hanya *-free (tanpa login); all = semua
+# (butuh `opencode auth login` agar bisa dipakai, tapi katalognya publik).
+# Output "" + return 1 bila gagal (caller pakai fallback const).
+daftar_model_go_opencode() {
+  local bin="" mode="${2:-free}" out="" json_tmp="" txt_tmp=""
+  bin="$(opencode_cari_bin "${1:-}")"
+  [[ -n "$bin" && -x "$bin" ]] || return 1
+  command -v timeout >/dev/null 2>&1 || return 1
+  command -v node >/dev/null 2>&1 || return 1
+  json_tmp="$(mktemp 2>/dev/null || echo '')"
+  if [[ -n "$json_tmp" ]]; then
+    if opencode_sebagai_pemilik timeout 30 "$bin" models --format json >"$json_tmp" 2>/dev/null; then
+      out="$(GO_MODE="$mode" node -e '
+        const fs=require("node:fs");
+        try{
+          const raw=fs.readFileSync(process.argv[1],"utf8");
+          const j=JSON.parse(raw);
+          const arr=Array.isArray(j)?j:(Array.isArray(j.models)?j.models:(Array.isArray(j.data)?j.data:[]));
+          const ids=[];
+          for(const m of arr){
+            if(typeof m==="string"){ ids.push(m); continue; }
+            if(!m||typeof m!=="object") continue;
+            const prov=String(m.provider||m.providerID||"");
+            let id=String(m.id||m.slug||m.name||"");
+            if(!id) continue;
+            id=id.trim();
+            if(!id.includes("/") && prov && /^opencode-go$/i.test(prov.trim())){
+              id="opencode-go/"+id;
+            }
+            ids.push(id);
+          }
+          let go=ids.map((s)=>s.trim()).filter(Boolean)
+            .filter((s)=>/^opencode-go[\/:]/i.test(s))
+            .map((s)=>s.replace(/^opencode-go[\/:]/i,""))
+            .map((s)=>s.trim()).filter(Boolean);
+          if(process.env.GO_MODE==="free"){
+            go=go.filter((s)=>/free$/i.test(s));
+          }
+          console.log([...new Set(go)].join(","));
+        }catch{ process.exit(1); }
+      ' "$json_tmp" 2>/dev/null || true)"
+    fi
+    rm -f "$json_tmp"
+  fi
+  if [[ -z "$out" ]]; then
+    txt_tmp="$(mktemp 2>/dev/null || echo '')"
+    if [[ -n "$txt_tmp" ]]; then
+      if opencode_sebagai_pemilik timeout 30 "$bin" models >"$txt_tmp" 2>/dev/null; then
+        out="$(grep -oE 'opencode-go[/:][A-Za-z0-9._-]+' "$txt_tmp" 2>/dev/null \
+          | sed -E 's|^opencode-go[/:]||' || true)"
+        if [[ "$mode" == "free" ]]; then
+          out="$(printf '%s' "$out" | grep -Ei 'free$' || true)"
+        fi
+        out="$(printf '%s' "$out" | awk 'NF && !seen[$0]++' | paste -sd, - 2>/dev/null || true)"
+      fi
+      rm -f "$txt_tmp"
+    fi
+  fi
+  [[ -n "$out" ]] || return 1
+  # Pastikan default tier2 selalu ikut (idempoten, di depan bila belum ada).
+  if [[ ",${out}," != *",gpt-6-luna,"* ]]; then
+    out="gpt-6-luna${out:+,}${out}"
   fi
   printf '%s' "$out"
 }
@@ -1047,11 +1369,28 @@ if [[ ! -f .env.local ]]; then
   info "Membuat .env.local baru dari template..."
   # Tier dari environment (file belum ada). Runtime agen ON bila DB ada —
   # tier-3 gratis dilayani driver khusus CLI (opencode-cli, tanpa key).
-  # Ambil SEMUA model free opencode-cli lalu aktifkan di OPENCODE_MODELS.
-  OPENCODE_FREE_LIST="$(daftar_model_free_opencode "" 2>/dev/null || printf '%s' "$OPENCODE_FREE_FALLBACK")"
+  # Login-aware: sudah `opencode auth login` -> SEMUA model tersedia diaktifkan;
+  # belum login -> hanya model free (perilaku lama). Lihat daftar_model_aktif_opencode.
+  # Via file sementara (bukan $()) agar global OPENCODE_GO_LIST +
+  # OPENCODE_LOGIN_DETECTED ikut terbawa (subshell menghilangkannya).
+  _model_tmp="$(mktemp)"
+  if daftar_model_aktif_opencode "" >"$_model_tmp" 2>/dev/null; then
+    OPENCODE_FREE_LIST="$(cat "$_model_tmp")"
+  else
+    OPENCODE_FREE_LIST="$OPENCODE_FREE_FALLBACK"
+  fi
+  rm -f "$_model_tmp"; unset _model_tmp
   [[ -n "$OPENCODE_FREE_LIST" ]] || OPENCODE_FREE_LIST="$OPENCODE_FREE_FALLBACK"
-  if [[ "$OPENCODE_FREE_LIST" != "$OPENCODE_FREE_FALLBACK" ]]; then
-    info "Model free OpenCode terdeteksi (${OPENCODE_FREE_LIST})."
+  # Kosong = grup Go disembunyikan (belum login); jangan diisi fallback.
+  OPENCODE_GO_LIST="${OPENCODE_GO_LIST:-}"
+  if [[ "${OPENCODE_LOGIN_DETECTED:-0}" -eq 1 ]]; then
+    info "OpenCode sudah login — semua model tersedia diaktifkan (${OPENCODE_FREE_LIST})."
+    info "Model Go aktif (OPENCODE_GO_MODELS): ${OPENCODE_GO_LIST}."
+  else
+    if [[ "$OPENCODE_FREE_LIST" != "$OPENCODE_FREE_FALLBACK" ]]; then
+      info "Model free OpenCode terdeteksi (${OPENCODE_FREE_LIST})."
+    fi
+    info "Model Go disembunyikan (belum login; login lalu jalankan ulang installer)."
   fi
   TIER="$(pilih_tier_model .env.local)"
   if [[ "$TIER" == "tier3" ]]; then
@@ -1064,6 +1403,8 @@ if [[ ! -f .env.local ]]; then
     TIER_DRIVER="$(tier_driver_route "$TIER")"
     TIER_PIN="$OPENCODE_FREE_LIST"
   fi
+  # Daftar model Go untuk grup kedua pemilih workbench (dipakai apa pun tiernya).
+  TIER_GO_PIN="$OPENCODE_GO_LIST"
   # Baris key: aktif bila ada di environment (agar tier dari env permanen di
   # file), komentar bila tidak. Isi mentah via variabel (heredoc tidak
   # mengevaluasi ulang isi variabel) → aman untuk karakter apa pun.
@@ -1094,7 +1435,7 @@ if [[ ! -f .env.local ]]; then
     # Tulis atomik via file sementara + mv: bila template gagal di tengah,
     # .env.local tidak pernah ada dalam keadaan terpotong — run ulang aman.
     TMP_ENV_BARU="$(mktemp .env.local.tmp.XXXXXX)"
-    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" > "$TMP_ENV_BARU" \
+    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" "$TIER_GO_PIN" > "$TMP_ENV_BARU" \
       || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
     chmod 600 "$TMP_ENV_BARU"
     mv -f "$TMP_ENV_BARU" .env.local
@@ -1103,7 +1444,7 @@ if [[ ! -f .env.local ]]; then
     fi
   else
     TMP_ENV_BARU="$(mktemp .env.local.tmp.XXXXXX)"
-    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" > "$TMP_ENV_BARU" \
+    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" "$TIER_GO_PIN" > "$TMP_ENV_BARU" \
       || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
     chmod 600 "$TMP_ENV_BARU"
     mv -f "$TMP_ENV_BARU" .env.local
@@ -1136,11 +1477,22 @@ else
   for kk in GOOGLE_API_KEY OPENCODE_API_KEY OPENCODE_GO_API_KEY; do
     selaraskan_key_env .env.local "$kk"
   done
-  # Ambil SEMUA model free lalu aktifkan di OPENCODE_MODELS (tombol pemilih
-  # model /workspace memakai daftar ini via GET /api/agent/models).
-  OPENCODE_FREE_LIST="$(daftar_model_free_opencode "" 2>/dev/null || printf '%s' "$OPENCODE_FREE_FALLBACK")"
+  # Login-aware: sudah `opencode auth login` -> SEMUA model tersedia diaktifkan
+  # di OPENCODE_MODELS (+ OPENCODE_GO_MODELS); belum login -> hanya model free
+  # (perilaku lama). Via file sementara agar global wrapper terbawa.
+  # Tombol pemilih model /workspace memakai daftar ini via GET /api/agent/models.
+  _model_tmp="$(mktemp)"
+  if daftar_model_aktif_opencode "" >"$_model_tmp" 2>/dev/null; then
+    OPENCODE_FREE_LIST="$(cat "$_model_tmp")"
+  else
+    OPENCODE_FREE_LIST="$OPENCODE_FREE_FALLBACK"
+  fi
+  rm -f "$_model_tmp"; unset _model_tmp
   [[ -n "$OPENCODE_FREE_LIST" ]] || OPENCODE_FREE_LIST="$OPENCODE_FREE_FALLBACK"
+  # Kosong = grup Go disembunyikan (belum login); jangan diisi fallback.
+  OPENCODE_GO_LIST="${OPENCODE_GO_LIST:-}"
   TIER_PIN="$OPENCODE_FREE_LIST"
+  TIER_GO_PIN="$OPENCODE_GO_LIST"
   TIER="$(pilih_tier_model .env.local)"
   if [[ "$TIER" == "tier3" ]]; then
     TIER_DEFAULT="$(tier3_default_dari_daftar "$OPENCODE_FREE_LIST")"
@@ -1150,7 +1502,13 @@ else
     TIER_DRIVER="$(tier_driver_route "$TIER")"
   fi
   info "Tier model Pro Workbench: ${TIER} (${TIER_DEFAULT})."
-  info "Model free aktif (OPENCODE_MODELS): ${OPENCODE_FREE_LIST}."
+  if [[ "${OPENCODE_LOGIN_DETECTED:-0}" -eq 1 ]]; then
+    info "Model aktif (OPENCODE_MODELS, sudah login): ${OPENCODE_FREE_LIST}."
+    info "Model Go aktif (OPENCODE_GO_MODELS): ${OPENCODE_GO_LIST}."
+  else
+    info "Model free aktif (OPENCODE_MODELS): ${OPENCODE_FREE_LIST}."
+    info "Model Go disembunyikan (belum login; login lalu jalankan ulang installer)."
+  fi
   # Driver HTTP tier2 membaca OPENCODE_GO_API_KEY; samakan dari kunci utama
   # bila kolom GO belum ada sama sekali (aktif maupun komentar) — gateway
   # Zen yang sama. Nilai GO eksplisit tidak disentuh.
@@ -1200,17 +1558,18 @@ else
   fi
   # OPENCODE_MODELS: pastikan_var_env di bawah tidak menimpa nilai yang sudah
   # ada, jadi pin milik installer harus dipindah eksplisit di sini. Nilai
-  # kustom lain tidak disentuh. Model free kini daftar comma-separated berisi
-  # SEMUA model free (tombol /workspace memilih di antaranya). Hanya migrasi
-  # bila tiap entri adalah id milik installer (daftar fallback) — nilai kustom
-  # operator (mis. berisi id non-free) dipertahankan.
+  # kustom lain tidak disentuh. Daftar kini login-aware: sudah login berisi
+  # SEMUA model tersedia, belum login berisi SEMUA model free (tombol
+  # /workspace memilih di antaranya). Hanya migrasi bila tiap entri adalah id
+  # milik installer (daftar fallback + daftar live saat ini) — nilai kustom
+  # operator (mis. berisi id di luar keduanya) dipertahankan.
   CUR_PIN="$(env_get .env.local OPENCODE_MODELS)"
   if [[ -n "$CUR_PIN" ]]; then
     _pin_milik_installer=1
     _ifs_lama="$IFS"; IFS=','; set -f
     for _satu in $CUR_PIN; do
       _satu="$(printf '%s' "$_satu" | tr -d '[:space:]' | sed -E 's|^opencode[/:]||')"
-      case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna," in
+      case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna,${TIER_PIN}," in
         *",${_satu},"*) ;;
         *) _pin_milik_installer=0; break ;;
       esac
@@ -1219,11 +1578,42 @@ else
     if [[ "$_pin_milik_installer" -eq 1 && "$CUR_PIN" != "$TIER_PIN" ]]; then
       PIN_ESCAPED="$(sed_escape_replacement "$TIER_PIN")"
       sed -i -E "s|^[[:space:]]*OPENCODE_MODELS=.*|OPENCODE_MODELS=${PIN_ESCAPED}|" .env.local
-      info "OPENCODE_MODELS dipindah ${CUR_PIN} -> ${TIER_PIN} (semua model free aktif)."
+      if [[ "${OPENCODE_LOGIN_DETECTED:-0}" -eq 1 ]]; then
+        info "OPENCODE_MODELS dipindah ${CUR_PIN} -> ${TIER_PIN} (semua model tersedia, sudah login)."
+      else
+        info "OPENCODE_MODELS dipindah ${CUR_PIN} -> ${TIER_PIN} (semua model free aktif)."
+      fi
     elif [[ "$_pin_milik_installer" -eq 0 ]]; then
       info "OPENCODE_MODELS kustom dipertahankan (${CUR_PIN})."
     fi
     unset _pin_milik_installer
+  fi
+  # OPENCODE_GO_MODELS (grup kedua pemilih workbench): migrasi milik installer
+  # yang sama — allowlist = fallback free + fallback all + live saat ini.
+  CUR_GO_PIN="$(env_get .env.local OPENCODE_GO_MODELS)"
+  if [[ -n "$CUR_GO_PIN" ]]; then
+    _go_milik_installer=1
+    _ifs_go="$IFS"; IFS=','; set -f
+    for _satu_go in $CUR_GO_PIN; do
+      _satu_go="$(printf '%s' "$_satu_go" | tr -d '[:space:]' | sed -E 's|^opencode-go[/:]||')"
+      case ",${OPENCODE_GO_FREE_FALLBACK},${OPENCODE_GO_ALL_FALLBACK},${TIER_GO_PIN}," in
+        *",${_satu_go},"*) ;;
+        *) _go_milik_installer=0; break ;;
+      esac
+    done
+    set +f; IFS="$_ifs_go"; unset _ifs_go _satu_go
+    if [[ "$_go_milik_installer" -eq 1 && "$CUR_GO_PIN" != "$TIER_GO_PIN" ]]; then
+      GO_PIN_ESCAPED="$(sed_escape_replacement "$TIER_GO_PIN")"
+      sed -i -E "s|^[[:space:]]*OPENCODE_GO_MODELS=.*|OPENCODE_GO_MODELS=${GO_PIN_ESCAPED}|" .env.local
+      if [[ -z "$TIER_GO_PIN" ]]; then
+        info "OPENCODE_GO_MODELS dikosongkan (grup Go disembunyikan, belum login)."
+      else
+        info "OPENCODE_GO_MODELS dipindah ${CUR_GO_PIN} -> ${TIER_GO_PIN}."
+      fi
+    elif [[ "$_go_milik_installer" -eq 0 ]]; then
+      info "OPENCODE_GO_MODELS kustom dipertahankan (${CUR_GO_PIN})."
+    fi
+    unset _go_milik_installer
   fi
   pastikan_var_env .env.local DEFAULT_MODEL "$TIER_DEFAULT"
   pastikan_var_env .env.local MODEL_ROUTES "$TIER_DRIVER"
@@ -1231,6 +1621,7 @@ else
   # Key tier1/tier2 opsional; jangan buat key kosong yang mengesankan wajib
   # — tier dipilih dari key yang terisi. Cukup pastikan pin model tersedia.
   pastikan_var_env .env.local OPENCODE_MODELS "$TIER_PIN"
+  pastikan_var_env .env.local OPENCODE_GO_MODELS "$TIER_GO_PIN"
   pastikan_komentar_env .env.local GOOGLE_API_KEY ""
   # Native tanpa docker: izinkan URL loopback/privat (Ollama/Lemonade/FunASR/
   # SearXNG lokal). Baris berkomentar jejak template lama ikut diaktifkan.
@@ -1526,14 +1917,64 @@ PGPYEOF
   PGADMIN_DB_LEGACY="/var/lib/pgadmin4/pgadmin4.db"
   if [[ ( ! -f "$PGADMIN_DB" && ! -f "$PGADMIN_DB_LEGACY" ) || ! -e /etc/apache2/conf-enabled/pgadmin4.conf ]]; then
     info "Menjalankan setup-web.sh non-interaktif untuk ${PGADMIN_EMAIL}..."
+    # Tanpa systemd (container/docker/WSL), setup-web.sh SELALU mencetak:
+    #   "System has not been booted with systemd..." / "Failed to connect to bus"
+    #   "Error starting apache2. Please check the systemd logs"
+    # Itu BUKAN kegagalan setup DB — hanya tahap `systemctl start apache2` di
+    # dalam setup-web.sh yang memang tidak bisa jalan tanpa PID 1 systemd.
+    # Konfigurasi DB + conf Apache tetap terbentuk; Apache dinyalakan via
+    # fallback service/apache2ctl di langkah "pgAdmin4: apache" di bawah.
+    if [[ ! -d /run/systemd/system ]]; then
+      info "Lingkungan tanpa systemd terdeteksi — error 'Failed to connect to bus / Error starting apache2' dari setup-web.sh adalah normal dan diabaikan."
+    fi
     # env di depan meneruskan kredensial lewat sudo yang env_reset
     # (run_as_root meneruskannya sebagai argumen env, bukan variabel shell).
     # Pada pgAdmin 9.x variabel ini diabaikan upstream, tapi tetap
     # diteruskan untuk kompatibilitas versi lama.
-    run_as_root env PGADMIN_SETUP_EMAIL="$PGADMIN_EMAIL" \
+    # Output ditangkap lalu ditampilkan tersaring: UserWarning alembic
+    # (CHECK tanpa nama di tabel sharedserver) + noise systemd-sysv-install
+    # adalah benign dan selama ini menutupi status asli.
+    PGADMIN_SETUP_LOG="$(mktemp)"
+    PGADMIN_SETUP_RC=0
+    if run_as_root env PGADMIN_SETUP_EMAIL="$PGADMIN_EMAIL" \
       PGADMIN_SETUP_PASSWORD="$PGADMIN_PASSWORD" \
-      /usr/pgadmin4/bin/setup-web.sh --yes \
-      || warn "setup-web.sh gagal; jalankan manual: sudo /usr/pgadmin4/bin/setup-web.sh --yes"
+      /usr/pgadmin4/bin/setup-web.sh --yes >"$PGADMIN_SETUP_LOG" 2>&1; then
+      PGADMIN_SETUP_RC=0
+    else
+      PGADMIN_SETUP_RC=$?
+    fi
+    # Tampilkan log yang sudah disaring agar langkah penting tetap terlihat
+    # (Creating configuration database, Apache successfully enabled).
+    # `|| true` karena grep exit 1 bila semua baris tersaring (pipefail + set -e).
+    grep -vE "UserWarning|batch\.py:[0-9]+|Naming CHECK constraints" "$PGADMIN_SETUP_LOG" 2>/dev/null \
+      | grep -vE "Synchronizing state of apache2|systemd-sysv-install enable apache2|System has not been booted with systemd|Failed to connect to bus" || true
+    # Kriteria sukses = DB konfigurasi ada ATAU conf Apache terdaftar.
+    # Bila setup-web.sh gagal HANYA di tahap start apache (khas tanpa systemd)
+    # tapi DB/conf sudah terbentuk, anggap berhasil — Apache ditangani fallback.
+    if [[ "$PGADMIN_SETUP_RC" -ne 0 ]]; then
+      if [[ -f "$PGADMIN_DB" || -f "$PGADMIN_DB_LEGACY" || -e /etc/apache2/conf-enabled/pgadmin4.conf || -e /etc/apache2/conf-available/pgadmin4.conf ]]; then
+        warn "setup-web.sh exit ${PGADMIN_SETUP_RC} pada tahap start Apache (umum tanpa systemd) — konfigurasi DB/conf sudah ada, dilanjutkan."
+        rm -f "$PGADMIN_SETUP_LOG"
+      else
+        warn "setup-web.sh gagal (exit ${PGADMIN_SETUP_RC}); log penuh tersimpan di ${PGADMIN_SETUP_LOG}. Jalankan manual: sudo /usr/pgadmin4/bin/setup-web.sh --yes"
+        # Sengaja TIDAK dihapus agar bisa didiagnosis; run berikutnya memakai mktemp baru.
+      fi
+    else
+      # Walau exit 0, setup-web.sh tanpa systemd selalu mencetak "Error starting
+      # apache2" — tegaskan agar tidak dikira gagal bila DB/conf sudah ada.
+      if grep -qE "Error starting apache2|Failed to connect to bus" "$PGADMIN_SETUP_LOG" 2>/dev/null; then
+        info "setup-web.sh selesai (pesan 'Error starting apache2' di atas normal tanpa systemd; Apache dinyalakan via fallback service/apache2ctl di bawah)."
+      fi
+      rm -f "$PGADMIN_SETUP_LOG"
+    fi
+    # Pastikan modul/conf Apache terdaftar walau setup-web.sh berhenti di tahap
+    # start (tanpa systemd). Idempoten: a2enmod/a2enconf exit 0 bila sudah aktif.
+    if command -v a2enmod >/dev/null 2>&1; then
+      run_as_root a2enmod wsgi >/dev/null 2>&1 || true
+    fi
+    if command -v a2enconf >/dev/null 2>&1; then
+      run_as_root a2enconf pgadmin4 >/dev/null 2>&1 || true
+    fi
     # pgAdmin 9.x tidak membuat user via setup-web.sh -> buat/sinkronkan
     # eksplisit agar http://localhost/pgadmin4 langsung bisa login.
     pgadmin_sync_user || true
@@ -1580,32 +2021,40 @@ PGPYEOF
   # fallback agar pgAdmin langsung bisa dibuka). Setelah setup, selalu reload
   # agar conf pgadmin4 yang baru di-enable langsung aktif (sebelumnya hanya
   # "sudah berjalan" tanpa reload sehingga /pgadmin4 belum tentu terdaftar).
+  # Tanpa systemd, `systemctl` pasti gagal ("Host is down") — jangan coba dulu,
+  # langsung pakai service/apache2ctl agar tidak menambah noise error.
   LANGKAH="pgAdmin4: apache"
+  PGADMIN_NO_SYSTEMD=0
+  if [[ ! -d /run/systemd/system ]]; then PGADMIN_NO_SYSTEMD=1; fi
   if pgrep -x apache2 >/dev/null 2>&1; then
     info "Apache sudah berjalan."
-  elif command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+  elif [[ "$PGADMIN_NO_SYSTEMD" -eq 0 ]] && command -v systemctl >/dev/null 2>&1; then
     if run_as_root systemctl enable --now apache2; then
       info "Apache dinyalakan."
     else
       warn "Apache gagal dinyalakan — cek: sudo systemctl status apache2"
     fi
   elif command -v service >/dev/null 2>&1; then
+    # Validasi konfigurasi dulu agar pesan error jelas (mis. port bentrok),
+    # bukan sekadar "gagal" tanpa sebab.
+    run_as_root apache2ctl configtest 2>&1 || true
     if run_as_root service apache2 start; then
-      info "Apache dinyalakan."
+      info "Apache dinyalakan (via service, lingkungan tanpa systemd)."
     else
-      warn "'service apache2 start' gagal; nyalakan manual."
+      warn "'service apache2 start' gagal; cek: sudo apache2ctl configtest && sudo service apache2 status. Nyalakan manual: sudo service apache2 start"
     fi
   elif command -v apache2ctl >/dev/null 2>&1; then
+    run_as_root apache2ctl configtest 2>&1 || true
     if run_as_root apache2ctl start; then
-      info "Apache dinyalakan."
+      info "Apache dinyalakan (via apache2ctl, lingkungan tanpa systemd)."
     else
-      warn "apache2ctl start gagal; nyalakan manual."
+      warn "apache2ctl start gagal; cek: sudo apache2ctl configtest. Nyalakan manual: sudo apache2ctl start"
     fi
   else
-    warn "Apache tidak terdeteksi berjalan; nyalakan manual: sudo systemctl start apache2"
+    warn "Apache tidak terdeteksi berjalan; nyalakan manual: sudo service apache2 start (tanpa systemd) atau sudo systemctl start apache2"
   fi
   if pgrep -x apache2 >/dev/null 2>&1; then
-    if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+    if [[ "$PGADMIN_NO_SYSTEMD" -eq 0 ]] && command -v systemctl >/dev/null 2>&1; then
       run_as_root systemctl reload apache2 2>/dev/null || run_as_root systemctl restart apache2 2>/dev/null || true
     elif command -v service >/dev/null 2>&1; then
       run_as_root service apache2 reload 2>/dev/null || run_as_root service apache2 restart 2>/dev/null || true
@@ -1616,7 +2065,12 @@ PGPYEOF
   if curl -fsSL -o /dev/null --max-time 15 http://localhost/pgadmin4 2>/dev/null; then
     info "pgAdmin4 web: OK (http://localhost/pgadmin4, login ${PGADMIN_EMAIL})."
   else
-    warn "pgAdmin4 belum merespons di http://localhost/pgadmin4 — tunggu Apache selesai restart lalu coba lagi."
+    # Beri diagnosis yang bisa ditindaklanjuti, bukan sekadar "tunggu lalu coba".
+    if ! pgrep -x apache2 >/dev/null 2>&1; then
+      warn "pgAdmin4 belum merespons di http://localhost/pgadmin4 dan proses apache2 tidak jalan. Diagnosis: sudo apache2ctl configtest; sudo service apache2 status; tail -20 /var/log/apache2/error.log"
+    else
+      warn "pgAdmin4 belum merespons di http://localhost/pgadmin4 (Apache jalan tapi /pgadmin4 belum OK) — tunggu restart selesai lalu coba lagi. Bila tetap gagal: sudo apache2ctl configtest; ls /etc/apache2/conf-enabled/pgadmin4.conf; tail -20 /var/log/apache2/error.log"
+    fi
   fi
 else
   info "Lewati pgAdmin4 web (--no-pgadmin)."
@@ -1732,23 +2186,38 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
       info "OPENCODE_BIN dicatat di .env.local."
     fi
   fi
-  # Ambil SEMUA model free dari CLI lalu aktifkan di OPENCODE_MODELS
-  # (comma-separated). Template seksi 5 dibuat SEBELUM CLI terinstal sehingga
-  # nilainya masih fallback; segarkan di sini dengan hasil live `opencode models`.
+  # Login-aware: sudah `opencode auth login` -> SEMUA model tersedia diaktifkan;
+  # belum login -> hanya model free (perilaku lama). Template seksi 5 dibuat
+  # SEBELUM CLI terinstal sehingga nilainya masih fallback; segarkan di sini
+  # dengan hasil live `opencode models` sebagai pemilik sesi (bukan /root).
   # Tombol pemilih model /workspace (GET/POST /api/agent/models) memakai daftar ini.
   if [[ -f .env.local ]]; then
-    OPENCODE_FREE_LIVE="$(daftar_model_free_opencode "${OPENCODE_BIN_DETECTED:-}" 2>/dev/null || printf '%s' "$OPENCODE_FREE_FALLBACK")"
+    _live_tmp="$(mktemp)"
+    if daftar_model_aktif_opencode "${OPENCODE_BIN_DETECTED:-}" >"$_live_tmp" 2>/dev/null; then
+      OPENCODE_FREE_LIVE="$(cat "$_live_tmp")"
+    else
+      OPENCODE_FREE_LIVE="$OPENCODE_FREE_FALLBACK"
+    fi
+    rm -f "$_live_tmp"; unset _live_tmp
     [[ -n "$OPENCODE_FREE_LIVE" ]] || OPENCODE_FREE_LIVE="$OPENCODE_FREE_FALLBACK"
+    # Kosong = grup Go disembunyikan (belum login); jangan diisi fallback.
+    OPENCODE_GO_LIST="${OPENCODE_GO_LIST:-}"
+    OPENCODE_GO_LIVE="$OPENCODE_GO_LIST"
+    if [[ "${OPENCODE_LOGIN_DETECTED:-0}" -eq 1 ]]; then
+      OPENCODE_LIVE_LABEL="semua model tersedia (sudah login)"
+    else
+      OPENCODE_LIVE_LABEL="semua model free"
+    fi
     CUR_PIN_LIVE="$(env_get .env.local OPENCODE_MODELS)"
     if [[ -z "$CUR_PIN_LIVE" ]]; then
       echo "OPENCODE_MODELS=${OPENCODE_FREE_LIVE}" >> .env.local
-      info "OPENCODE_MODELS disegarkan ke semua model free: ${OPENCODE_FREE_LIVE}."
+      info "OPENCODE_MODELS disegarkan ke ${OPENCODE_LIVE_LABEL}: ${OPENCODE_FREE_LIVE}."
     else
       _live_milik_installer=1
       _ifs_live="$IFS"; IFS=','; set -f
       for _satu_live in $CUR_PIN_LIVE; do
         _satu_live="$(printf '%s' "$_satu_live" | tr -d '[:space:]' | sed -E 's|^opencode[/:]||')"
-        case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna," in
+        case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna,${OPENCODE_FREE_LIVE}," in
           *",${_satu_live},"*) ;;
           *) _live_milik_installer=0; break ;;
         esac
@@ -1758,12 +2227,12 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
         if [[ "$CUR_PIN_LIVE" != "$OPENCODE_FREE_LIVE" ]]; then
           PIN_LIVE_ESCAPED="$(sed_escape_replacement "$OPENCODE_FREE_LIVE")"
           sed -i -E "s|^[[:space:]]*OPENCODE_MODELS=.*|OPENCODE_MODELS=${PIN_LIVE_ESCAPED}|" .env.local
-          info "OPENCODE_MODELS disegarkan ke semua model free: ${OPENCODE_FREE_LIVE}."
+          info "OPENCODE_MODELS disegarkan ke ${OPENCODE_LIVE_LABEL}: ${OPENCODE_FREE_LIVE}."
         else
-          info "OPENCODE_MODELS sudah memuat semua model free (${CUR_PIN_LIVE})."
+          info "OPENCODE_MODELS sudah memuat ${OPENCODE_LIVE_LABEL} (${CUR_PIN_LIVE})."
         fi
       else
-        info "OPENCODE_MODELS kustom dipertahankan (${CUR_PIN_LIVE}); daftar free live: ${OPENCODE_FREE_LIVE}."
+        info "OPENCODE_MODELS kustom dipertahankan (${CUR_PIN_LIVE}); daftar live: ${OPENCODE_FREE_LIVE}."
       fi
       unset _live_milik_installer
     fi
@@ -1776,6 +2245,50 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
       DR_LIVE_RE='opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle'
       sed -i -E "/^[[:space:]]*MODEL_ROUTES=/ s#(${DR_LIVE_RE})#${TIER3_LIVE_ESCAPED}#g" .env.local
       info "DEFAULT_MODEL/MODEL_ROUTES diselaraskan ke default live ${TIER3_LIVE_DEFAULT}."
+    fi
+    # OPENCODE_GO_MODELS (grup kedua pemilih workbench): segarkan dengan pola
+    # milik-installer yang sama; kustom operator dipertahankan. Kosong = hidden.
+    CUR_GO_LIVE="$(env_get .env.local OPENCODE_GO_MODELS)"
+    if [[ "${OPENCODE_GO_LIVE:-}" == "" ]]; then
+      GO_LIVE_LABEL="disembunyikan (belum login)"
+    else
+      GO_LIVE_LABEL="${OPENCODE_LIVE_LABEL}"
+    fi
+    if [[ -z "$CUR_GO_LIVE" ]]; then
+      if grep -qE '^[[:space:]]*OPENCODE_GO_MODELS=' .env.local; then
+        GO_LIVE_ESCAPED="$(sed_escape_replacement "$OPENCODE_GO_LIVE")"
+        sed -i -E "s|^[[:space:]]*OPENCODE_GO_MODELS=.*|OPENCODE_GO_MODELS=${GO_LIVE_ESCAPED}|" .env.local
+      else
+        echo "OPENCODE_GO_MODELS=${OPENCODE_GO_LIVE}" >> .env.local
+      fi
+      if [[ -z "$OPENCODE_GO_LIVE" ]]; then
+        info "OPENCODE_GO_MODELS disembunyikan (belum login; login lalu jalankan ulang installer)."
+      else
+        info "OPENCODE_GO_MODELS disegarkan ke ${GO_LIVE_LABEL}: ${OPENCODE_GO_LIVE}."
+      fi
+    else
+      _go_live_milik=1
+      _ifs_go_live="$IFS"; IFS=','; set -f
+      for _satu_go_live in $CUR_GO_LIVE; do
+        _satu_go_live="$(printf '%s' "$_satu_go_live" | tr -d '[:space:]' | sed -E 's|^opencode-go[/:]||')"
+        case ",${OPENCODE_GO_FREE_FALLBACK},${OPENCODE_GO_ALL_FALLBACK},${OPENCODE_GO_LIVE}," in
+          *",${_satu_go_live},"*) ;;
+          *) _go_live_milik=0; break ;;
+        esac
+      done
+      set +f; IFS="$_ifs_go_live"; unset _ifs_go_live _satu_go_live
+      if [[ "$_go_live_milik" -eq 1 ]]; then
+        if [[ "$CUR_GO_LIVE" != "$OPENCODE_GO_LIVE" ]]; then
+          GO_LIVE_ESCAPED="$(sed_escape_replacement "$OPENCODE_GO_LIVE")"
+          sed -i -E "s|^[[:space:]]*OPENCODE_GO_MODELS=.*|OPENCODE_GO_MODELS=${GO_LIVE_ESCAPED}|" .env.local
+          info "OPENCODE_GO_MODELS disegarkan ke ${OPENCODE_LIVE_LABEL}: ${OPENCODE_GO_LIVE}."
+        else
+          info "OPENCODE_GO_MODELS sudah memuat ${OPENCODE_LIVE_LABEL} (${CUR_GO_LIVE})."
+        fi
+      else
+        info "OPENCODE_GO_MODELS kustom dipertahankan (${CUR_GO_LIVE}); daftar live: ${OPENCODE_GO_LIVE}."
+      fi
+      unset _go_live_milik
     fi
   fi
 else
@@ -1954,8 +2467,12 @@ echo '       coba manual: opencode run -m opencode/muse-spark-1.3-contributor-fr
 echo "       OPENCODE_BIN menunjuk binary absolut. Tool-calling paritas ber-key:"
 echo "       multi-blok fence, validasi skema argumen, sekali repair otomatis;"
 echo "       skills disajikan identik (hanya seed unsupported)."
-echo "       SEMUA model free dari \`opencode models\` diambil + diaktifkan di"
-echo "       OPENCODE_MODELS (comma-separated); tombol pemilih model di /workspace"
+echo "       SEMUA model dari \`opencode models\` diambil + diaktifkan di"
+echo "       OPENCODE_MODELS (provider opencode; sudah login = semua tersedia,"
+echo "       belum login = hanya free) + OPENCODE_GO_MODELS (provider"
+echo "       opencode-go: sudah login = semua, belum login = KOSONG sehingga"
+echo "       grup Go disembunyikan); tombol pemilih model di /workspace"
+echo "       (dua grup + varian thinking per model)"
 echo "       (tampilan sama dengan chat classic) memilih di antaranya"
 echo "       (GET/POST /api/agent/models, tersimpan di"
 echo "       data/agent-driver-model.json dan dipakai run berikutnya TANPA restart;"

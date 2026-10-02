@@ -1,6 +1,7 @@
 import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getStageRoute } from '@/lib/server/model-routes';
+import type { ThinkingConfig } from '@/lib/types/provider';
 import {
   activatedOpencodeModels,
   defaultTier3ModelString,
@@ -10,19 +11,35 @@ import {
 
 export const runtime = 'nodejs';
 
+export interface AgentModelItem {
+  provider: string;
+  id: string;
+  modelString: string;
+  name: string;
+  thinking?: ThinkingCapability;
+  contextWindow?: number;
+  outputWindow?: number;
+}
+
 /**
- * Daftar + pilihan model free OpenCode CLI untuk Pro Workbench.
+ * Daftar + pilihan model CLI OpenCode untuk Pro Workbench (provider
+ * `opencode` dan `opencode-go`, dua grup di pemilih).
  *
  *   GET /api/agent/models
- *     -> { active, driverApi, source, models: [{id, modelString, name}] }
+ *     -> { active, driverApi, thinking, source,
+ *          models: [{provider, id, modelString, name, thinking, ...}] }
  *
- *   POST /api/agent/models { model: "opencode:xxx" | "xxx" }
- *     -> memilih model aktif global (data/agent-driver-model.json).
- *        Berlaku untuk run berikutnya tanpa restart.
+ *   POST /api/agent/models { model: "opencode:xxx" | "opencode-go:yyy" | "xxx",
+ *                            thinking?: {...} }
+ *     -> memilih model aktif global + varian thinking per model
+ *        (data/agent-driver-model.json). Berlaku untuk run berikutnya
+ *        tanpa restart.
  *
  * `active` = override tombol bila ada, else MODEL_ROUTES maic-agent-driver,
- * else default tier3. `models` = SEMUA model free yang diaktifkan installer
- * di OPENCODE_MODELS (fallback katalog).
+ * else default tier3. `thinking` = varian thinking aktif (override, else
+ * route; tanpa default suntikan). `models` = SEMUA model yang
+ * diaktifkan installer di OPENCODE_MODELS / OPENCODE_GO_MODELS
+ * (fallback katalog).
  */
 export async function GET() {
   if (!isAgentRuntimeConfigured()) {
@@ -32,9 +49,15 @@ export async function GET() {
   const override = readActiveModelOverride();
   const routeModel = getStageRoute('maic-agent-driver')?.model?.trim() || '';
   const active = override?.modelString || routeModel || defaultTier3ModelString();
+  // Varian aktif: override tombol, else thinking stage operator. Default
+  // capability TIDAK disuntik di sini — kontrol picker menampilkannya sendiri
+  // (getDefaultThinkingConfig) dan tak ada yang tersimpan sebelum user menyentuh.
+  const thinking: ThinkingConfig | undefined =
+    override?.thinking ?? getStageRoute('maic-agent-driver')?.thinking;
   return apiSuccess({
     active,
     driverApi: override?.api ?? getStageRoute('maic-agent-driver')?.api ?? 'opencode-cli',
+    ...(thinking ? { thinking } : {}),
     source: override ? 'workbench-override' : routeModel ? 'model-routes' : 'default',
     models,
   });
@@ -57,10 +80,16 @@ export async function POST(req: Request) {
   if (!raw.trim()) {
     return apiError('MISSING_REQUIRED_FIELD', 400, 'model is required');
   }
+  const thinkingRaw = (body as { thinking?: unknown }).thinking;
   try {
-    const saved = writeActiveModelOverride(raw);
+    const saved = writeActiveModelOverride(raw, thinkingRaw);
     return apiSuccess(
-      { active: saved.modelString, driverApi: saved.api, models: activatedOpencodeModels() },
+      {
+        active: saved.modelString,
+        driverApi: saved.api,
+        ...(saved.thinking ? { thinking: saved.thinking } : {}),
+        models: activatedOpencodeModels(),
+      },
       200,
     );
   } catch (error) {

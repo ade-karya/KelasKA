@@ -9,8 +9,10 @@ import {
   buildCliWarnings,
   buildOpencodeArgs,
   buildSamplingHints,
+  buildThinkingHints,
   buildToolCallRepairInstructions,
   buildToolCallingInstructions,
+  cliThinkingEffort,
   createOpencodeCliModel,
   createOpencodeStreamParser,
   estimateTokens,
@@ -778,4 +780,226 @@ describe('opencode-cli tool calling via envelope JSON', () => {
     expect(result.steps.length).toBe(2);
     expect(result.steps[0]?.toolCalls[0]).toMatchObject({ toolName: 'jawab' });
   }, 60_000);
+});
+
+describe('opencode-cli thinking variants (prompt-level, tanpa wire-param)', () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    resetOpencodeBinCache();
+    delete process.env.OPENCODE_BIN;
+    delete process.env.OPENCODE_STUB_STDIN_CAPTURE;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    resetOpencodeBinCache();
+  });
+
+  it('buildThinkingHints: tanpa effort tak ada hint; tiap varian ada instruksinya', () => {
+    expect(buildThinkingHints(undefined)).toBe('');
+    expect(buildThinkingHints('bogus')).toBe('');
+    expect(buildThinkingHints('none')).toContain('LANGSUNG');
+    expect(buildThinkingHints('low')).toContain('ringkas');
+    expect(buildThinkingHints('medium')).toContain('Seimbangkan');
+    expect(buildThinkingHints('high')).toContain('MENDALAM');
+    expect(buildThinkingHints('max')).toContain('SEMAKSIMAL');
+  });
+
+  it('cliThinkingEffort membaca providerOptions.opencode (case-insensitive, tolak asing)', () => {
+    expect(cliThinkingEffort({ prompt: [] })).toBeUndefined();
+    expect(
+      cliThinkingEffort({
+        prompt: [],
+        providerOptions: { opencode: { thinkingEffort: 'HIGH' } },
+      }),
+    ).toBe('high');
+    expect(
+      cliThinkingEffort({ prompt: [], providerOptions: { opencode: { thinkingEffort: 'bogus' } } }),
+    ).toBeUndefined();
+  });
+
+  it('doGenerate menyalurkan varian thinking ke stdin sebagai [thinking]', async () => {
+    const stub = writeStub('opencode', SUCCESS_STUB);
+    const capture = path.join(path.dirname(stub), 'stdin-thinking.txt');
+    vi.stubEnv('OPENCODE_BIN', stub);
+    vi.stubEnv('OPENCODE_STUB_STDIN_CAPTURE', capture);
+
+    const model = createOpencodeCliModel('big-pickle') as unknown as {
+      doGenerate: (o: unknown) => Promise<{ content: Array<{ type: string; text?: string }> }>;
+    };
+    await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hi' }] }],
+      providerOptions: { opencode: { thinkingEffort: 'high' } },
+    });
+    const stdin = fs.readFileSync(capture, 'utf8');
+    expect(stdin).toContain('[thinking]');
+    expect(stdin).toContain('MENDALAM');
+    expect(stdin).toContain('Hi');
+  }, 30_000);
+
+  it('doGenerate tanpa varian thinking tidak menambah blok [thinking]', async () => {
+    const stub = writeStub('opencode', SUCCESS_STUB);
+    const capture = path.join(path.dirname(stub), 'stdin-nothinking.txt');
+    vi.stubEnv('OPENCODE_BIN', stub);
+    vi.stubEnv('OPENCODE_STUB_STDIN_CAPTURE', capture);
+
+    const model = createOpencodeCliModel('big-pickle') as unknown as {
+      doGenerate: (o: unknown) => Promise<{ content: Array<{ type: string; text?: string }> }>;
+    };
+    await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hi' }] }],
+    });
+    expect(fs.readFileSync(capture, 'utf8')).not.toContain('[thinking]');
+  }, 30_000);
+});
+
+describe('opencode-cli native #variants (/variants TUI)', () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    resetOpencodeBinCache();
+    delete process.env.OPENCODE_BIN;
+    delete process.env.OPENCODE_STUB_STDIN_CAPTURE;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    resetOpencodeBinCache();
+  });
+
+  it('cliNativeVariant hanya untuk model+effort terverifikasi', async () => {
+    const { cliNativeVariant, OPENCODE_NATIVE_VARIANTS } = await import('@/lib/ai/opencode-cli');
+    expect(OPENCODE_NATIVE_VARIANTS['opencode:muse-spark-1.3-contributor-free']).toEqual([
+      'minimal',
+      'low',
+      'medium',
+      'high',
+      'xhigh',
+    ]);
+    expect(cliNativeVariant('muse-spark-1.3-contributor-free', 'opencode', 'high')).toBe('high');
+    // max ditolak CLI untuk muse-spark -> bukan varian natif (jatuh ke hint).
+    expect(cliNativeVariant('muse-spark-1.3-contributor-free', 'opencode', 'max')).toBeUndefined();
+    expect(cliNativeVariant('big-pickle', 'opencode', 'high')).toBeUndefined();
+    // Inferensi keluarga Go: gpt-6-luna memakai set gaya OpenAI.
+    expect(cliNativeVariant('gpt-6-luna', 'opencode-go', 'high')).toBe('high');
+    expect(cliNativeVariant('gpt-6-luna', 'opencode-go', 'max')).toBeUndefined();
+    expect(cliNativeVariant('kimi-k3', 'opencode-go', 'high')).toBeUndefined();
+    expect(cliNativeVariant('big-pickle', 'opencode', undefined)).toBeUndefined();
+  });
+
+  it('buildOpencodeArgs menempel #variant pada -m', async () => {
+    const { buildOpencodeArgs } = await import('@/lib/ai/opencode-cli');
+    expect(buildOpencodeArgs('muse-spark-1.3-contributor-free', 'opencode', 'high')).toEqual([
+      'run',
+      '--format',
+      'json',
+      '--auto',
+      '-m',
+      'opencode/muse-spark-1.3-contributor-free#high',
+    ]);
+    expect(buildOpencodeArgs('big-pickle', 'opencode')).toEqual([
+      'run',
+      '--format',
+      'json',
+      '--auto',
+      '-m',
+      'opencode/big-pickle',
+    ]);
+  });
+
+  it('doGenerate memakai -m#variant natif tanpa blok [thinking]', async () => {
+    const stub = writeStub(
+      'opencode',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'if [[ -n "$OPENCODE_STUB_ARGV_CAPTURE" ]]; then printf "%s\\n" "$@" > "$OPENCODE_STUB_ARGV_CAPTURE"; fi\n' +
+        'if [[ -n "$OPENCODE_STUB_STDIN_CAPTURE" ]]; then cat > "$OPENCODE_STUB_STDIN_CAPTURE"; else cat > /dev/null; fi\n' +
+        'echo \'{"type":"text","part":{"text":"ok"}}\'\n' +
+        'exit 0\n',
+    );
+    const capture = path.join(path.dirname(stub), 'stdin-variant.txt');
+    const argvCapture = path.join(path.dirname(stub), 'argv-variant.txt');
+    vi.stubEnv('OPENCODE_BIN', stub);
+    vi.stubEnv('OPENCODE_STUB_STDIN_CAPTURE', capture);
+    vi.stubEnv('OPENCODE_STUB_ARGV_CAPTURE', argvCapture);
+
+    const model = createOpencodeCliModel('muse-spark-1.3-contributor-free') as unknown as {
+      doGenerate: (o: unknown) => Promise<{ content: Array<{ type: string; text?: string }> }>;
+    };
+    const result = await model.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hi' }] }],
+      providerOptions: { opencode: { thinkingEffort: 'high' } },
+    });
+    expect(result.content[0]).toMatchObject({ type: 'text' });
+    const stdin = fs.readFileSync(capture, 'utf8');
+    // Varian natif mengatur reasoning di sisi CLI: tanpa hint prompt.
+    expect(stdin).not.toContain('[thinking]');
+    expect(stdin).toContain('Hi');
+    // ...tetapi -m membawa #variant natif.
+    const argv = fs.readFileSync(argvCapture, 'utf8').split('\n').filter(Boolean);
+    expect(argv).toContain('opencode/muse-spark-1.3-contributor-free#high');
+  }, 30_000);
+});
+
+describe('opencode-cli variant fallback (inferensi keluarga meleset)', () => {
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    resetOpencodeBinCache();
+    delete process.env.OPENCODE_BIN;
+    delete process.env.OPENCODE_STUB_STDIN_CAPTURE;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    resetOpencodeBinCache();
+  });
+
+  it('"Variant unavailable" diulang SEKALI tanpa #variant + hint prompt', async () => {
+    const stub = writeStub(
+      'opencode-variant-fallback',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'if [[ -n "$OPENCODE_STUB_STDIN_CAPTURE" ]]; then cat > "$OPENCODE_STUB_STDIN_CAPTURE"; else cat > /dev/null; fi\n' +
+        // argv tercatat hanya saat gagal (bukti varian dipakai lalu dibuang).
+        'if printf "%s\\n" "$@" | grep -q "#"; then\n' +
+        '  echo \'{"type":"error","sessionID":"ses_v","error":{"type":"provider.no-route","message":"Variant unavailable for opencode-go/gpt-6-luna: high"}}\'\n' +
+        '  if [[ -n "$OPENCODE_STUB_ARGV_CAPTURE" ]]; then printf "%s\\n" "$@" > "$OPENCODE_STUB_ARGV_CAPTURE"; fi\n' +
+        '  exit 1\n' +
+        'fi\n' +
+        'echo \'{"type":"text","part":{"text":"ok-tanpa-varian"}}\'\n' +
+        'exit 0\n',
+    );
+    const capture = path.join(path.dirname(stub), 'stdin-fallback.txt');
+    const argvCapture = path.join(path.dirname(stub), 'argv-fallback.txt');
+    vi.stubEnv('OPENCODE_BIN', stub);
+    vi.stubEnv('OPENCODE_STUB_STDIN_CAPTURE', capture);
+    vi.stubEnv('OPENCODE_STUB_ARGV_CAPTURE', argvCapture);
+
+    const result = await runOpencodeCli({
+      modelId: 'gpt-6-luna',
+      cliProvider: 'opencode-go',
+      promptText: 'Hi',
+      variant: 'high',
+    });
+    expect(result.text).toBe('ok-tanpa-varian');
+    // Upaya pertama memakai #variant ...
+    expect(fs.readFileSync(argvCapture, 'utf8').split('\n').filter(Boolean)).toContain(
+      'opencode-go/gpt-6-luna#high',
+    );
+    // ...lalu retry membawa hint prompt sebagai ganti.
+    expect(fs.readFileSync(capture, 'utf8')).toContain('[thinking]');
+  }, 30_000);
+
+  it('tanpa variant tak ada retry (error model diteruskan apa adanya)', async () => {
+    const stub = writeStub(
+      'opencode-no-variant-fallback',
+      '#!/usr/bin/env bash\n' +
+        'if [[ "$1" == "--version" ]]; then echo "opencode-test 0.0.0"; exit 0; fi\n' +
+        'cat > /dev/null\n' +
+        'echo \'{"type":"error","sessionID":"ses_x","error":{"type":"provider.no-route","message":"Model unavailable: opencode/big-pickle"}}\'\n' +
+        'exit 1\n',
+    );
+    vi.stubEnv('OPENCODE_BIN', stub);
+    const err = await runOpencodeCli({ modelId: 'big-pickle', promptText: 'hi' }).catch((e) => e);
+    expect((err as Error).message).toContain('Model unavailable');
+  }, 30_000);
 });

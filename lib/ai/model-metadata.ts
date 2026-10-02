@@ -505,6 +505,215 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
   [getModelMetadataKey('tokendance', 'qwen3.8-max')]: tokendanceEffort,
   [getModelMetadataKey('tokendance', 'seed-2.1-pro')]: tokendanceEffort,
   [getModelMetadataKey('tokendance', 'minimax-m3')]: tokendanceEffort,
+
+  // OpenCode CLI (Zen, provider `opencode` / `opencode-go`): varian thinking
+  // NATIF `#variant` (`opencode run -m <provider>/<id>#<variant>`, dipilih via
+  // /variants TUI). Himpunan valid TERVERIFIKASI LIVE per model (Okt 2026):
+  // variant tak dikenal ditolak CLI ("Variant unavailable"), jadi daftar di
+  // sini harus persis hasil probe, bukan asumsi. Model tanpa varian natif
+  // memakai set generik yang disalurkan sebagai instruksi prompt oleh
+  // lib/ai/opencode-cli.ts (bukan wire-param).
+  //   muse-spark-1.3-contributor-free: minimal,low,medium,high,xhigh
+  //     (none + max ditolak)
+  //   space-bunny-free: low,medium,high,max,xhigh (none + minimal ditolak)
+  //   fledge-alpha-free: low,high,max (medium + lainnya ditolak)
+  // Model `opencode-go/*` yang gagal probe karena 401 (kredensial ini tidak
+  // mengentitle-nya) + yang terprobe tanpa varian (kimi, deepseek, glm-5.2,
+  // qwen, minimax, mimo, longcat, hy4-preview): set generik prompt-hint
+  // (aman: tak pernah memicu "Variant unavailable"). Pengecualian: inferensi
+  // keluarga yang bukti parsialnya kuat (lihat OPENCODE_NATIVE_VARIANTS di
+  // lib/ai/opencode-cli.ts) — bila meleset, runOpencodeCli ulangi otomatis
+  // tanpa variant, jadi tak pernah fatal.
+  [getModelMetadataKey('opencode-go', 'muse-spark-1.2-contributor')]: effortCapability(
+    'opencode',
+    ['minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'muse-spark-1.3-contributor')]: effortCapability(
+    'opencode',
+    ['minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'space-bunny-free')]: effortCapability(
+    'opencode',
+    ['low', 'medium', 'high', 'max', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'gpt-5.6-luna')]: effortCapability(
+    'opencode',
+    ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'gpt-6-luna')]: effortCapability(
+    'opencode',
+    ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'muse-spark-1.3-contributor-free')]: effortCapability(
+    'opencode',
+    ['minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'space-bunny-free')]: effortCapability(
+    'opencode',
+    ['low', 'medium', 'high', 'max', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'fledge-alpha-free')]: effortCapability(
+    'opencode',
+    ['low', 'high', 'max'],
+    'low',
+  ),
+  [getModelMetadataKey('opencode', 'big-pickle')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'longcat-2.5-preview-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'mimo-v2.6-flash-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'ling-3.0-flash-fin-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'nemotron-3-ultra-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'nemotron-3.5-lightning-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'deepseek-v4-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'deepseek-v4-flash-vision-exp')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'deepseek-v4-pro')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'deepseek-v4.1-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'glm-5.2')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'glm-5.3')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'glm-5.3-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'grok-4.6')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'grok-4.7')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'hy3')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'hy4-preview')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'kimi-k2.7-code')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'kimi-k3')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'longcat-2.0')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'longcat-2.5-preview-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'mimo-v2.5')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'mimo-v2.5-pro')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'mimo-v2.6-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'mimo-v2.6-pro')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'minimax-m2.7')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'minimax-m3')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'qwen3.7-plus')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'qwen3.8-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'qwen3.8-max')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
 };
 
 export function getCatalogThinkingCapability(
