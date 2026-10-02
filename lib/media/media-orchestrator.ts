@@ -27,6 +27,7 @@ import { withAssetUrl } from '@/lib/media/use-asset-url';
 import { commitToPool } from '@/lib/media/commit-to-pool';
 import {
   ASSET_QUOTA_EXCEEDED,
+  isZeroGpuQuotaMessage,
   isRetryableMediaFailure,
   isStorageFullFailure,
 } from '@/lib/media/media-failure';
@@ -292,7 +293,28 @@ async function collectAndGenerate(
   for (const [index, req] of allRequests.entries()) {
     if (abortSignal?.aborted) break;
     const attempt = await generateSingleMedia(req, stageId, abortSignal, undefined, scan);
-    if (!attempt.storageFull) continue;
+    if (!attempt.storageFull) {
+      // Hugging Face free tier: failed queue joins also count against the
+      // ~3 ZeroGPU runs/day limit, so one quota refusal stops the deck. The
+      // elements never reached keep their placeholders and are marked with
+      // the same quota condition (in memory only, like the storage-full path
+      // below) instead of each paying a queue join to fail identically. One
+      // image-to-video clip costs 2 runs (source still + animation), so the
+      // free tier fits roughly 1 video/day; the survivors retry after the
+      // 24h reset via their Retry affordance.
+      if (!attempt.committed) {
+        const taskError =
+          useMediaGenerationStore.getState().getTask(req.elementId)?.error ?? '';
+        if (taskError && isZeroGpuQuotaMessage(taskError)) {
+          log.warn(
+            `Provider GPU quota exhausted; stopping the media pass for ${stageId} to preserve daily runs.`,
+          );
+          markQuotaExhausted(allRequests.slice(index + 1), taskError);
+          break;
+        }
+      }
+      continue;
+    }
     // The store checks each write against the headroom it has left, so a
     // refusal is evidence about one blob and only weak evidence about the next.
     // The pass stops the deck anyway, and that is a judgement about cost rather
@@ -330,6 +352,22 @@ function markStorageFull(requests: readonly MediaGenerationRequest[]): void {
       `Asset storage is full; the ${request.type} was not generated`,
       ASSET_QUOTA_EXCEEDED,
     );
+  }
+}
+
+/**
+ * Show unattempted elements the quota condition they are waiting on.
+ *
+ * In memory only, like `markStorageFull`: nothing was attempted for them, so a
+ * persisted record would claim a failure that never happened — and once the
+ * daily quota resets, an element with no record is one ordinary generation
+ * rather than a persisted failure. The code stays `UPSTREAM_ERROR` (retryable)
+ * so the Retry affordance survives; the message carries the reset guidance.
+ */
+function markQuotaExhausted(requests: readonly MediaGenerationRequest[], message: string): void {
+  const store = useMediaGenerationStore.getState();
+  for (const request of requests) {
+    store.markFailed(request.elementId, message, 'UPSTREAM_ERROR');
   }
 }
 
@@ -979,7 +1017,14 @@ async function generateSingleMedia(
     }
     const message = err instanceof Error ? err.message : String(err);
     const errorCode = mediaFailureCode(err);
-    log.error(`Failed ${req.elementId}:`, message);
+    // Quota/busy refusals are an expected free-tier condition, not a bug:
+    // keep them at warn so the console is not spammed with ERROR lines while
+    // the deck waits for the 24h reset.
+    if (isZeroGpuQuotaMessage(message)) {
+      log.warn(`Quota-exhausted ${req.elementId}:`, message);
+    } else {
+      log.error(`Failed ${req.elementId}:`, message);
+    }
     useMediaGenerationStore.getState().markFailed(req.elementId, message, errorCode);
 
     // Bytes a full store refused. They are kept, and the record below is
@@ -1096,11 +1141,13 @@ async function callImageApi(
 /**
  * Video generation for one element, with the image-to-video chain built in.
  *
- * Providers flagged `requiresSourceImage` (Hugging Face LivePortrait) animate
- * a source still rather than dreaming motion from text. When the request
- * carries no `sourceImageUrl` of its own, the still is generated first from
- * the same prompt — the "video based on the generated image" flow — and its
- * URL is passed through. Text-to-video providers are untouched.
+ * Providers flagged `requiresSourceImage` (the Hugging Face image-to-video
+ * Spaces) animate a source still rather than dreaming motion from text. When
+ * the request carries no `sourceImageUrl` of its own, the still comes from a
+ * classroom image that is already committed — first on the same slide, then
+ * on any other slide — and only when the classroom holds no usable image is
+ * a fresh still generated from the same prompt. Text-to-video providers are
+ * untouched.
  */
 async function callVideoApiForElement(
   req: MediaGenerationRequest,
@@ -1120,10 +1167,10 @@ async function callVideoApiForElement(
   if (!VIDEO_PROVIDERS[settings.videoProviderId]?.requiresSourceImage) {
     return callVideoApi(req, abortSignal);
   }
-  // 1. Reuse a still already committed on the same slide (e.g. a class image
-  //    generated earlier) — no second image billing and no new failure mode.
   const { stage, scenes } = useStageStore.getState();
   if (stage?.id === stageId) {
+    // 1. Reuse a still already committed on the same slide (e.g. a class image
+    //    generated earlier) — no second image billing and no new failure mode.
     for (const candidate of findSiblingImageSources(scenes, req.elementId)) {
       throwIfAborted(abortSignal);
       const reused = await materializeSiblingStill(candidate.src);
@@ -1132,8 +1179,22 @@ async function callVideoApiForElement(
         return callVideoApi({ ...req, sourceImageUrl: reused }, abortSignal);
       }
     }
+    // 2. Reuse a still committed on any other slide of the classroom. Same
+    //    reason — the bytes are already paid for — so a video placeholder on
+    //    a slide without its own image still animates a classroom image
+    //    instead of billing a fresh still. First committed image wins.
+    for (const candidate of findOtherSlideImageSources(scenes, req.elementId)) {
+      throwIfAborted(abortSignal);
+      const reused = await materializeSiblingStill(candidate.src);
+      if (reused) {
+        log.info(
+          `Animating classroom image ${candidate.elementId} from another slide for ${req.elementId}`,
+        );
+        return callVideoApi({ ...req, sourceImageUrl: reused }, abortSignal);
+      }
+    }
   }
-  // 2. Otherwise generate the still from the same prompt.
+  // 3. Otherwise generate the still from the same prompt.
   let sourceImageUrl: string;
   try {
     const still = await callImageApi(req, stageId, abortSignal);
@@ -1153,6 +1214,37 @@ export interface SiblingImageSource {
   src: string;
 }
 
+/** Canvas elements of one scene, read defensively (editor/playback shapes differ). */
+function sceneCanvasElements(scene: unknown): unknown[] {
+  const elements = (scene as { content?: { canvas?: { elements?: unknown[] } } })?.content?.canvas
+    ?.elements;
+  return Array.isArray(elements) ? elements : [];
+}
+
+/** Whether a canvas element is the video placeholder looking for a source. */
+function isVideoPlaceholderElement(el: unknown, videoElementId: string): boolean {
+  const e = el as { id?: unknown; src?: unknown; mediaRef?: unknown };
+  return (
+    e?.mediaRef === videoElementId || e?.src === videoElementId || e?.id === videoElementId
+  );
+}
+
+/** Committed images among canvas elements — placeholders and the video itself excluded. */
+function committedImageSources(
+  elements: unknown[],
+  videoElementId: string,
+): SiblingImageSource[] {
+  const sources: SiblingImageSource[] = [];
+  for (const el of elements) {
+    const e = el as { id?: unknown; type?: unknown; src?: unknown };
+    if (e?.type !== 'image' || typeof e.src !== 'string' || !e.src) continue;
+    if (e.id === videoElementId) continue;
+    if (isGeneratedMediaPlaceholder(e.src)) continue;
+    sources.push({ elementId: typeof e.id === 'string' ? e.id : '', src: e.src });
+  }
+  return sources;
+}
+
 /**
  * Find committed image elements on the same slide as a video placeholder.
  * Pure over plain scene data (unit-testable); scene/element shapes are read
@@ -1165,27 +1257,42 @@ export function findSiblingImageSources(
 ): SiblingImageSource[] {
   if (!Array.isArray(scenes)) return [];
   for (const scene of scenes) {
-    const elements = (scene as { content?: { canvas?: { elements?: unknown[] } } })?.content?.canvas
-      ?.elements;
-    if (!Array.isArray(elements)) continue;
-    const ownsVideo = elements.some((el) => {
-      const e = el as { id?: unknown; src?: unknown; mediaRef?: unknown };
-      return (
-        e?.mediaRef === videoElementId || e?.src === videoElementId || e?.id === videoElementId
-      );
-    });
-    if (!ownsVideo) continue;
-    const sources: SiblingImageSource[] = [];
-    for (const el of elements) {
-      const e = el as { id?: unknown; type?: unknown; src?: unknown };
-      if (e?.type !== 'image' || typeof e.src !== 'string' || !e.src) continue;
-      if (e.id === videoElementId) continue;
-      if (isGeneratedMediaPlaceholder(e.src)) continue;
-      sources.push({ elementId: typeof e.id === 'string' ? e.id : '', src: e.src });
-    }
-    return sources;
+    const elements = sceneCanvasElements(scene);
+    if (!elements.some((el) => isVideoPlaceholderElement(el, videoElementId))) continue;
+    return committedImageSources(elements, videoElementId);
   }
   return [];
+}
+
+/**
+ * Find committed image elements on every slide EXCEPT the video's own.
+ *
+ * Fallback when the video's slide holds no usable image: the classroom's
+ * already-generated images are paid for, so animating one of them beats
+ * billing a fresh still — which on a free ZeroGPU tier can be the run that
+ * exhausts the daily quota. Scene order decides; the first committed image
+ * wins. Same purity and defensiveness contract as
+ * {@link findSiblingImageSources}.
+ */
+export function findOtherSlideImageSources(
+  scenes: unknown,
+  videoElementId: string,
+): SiblingImageSource[] {
+  if (!Array.isArray(scenes)) return [];
+  let ownsVideo = false;
+  const sources: SiblingImageSource[] = [];
+  for (const scene of scenes) {
+    const elements = sceneCanvasElements(scene);
+    if (elements.some((el) => isVideoPlaceholderElement(el, videoElementId))) {
+      ownsVideo = true;
+      continue;
+    }
+    sources.push(...committedImageSources(elements, videoElementId));
+  }
+  // No video placeholder anywhere (stale scenes): offer nothing, mirroring
+  // findSiblingImageSources — animating a classroom image for a video the
+  // document no longer names would bill a run nobody asked for.
+  return ownsVideo ? sources : [];
 }
 
 /** Stills above this are skipped (the data: URL would burst request limits). */

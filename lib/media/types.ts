@@ -341,6 +341,24 @@ export interface VideoGenerationOptions {
   relativeMotion?: boolean;
   doCrop?: boolean;
   pasteBack?: boolean;
+  /**
+   * Wan 2.2 `/generate_video` parameters (Hugging Face Wan provider only;
+   * every other provider ignores them). Defaults mirror the Space's
+   * `/gradio_api/info`: steps 6, the Space's default negative prompt, 3.5s
+   * duration, guidance 1/1, seed 42 with randomization on.
+   */
+  /** Denoising steps for the Wan 2.2 `/generate_video` endpoint (1–30). */
+  steps?: number;
+  /** Negative prompt for the Wan 2.2 `/generate_video` endpoint. */
+  negativePrompt?: string;
+  /** Guidance scale, high-noise stage (0–10). */
+  guidanceScale?: number;
+  /** Guidance scale, low-noise stage (0–10). */
+  guidanceScale2?: number;
+  /** Seed for the Wan 2.2 `/generate_video` endpoint. */
+  seed?: number;
+  /** When true (default), the Space randomizes the seed per call. */
+  randomizeSeed?: boolean;
   /** Owning stage, for server-side attribution of a generation call. */
   stageId?: string;
   /** Cancel server-side provider I/O (agent runtime / background callers). */

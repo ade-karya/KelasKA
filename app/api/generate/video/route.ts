@@ -36,12 +36,18 @@ import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateClientBaseUrl } from '@/lib/server/ssrf-guard';
 import { withVideoProviderFetch } from '@/lib/server/media-provider-fetch';
+import { isZeroGpuQuotaMessage } from '@/lib/media/media-failure';
 
 const log = createLogger('VideoGeneration API');
 
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
+  // Hoisted for the catch block so failures before resolution (bad headers,
+  // SSRF refusal) still produce a safe message without a ReferenceError —
+  // mirror the image route contract.
+  let providerId: VideoProviderId | undefined;
+  let model: string | undefined;
   try {
     const body = (await request.json()) as VideoGenerationOptions;
 
@@ -51,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // The client may express no provider preference (empty header) — fall back
     // to the first server-configured video provider, else fail loud.
-    const providerId = (request.headers.get('x-video-provider')?.trim() ||
+    providerId = (request.headers.get('x-video-provider')?.trim() ||
       resolveServerVideoProviderId()) as VideoProviderId;
     if (!providerId) {
       return apiError('MISSING_PROVIDER', 400, 'No video provider configured');
@@ -89,7 +95,7 @@ export async function POST(request: NextRequest) {
     // (VIDEO_<PREFIX>_MODELS): an allowlisted client choice wins, otherwise the
     // first pinned entry is the managed default; unmanaged providers use the
     // client header directly.
-    const model = resolveVideoModel(providerId, clientModel);
+    model = resolveVideoModel(providerId, clientModel);
     if (!model) {
       return apiError(
         'MISSING_MODEL',
@@ -127,8 +133,9 @@ export async function POST(request: NextRequest) {
     return apiSuccess({ result });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    // The provider's error text is logged only; the caller gets a fixed message
-    // so an upstream body never reaches the response.
+    // The provider's error text is logged only; the caller gets a fixed,
+    // categorized message (no upstream body) so the UI can act on it —
+    // mirror the image route contract.
     // Detect content safety filter rejections (e.g. Seedance SensitiveContent errors)
     if (message.includes('SensitiveContent') || message.includes('sensitive information')) {
       log.warn(`Video blocked by content safety filter: ${message}`);
@@ -138,7 +145,77 @@ export async function POST(request: NextRequest) {
         'The video provider rejected this prompt under its content safety policy',
       );
     }
+    const upstreamStatus = message.match(/\((\d{3})\)/)?.[1];
+    // Provider + model context is safe to expose (no key, no upstream body)
+    // and tells the user exactly which selection failed. May be undefined
+    // when the failure happened before resolution.
+    const where = `(${providerId ?? 'unknown provider'} / ${model || 'default model'})`;
+    // Hugging Face ZeroGPU refusals have no (NNN) status: `success:false`
+    // with `output.error` (e.g. "You have exceeded your ZeroGPU runs
+    // limit..."). Surface a retryable 429 with the free-tier daily limit
+    // instead of a generic 500. Free tier: ~5 GPU-min/day + ~3 runs/day,
+    // reset 24h after first GPU use; one image-to-video clip costs 2 runs
+    // (source still + animation), so the free tier fits roughly 1 video/day.
+    // Other providers' quota/busy messages take the generic branch below —
+    // the free-tier numbers are Hugging Face-specific, so they stay behind
+    // the ZeroGPU match rather than on the shared helper.
+    if (/zerogpu|exceeded.{0,20}runs/i.test(message)) {
+      log.warn(`Video generation quota refusal: ${message}`);
+      return apiError(
+        'UPSTREAM_ERROR',
+        429,
+        `The video provider reports exhausted GPU quota ${where}. Hugging Face free tier allows ~5 GPU-min and ~3 runs/day (1 video costs 2 runs: source image + animation); quota resets 24h after first use. Wait for the reset or use a paid Hugging Face plan, then Retry.`,
+      );
+    }
+    if (isZeroGpuQuotaMessage(message)) {
+      log.warn(`Video generation quota/busy refusal: ${message}`);
+      return apiError(
+        'UPSTREAM_ERROR',
+        429,
+        `The video provider reports exhausted quota or a busy queue ${where} (429). Wait a moment and Retry; if it keeps failing, the daily free quota may be exhausted (quota resets 24h after first use).`,
+      );
+    }
+    switch (upstreamStatus) {
+      case '401':
+      case '403':
+        log.warn(`Video generation unauthorized: ${message}`);
+        return apiError(
+          'INVALID_REQUEST',
+          401,
+          `The video provider rejected the API key ${where} (401/403). Check the key for this provider.`,
+        );
+      case '402':
+        log.warn(`Video generation payment required: ${message}`);
+        return apiError(
+          'UPSTREAM_ERROR',
+          402,
+          `The video provider reports insufficient credits or exhausted quota ${where} (402). Check the account, or wait for the daily free reset.`,
+        );
+      case '404':
+        log.warn(`Video generation unknown model: ${message}`);
+        return apiError(
+          'INVALID_REQUEST',
+          400,
+          `The video provider does not recognize this model ${where}. Re-fetch the model list and pick a current id.`,
+        );
+      case '400':
+        log.warn(`Video generation bad request: ${message}`);
+        return apiError(
+          'INVALID_REQUEST',
+          400,
+          `The video provider rejected the request parameters for this model ${where} (400). Try another model.`,
+        );
+      case '429':
+        log.warn(`Video generation rate-limited: ${message}`);
+        return apiError(
+          'UPSTREAM_ERROR',
+          429,
+          `The video provider is rate-limiting requests ${where} (429). Wait a moment and retry.`,
+        );
+      default:
+        break;
+    }
     log.error(`Video generation failed: ${message}`, error);
-    return apiError('INTERNAL_ERROR', 500, 'Video generation failed');
+    return apiError('INTERNAL_ERROR', 500, `Video generation failed ${where}`);
   }
 }

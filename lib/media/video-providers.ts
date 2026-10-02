@@ -23,6 +23,10 @@ import {
   testHuggingFaceVideoConnectivity,
 } from './adapters/huggingface-video-adapter';
 import {
+  generateWithHuggingFaceWanVideo,
+  HUGGINGFACE_WAN_MODEL,
+} from './adapters/huggingface-wan-video-adapter';
+import {
   generateWithOpenRouterVideo,
   testOpenRouterVideoConnectivity,
 } from './adapters/openrouter-video-adapter';
@@ -160,7 +164,20 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
     // unless `options.drivingVideoUrl` overrides it. Generation needs a user
     // access token (hf_...) — the Settings panel's "Login with Hugging Face"
     // entry point walks the user through that.
-    models: [{ id: 'KlingTeam/LivePortrait', name: 'LivePortrait' }],
+    //
+    // Second model: Wan 2.2 14B I2V (zerogpu-aoti/wan2-2-fp8da-aoti-faster
+    // Space, FP8 + Lightning LoRA, 4-8 steps) — same image-to-video shape but
+    // text-driven: the animation follows `options.prompt`, with
+    // duration/steps/guidance tunable via the generation options. Dispatch is
+    // by model id (see generateVideo below); connectivity is a shared login
+    // probe, so both models test the same way.
+    models: [
+      { id: 'KlingTeam/LivePortrait', name: 'LivePortrait' },
+      {
+        id: 'zerogpu-aoti/wan2-2-fp8da-aoti-faster',
+        name: 'Wan 2.2 14B I2V FP8 (Lightning LoRA)',
+      },
+    ],
     supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
     // Image-to-video: orchestrators generate the source still from the prompt
     // first (the "video based on the generated image" flow) when the request
@@ -259,7 +276,12 @@ export async function generateVideo(
     case 'openrouter-video':
       return generateWithOpenRouterVideo(config, options);
     case 'huggingface-video':
-      return generateWithHuggingFaceVideo(config, options);
+      // Two Spaces behind one provider id: the Wan 2.2 I2V Space speaks a
+      // different Gradio protocol (sse_v3 `/generate_video`) than the
+      // LivePortrait Space (Gradio 4 queue), so dispatch on the model.
+      return config.model === HUGGINGFACE_WAN_MODEL
+        ? generateWithHuggingFaceWanVideo(config, options)
+        : generateWithHuggingFaceVideo(config, options);
     default:
       throw new Error(`Unsupported video provider: ${config.providerId}`);
   }

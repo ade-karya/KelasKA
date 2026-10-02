@@ -7,7 +7,11 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { findSiblingImageSources, materializeSiblingStill } from '@/lib/media/media-orchestrator';
+import {
+  findOtherSlideImageSources,
+  findSiblingImageSources,
+  materializeSiblingStill,
+} from '@/lib/media/media-orchestrator';
 
 const slideWithVideoAndImage = {
   id: 'scene_1',
@@ -75,6 +79,48 @@ describe('findSiblingImageSources', () => {
     expect(findSiblingImageSources([slideWithVideoAndImage], 'gen_vid_missing')).toEqual([]);
     expect(findSiblingImageSources(undefined, 'gen_vid_sIG83ehk')).toEqual([]);
     expect(findSiblingImageSources([{ id: 'no-canvas' }], 'gen_vid_sIG83ehk')).toEqual([]);
+  });
+});
+
+describe('findOtherSlideImageSources', () => {
+  const slideWithVideoOnly = {
+    id: 'scene_video',
+    content: {
+      canvas: {
+        elements: [{ id: 'video_1', type: 'video', mediaRef: 'gen_vid_x' }],
+      },
+    },
+  };
+  const slideWithImage = {
+    id: 'scene_image',
+    content: {
+      canvas: {
+        elements: [
+          { id: 'img_class', type: 'image', src: 'ast_classimage1' },
+          { id: 'img_pending', type: 'image', src: 'gen_img_pending' },
+        ],
+      },
+    },
+  };
+
+  it('finds a committed classroom image when the video slide has none', () => {
+    expect(findOtherSlideImageSources([slideWithVideoOnly, slideWithImage], 'gen_vid_x')).toEqual(
+      [{ elementId: 'img_class', src: 'ast_classimage1' }],
+    );
+  });
+
+  it('skips the video slide even when it holds its own committed image', () => {
+    // Same-slide images stay the job of findSiblingImageSources; the fallback
+    // must not offer them a second time.
+    expect(
+      findOtherSlideImageSources([slideWithVideoAndImage, slideWithImage], 'gen_vid_sIG83ehk'),
+    ).toEqual([{ elementId: 'img_class', src: 'ast_classimage1' }]);
+  });
+
+  it('returns empty when the video is absent or no image is committed', () => {
+    expect(findOtherSlideImageSources([slideWithImage], 'gen_vid_missing')).toEqual([]);
+    expect(findOtherSlideImageSources([slideWithVideoOnly], 'gen_vid_x')).toEqual([]);
+    expect(findOtherSlideImageSources(undefined, 'gen_vid_x')).toEqual([]);
   });
 });
 
