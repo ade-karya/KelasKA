@@ -1,7 +1,7 @@
 import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getStageRoute } from '@/lib/server/model-routes';
-import type { ThinkingConfig } from '@/lib/types/provider';
+import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 import {
   activatedOpencodeModels,
   defaultTier3ModelString,
