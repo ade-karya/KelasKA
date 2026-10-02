@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
+import { useState, useEffect, useMemo, useRef, useDeferredValue, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -280,12 +280,12 @@ function HomePage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const thumbnailsRef = useRef<Record<string, Slide>>({});
 
-  const replaceThumbnails = (slides: Record<string, Slide>) => {
+  const replaceThumbnails = useCallback((slides: Record<string, Slide>) => {
     const previous = thumbnailsRef.current;
     thumbnailsRef.current = slides;
     setThumbnails(slides);
     window.setTimeout(() => revokeThumbnailSlideMediaUrls(previous), 0);
-  };
+  }, []);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -299,7 +299,7 @@ function HomePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [themeOpen]);
 
-  const loadClassrooms = async () => {
+  const loadClassrooms = useCallback(async () => {
     try {
       const list = await listStages();
       setClassrooms(list);
@@ -323,9 +323,9 @@ function HomePage() {
       log.error('Failed to load classrooms:', err);
       toast.error('Persistence is unavailable. Saved classrooms could not be loaded.');
     }
-  };
+  }, [replaceThumbnails]);
 
-  const loadFolders = async () => {
+  const loadFolders = useCallback(async () => {
     try {
       setFolders(await listFolders());
     } catch (err) {
@@ -337,7 +337,7 @@ function HomePage() {
       }
       log.error('Failed to load folders:', err);
     }
-  };
+  }, []);
 
   // Capture the active folder when an import starts so the imported course
   // lands in that folder, not whichever folder is active when the async import
@@ -426,7 +426,7 @@ function HomePage() {
       revokeThumbnailSlideMediaUrls(thumbnailsRef.current);
       thumbnailsRef.current = {};
     };
-  }, []);
+  }, [loadClassrooms, loadFolders]);
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();

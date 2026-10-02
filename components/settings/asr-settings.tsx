@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useSettingsStore } from '@/lib/store/settings';
-import { ASR_PROVIDERS } from '@/lib/audio/constants';
+import { ASR_PROVIDERS, CUSTOM_ASR_DEFAULT_LANGUAGES } from '@/lib/audio/constants';
 import type { ASRProviderId } from '@/lib/audio/types';
 import { isCustomASRProvider } from '@/lib/audio/types';
 import { Mic, MicOff, CheckCircle2, XCircle, Eye, EyeOff, Plus, Loader2 } from 'lucide-react';
@@ -43,6 +43,7 @@ export function ASRSettings({ selectedProviderId }: ASRSettingsProps) {
   const { t } = useI18n();
 
   const asrLanguage = useSettingsStore((state) => state.asrLanguage);
+  const setASRLanguage = useSettingsStore((state) => state.setASRLanguage);
   const asrProvidersConfig = useSettingsStore((state) => state.asrProvidersConfig);
   const setASRProviderConfig = useSettingsStore((state) => state.setASRProviderConfig);
   const removeCustomASRProvider = useSettingsStore((state) => state.removeCustomASRProvider);
@@ -55,6 +56,20 @@ export function ASRSettings({ selectedProviderId }: ASRSettingsProps) {
     ? !!providerConfig?.requiresApiKey
     : !!asrProvider?.requiresApiKey;
   const isKeylessLocalProvider = !isCustom && !requiresApiKey && !!asrProvider?.defaultBaseUrl;
+  const isBrowserNative = selectedProviderId === 'browser-native';
+
+  const supportedLanguages: readonly string[] = isCustom
+    ? CUSTOM_ASR_DEFAULT_LANGUAGES
+    : (asrProvider?.supportedLanguages ?? []);
+  const effectiveLanguage = supportedLanguages.includes(asrLanguage)
+    ? asrLanguage
+    : (supportedLanguages[0] ?? 'auto');
+
+  const getLanguageLabel = (code: string) => {
+    const key = `settings.lang_${code}`;
+    const translated = t(key);
+    return translated !== key ? translated : code;
+  };
 
   const [showApiKey, setShowApiKey] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -219,6 +234,33 @@ export function ASRSettings({ selectedProviderId }: ASRSettingsProps) {
       {isCustom && ((providerConfig?.customModels as Array<{ id: string }>) || []).length === 0 && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3 text-sm text-amber-700 dark:text-amber-300">
           {t('settings.noModelsWarning')}
+        </div>
+      )}
+
+      {/* Browser-native info */}
+      {isBrowserNative && (
+        <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-sm text-muted-foreground">
+          {t('settings.browserNativeNote')}
+        </div>
+      )}
+
+      {/* Recognition language — used by browser-native Web Speech API
+          (recognition.lang) and sent as `language` to server ASR providers. */}
+      {supportedLanguages.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-sm">{t('settings.asrLanguage')}</Label>
+          <Select value={effectiveLanguage} onValueChange={(value) => setASRLanguage(value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {supportedLanguages.map((lang) => (
+                <SelectItem key={lang} value={lang}>
+                  {getLanguageLabel(lang)} <span className="text-muted-foreground">· {lang}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
