@@ -42,8 +42,19 @@ const pinnedModelsFetch: ModelFetchTransport = createProviderFetch({
 export interface FetchedModel {
   id: string;
   ownedBy?: string;
-  /** Human-readable label from the provider (native Gemini `displayName`). */
+  /** Human-readable label from the provider (native Gemini `displayName`, OpenRouter `name`). */
   displayName?: string;
+  /**
+   * Raw OpenRouter `pricing` object (`{ prompt, completion, request, ... }`
+   * as decimal USD strings per https://openrouter.ai/docs/api_reference/overview
+   * → list-models). Present only when the upstream returns it; used by the
+   * probe route to keep $0/free models. Never surfaced to the client verbatim.
+   */
+  pricing?: Record<string, string | number | null | undefined>;
+  /** OpenRouter `context_length` in tokens, when provided. */
+  contextLength?: number;
+  /** OpenRouter `architecture.output_modalities` (e.g. `["text"]`), when provided. */
+  outputModalities?: string[];
 }
 
 /**
@@ -171,13 +182,46 @@ export function buildModelsUrlCandidates(
 }
 
 interface ModelsApiResponse {
-  data?: Array<{ id: string; owned_by?: string; display_name?: string }>;
+  data?: Array<{
+    id: string;
+    owned_by?: string;
+    display_name?: string;
+    // OpenRouter catalog shape per
+    // https://openrouter.ai/docs/api_reference/overview (list-models):
+    // `{ id, name, pricing: { prompt, completion, ... }, context_length,
+    // architecture: { output_modalities } }`. `name` is the human label
+    // ("Qwen: Qwen3.8 27B (free)") while `display_name` stays the
+    // OpenAI-compatible label. Both are accepted; `display_name` wins.
+    name?: string;
+    pricing?: Record<string, string | number | null | undefined>;
+    context_length?: number;
+    architecture?: { output_modalities?: string[] };
+  }>;
   models?: Array<{
     name?: string;
     displayName?: string;
     supportedGenerationMethods?: string[];
   }>;
   nextPageToken?: string;
+}
+
+/**
+ * Whether an OpenRouter `pricing` object means $0 (free).
+ * Per the list-models schema every price is a decimal USD string ("0" for
+ * free). `discount`/`overrides` are not costs and are ignored. Missing pricing
+ * (custom gateways, mocks) returns true so non-OpenRouter shapes keep working.
+ */
+export function isZeroCostPricing(
+  pricing?: Record<string, string | number | null | undefined> | null,
+): boolean {
+  if (!pricing) return true;
+  const entries = Object.entries(pricing).filter(([k]) => k !== 'discount' && k !== 'overrides');
+  if (entries.length === 0) return true;
+  return entries.every(([, v]) => {
+    if (v === null || v === undefined || v === '') return true;
+    const n = typeof v === 'number' ? v : Number(String(v).trim());
+    return Number.isFinite(n) && n === 0;
+  });
 }
 
 /** Max Gemini list pages followed per candidate (pageSize=100 → ample). */
@@ -276,11 +320,26 @@ export async function fetchModels(
     // fetch, so every success shape converges here. Gemini lists newest
     // version first (the fetch button shows latest models on top); every
     // other provider keeps id order.
-    const found = (body.data ?? []).map((m) => ({
-      id: m.id,
-      ownedBy: m.owned_by,
-      displayName: m.display_name,
-    }));
+    // OpenRouter note: the catalog's human label lives in `name`
+    // (e.g. "Qwen: Qwen3.8 27B (free)"), not `display_name`. Accept both so
+    // the settings panel shows the proper name instead of a prettified id.
+    const found: FetchedModel[] = (body.data ?? []).map((m) => {
+      const rawDisplay = m.display_name?.trim() || m.name?.trim() || undefined;
+      const displayName = rawDisplay && rawDisplay !== m.id ? rawDisplay : rawDisplay || undefined;
+      const entry: FetchedModel = {
+        id: m.id,
+        ownedBy: m.owned_by,
+        displayName,
+      };
+      if (m.pricing) entry.pricing = m.pricing;
+      if (typeof m.context_length === 'number' && Number.isFinite(m.context_length)) {
+        entry.contextLength = m.context_length;
+      }
+      if (Array.isArray(m.architecture?.output_modalities)) {
+        entry.outputModalities = m.architecture.output_modalities;
+      }
+      return entry;
+    });
     return gemini ? found.sort(compareGeminiNewestFirst) : found.sort((a, b) => a.id.localeCompare(b.id));
   }
 

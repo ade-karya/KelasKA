@@ -518,14 +518,17 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
   // like built-in ones.
   const handleModelsFetched = (
     pid: ProviderId,
-    fetched: Array<{ id: string; displayName?: string }>,
+    fetched: Array<{ id: string; displayName?: string; contextLength?: number }>,
   ): number => {
     const currentModels = providersConfig[pid]?.models || [];
     const kept = currentModels.filter((m) => m.source !== 'probed');
     const keptIds = new Set(kept.map((m) => m.id));
     const additions = fetched
       .filter((m) => !keptIds.has(m.id))
-      .map((m) => ({ ...modelInfoFromId(m.id, pid, m.displayName), source: 'probed' as const }));
+      .map((m) => ({
+        ...modelInfoFromId(m.id, pid, m.displayName, m.contextLength),
+        source: 'probed' as const,
+      }));
     const next = [...kept, ...additions];
     // Write when the set changed at all — additions, or stale probed ids pruned.
     if (additions.length > 0 || next.length !== currentModels.length) {

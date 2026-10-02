@@ -53,7 +53,9 @@ interface ProviderConfigPanelProps {
   onDeleteModel: (index: number) => void;
   onAddModel: () => void;
   /** Merge probed models into the provider's list; returns the count added. */
-  onModelsFetched?: (models: Array<{ id: string; displayName?: string }>) => number;
+  onModelsFetched?: (
+    models: Array<{ id: string; displayName?: string; contextLength?: number }>,
+  ) => number;
   /** Optional explicit /models URL override (from a preset). */
   modelsUrl?: string;
   onResetToDefault?: () => void; // Reset provider to default configuration
@@ -187,12 +189,19 @@ export function ProviderConfigPanel({
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        const fetched: Array<{ id: string; displayName?: string }> = (data.models || [])
+        const fetched: Array<{ id: string; displayName?: string; contextLength?: number }> = (
+          data.models || []
+        )
           .filter((m: { id?: unknown }) => typeof m?.id === 'string' && m.id.trim())
-          .map((m: { id: string; displayName?: unknown }) => ({
+          .map((m: { id: string; displayName?: unknown; contextLength?: unknown }) => ({
             id: m.id,
             ...(typeof m.displayName === 'string' && m.displayName.trim()
               ? { displayName: m.displayName }
+              : {}),
+            ...(typeof m.contextLength === 'number' &&
+            Number.isFinite(m.contextLength) &&
+            m.contextLength > 0
+              ? { contextLength: m.contextLength }
               : {}),
           }));
         const added = onModelsFetched?.(fetched) ?? 0;

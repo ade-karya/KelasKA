@@ -20,6 +20,8 @@ import {
   Settings2,
   Trash2,
   RefreshCw,
+  Download,
+  RotateCcw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ImageProviderId } from '@/lib/media/types';
@@ -57,14 +59,21 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
   const [workflowsLoading, setWorkflowsLoading] = useState(false);
   const [workflowsError, setWorkflowsError] = useState<string | null>(null);
 
-  const isComfyUI = selectedProviderId === 'comfyui-image';
+  // OpenRouter free-model fetch state (tombol "Ambil model" $0)
+  const [fetchStatus, setFetchStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
+  const [fetchMessage, setFetchMessage] = useState('');
 
-  // Reset test state when provider changes (derived state pattern)
+  const isComfyUI = selectedProviderId === 'comfyui-image';
+  const isOpenRouterImage = selectedProviderId === 'openrouter-image';
+
+  // Reset test/fetch state when provider changes (derived state pattern)
   const [prevSelectedProviderId, setPrevSelectedProviderId] = useState(selectedProviderId);
   if (selectedProviderId !== prevSelectedProviderId) {
     setPrevSelectedProviderId(selectedProviderId);
     setTestStatus('idle');
     setTestMessage('');
+    setFetchStatus('idle');
+    setFetchMessage('');
   }
 
   // Fetch ComfyUI workflows when the provider is selected
@@ -150,6 +159,66 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
       setTestLoading(false);
     }
   };
+
+  // Ambil model gratis ($0) OpenRouter Image via server probe.
+  // Hasilnya disimpan sebagai customModels dengan replaceBuiltInModels agar
+  // langsung tampil di pemilih model kursus (yang tidak membaca live hook).
+  const handleFetchFreeModels = useCallback(async () => {
+    setFetchStatus('fetching');
+    setFetchMessage('');
+    try {
+      const effectiveBaseUrl =
+        currentConfig?.baseUrl || currentProvider?.defaultBaseUrl || '';
+      const response = await fetch('/api/provider/probe-image-models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          baseUrl: effectiveBaseUrl,
+          apiKey: currentConfig?.apiKey || '',
+        }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        const fetched: Array<{ id: string; name: string }> = (data.models || [])
+          .filter((m: { id?: unknown }) => typeof m?.id === 'string' && m.id.trim())
+          .map((m: { id: string; name?: unknown }) => ({
+            id: m.id.trim(),
+            name:
+              typeof m.name === 'string' && m.name.trim() ? m.name.trim() : m.id.trim(),
+          }));
+        const prevIds = new Set(customModels.map((m) => m.id));
+        const added = fetched.filter((m) => !prevIds.has(m.id)).length;
+        setImageProviderConfig(selectedProviderId, {
+          customModels: fetched,
+          replaceBuiltInModels: true,
+        });
+        setFetchStatus('success');
+        setFetchMessage(
+          t('settings.fetchModelsResult')
+            .replace('{added}', String(added))
+            .replace('{total}', String(fetched.length)),
+        );
+      } else if (response.status === 404) {
+        setFetchStatus('error');
+        setFetchMessage(t('settings.fetchModelsNoEndpoint'));
+      } else {
+        setFetchStatus('error');
+        setFetchMessage(data.error || t('settings.fetchModelsFailed'));
+      }
+    } catch {
+      setFetchStatus('error');
+      setFetchMessage(t('settings.fetchModelsFailed'));
+    }
+  }, [currentConfig?.apiKey, currentConfig?.baseUrl, currentProvider?.defaultBaseUrl, customModels, selectedProviderId, setImageProviderConfig, t]);
+
+  const handleResetFreeModels = useCallback(() => {
+    setImageProviderConfig(selectedProviderId, {
+      customModels: [],
+      replaceBuiltInModels: false,
+    });
+    setFetchStatus('idle');
+    setFetchMessage('');
+  }, [selectedProviderId, setImageProviderConfig]);
 
   // Model CRUD
   const handleOpenAddModel = () => {
@@ -382,26 +451,86 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
         /* ── All other providers: standard model list ── */
         <div className="space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <Label className="text-base">{t('settings.models')}</Label>
-            <Button variant="outline" size="sm" onClick={handleOpenAddModel} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
-              {t('settings.addNewModel')}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Label className="text-base">{t('settings.models')}</Label>
+              {isOpenRouterImage && currentConfig?.replaceBuiltInModels && customModels.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 border border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800">
+                  $0
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {isOpenRouterImage && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleFetchFreeModels}
+                    disabled={fetchStatus === 'fetching'}
+                    className="gap-1.5"
+                    title="Ambil model gratis ($0) dari katalog OpenRouter"
+                  >
+                    {fetchStatus === 'fetching' ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                    {t('settings.fetchModels')}
+                  </Button>
+                  {currentConfig?.replaceBuiltInModels && customModels.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResetFreeModels}
+                      className="gap-1.5"
+                      title={t('settings.reset')}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      {t('settings.reset')}
+                    </Button>
+                  )}
+                </>
+              )}
+              <Button variant="outline" size="sm" onClick={handleOpenAddModel} className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" />
+                {t('settings.addNewModel')}
+              </Button>
+            </div>
           </div>
 
+          {/* Fetch-models result message */}
+          {isOpenRouterImage && fetchMessage && (
+            <div
+              className={cn(
+                'rounded-lg p-2.5 text-xs',
+                fetchStatus === 'success' && 'bg-green-50 text-green-700 border border-green-200',
+                fetchStatus === 'error' && 'bg-amber-50 text-amber-700 border border-amber-200',
+              )}
+            >
+              {fetchMessage}
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            {/* Built-in models */}
-            {builtInModels.map((model) => (
-              <div
-                key={model.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-mono text-sm font-medium">{model.name}</div>
-                  <div className="text-xs text-muted-foreground font-mono mt-0.5">{model.id}</div>
+            {/* Built-in models — disembunyikan saat daftar gratis $0 hasil fetch
+                menggantikannya, agar tidak duplikat dan picker kursus konsisten
+                (pemilih memakai customModels saat replaceBuiltInModels). */}
+            {!(isOpenRouterImage && currentConfig?.replaceBuiltInModels && customModels.length > 0) &&
+              builtInModels.map((model) => (
+                <div
+                  key={model.id}
+                  className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">{model.name}</div>
+                    {model.name !== model.id && (
+                      <div className="text-xs text-muted-foreground font-mono mt-0.5 break-all">
+                        {model.id}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
             {/* Custom models */}
             {customModels.map((model, index) => (
@@ -410,8 +539,12 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
                 className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="font-mono text-sm font-medium">{model.name}</div>
-                  <div className="text-xs text-muted-foreground font-mono mt-0.5">{model.id}</div>
+                  <div className="text-sm font-medium">{model.name}</div>
+                  {model.name !== model.id && (
+                    <div className="text-xs text-muted-foreground font-mono mt-0.5 break-all">
+                      {model.id}
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <Button

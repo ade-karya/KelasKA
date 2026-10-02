@@ -11,13 +11,18 @@ const VISION_MODEL_PATTERN = /vision|vl|omni|4o|gpt-5|gemini|claude/i;
 const PRETTY_ACRONYMS = new Set(['gpt', 'llm', 'vl', 'tts', 'asr', 'ai', 'api', 'pbl']);
 
 /**
- * Turns a raw model id (`gemini-2.5-flash`) into a readable label
- * (`Gemini 2.5 Flash`). Only a fallback — catalog names and provider
- * `displayName`s win when available.
+ * Turns a raw model id (`gemini-2.5-flash`, `qwen/qwen3.8-27b:free`) into a
+ * readable label (`Gemini 2.5 Flash`, `Qwen3.8 27B Free`). Only a fallback —
+ * catalog names and provider `displayName`s (OpenRouter `name`) win when
+ * available.
+ *
+ * OpenRouter ids carry a `vendor/` prefix and an optional `:variant` suffix
+ * (`:free`); both are split into words instead of leaking `"/"`/`":"` into
+ * the label.
  */
 export function prettifyModelId(id: string): string {
   return id
-    .split(/[-_]+/)
+    .split(/[/:_\-]+/)
     .filter(Boolean)
     .map((word) => {
       const lower = word.toLowerCase();
@@ -30,10 +35,10 @@ export function prettifyModelId(id: string): string {
 
 /**
  * Builds a default ModelInfo from a probed model id. Name resolution order:
- * built-in catalog name → provider `displayName` → prettified id. Vision
- * capability is inferred from the id via {@link VISION_MODEL_PATTERN}. Shared
- * by the provider panel and the token-plan apply flow so the heuristic stays
- * in one place.
+ * built-in catalog name → provider `displayName` (OpenRouter catalog `name`)
+ * → prettified id. Vision capability is inferred from the id via
+ * {@link VISION_MODEL_PATTERN}. Shared by the provider panel and the
+ * token-plan apply flow so the heuristic stays in one place.
  *
  * Thinking comes from {@link getProbedThinkingCapability}: exact catalog
  * entries keep their configured control, and unknown ids of thinking
@@ -44,6 +49,7 @@ export function modelInfoFromId(
   id: string,
   providerId?: string,
   displayName?: string,
+  contextLength?: number,
 ): ModelInfo {
   const catalogModel =
     providerId && PROVIDERS[providerId as ProviderId]
@@ -65,6 +71,9 @@ export function modelInfoFromId(
   return {
     id,
     name: trimmedDisplayName || prettifyModelId(id),
+    ...(typeof contextLength === 'number' && Number.isFinite(contextLength) && contextLength > 0
+      ? { contextWindow: contextLength }
+      : {}),
     capabilities: {
       streaming: true,
       tools: true,

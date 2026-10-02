@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateClientBaseUrl, validateUrlForSSRF } from '@/lib/server/ssrf-guard';
-import { fetchModels, ModelFetchError } from '@/lib/server/model-fetch';
+import { fetchModels, isZeroCostPricing, ModelFetchError } from '@/lib/server/model-fetch';
 
 const log = createLogger('ProbeModels');
 
@@ -21,12 +21,26 @@ const GEMINI_NON_TEXT_PATTERN =
   /(banana|omni|lyria|robotics|computer-use|antigravity|deep-research)/i;
 
 /**
+ * Whether a probe target is OpenRouter's catalog. Free-only filtering applies
+ * to the official catalog (`openrouter.ai`) or an explicit `openrouter`
+ * provider id — custom gateways without pricing keep the generic behavior.
+ */
+function isOpenRouterTarget(baseUrl: string, providerId?: string, modelsUrl?: string): boolean {
+  if (providerId === 'openrouter') return true;
+  const haystack = `${baseUrl} ${modelsUrl ?? ''}`.toLowerCase();
+  return haystack.includes('openrouter.ai');
+}
+
+/**
  * POST /api/provider/probe-models
  *
  * Discovers the chat models a base URL + key exposes. OpenAI-compatible
  * providers use the `/models` endpoint (with multi-candidate fallback);
  * Gemini (`providerType: 'google'` or a `generativelanguage` base URL) uses
  * the native `GET {base}/models` contract (`x-goog-api-key` / `?key=`).
+ * OpenRouter targets return FREE models only (`pricing` all $0 per
+ * https://openrouter.ai/docs/api_reference/overview → list-models) with
+ * proper catalog `name`s as display names.
  * Returns the lit-up list, or a typed status so the UI can fall back to
  * manual model entry.
  */
@@ -36,11 +50,12 @@ export async function POST(req: NextRequest) {
     return apiError('INVALID_REQUEST', 400, 'Invalid JSON body');
   }
   try {
-    const { baseUrl, apiKey, modelsUrl, providerType } = body as {
+    const { baseUrl, apiKey, modelsUrl, providerType, providerId } = body as {
       baseUrl?: string;
       apiKey?: string;
       modelsUrl?: string;
       providerType?: string;
+      providerId?: string;
     };
 
     if (!baseUrl) {
@@ -65,12 +80,32 @@ export async function POST(req: NextRequest) {
     const isGemini =
       providerType === 'google' ||
       baseUrl.toLowerCase().includes('generativelanguage.googleapis.com');
-    const chatModels = models.filter(
-      (m) => !NON_CHAT_PATTERN.test(m.id) && (!isGemini || !GEMINI_NON_TEXT_PATTERN.test(m.id)),
-    );
+    // OpenRouter: free ($0) text models only. `pricing` comes from
+    // GET /models (all cost keys "0" for free entries, including `:free`
+    // variants). Entries without pricing (custom gateways, test doubles)
+    // are kept so discovery still works off-catalog.
+    const isOpenRouter = isOpenRouterTarget(baseUrl, providerId, modelsUrl);
+    const chatModels = models.filter((m) => {
+      if (NON_CHAT_PATTERN.test(m.id)) return false;
+      if (isGemini && GEMINI_NON_TEXT_PATTERN.test(m.id)) return false;
+      if (isOpenRouter) {
+        // Non-text outputs (e.g. Lyria audio `["text","audio"]`) are not chat
+        // models even when $0 — keep text-only entries.
+        if (m.outputModalities && !m.outputModalities.every((mod) => mod === 'text')) {
+          return false;
+        }
+        if (m.pricing && !isZeroCostPricing(m.pricing)) return false;
+      }
+      return true;
+    });
 
     return apiSuccess({
-      models: chatModels.map((m) => ({ id: m.id, ownedBy: m.ownedBy, displayName: m.displayName })),
+      models: chatModels.map((m) => ({
+        id: m.id,
+        ownedBy: m.ownedBy,
+        displayName: m.displayName,
+        ...(typeof m.contextLength === 'number' ? { contextLength: m.contextLength } : {}),
+      })),
       total: models.length,
       filtered: models.length - chatModels.length,
     });

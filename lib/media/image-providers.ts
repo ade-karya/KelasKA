@@ -169,11 +169,14 @@ export const IMAGE_PROVIDERS: Record<ImageProviderId, ImageProviderConfig> = {
     requiresApiKey: true,
     defaultBaseUrl: OPENROUTER_DEFAULT_BASE_URL,
     // Model list is fetched live from OpenRouter's public GET /images/models
-    // catalog; this seed keeps the picker usable offline.
+    // catalog (filtered $0-only); this seed keeps the picker usable offline
+    // and mirrors the current free catalog.
     models: [
-      { id: 'google/gemini-3-pro-image', name: 'Gemini 3 Pro Image' },
-      { id: 'openai/gpt-image-2', name: 'GPT Image 2' },
-      { id: 'bytedance-seed/seedream-5-0-pro', name: 'Seedream 5.0 Pro' },
+      { id: 'inclusionai/ming-image-0.1-design', name: 'inclusionAI: Ming Image 0.1 Design' },
+      {
+        id: 'inclusionai/ming-image-0.1-design-layer',
+        name: 'inclusionAI: Ming Image 0.1 Design Layer',
+      },
     ],
     supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
   },
