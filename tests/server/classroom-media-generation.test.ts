@@ -420,4 +420,106 @@ describe('generateMediaForClassroom model fallback', () => {
       'http://localhost/api/classroom-media/cls-grok/media/gen_img_grok.jpg',
     );
   });
+
+  test('animates a generated still first for image-to-video providers without a source', async () => {
+    // Hugging Face LivePortrait cannot dream motion from text: the classroom
+    // path generates the source still from the same prompt (FLUX) and passes
+    // its URL as sourceImageUrl instead of failing the video element.
+    vi.stubEnv('OPENAI_API_KEY', '');
+    vi.stubEnv('IMAGE_HUGGINGFACE_API_KEY', 'hf-test');
+    vi.stubEnv('VIDEO_HUGGINGFACE_API_KEY', 'hf-test');
+    vi.resetModules();
+
+    const fluxSpace = 'https://black-forest-labs-flux-1-dev.hf.space';
+    const lpSpace = 'https://klingteam-liveportrait.hf.space';
+    const sseImage =
+      'event: generating\ndata: [null]\n\n' +
+      `event: complete\ndata: [{"url": "${fluxSpace}/gradio_api/file=/tmp/still.png"}, 7]\n\n`;
+    const sseVideo =
+      'event: estimation\ndata: {"rank": 1}\n\n' +
+      'event: process_completed\ndata: [{"url": "/file=/tmp/o.mp4"}, {"url": "/file=/tmp/o_concat.mp4"}]\n\n';
+    const bytes = (n: number, contentType: string) =>
+      new Response(new Uint8Array(n).fill(1).buffer as ArrayBuffer, {
+        status: 200,
+        headers: { 'content-type': contentType, 'content-length': String(n) },
+      });
+
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url === `${fluxSpace}/gradio_api/call/infer`) {
+        return new Response(JSON.stringify({ event_id: 'img-1' }), { status: 200 });
+      }
+      if (url === `${fluxSpace}/gradio_api/call/infer/img-1`) {
+        return new Response(sseImage, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      }
+      if (url === `${lpSpace}/config`) {
+        return new Response(
+          JSON.stringify({ dependencies: [{ api_name: '/gpu_wrapped_execute_video' }] }),
+          { status: 200 },
+        );
+      }
+      if (url === `${lpSpace}/upload`) {
+        return new Response(JSON.stringify(['/tmp/s.jpg', '/tmp/d.mp4']), { status: 200 });
+      }
+      if (url === `${lpSpace}/queue/join`) {
+        return new Response(JSON.stringify({ event_id: 'vid-1' }), { status: 200 });
+      }
+      if (url.startsWith(`${lpSpace}/queue/data`)) {
+        return new Response(sseVideo, {
+          status: 200,
+          headers: { 'content-type': 'text/event-stream' },
+        });
+      }
+      if (url.startsWith('https://huggingface.co/spaces/')) {
+        return bytes(16, 'video/mp4');
+      }
+      if (url.startsWith(fluxSpace)) {
+        return bytes(8, 'image/png');
+      }
+      if (url.startsWith(lpSpace)) {
+        return bytes(32, 'video/mp4');
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { generateMediaForClassroom } = await import('@/lib/server/classroom-media-generation');
+
+    const outlines = [
+      {
+        id: 'outline_1',
+        type: 'slide',
+        title: 'Scene 1',
+        description: 'd',
+        order: 1,
+        mediaGenerations: [
+          { type: 'video', prompt: 'a portrait smiles', elementId: 'gen_vid_chain' },
+        ],
+      },
+    ] as unknown as SceneOutline[];
+
+    const mediaMap = await generateMediaForClassroom(outlines, 'cls-hf-chain', 'http://localhost');
+
+    expect(mediaMap['gen_vid_chain']).toBe(
+      'http://localhost/api/classroom-media/cls-hf-chain/media/gen_vid_chain.mp4',
+    );
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    // The still is generated before the video job is submitted.
+    expect(urls.indexOf(`${fluxSpace}/gradio_api/call/infer`)).toBeGreaterThanOrEqual(0);
+    expect(urls.indexOf(`${lpSpace}/queue/join`)).toBeGreaterThan(
+      urls.indexOf(`${fluxSpace}/gradio_api/call/infer`),
+    );
+    // The uploaded source is the generated still, driven by the default clip.
+    const joinCall = fetchMock.mock.calls.find(([url]) =>
+      String(url).endsWith('/queue/join'),
+    ) as unknown as [string, RequestInit];
+    const joinBody = JSON.parse(joinCall[1].body as string);
+    expect(joinBody.data[0]).toMatchObject({ path: '/tmp/s.jpg' });
+    expect(joinBody.data[1]).toMatchObject({ video: { path: '/tmp/d.mp4' } });
+    expect(urls).toContain(
+      'https://huggingface.co/spaces/KlingTeam/LivePortrait/resolve/main/assets/examples/driving/d0.mp4',
+    );
+  });
 });

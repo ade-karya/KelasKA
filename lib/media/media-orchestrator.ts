@@ -19,6 +19,7 @@ import { mayGenerateForStage } from '@/lib/classroom/generation-permission';
 import { db, mediaFileKey, type MediaFileRecord } from '@/lib/device-storage/database';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { MediaGenerationRequest } from '@/lib/media/types';
+import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
 import { commitToPool } from '@/lib/media/commit-to-pool';
 import {
   ASSET_QUOTA_EXCEEDED,
@@ -941,7 +942,7 @@ async function generateSingleMedia(
       });
       return ATTEMPT_COMMITTED;
     }
-    const result = await callVideoApi(req, abortSignal);
+    const result = await callVideoApiForElement(req, stageId, abortSignal);
     throwIfAborted(abortSignal);
     const blob = await fetchAsBlob(result.ossUrl || result.url);
     const posterSource = result.posterOssUrl || result.poster;
@@ -1061,6 +1062,46 @@ async function callImageApi(
     (data.result?.base64 ? `data:${inlineMime};base64,${data.result.base64}` : '');
   if (!ossUrl && !url) throw new Error('No image URL in response');
   return { url, ossUrl };
+}
+
+/**
+ * Video generation for one element, with the image-to-video chain built in.
+ *
+ * Providers flagged `requiresSourceImage` (Hugging Face LivePortrait) animate
+ * a source still rather than dreaming motion from text. When the request
+ * carries no `sourceImageUrl` of its own, the still is generated first from
+ * the same prompt — the "video based on the generated image" flow — and its
+ * URL is passed through. Text-to-video providers are untouched.
+ */
+async function callVideoApiForElement(
+  req: MediaGenerationRequest,
+  stageId: string,
+  abortSignal?: AbortSignal,
+): Promise<{
+  url: string;
+  poster?: string;
+  ossUrl?: string;
+  posterOssUrl?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+}> {
+  if (req.sourceImageUrl?.trim()) return callVideoApi(req, abortSignal);
+  const settings = useSettingsStore.getState();
+  if (!VIDEO_PROVIDERS[settings.videoProviderId]?.requiresSourceImage) {
+    return callVideoApi(req, abortSignal);
+  }
+  let sourceImageUrl: string;
+  try {
+    const still = await callImageApi(req, stageId, abortSignal);
+    sourceImageUrl = still.ossUrl || still.url;
+    if (!sourceImageUrl) throw new Error('the image provider returned no image data');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Source image generation failed (needed to animate this video): ${message}`);
+  }
+  throwIfAborted(abortSignal);
+  return callVideoApi({ ...req, sourceImageUrl }, abortSignal);
 }
 
 async function callVideoApi(

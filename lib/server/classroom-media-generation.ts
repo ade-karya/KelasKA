@@ -136,6 +136,63 @@ function mediaServingUrl(baseUrl: string, classroomId: string, subPath: string):
   return `${baseUrl}/api/classroom-media/${classroomId}/${subPath}`;
 }
 
+/**
+ * Generate the source still an image-to-video provider (Hugging Face
+ * LivePortrait) animates, mirroring the image branch's credential/model
+ * resolution. Returns the still's URL (remote or data:) or undefined — the
+ * caller skips the element after this logs the reason.
+ */
+async function generateVideoSourceStill(req: {
+  prompt: string;
+  aspectRatio?: string;
+  elementId: string;
+}): Promise<string | undefined> {
+  const imageProviderId = Object.entries(getServerImageProviders())
+    .filter(([, info]) => !info.disabled)
+    .map(([id]) => id)[0] as ImageProviderId | undefined;
+  if (!imageProviderId) {
+    log.warn(
+      `Skipping video ${req.elementId}: the video provider animates a source image but no image provider is configured`,
+    );
+    return undefined;
+  }
+  const apiKey = resolveImageApiKey(imageProviderId);
+  const providerConfig = IMAGE_PROVIDERS[imageProviderId];
+  if (providerConfig?.requiresApiKey && !apiKey) {
+    log.warn(
+      `Skipping video ${req.elementId}: the video provider animates a source image but no API key is configured for image provider "${imageProviderId}"`,
+    );
+    return undefined;
+  }
+  const model = resolveImageModel(imageProviderId) ?? providerConfig?.models?.[0]?.id;
+  try {
+    const result = await generateImage(
+      {
+        providerId: imageProviderId,
+        apiKey,
+        baseUrl: resolveImageBaseUrl(imageProviderId),
+        model,
+        fetchImpl: managedMediaProviderFetch,
+      },
+      resolveImageSize(
+        { prompt: req.prompt, aspectRatio: (req.aspectRatio as '16:9') || '16:9' },
+        { providerId: imageProviderId, modelId: model },
+      ),
+    );
+    const sourceImageUrl =
+      result.url ||
+      (result.base64 ? `data:${result.mimeType || 'image/png'};base64,${result.base64}` : '');
+    if (!sourceImageUrl) {
+      log.warn(`Source image generation returned no data for ${req.elementId}`);
+      return undefined;
+    }
+    return sourceImageUrl;
+  } catch (err) {
+    log.warn(`Source image generation failed for ${req.elementId}:`, err);
+    return undefined;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Image / Video generation
 // ---------------------------------------------------------------------------
@@ -256,9 +313,18 @@ export async function generateMediaForClassroom(
         const providerConfig = VIDEO_PROVIDERS[providerId];
         const model = resolveVideoModel(providerId) ?? providerConfig?.models?.[0]?.id;
 
+        // Image-to-video providers animate a source still: generate it from
+        // the same prompt first when the outline carries none.
+        let sourceImageUrl: string | undefined;
+        if (providerConfig?.requiresSourceImage) {
+          sourceImageUrl = await generateVideoSourceStill(req);
+          if (!sourceImageUrl) continue;
+        }
+
         const normalized = normalizeVideoOptions(providerId, {
           prompt: req.prompt,
           aspectRatio: (req.aspectRatio as '16:9' | '4:3' | '1:1' | '9:16') || '16:9',
+          ...(sourceImageUrl ? { sourceImageUrl } : {}),
         });
 
         const result = await generateVideo(

@@ -138,11 +138,16 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
     setTestStatus('idle');
     setTestMessage('');
     try {
+      // Same fallback as the video panel: browsing here does not activate a
+      // provider, so the global imageModelId may be empty on fresh clients.
+      // The probe only validates credentials — use this provider's first
+      // catalog model instead of failing with MISSING_MODEL.
+      const probeModelId = imageModelId || builtInModels[0]?.id || '';
       const response = await fetch('/api/verify-image-provider', {
         method: 'POST',
         headers: {
           'x-image-provider': selectedProviderId,
-          'x-image-model': imageModelId || '',
+          'x-image-model': probeModelId,
           'x-api-key': currentConfig?.apiKey || '',
           'x-base-url': currentConfig?.baseUrl || '',
         },

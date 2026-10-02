@@ -143,7 +143,7 @@ Video generation providers use `VIDEO_<PROVIDER>_API_KEY` and optionally `VIDEO_
 
 `VIDEO_SEEDANCE_`, `VIDEO_KLING_`, `VIDEO_VEO_`, `VIDEO_SORA_`, `VIDEO_MINIMAX_`, `VIDEO_GROK_`, `VIDEO_HAPPYHORSE_`, and `VIDEO_HUGGINGFACE_`.
 
-Hugging Face LivePortrait (`KlingTeam/LivePortrait` Space) animates a source image — typically a just generated image passed as `sourceImageUrl` — using the Space's bundled driving clip unless `drivingVideoUrl` overrides it. It needs a user access token (`VIDEO_HUGGINGFACE_API_KEY=hf-...`):
+Hugging Face LivePortrait (`KlingTeam/LivePortrait` Space) animates a source image — typically a just generated image passed as `sourceImageUrl` — using the Space's bundled driving clip unless `drivingVideoUrl` overrides it. Course generation flows (browser orchestrator and classroom media) generate that still from the same prompt automatically when the request carries none, so a plain text-to-video request just works. It needs a user access token (`VIDEO_HUGGINGFACE_API_KEY=hf-...`):
 
 ```bash
 VIDEO_HUGGINGFACE_API_KEY=hf-...

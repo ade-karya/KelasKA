@@ -242,6 +242,13 @@ export interface VideoProviderConfig {
   name: string;
   /** Whether the provider requires an API key for authentication */
   requiresApiKey: boolean;
+  /**
+   * Whether the provider animates a source still instead of dreaming motion
+   * from text (image-to-video, e.g. Hugging Face LivePortrait). Callers
+   * without a `sourceImageUrl` generate the still first — the "video based
+   * on the generated image" flow — rather than failing.
+   */
+  requiresSourceImage?: boolean;
   /** Default API base URL (can be overridden in user settings) */
   defaultBaseUrl?: string;
   /** Path to provider icon asset */

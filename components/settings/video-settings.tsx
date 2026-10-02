@@ -91,11 +91,17 @@ export function VideoSettings({ selectedProviderId }: VideoSettingsProps) {
     setTestStatus('idle');
     setTestMessage('');
     try {
+      // The service panel browses providers without activating them, so the
+      // global videoModelId may still be empty (fresh clients reset it until
+      // a provider is picked in Course Model Config). A connectivity probe
+      // only validates credentials, so fall back to this provider's first
+      // catalog model instead of failing with MISSING_MODEL.
+      const probeModelId = videoModelId || builtInModels[0]?.id || '';
       const response = await fetch('/api/verify-video-provider', {
         method: 'POST',
         headers: {
           'x-video-provider': selectedProviderId,
-          'x-video-model': videoModelId || '',
+          'x-video-model': probeModelId,
           'x-api-key': currentConfig?.apiKey || '',
           'x-base-url': currentConfig?.baseUrl || '',
         },

@@ -162,6 +162,10 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
     // entry point walks the user through that.
     models: [{ id: 'KlingTeam/LivePortrait', name: 'LivePortrait' }],
     supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
+    // Image-to-video: orchestrators generate the source still from the prompt
+    // first (the "video based on the generated image" flow) when the request
+    // carries no sourceImageUrl of its own.
+    requiresSourceImage: true,
   },
 };
 
