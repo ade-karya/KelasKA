@@ -19,6 +19,10 @@ import {
 import { generateWithGrokVideo, testGrokVideoConnectivity } from './adapters/grok-video-adapter';
 import { generateWithHappyHorse, testHappyHorseConnectivity } from './adapters/happyhorse-adapter';
 import {
+  generateWithHuggingFaceVideo,
+  testHuggingFaceVideoConnectivity,
+} from './adapters/huggingface-video-adapter';
+import {
   generateWithOpenRouterVideo,
   testOpenRouterVideoConnectivity,
 } from './adapters/openrouter-video-adapter';
@@ -144,6 +148,21 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
     supportedResolutions: ['480p', '720p', '1080p'],
     maxDuration: 10,
   },
+  'huggingface-video': {
+    id: 'huggingface-video',
+    name: 'Hugging Face LivePortrait',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://klingteam-liveportrait.hf.space',
+    icon: '/logos/huggingface.svg',
+    // Image-to-video portrait animation (KlingTeam/LivePortrait Space): the
+    // source portrait comes from `options.sourceImageUrl` — typically a just
+    // generated image — and motion from the Space's bundled driving clip
+    // unless `options.drivingVideoUrl` overrides it. Generation needs a user
+    // access token (hf_...) — the Settings panel's "Login with Hugging Face"
+    // entry point walks the user through that.
+    models: [{ id: 'KlingTeam/LivePortrait', name: 'LivePortrait' }],
+    supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
+  },
 };
 
 export async function testVideoConnectivity(
@@ -164,6 +183,8 @@ export async function testVideoConnectivity(
       return testHappyHorseConnectivity(config);
     case 'openrouter-video':
       return testOpenRouterVideoConnectivity(config);
+    case 'huggingface-video':
+      return testHuggingFaceVideoConnectivity(config);
     default:
       return {
         success: false,
@@ -233,6 +254,8 @@ export async function generateVideo(
       return generateWithHappyHorse(config, options);
     case 'openrouter-video':
       return generateWithOpenRouterVideo(config, options);
+    case 'huggingface-video':
+      return generateWithHuggingFaceVideo(config, options);
     default:
       throw new Error(`Unsupported video provider: ${config.providerId}`);
   }

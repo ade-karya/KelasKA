@@ -1090,6 +1090,9 @@ async function callVideoApi(
     body: JSON.stringify({
       prompt: req.prompt,
       aspectRatio: req.aspectRatio,
+      // Image-to-video providers (e.g. Hugging Face LivePortrait) animate
+      // this source image when the request carries one.
+      ...(req.sourceImageUrl ? { sourceImageUrl: req.sourceImageUrl } : {}),
     }),
     signal: abortSignal,
   });

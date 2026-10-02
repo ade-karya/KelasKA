@@ -26,5 +26,6 @@ export const VIDEO_PROVIDER_NAMES: Record<VideoProviderId, string> = {
   'minimax-video': 'providerMiniMaxVideo',
   'grok-video': 'providerGrokVideo',
   'openrouter-video': 'providerOpenRouterVideo',
+  'huggingface-video': 'providerHuggingFaceVideo',
   happyhorse: 'providerHappyHorse',
 };

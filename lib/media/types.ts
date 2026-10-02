@@ -220,6 +220,7 @@ export type VideoProviderId =
   | 'minimax-video'
   | 'grok-video'
   | 'openrouter-video'
+  | 'huggingface-video'
   | 'happyhorse';
 // Add new video providers below (uncomment and modify):
 // | 'runway'
@@ -299,6 +300,18 @@ export interface VideoGenerationOptions {
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16' | '3:4' | '21:9';
   /** Desired output resolution */
   resolution?: '480p' | '720p' | '1080p';
+  /**
+   * Source image to animate (image-to-video providers such as Hugging Face
+   * LivePortrait): an `https:` URL or `data:` URL of a previously generated
+   * image. Text-to-video providers ignore it.
+   */
+  sourceImageUrl?: string;
+  /**
+   * Optional driving-motion video override (image-to-video providers): an
+   * `https:` URL or `data:` URL. When omitted the provider's default motion
+   * applies.
+   */
+  drivingVideoUrl?: string;
   /** Owning stage, for server-side attribution of a generation call. */
   stageId?: string;
   /** Cancel server-side provider I/O (agent runtime / background callers). */
@@ -345,4 +358,10 @@ export interface MediaGenerationRequest {
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
   /** Optional artistic style hint */
   style?: string;
+  /**
+   * Optional source image for video requests (image-to-video providers):
+   * an `https:` URL or `data:` URL of a previously generated image to
+   * animate. Forwarded to `/api/generate/video` as `sourceImageUrl`.
+   */
+  sourceImageUrl?: string;
 }

@@ -29,13 +29,19 @@ import type {
   ImageGenerationResult,
 } from '../types';
 import { mediaFetchFor } from '../media-fetch';
-import { connectivityHttpFailure, connectivityTransportFailure } from '../probe-auth';
 import { assertNotRedirected } from '../redirect-guard';
 import { requireModel } from '../require-model';
+import {
+  huggingFaceAuthHeaders,
+  huggingFaceSpaceUrl as resolveSpaceUrl,
+  resolveGradioFileUrl,
+  testHuggingFaceLogin,
+} from './huggingface-common';
 
 export const HUGGINGFACE_DEFAULT_SPACE_URL = 'https://black-forest-labs-flux-1-dev.hf.space';
 export const HUGGINGFACE_DEFAULT_MODEL = 'black-forest-labs/FLUX.1-dev';
-const HUGGINGFACE_WHOAMI_URL = 'https://huggingface.co/api/whoami-v2';
+
+export { resolveGradioFileUrl };
 
 /** FLUX.1-dev `/infer` defaults (match the Space's API docs). */
 const DEFAULT_GUIDANCE_SCALE = 3.5;
@@ -56,8 +62,7 @@ function getDimensions(aspectRatio?: string): { width: number; height: number } 
 }
 
 function authHeaders(apiKey: string): Record<string, string> {
-  const token = apiKey.trim();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return huggingFaceAuthHeaders(apiKey);
 }
 
 /**
@@ -66,54 +71,11 @@ function authHeaders(apiKey: string): Record<string, string> {
  * `owner/repo` model id maps to its `*.hf.space` host.
  */
 export function huggingFaceSpaceUrl(baseUrl?: string, model?: string): string {
-  const raw = baseUrl?.trim();
-  if (raw) {
-    return raw
-      .replace(/\/+$/, '')
-      .replace(/\/gradio_api\/call\/infer$/, '')
-      .replace(/\/gradio_api$/, '');
-  }
-  const spaceId = (model || HUGGINGFACE_DEFAULT_MODEL).trim();
-  if (/^https?:\/\//i.test(spaceId)) {
-    return spaceId.replace(/\/+$/, '');
-  }
-  const slug = spaceId
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return slug ? `https://${slug}.hf.space` : HUGGINGFACE_DEFAULT_SPACE_URL;
-}
-
-interface GradioFileRef {
-  url?: unknown;
-  path?: unknown;
-  mime_type?: unknown;
-  orig_name?: unknown;
-}
-
-/** Normalize the `/infer` image payload into an absolute file URL, if any. */
-export function resolveGradioFileUrl(
-  spaceUrl: string,
-  ref: unknown,
-): { url: string; mimeType?: string } | null {
-  if (typeof ref === 'string' && ref) {
-    const url = /^https?:\/\//i.test(ref) ? ref : new URL(ref, spaceUrl).toString();
-    return { url };
-  }
-  if (ref && typeof ref === 'object') {
-    const file = ref as GradioFileRef;
-    const mimeType = typeof file.mime_type === 'string' ? file.mime_type : undefined;
-    if (typeof file.url === 'string' && file.url) {
-      const url = /^https?:\/\//i.test(file.url)
-        ? file.url
-        : new URL(file.url, spaceUrl).toString();
-      return { url, mimeType };
-    }
-    if (typeof file.path === 'string' && file.path) {
-      return { url: `${spaceUrl}/gradio_api/file=${file.path}`, mimeType };
-    }
-  }
-  return null;
+  return resolveSpaceUrl(
+    baseUrl,
+    model || HUGGINGFACE_DEFAULT_MODEL,
+    HUGGINGFACE_DEFAULT_SPACE_URL,
+  );
 }
 
 interface SseEvent {
@@ -205,44 +167,7 @@ export async function readGradioResultEvent(
 export async function testHuggingFaceImageConnectivity(
   config: ImageGenerationConfig,
 ): Promise<{ success: boolean; message: string }> {
-  if (!config.apiKey?.trim()) {
-    return {
-      success: false,
-      message:
-        'Hugging Face token is required (401). Log in with Hugging Face and paste an access token (hf_...).',
-    };
-  }
-
-  let response: Response;
-  try {
-    response = await mediaFetchFor(config)(HUGGINGFACE_WHOAMI_URL, {
-      method: 'GET',
-      redirect: 'manual',
-      headers: authHeaders(config.apiKey),
-    });
-  } catch (err) {
-    return connectivityTransportFailure('Hugging Face', err);
-  }
-  if (response.ok) {
-    const name = await response
-      .json()
-      .then((data) => (typeof data?.name === 'string' ? (data.name as string) : ''))
-      .catch(() => '');
-    await response.body?.cancel().catch(() => undefined);
-    return {
-      success: true,
-      message: name ? `Connected to Hugging Face (@${name})` : 'Connected to Hugging Face',
-    };
-  }
-  await response.body?.cancel().catch(() => undefined);
-
-  if (response.status === 401 || response.status === 403) {
-    return {
-      success: false,
-      message: `Invalid Hugging Face token (${response.status}). Log in with Hugging Face and paste a fresh access token (hf_...).`,
-    };
-  }
-  return connectivityHttpFailure('Hugging Face', response.status);
+  return testHuggingFaceLogin(config);
 }
 
 export async function generateWithHuggingFaceImage(

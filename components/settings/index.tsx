@@ -229,6 +229,7 @@ const VIDEO_PROVIDER_ICONS: Record<VideoProviderId, string> = {
   'minimax-video': '/logos/minimax.svg',
   'grok-video': '/logos/grok.svg',
   'openrouter-video': '/logos/openrouter.svg',
+  'huggingface-video': '/logos/huggingface.svg',
   happyhorse: '/logos/qwen.svg',
 };
 

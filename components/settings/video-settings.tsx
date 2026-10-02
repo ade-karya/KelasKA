@@ -19,6 +19,8 @@ import {
   Plus,
   Settings2,
   Trash2,
+  LogIn,
+  ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { VideoProviderId } from '@/lib/media/types';
@@ -54,6 +56,7 @@ export function VideoSettings({ selectedProviderId }: VideoSettingsProps) {
 
   const currentConfig = videoProvidersConfig[selectedProviderId];
   const currentProvider = VIDEO_PROVIDERS[selectedProviderId];
+  const isHuggingFaceVideo = selectedProviderId === 'huggingface-video';
   // OpenRouter's catalog is fetched live so the picker is never a curated
   // shortlist; every other provider keeps its registry list.
   const { models: builtInModels } = useOpenRouterModels(
@@ -166,6 +169,57 @@ export function VideoSettings({ selectedProviderId }: VideoSettingsProps) {
           authoritative and not overridable here, so the editing inputs are hidden. */}
       {!isServerConfigured && (
         <>
+          {/* Hugging Face login: LivePortrait animates a source image, so
+              generation needs a user access token (hf_...). This entry point
+              walks the user through login → token; the token itself goes in
+              API Key below and "Test Connection" validates it via whoami. */}
+          {isHuggingFaceVideo && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 p-3 space-y-2.5">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                {t('settings.huggingfaceVideoHint')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="gap-1.5 bg-white dark:bg-transparent"
+                >
+                  <a href="https://huggingface.co/login" target="_blank" rel="noreferrer">
+                    <LogIn className="h-3.5 w-3.5" />
+                    {t('settings.huggingfaceLogin')}
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="gap-1.5 bg-white dark:bg-transparent"
+                >
+                  <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {t('settings.huggingfaceGetToken')}
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                  className="gap-1.5 bg-white dark:bg-transparent"
+                >
+                  <a
+                    href="https://huggingface.co/spaces/KlingTeam/LivePortrait"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {t('settings.huggingfaceOpenSpace')}
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* API Key + Test inline */}
           <div className="space-y-2">
             <Label>API Key</Label>

@@ -12,8 +12,12 @@
  *   x-api-key: string (optional, server fallback)
  *   x-base-url: string (optional, server fallback)
  *
- * Body: { prompt, duration?, aspectRatio?, resolution? }
+ * Body: { prompt, duration?, aspectRatio?, resolution?, sourceImageUrl?, drivingVideoUrl? }
  * Response: { success: boolean, result?: VideoGenerationResult, error?: string }
+ *
+ * Image-to-video providers (e.g. Hugging Face LivePortrait) animate
+ * `sourceImageUrl` — an https: or data: URL of a previously generated image —
+ * instead of dreaming motion from the prompt alone.
  */
 
 import { NextRequest } from 'next/server';

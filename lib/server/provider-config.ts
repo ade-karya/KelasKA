@@ -132,6 +132,7 @@ const VIDEO_ENV_MAP: Record<string, string> = {
   VIDEO_MINIMAX: 'minimax-video',
   VIDEO_GROK: 'grok-video',
   VIDEO_HAPPYHORSE: 'happyhorse',
+  VIDEO_HUGGINGFACE: 'huggingface-video',
   VIDEO_OPENROUTER: 'openrouter-video',
 };
 
