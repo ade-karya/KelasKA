@@ -8,16 +8,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  checkSquareVideoViaSpace,
   clearSpaceFnIndexCache,
   generateWithHuggingFaceVideo,
+  headersForInputDownload,
   HUGGINGFACE_LIVEPORTRAIT_DEFAULT_DRIVING_URL,
   HUGGINGFACE_LIVEPORTRAIT_MODEL,
+  LIVEPORTRAIT_ENDPOINTS,
   readQueueResultEvent,
   resolveSpaceFnIndex,
+  resolveVideoOutputRef,
+  retargetLivePortraitImage,
   testHuggingFaceVideoConnectivity,
   uploadFilesToSpace,
 } from '@/lib/media/adapters/huggingface-video-adapter';
 import { mediaFetchFor } from '@/lib/media/media-fetch';
+import { resolveGradioFileUrl } from '@/lib/media/adapters/huggingface-common';
 
 const SPACE = 'https://klingteam-liveportrait.hf.space';
 
@@ -107,6 +113,34 @@ describe('resolveSpaceFnIndex', () => {
     await expect(resolveSpaceFnIndex(mediaFetchFor({}), SPACE, 'nope', {})).rejects.toThrow(
       /has no \/nope endpoint/,
     );
+  });
+
+  it('treats the bare and documented slash-prefixed names as one endpoint', async () => {
+    fetchMock.mockResolvedValue(configResponse());
+    const bare = await resolveSpaceFnIndex(
+      mediaFetchFor({}),
+      SPACE,
+      'gpu_wrapped_execute_video',
+      {},
+    );
+    const slashed = await resolveSpaceFnIndex(
+      mediaFetchFor({}),
+      SPACE,
+      '/gpu_wrapped_execute_video',
+      {},
+    );
+    expect(bare).toBe(1);
+    expect(slashed).toBe(1);
+    // One shared cache entry: a single /config fetch for both forms.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes the documented endpoint names', () => {
+    expect(LIVEPORTRAIT_ENDPOINTS).toEqual({
+      EXECUTE_IMAGE: '/gpu_wrapped_execute_image',
+      EXECUTE_VIDEO: '/gpu_wrapped_execute_video',
+      IS_SQUARE_VIDEO: '/is_square_video',
+    });
   });
 });
 
@@ -313,6 +347,30 @@ describe('generateWithHuggingFaceVideo', () => {
     expect(files.map((f) => f.name)).toEqual(['source.jpg', 'driving.mp4']);
   });
 
+  it('forwards LivePortrait motion flags (docs defaults stay true)', async () => {
+    mockLivePortraitFlow();
+    await generateWithHuggingFaceVideo(
+      {
+        providerId: 'huggingface-video',
+        apiKey: 'hf-test',
+        model: HUGGINGFACE_LIVEPORTRAIT_MODEL,
+      },
+      {
+        prompt: 'x',
+        sourceImageUrl: 'https://cdn.example/portrait.jpg',
+        relativeMotion: false,
+        doCrop: false,
+        pasteBack: false,
+      },
+    );
+    const joinCall = fetchMock.mock.calls.find(([url]) =>
+      (url as string).endsWith('/queue/join'),
+    ) as unknown as [string, RequestInit];
+    const joinBody = JSON.parse(joinCall[1].body as string);
+    // param_2..param_4 per the API docs: relative motion, do crop, paste-back.
+    expect(joinBody.data.slice(2)).toEqual([false, false, false]);
+  });
+
   it('fails loud without a source image', async () => {
     await expect(
       generateWithHuggingFaceVideo(
@@ -389,5 +447,318 @@ describe('generateWithHuggingFaceVideo', () => {
         { prompt: 'x', sourceImageUrl: 'https://cdn.example/portrait.jpg' },
       ),
     ).rejects.toThrow(/no video data/i);
+  });
+
+  it('refuses a redirected download on the strict transport', async () => {
+    // No downloadFetchImpl: the bundled driving clip lives behind a redirect
+    // and must fail with the redirect message rather than silently following
+    // it with credentials.
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === 'https://cdn.example/portrait.jpg') {
+        return bytesResponse(new Uint8Array([1]), 'image/jpeg');
+      }
+      if (url === HUGGINGFACE_LIVEPORTRAIT_DEFAULT_DRIVING_URL) {
+        return new Response('redirect', {
+          status: 302,
+          headers: { Location: 'https://cdn.example/d0.mp4' },
+        });
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
+    await expect(
+      generateWithHuggingFaceVideo(
+        {
+          providerId: 'huggingface-video',
+          apiKey: 'hf-test',
+          model: HUGGINGFACE_LIVEPORTRAIT_MODEL,
+        },
+        { prompt: 'x', sourceImageUrl: 'https://cdn.example/portrait.jpg' },
+      ),
+    ).rejects.toThrow(/Redirects are not allowed/);
+  });
+
+  it('downloads inputs through downloadFetchImpl when injected', async () => {
+    // Server callers inject the redirect-following download transport, which
+    // is what fetches the redirect-backed default driving clip.
+    const downloadMock = vi.fn(async (url: string) => {
+      if (url === 'https://cdn.example/portrait.jpg') {
+        return bytesResponse(new Uint8Array([1]), 'image/jpeg');
+      }
+      if (url === HUGGINGFACE_LIVEPORTRAIT_DEFAULT_DRIVING_URL) {
+        return bytesResponse(new Uint8Array([2]), 'video/mp4');
+      }
+      throw new Error(`unexpected download: ${url}`);
+    });
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === `${SPACE}/config`) return configResponse();
+      if (url.endsWith('/upload')) return jsonResponse(['/tmp/s.jpg', '/tmp/d.mp4']);
+      if (url.endsWith('/queue/join')) return jsonResponse({ event_id: 'e' });
+      if (url.includes('/queue/data?session_hash=')) {
+        return sseResponse('event: process_completed\ndata: [{"url": "/file=/tmp/o.mp4"}]\n\n');
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
+
+    const result = await generateWithHuggingFaceVideo(
+      {
+        providerId: 'huggingface-video',
+        apiKey: 'hf-test',
+        model: HUGGINGFACE_LIVEPORTRAIT_MODEL,
+        downloadFetchImpl: downloadMock,
+      },
+      { prompt: 'x', sourceImageUrl: 'https://cdn.example/portrait.jpg' },
+    );
+
+    expect(result.url).toBe(`${SPACE}/file=/tmp/o.mp4`);
+    expect(downloadMock).toHaveBeenCalledWith(
+      'https://cdn.example/portrait.jpg',
+      expect.objectContaining({ method: 'GET' }),
+    );
+    expect(downloadMock).toHaveBeenCalledWith(
+      HUGGINGFACE_LIVEPORTRAIT_DEFAULT_DRIVING_URL,
+      expect.objectContaining({ method: 'GET' }),
+    );
+    // The strict transport never touches the redirect-backed inputs.
+    const strictUrls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(strictUrls).not.toContain('https://cdn.example/portrait.jpg');
+    expect(strictUrls).not.toContain(HUGGINGFACE_LIVEPORTRAIT_DEFAULT_DRIVING_URL);
+  });
+
+  it('resolves the live VideoData output shape ({video: FileData})', async () => {
+    // The live Space answers /gpu_wrapped_execute_video with VideoData
+    // objects, not bare file refs (verified against its /info).
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === `${SPACE}/config`) return configResponse();
+      if (url.endsWith('/upload')) return jsonResponse(['/tmp/s.jpg', '/tmp/d.mp4']);
+      if (url.endsWith('/queue/join')) return jsonResponse({ event_id: 'e' });
+      if (url.includes('/queue/data?session_hash=')) {
+        return sseResponse(
+          'event: process_completed\ndata: [' +
+            '{"video": {"url": "/file=/tmp/gradio/abc/out.mp4", "mime_type": "video/mp4"}, "subtitles": null}, ' +
+            '{"video": {"url": "/file=/tmp/gradio/abc/out_concat.mp4"}, "subtitles": null}]\n\n',
+        );
+      }
+      if (url.startsWith('https://')) {
+        return bytesResponse(
+          new Uint8Array([1]),
+          url.endsWith('.mp4') ? 'video/mp4' : 'image/jpeg',
+        );
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
+
+    const result = await generateWithHuggingFaceVideo(
+      {
+        providerId: 'huggingface-video',
+        apiKey: 'hf-test',
+        model: HUGGINGFACE_LIVEPORTRAIT_MODEL,
+        downloadFetchImpl: async (dlUrl: string) =>
+          bytesResponse(
+            new Uint8Array([1]),
+            dlUrl.endsWith('.mp4') ? 'video/mp4' : 'image/jpeg',
+          ),
+      },
+      { prompt: 'x', sourceImageUrl: 'https://cdn.example/portrait.jpg' },
+    );
+    expect(result.url).toBe(`${SPACE}/file=/tmp/gradio/abc/out.mp4`);
+  });
+
+  it('keeps the HF token off third-party input hosts', async () => {
+    const seen: Array<{ url: string; headers: Record<string, string> }> = [];
+    const downloadMock = vi.fn(async (url: string, init?: RequestInit) => {
+      seen.push({ url, headers: { ...((init?.headers as Record<string, string>) ?? {}) } });
+      return bytesResponse(
+        new Uint8Array([1]),
+        url.endsWith('.mp4') ? 'video/mp4' : 'image/jpeg',
+      );
+    });
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === `${SPACE}/config`) return configResponse();
+      if (url.endsWith('/upload')) return jsonResponse(['/tmp/s.jpg', '/tmp/d.mp4']);
+      if (url.endsWith('/queue/join')) return jsonResponse({ event_id: 'e' });
+      if (url.includes('/queue/data?session_hash=')) {
+        return sseResponse('event: process_completed\ndata: [{"url": "/file=/tmp/o.mp4"}]\n\n');
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
+
+    await generateWithHuggingFaceVideo(
+      {
+        providerId: 'huggingface-video',
+        apiKey: 'hf-test',
+        model: HUGGINGFACE_LIVEPORTRAIT_MODEL,
+        downloadFetchImpl: downloadMock,
+      },
+      { prompt: 'x', sourceImageUrl: 'https://cdn.example/portrait.jpg' },
+    );
+
+    const portrait = seen.find((s) => s.url === 'https://cdn.example/portrait.jpg');
+    const driving = seen.find((s) => s.url === HUGGINGFACE_LIVEPORTRAIT_DEFAULT_DRIVING_URL);
+    expect(portrait).toBeDefined();
+    expect(portrait?.headers.Authorization).toBeUndefined();
+    // The bundled driving clip lives on huggingface.co: same issuer, token kept.
+    expect(driving?.headers.Authorization).toBe('Bearer hf-test');
+  });
+
+  it('answers an empty queue error with a busy message, not "null"', async () => {
+    await expect(
+      readQueueResultEvent(sseResponse('event: error\ndata: null\n\n'), 'X'),
+    ).rejects.toThrow(/busy or out of GPU quota/);
+  });
+});
+
+describe('retargetLivePortraitImage (/gpu_wrapped_execute_image)', () => {
+  function mockImageFlow() {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === `${SPACE}/config`)
+        return jsonResponse({
+          dependencies: [{ api_name: 'gpu_wrapped_execute_image' }],
+        });
+      if (url.endsWith('/upload')) return jsonResponse(['/tmp/gradio/abc/source.jpg']);
+      if (url.endsWith('/queue/join')) return jsonResponse({ event_id: 'evt-img' });
+      if (url.includes('/queue/data?session_hash=')) {
+        return sseResponse(
+          'event: process_completed\ndata: [{"url": "/file=/tmp/gradio/abc/retarget.jpg"}, {"url": "/file=/tmp/gradio/abc/retarget_crop.jpg"}]\n\n',
+        );
+      }
+      if (url === 'https://cdn.example/portrait.jpg') {
+        return bytesResponse(new Uint8Array([1, 2, 3]), 'image/jpeg');
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
+  }
+
+  it('sends the documented param_0..param_3 layout and returns both images', async () => {
+    mockImageFlow();
+    const result = await retargetLivePortraitImage(
+      {
+        providerId: 'huggingface-video',
+        apiKey: 'hf-test',
+        model: HUGGINGFACE_LIVEPORTRAIT_MODEL,
+      },
+      {
+        imageUrl: 'https://cdn.example/portrait.jpg',
+        eyesOpenRatio: 0.2,
+        lipOpenRatio: 0.4,
+        doCrop: true,
+      },
+    );
+    expect(result.url).toBe(`${SPACE}/file=/tmp/gradio/abc/retarget.jpg`);
+    expect(result.previewUrl).toBe(`${SPACE}/file=/tmp/gradio/abc/retarget_crop.jpg`);
+
+    const joinCall = fetchMock.mock.calls.find(([url]) =>
+      (url as string).endsWith('/queue/join'),
+    ) as unknown as [string, RequestInit];
+    const joinBody = JSON.parse(joinCall[1].body as string);
+    expect(joinBody.fn_index).toBe(0);
+    // param_0 eyes ratio, param_1 lip ratio, param_2 FileData image, param_3 do crop.
+    expect(joinBody.data[0]).toBe(0.2);
+    expect(joinBody.data[1]).toBe(0.4);
+    expect(joinBody.data[2]).toMatchObject({
+      path: '/tmp/gradio/abc/source.jpg',
+      meta: { _type: 'gradio.FileData' },
+    });
+    expect(joinBody.data[3]).toBe(true);
+  });
+
+  it('rejects ratios outside the documented 0..0.8 Slider range', async () => {
+    await expect(
+      retargetLivePortraitImage(
+        {
+          providerId: 'huggingface-video',
+          apiKey: 'hf-test',
+          model: HUGGINGFACE_LIVEPORTRAIT_MODEL,
+        },
+        { imageUrl: 'https://cdn.example/portrait.jpg', eyesOpenRatio: 0.9 },
+      ),
+    ).rejects.toThrow(/between 0 and 0\.8/);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('checkSquareVideoViaSpace (/is_square_video)', () => {
+  it('submits a single VideoData param and resolves the video output', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url === `${SPACE}/config`)
+        return jsonResponse({ dependencies: [{ api_name: 'is_square_video' }] });
+      if (url.endsWith('/upload')) return jsonResponse(['/tmp/gradio/abc/d.mp4']);
+      if (url.endsWith('/queue/join')) return jsonResponse({ event_id: 'evt-sq' });
+      if (url.includes('/queue/data?session_hash=')) {
+        return sseResponse(
+          'event: process_completed\ndata: [{"video": {"url": "/file=/tmp/gradio/abc/square.mp4"}, "subtitles": null}]\n\n',
+        );
+      }
+      if (url === 'https://cdn.example/motion.mp4') {
+        return bytesResponse(new Uint8Array([7, 8]), 'video/mp4');
+      }
+      throw new Error(`unexpected request: ${url}`);
+    });
+    const result = await checkSquareVideoViaSpace(
+      {
+        providerId: 'huggingface-video',
+        apiKey: 'hf-test',
+        model: HUGGINGFACE_LIVEPORTRAIT_MODEL,
+      },
+      'https://cdn.example/motion.mp4',
+    );
+    expect(result.url).toBe(`${SPACE}/file=/tmp/gradio/abc/square.mp4`);
+    const joinCall = fetchMock.mock.calls.find(([url]) =>
+      (url as string).endsWith('/queue/join'),
+    ) as unknown as [string, RequestInit];
+    const joinBody = JSON.parse(joinCall[1].body as string);
+    expect(joinBody.fn_index).toBe(0);
+    expect(joinBody.data).toHaveLength(1);
+    expect(joinBody.data[0]).toMatchObject({
+      video: { path: '/tmp/gradio/abc/d.mp4' },
+      subtitles: null,
+    });
+  });
+});
+
+describe('resolveVideoOutputRef', () => {
+  it('unwraps VideoData ({video: FileData})', () => {
+    const inner = { url: '/file=/tmp/o.mp4' };
+    expect(resolveVideoOutputRef({ video: inner, subtitles: null })).toBe(inner);
+  });
+
+  it('passes bare file refs through', () => {
+    const ref = { url: '/file=/tmp/o.mp4' };
+    expect(resolveVideoOutputRef(ref)).toBe(ref);
+    expect(resolveVideoOutputRef(null)).toBeNull();
+  });
+});
+
+describe('headersForInputDownload', () => {
+  const auth = { Authorization: 'Bearer hf-test' };
+
+  it('keeps the token on Hugging Face hosts', () => {
+    expect(
+      headersForInputDownload('https://huggingface.co/spaces/x/resolve/main/d0.mp4', auth),
+    ).toEqual(auth);
+    expect(
+      headersForInputDownload('https://klingteam-liveportrait.hf.space/file=/tmp/x.mp4', auth),
+    ).toEqual(auth);
+  });
+
+  it('drops the token on third-party hosts', () => {
+    expect(headersForInputDownload('https://cdn.example/portrait.jpg', auth)).toEqual({});
+    expect(headersForInputDownload('not a url', auth)).toEqual({});
+  });
+});
+
+describe('resolveGradioFileUrl file routes', () => {
+  it('resolves path-only refs against the Gradio 4 /file= route for LivePortrait', () => {
+    expect(resolveGradioFileUrl(SPACE, { path: '/tmp/gradio/abc/out.mp4' }, 'file=')).toEqual({
+      url: `${SPACE}/file=/tmp/gradio/abc/out.mp4`,
+      mimeType: undefined,
+    });
+  });
+
+  it('keeps the Gradio 5 default route for FLUX-style Spaces', () => {
+    const flux = 'https://black-forest-labs-flux-1-dev.hf.space';
+    expect(resolveGradioFileUrl(flux, { path: '/tmp/gradio/abc/out.png' })).toEqual({
+      url: `${flux}/gradio_api/file=/tmp/gradio/abc/out.png`,
+      mimeType: undefined,
+    });
   });
 });

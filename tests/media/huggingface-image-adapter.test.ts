@@ -8,6 +8,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  clearFluxSpaceCallInfoCache,
   generateWithHuggingFaceImage,
   huggingFaceSpaceUrl,
   readGradioResultEvent,
@@ -34,6 +35,7 @@ function sseResponse(payload: string, status = 200): Response {
 
 afterEach(() => {
   fetchMock.mockReset();
+  clearFluxSpaceCallInfoCache();
 });
 
 describe('huggingFaceSpaceUrl', () => {
@@ -103,6 +105,12 @@ describe('readGradioResultEvent', () => {
     await expect(
       readGradioResultEvent(sseResponse('event: error\ndata: ["queue full"]\n\n'), 'X'),
     ).rejects.toThrow(/queue full/);
+  });
+
+  it('answers an empty error payload with a busy message, not "null"', async () => {
+    await expect(
+      readGradioResultEvent(sseResponse('event: error\ndata: null\n\n'), 'Hugging Face Image'),
+    ).rejects.toThrow(/busy or out of GPU quota/);
   });
 
   it('throws when the stream closes without a result', async () => {
@@ -175,13 +183,18 @@ describe('testHuggingFaceImageConnectivity (login probe)', () => {
 describe('generateWithHuggingFaceImage', () => {
   function mockGradioFlow() {
     fetchMock.mockImplementation(async (url: string) => {
-      if (url.endsWith('/gradio_api/call/infer')) {
+      if (url.endsWith('/config')) {
+        return jsonResponse({ dependencies: [{ api_name: 'infer' }] });
+      }
+      if (url.endsWith('/gradio_api/queue/join')) {
         return jsonResponse({ event_id: 'evt-1' });
       }
-      if (url.includes('/gradio_api/call/infer/evt-1')) {
+      if (url.includes('/gradio_api/queue/data?session_hash=')) {
         return sseResponse(
-          'event: generating\ndata: [null]\n\n' +
-            'event: complete\ndata: [{"url": "/gradio_api/file=/tmp/gradio/abc/out.png", "mime_type": "image/png"}, 123]\n\n',
+          'data: {"msg":"estimation","event_id":"evt-1","rank":0,"queue_size":1}\n\n' +
+            'data: {"msg":"process_starts","event_id":"evt-1"}\n\n' +
+            'data: {"msg":"process_completed","event_id":"evt-1","output":{"data":[{"url": "/gradio_api/file=/tmp/gradio/abc/out.png", "mime_type": "image/png"}, 123]},"success":true}\n\n' +
+            'data: {"msg":"close_stream","event_id":null}\n\n',
         );
       }
       throw new Error(`unexpected request: ${url}`);
@@ -206,19 +219,47 @@ describe('generateWithHuggingFaceImage', () => {
     expect(result.width).toBe(1280);
     expect(result.height).toBe(720);
 
-    const [callUrl, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(callUrl).toBe('https://black-forest-labs-flux-1-dev.hf.space/gradio_api/call/infer');
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer hf-test');
+    const [joinUrl, joinInit] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
+    expect(joinUrl).toBe('https://black-forest-labs-flux-1-dev.hf.space/gradio_api/queue/join');
+    expect((joinInit.headers as Record<string, string>).Authorization).toBe('Bearer hf-test');
     // Parameter order follows the Space's /infer signature.
-    expect(JSON.parse(init.body as string)).toEqual({
+    expect(JSON.parse(joinInit.body as string)).toMatchObject({
       data: ['a fox', 0, true, 1280, 720, 3.5, 28],
     });
 
-    const [pollUrl, pollInit] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
-    expect(pollUrl).toBe(
-      'https://black-forest-labs-flux-1-dev.hf.space/gradio_api/call/infer/evt-1',
+    const [dataUrl, dataInit] = fetchMock.mock.calls[2] as unknown as [string, RequestInit];
+    expect(String(dataUrl)).toContain('https://black-forest-labs-flux-1-dev.hf.space/gradio_api/queue/data?session_hash=');
+    expect((dataInit.headers as Record<string, string>).Authorization).toBe('Bearer hf-test');
+  });
+
+  it('forwards caller /infer overrides keeping the parameter order', async () => {
+    mockGradioFlow();
+    const result = await generateWithHuggingFaceImage(
+      {
+        providerId: 'huggingface-image',
+        apiKey: 'hf-test',
+        model: 'black-forest-labs/FLUX.1-dev',
+      },
+      {
+        prompt: 'a fox',
+        width: 512,
+        height: 512,
+        seed: 42,
+        randomizeSeed: false,
+        guidanceScale: 7,
+        numInferenceSteps: 10,
+      },
     );
-    expect((pollInit.headers as Record<string, string>).Authorization).toBe('Bearer hf-test');
+
+    expect(result.width).toBe(512);
+    expect(result.height).toBe(512);
+    const [, init] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
+    // Parameter order follows the Space's /infer signature:
+    // prompt, seed, randomize_seed, width, height, guidance_scale,
+    // num_inference_steps.
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      data: ['a fox', 42, false, 512, 512, 7, 10],
+    });
   });
 
   it('requires an explicit model', async () => {
@@ -232,6 +273,7 @@ describe('generateWithHuggingFaceImage', () => {
   });
 
   it('surfaces a rejected token with its status for the route categorizer', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ dependencies: [{ api_name: 'infer' }] }));
     fetchMock.mockResolvedValueOnce(new Response('unauthorized', { status: 401 }));
     await expect(
       generateWithHuggingFaceImage(
@@ -247,10 +289,15 @@ describe('generateWithHuggingFaceImage', () => {
 
   it('throws when the Space returns no image data', async () => {
     fetchMock.mockImplementation(async (url: string) => {
-      if (url.endsWith('/gradio_api/call/infer')) {
+      if (url.endsWith('/config')) {
+        return jsonResponse({ dependencies: [{ api_name: 'infer' }] });
+      }
+      if (url.endsWith('/gradio_api/queue/join')) {
         return jsonResponse({ event_id: 'evt-2' });
       }
-      return sseResponse('event: complete\ndata: [[null], 1]\n\n');
+      return sseResponse(
+        'data: {"msg":"process_completed","event_id":"evt-2","output":{"data":[[null], 1]},"success":true}\n\n',
+      );
     });
     await expect(
       generateWithHuggingFaceImage(
@@ -262,5 +309,29 @@ describe('generateWithHuggingFaceImage', () => {
         { prompt: 'a fox' },
       ),
     ).rejects.toThrow(/no image data/i);
+  });
+
+  it('surfaces the provider error message from the queue stream', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.endsWith('/config')) {
+        return jsonResponse({ dependencies: [{ api_name: 'infer' }] });
+      }
+      if (url.endsWith('/gradio_api/queue/join')) {
+        return jsonResponse({ event_id: 'evt-3' });
+      }
+      return sseResponse(
+        'data: {"msg":"process_completed","event_id":"evt-3","output":{"error":"You have exceeded your ZeroGPU runs limit","title":"ZeroGPU quota exceeded"},"success":false,"title":"ZeroGPU quota exceeded"}\n\n',
+      );
+    });
+    await expect(
+      generateWithHuggingFaceImage(
+        {
+          providerId: 'huggingface-image',
+          apiKey: 'hf-test',
+          model: 'black-forest-labs/FLUX.1-dev',
+        },
+        { prompt: 'a fox' },
+      ),
+    ).rejects.toThrow(/ZeroGPU runs limit/);
   });
 });

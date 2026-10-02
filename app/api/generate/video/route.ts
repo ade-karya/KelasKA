@@ -12,7 +12,7 @@
  *   x-api-key: string (optional, server fallback)
  *   x-base-url: string (optional, server fallback)
  *
- * Body: { prompt, duration?, aspectRatio?, resolution?, sourceImageUrl?, drivingVideoUrl? }
+ * Body: { prompt, duration?, aspectRatio?, resolution?, sourceImageUrl?, drivingVideoUrl?, relativeMotion?, doCrop?, pasteBack? }
  * Response: { success: boolean, result?: VideoGenerationResult, error?: string }
  *
  * Image-to-video providers (e.g. Hugging Face LivePortrait) animate

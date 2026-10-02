@@ -119,6 +119,29 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
   const isServerConfigured = !!currentConfig?.isServerConfigured;
   const requiresApiKey = currentProvider?.requiresApiKey ?? true;
 
+  // FLUX.1-dev `/infer` overrides (Hugging Face FLUX provider only).
+  // Defaults mirror the Space's API docs; an unset field falls back there.
+  const fluxParams = currentConfig?.fluxParams ?? {};
+  const handleFluxParamsChange = (
+    patch: Partial<{
+      seed: number | undefined;
+      randomizeSeed: boolean;
+      width: number | undefined;
+      height: number | undefined;
+      guidanceScale: number | undefined;
+      numInferenceSteps: number | undefined;
+    }>,
+  ) => {
+    setImageProviderConfig(selectedProviderId, {
+      fluxParams: { ...fluxParams, ...patch },
+    });
+  };
+  const handleFluxParamsReset = () => {
+    setImageProviderConfig(selectedProviderId, {
+      fluxParams: {},
+    });
+  };
+
   const handleApiKeyChange = (apiKey: string) => {
     setImageProviderConfig(selectedProviderId, {
       apiKey,
@@ -350,7 +373,9 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
             </div>
           )}
 
-          {/* API Key + Test inline */}
+          {/* API Key + Test inline — for Hugging Face FLUX paste the
+              access token (hf_...) here; the field label stays API Key
+              because the server reads it via x-api-key. */}
           <div className="space-y-2">
             <Label>API Key</Label>
             <div className="flex gap-2">
@@ -362,7 +387,7 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder={t('settings.enterApiKey')}
+                  placeholder={isHuggingFaceImage ? 'hf_...' : t('settings.enterApiKey')}
                   value={currentConfig?.apiKey || ''}
                   onChange={(e) => handleApiKeyChange(e.target.value)}
                   className="h-8 pr-8"
@@ -441,6 +466,138 @@ export function ImageSettings({ selectedProviderId }: ImageSettingsProps) {
               );
             })()}
           </div>
+
+          {/* FLUX.1-dev `/infer` parameters — mirrors the Space's API docs
+              (prompt comes from the generation request itself; the other six
+              inputs are editable here, blank = API default). */}
+          {isHuggingFaceImage && (
+            <div className="space-y-3 rounded-lg border border-border/50 bg-card p-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <div className="text-sm font-medium">FLUX Parameters</div>
+                  <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                    /infer — black-forest-labs/FLUX.1-dev
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleFluxParamsReset}
+                  className="gap-1.5"
+                  title="Reset to the API defaults (seed 0, randomize on, 1024×1024, guidance 3.5, 28 steps)"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  {t('settings.reset')}
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="font-mono text-xs">seed</Label>
+                  <Input
+                    name={`image-flux-seed-${selectedProviderId}`}
+                    type="number"
+                    min={0}
+                    step={1}
+                    placeholder="0"
+                    value={fluxParams.seed ?? ''}
+                    onChange={(e) =>
+                      handleFluxParamsChange({
+                        seed: e.target.value === '' ? undefined : Math.max(0, Math.floor(Number(e.target.value) || 0)),
+                      })
+                    }
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-mono text-xs">num_inference_steps</Label>
+                  <Input
+                    name={`image-flux-steps-${selectedProviderId}`}
+                    type="number"
+                    min={1}
+                    step={1}
+                    placeholder="28"
+                    value={fluxParams.numInferenceSteps ?? ''}
+                    onChange={(e) =>
+                      handleFluxParamsChange({
+                        numInferenceSteps:
+                          e.target.value === '' ? undefined : Math.max(1, Math.floor(Number(e.target.value) || 0)),
+                      })
+                    }
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-mono text-xs">width</Label>
+                  <Input
+                    name={`image-flux-width-${selectedProviderId}`}
+                    type="number"
+                    min={256}
+                    step={8}
+                    placeholder="1024"
+                    value={fluxParams.width ?? ''}
+                    onChange={(e) =>
+                      handleFluxParamsChange({
+                        width: e.target.value === '' ? undefined : Math.max(1, Math.floor(Number(e.target.value) || 0)),
+                      })
+                    }
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-mono text-xs">height</Label>
+                  <Input
+                    name={`image-flux-height-${selectedProviderId}`}
+                    type="number"
+                    min={256}
+                    step={8}
+                    placeholder="1024"
+                    value={fluxParams.height ?? ''}
+                    onChange={(e) =>
+                      handleFluxParamsChange({
+                        height: e.target.value === '' ? undefined : Math.max(1, Math.floor(Number(e.target.value) || 0)),
+                      })
+                    }
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-mono text-xs">guidance_scale</Label>
+                  <Input
+                    name={`image-flux-guidance-${selectedProviderId}`}
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    placeholder="3.5"
+                    value={fluxParams.guidanceScale ?? ''}
+                    onChange={(e) =>
+                      handleFluxParamsChange({
+                        guidanceScale: e.target.value === '' ? undefined : Number(e.target.value),
+                      })
+                    }
+                    className="h-8"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="font-mono text-xs">randomize_seed</Label>
+                  <label className="flex h-8 items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name={`image-flux-randomize-${selectedProviderId}`}
+                      checked={fluxParams.randomizeSeed ?? true}
+                      onChange={(e) => handleFluxParamsChange({ randomizeSeed: e.target.checked })}
+                      className="h-4 w-4 accent-current"
+                    />
+                    <span className="text-muted-foreground">
+                      {fluxParams.randomizeSeed ?? true ? 'On (fresh seed)' : 'Off (use seed)'}
+                    </span>
+                  </label>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Blank fields use the API defaults. Returns an image plus the seed used.
+              </p>
+            </div>
+          )}
         </>
       )}
 

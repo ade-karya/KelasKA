@@ -11,7 +11,9 @@
  *   x-api-key: string (optional, server fallback)
  *   x-base-url: string (optional, server fallback)
  *
- * Body: { prompt, negativePrompt?, width?, height?, aspectRatio?, style? }
+ * Body: { prompt, negativePrompt?, width?, height?, aspectRatio?, style?,
+ *   seed?, randomizeSeed?, guidanceScale?, numInferenceSteps? }
+ *   (the FLUX.1-dev `/infer` fields are Hugging Face FLUX only)
  * Response: { success: boolean, result?: ImageGenerationResult, error?: string }
  */
 
@@ -145,6 +147,17 @@ export async function POST(request: NextRequest) {
     // and tells the user exactly which selection failed. May be undefined
     // when the failure happened before resolution.
     const where = `(${providerId ?? 'unknown provider'} / ${model || 'default model'})`;
+    // Hugging Face ZeroGPU queue refusals have no (NNN) status; surface the
+    // provider's own message (e.g. "You have exceeded your ZeroGPU runs
+    // limit...") as a retryable 429 instead of a generic 500.
+    if (/zerogpu|quota/i.test(message)) {
+      log.warn(`Image generation quota refusal: ${message}`);
+      return apiError(
+        'UPSTREAM_ERROR',
+        429,
+        `The image provider reports exhausted GPU quota ${where}. Wait for the daily quota reset or upgrade the Hugging Face plan.`,
+      );
+    }
     switch (upstreamStatus) {
       case '401':
       case '403':

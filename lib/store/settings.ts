@@ -367,6 +367,20 @@ export interface SettingsState {
       serverDisabled?: boolean;
       customModels?: Array<{ id: string; name: string }>;
       replaceBuiltInModels?: boolean;
+      /**
+       * FLUX.1-dev `/infer` parameters for the Hugging Face FLUX provider
+       * (seed, randomize_seed, width, height, guidance_scale,
+       * num_inference_steps). Edited in Settings; forwarded per request by
+       * the media orchestrator. Unset fields fall back to the API defaults.
+       */
+      fluxParams?: {
+        seed?: number;
+        randomizeSeed?: boolean;
+        width?: number;
+        height?: number;
+        guidanceScale?: number;
+        numInferenceSteps?: number;
+      };
     }
   >;
 
@@ -558,6 +572,14 @@ export interface SettingsState {
       enabled: boolean;
       customModels: Array<{ id: string; name: string }>;
       replaceBuiltInModels: boolean;
+      fluxParams: {
+        seed?: number;
+        randomizeSeed?: boolean;
+        width?: number;
+        height?: number;
+        guidanceScale?: number;
+        numInferenceSteps?: number;
+      };
     }>,
   ) => void;
 

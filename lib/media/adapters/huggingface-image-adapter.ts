@@ -5,16 +5,23 @@
  * its `/infer` API endpoint, using the caller's Hugging Face access token
  * (`hf_...`) as the credential:
  *
- * - Call:    POST {space}/gradio_api/call/infer
- *            { data: [prompt, seed, randomize_seed, width, height,
- *                     guidance_scale, num_inference_steps] }
- *            → { event_id }
- * - Poll:    GET  {space}/gradio_api/call/infer/{event_id} (SSE)
- *            → `event: complete` + `data: [{url|path,...}, seed]`
+ * - Config: GET {space}/config → dependencies[].api_name === 'infer' →
+ *           fn_index (2 on this Space), api_prefix ('/gradio_api')
+ * - Join:  POST {space}/gradio_api/queue/join
+ *          { data: [prompt, seed, randomize_seed, width, height,
+ *                    guidance_scale, num_inference_steps],
+ *            event_data: null, fn_index, trigger_id: null, session_hash }
+ *          → { event_id }
+ * - Poll:  GET  {space}/gradio_api/queue/data?session_hash=... (SSE)
+ *          → `process_completed` + `output.data: [{url|path,...}, seed]`;
+ *           an error is `process_completed` with `success:false` and
+ *           `output.error` (e.g. the ZeroGPU quota refusal)
  *
  * This mirrors what `@gradio/client`'s `client.predict("/infer", {...})` does
  * (see the Space's API docs), issued here with plain `fetch` so no extra
- * dependency is needed.
+ * dependency is needed. The legacy `/call/infer` route is deliberately
+ * avoided: it discards the provider's real error message and answers with
+ * `data: null`, hiding e.g. "You have exceeded your ZeroGPU runs limit".
  *
  * FLUX.1-dev is a gated model: the Hugging Face account behind the token must
  * accept the model license (https://huggingface.co/black-forest-labs/FLUX.1-dev)
@@ -27,6 +34,7 @@ import type {
   ImageGenerationConfig,
   ImageGenerationOptions,
   ImageGenerationResult,
+  MediaProviderFetch,
 } from '../types';
 import { mediaFetchFor } from '../media-fetch';
 import { assertNotRedirected } from '../redirect-guard';
@@ -44,8 +52,16 @@ export const HUGGINGFACE_DEFAULT_MODEL = 'black-forest-labs/FLUX.1-dev';
 export { resolveGradioFileUrl };
 
 /** FLUX.1-dev `/infer` defaults (match the Space's API docs). */
-const DEFAULT_GUIDANCE_SCALE = 3.5;
-const DEFAULT_NUM_INFERENCE_STEPS = 28;
+export const HUGGINGFACE_FLUX_DEFAULTS = {
+  seed: 0,
+  randomizeSeed: true,
+  width: 1024,
+  height: 1024,
+  guidanceScale: 3.5,
+  numInferenceSteps: 28,
+} as const;
+const DEFAULT_GUIDANCE_SCALE = HUGGINGFACE_FLUX_DEFAULTS.guidanceScale;
+const DEFAULT_NUM_INFERENCE_STEPS = HUGGINGFACE_FLUX_DEFAULTS.numInferenceSteps;
 
 /** Dimension defaults per aspect ratio, mirroring the other image adapters. */
 function getDimensions(aspectRatio?: string): { width: number; height: number } {
@@ -113,6 +129,16 @@ export async function readGradioResultEvent(
     if (current.event === 'error') {
       const raw = current.data.join('\n');
       current = { event: '', data: [] };
+      const detail = raw.trim();
+      // The Space answers queue pressure (busy Space, exhausted ZeroGPU
+      // quota, gated-model refusal without a message) with an empty payload
+      // (`data: null`) — surface that as a retryable busy message instead of
+      // echoing "null".
+      if (!detail || detail === 'null' || detail === '""' || detail === '[]') {
+        throw new Error(
+          `${providerLabel} reported an error with no details (the Space is likely busy or out of GPU quota — wait a moment and retry)`,
+        );
+      }
       throw new Error(`${providerLabel} reported an error: ${raw.slice(0, 300)}`);
     }
     // `generating` and other interim events carry no terminal payload.
@@ -159,6 +185,120 @@ export async function readGradioResultEvent(
 }
 
 /**
+ * Read Gradio 5 sse_v3 queue events (`{space}/gradio_api/queue/data`)
+ * until `process_completed` / `close_stream`. Unlike the legacy
+ * `/call/infer` SSE (see `readGradioResultEvent`), each `data:` line is a
+ * JSON envelope (`{msg, event_id, output?, success?, ...}`) — errors carry
+ * the provider's real message in `output.error` (e.g. the ZeroGPU quota
+ * refusal), which the bare `/call/infer` route delivers as `data: null`.
+ */
+export async function readFluxQueueResultEvent(
+  response: Response,
+  providerLabel: string,
+): Promise<unknown> {
+  const body = response.body;
+  if (!body) {
+    throw new Error(`${providerLabel} returned an empty event stream`);
+  }
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  /** Returns done with the completed payload when this message terminates. */
+  const handleMessage = (raw: string): { done: boolean; payload?: unknown } => {
+    const detail = raw.trim();
+    if (!detail || detail === 'null' || detail === '""' || detail === '[]') {
+      return { done: false };
+    }
+    let message: {
+      msg?: unknown;
+      success?: unknown;
+      message?: unknown;
+      title?: unknown;
+      output?: { error?: unknown; title?: unknown; data?: unknown } | null;
+    };
+    try {
+      message = JSON.parse(detail);
+    } catch {
+      return { done: false };
+    }
+    const msg = typeof message.msg === 'string' ? message.msg : '';
+    if (msg === 'process_completed') {
+      if (message.success === false) {
+        const detail =
+          (typeof message.output?.error === 'string' && message.output.error) ||
+          (typeof message.output?.title === 'string' && message.output.title) ||
+          (typeof message.title === 'string' && message.title) ||
+          'unknown error';
+        throw new Error(`${providerLabel} reported an error: ${String(detail).slice(0, 300)}`);
+      }
+      if (message.output && typeof message.output === 'object' && 'data' in message.output) {
+        return { done: true, payload: message.output.data };
+      }
+      throw new Error(`${providerLabel} returned an unreadable result payload`);
+    }
+    if (msg === 'process_generating' && message.success === false) {
+      const detail =
+        (typeof message.output?.error === 'string' && message.output.error) ||
+        (typeof message.title === 'string' && message.title) ||
+        'unknown error';
+      throw new Error(`${providerLabel} reported an error: ${String(detail).slice(0, 300)}`);
+    }
+    if (msg === 'unexpected_error') {
+      const detail =
+        (typeof message.message === 'string' && message.message) ||
+        (typeof message.title === 'string' && message.title) ||
+        'unknown error';
+      throw new Error(`${providerLabel} reported an error: ${String(detail).slice(0, 300)}`);
+    }
+    if (msg === 'close_stream') {
+      return { done: true, payload: undefined };
+    }
+    return { done: false };
+  };
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (value) {
+        buffer += decoder.decode(value, { stream: true });
+      }
+      let boundary = buffer.indexOf('\n\n');
+      while (boundary !== -1) {
+        const block = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + 2);
+        for (const line of block.split('\n')) {
+          if (line.startsWith('data:')) {
+            const outcome = handleMessage(line.slice('data:'.length).trimStart());
+            if (outcome.done) {
+              await reader.cancel().catch(() => undefined);
+              if (outcome.payload === undefined) {
+                throw new Error(`${providerLabel} closed the event stream without a result`);
+              }
+              return outcome.payload;
+            }
+          }
+        }
+        boundary = buffer.indexOf('\n\n');
+      }
+      if (done) {
+        if (buffer.trim()) {
+          for (const line of buffer.split('\n')) {
+            if (line.startsWith('data:')) {
+              const outcome = handleMessage(line.slice('data:'.length).trimStart());
+              if (outcome.done && outcome.payload !== undefined) return outcome.payload;
+            }
+          }
+        }
+        throw new Error(`${providerLabel} closed the event stream without a result`);
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+/**
  * Lightweight connectivity test — validates the Hugging Face login without
  * generating anything. `GET /api/whoami-v2` is the cheapest endpoint that
  * actually rejects a bad or missing token (a gated Space would otherwise burn
@@ -168,6 +308,65 @@ export async function testHuggingFaceImageConnectivity(
   config: ImageGenerationConfig,
 ): Promise<{ success: boolean; message: string }> {
   return testHuggingFaceLogin(config);
+}
+
+/**
+ * Resolve the `/infer` endpoint's fn_index from the Space's `/config`
+ * (dependencies[].api_name === 'infer'), cached per Space URL. Falls back
+ * to the literal index 2 — the only documented dependency slot on the
+ * FLUX.1-dev Space — when the config lookup is unavailable.
+ */
+interface SpaceConfig {
+  api_prefix?: unknown;
+  dependencies?: Array<{ api_name?: unknown }>;
+}
+
+interface SpaceCallInfo {
+  apiPrefix: string;
+  fnIndex: number;
+}
+
+const spaceCallInfoCache = new Map<string, Promise<SpaceCallInfo>>();
+
+function fetchSpaceCallInfo(
+  fetchImpl: MediaProviderFetch,
+  spaceUrl: string,
+  headers: Record<string, string>,
+): Promise<SpaceCallInfo> {
+  let cached = spaceCallInfoCache.get(spaceUrl);
+  if (!cached) {
+    cached = (async (): Promise<SpaceCallInfo> => {
+      try {
+        const response = await fetchImpl(`${spaceUrl}/config`, {
+          method: 'GET',
+          redirect: 'manual',
+          headers,
+        });
+        if (!response.ok) throw new Error(`config ${response.status}`);
+        const config = (await response.json().catch(() => null)) as SpaceConfig | null;
+        const apiPrefix =
+          typeof config?.api_prefix === 'string' && config.api_prefix.startsWith('/')
+            ? config.api_prefix
+            : '/gradio_api';
+        const deps = Array.isArray(config?.dependencies) ? config!.dependencies : [];
+        const fnIndex = deps.findIndex((dep) => dep?.api_name === 'infer' || dep?.api_name === '/infer');
+        return { apiPrefix, fnIndex: fnIndex >= 0 ? fnIndex : 2 };
+      } catch {
+        return { apiPrefix: '/gradio_api', fnIndex: 2 };
+      }
+    })();
+    spaceCallInfoCache.set(spaceUrl, cached);
+  }
+  return cached;
+}
+
+/** Clear the /config cache (tests). */
+export function clearFluxSpaceCallInfoCache(): void {
+  spaceCallInfoCache.clear();
+}
+
+function randomSessionHash(): string {
+  return Array.from({ length: 11 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
 }
 
 export async function generateWithHuggingFaceImage(
@@ -184,48 +383,77 @@ export async function generateWithHuggingFaceImage(
 
   // Parameter order follows the Space's `/infer` signature:
   // prompt, seed, randomize_seed, width, height, guidance_scale,
-  // num_inference_steps. Seed 0 + randomize keeps every call fresh.
-  const callResponse = await fetchImpl(`${spaceUrl}/gradio_api/call/infer`, {
+  // num_inference_steps. Callers may override seed / sampling through
+  // ImageGenerationOptions (the Settings panel exposes the same fields);
+  // unset fields fall back to the API defaults (seed 0 + randomize keeps
+  // every call fresh).
+  const seed = Number.isFinite(options.seed) ? Math.max(0, Math.floor(options.seed as number)) : HUGGINGFACE_FLUX_DEFAULTS.seed;
+  const randomizeSeed = options.randomizeSeed ?? HUGGINGFACE_FLUX_DEFAULTS.randomizeSeed;
+  const guidanceScale =
+    Number.isFinite(options.guidanceScale) && (options.guidanceScale as number) > 0
+      ? (options.guidanceScale as number)
+      : DEFAULT_GUIDANCE_SCALE;
+  const numInferenceSteps =
+    Number.isFinite(options.numInferenceSteps) && (options.numInferenceSteps as number) > 0
+      ? Math.floor(options.numInferenceSteps as number)
+      : DEFAULT_NUM_INFERENCE_STEPS;
+
+  // The Space runs on Gradio 5's sse_v3 queue protocol (verified live):
+  // POST {space}/gradio_api/queue/join → { event_id }, then GET
+  // {space}/gradio_api/queue/data?session_hash=... (SSE). The legacy
+  // /call/infer route answers queue errors as an empty `data: null`,
+  // losing the real message (e.g. "You have exceeded your ZeroGPU runs
+  // limit..."), so the queue route is the one that echoes it.
+  const { apiPrefix, fnIndex } = await fetchSpaceCallInfo(fetchImpl, spaceUrl, headers);
+  const sessionHash = randomSessionHash();
+  const joinResponse = await fetchImpl(`${spaceUrl}${apiPrefix}/queue/join`, {
     method: 'POST',
     redirect: 'manual',
-    headers: { 'Content-Type': 'application/json', ...headers },
+    headers: { 'Content-Type': 'application/json', 'x-gradio-user': 'api', ...headers },
     body: JSON.stringify({
       data: [
         options.prompt,
-        0,
-        true,
+        seed,
+        randomizeSeed,
         targetWidth,
         targetHeight,
-        DEFAULT_GUIDANCE_SCALE,
-        DEFAULT_NUM_INFERENCE_STEPS,
+        guidanceScale,
+        numInferenceSteps,
       ],
+      event_data: null,
+      fn_index: fnIndex,
+      trigger_id: null,
+      session_hash: sessionHash,
     }),
     ...(options.signal ? { signal: options.signal } : {}),
   });
 
-  assertNotRedirected(callResponse, 'Hugging Face Image');
+  assertNotRedirected(joinResponse, 'Hugging Face Image');
 
-  if (!callResponse.ok) {
-    const text = await callResponse.text().catch(() => callResponse.statusText);
+  if (!joinResponse.ok) {
+    const text = await joinResponse.text().catch(() => joinResponse.statusText);
     throw new Error(
-      `Hugging Face image generation failed (${callResponse.status}): ${text.slice(0, 300)}`,
+      `Hugging Face image generation failed (${joinResponse.status}): ${text.slice(0, 300)}`,
     );
   }
 
-  const callData = (await callResponse.json().catch(() => null)) as {
+  const joinData = (await joinResponse.json().catch(() => null)) as {
     event_id?: unknown;
   } | null;
-  const eventId = typeof callData?.event_id === 'string' ? callData.event_id : '';
+  const eventId = typeof joinData?.event_id === 'string' ? joinData.event_id : '';
   if (!eventId) {
     throw new Error('Hugging Face image generation failed: the Space returned no event id');
   }
 
-  const streamResponse = await fetchImpl(`${spaceUrl}/gradio_api/call/infer/${eventId}`, {
-    method: 'GET',
-    redirect: 'manual',
-    headers: { Accept: 'text/event-stream', ...headers },
-    ...(options.signal ? { signal: options.signal } : {}),
-  });
+  const streamResponse = await fetchImpl(
+    `${spaceUrl}${apiPrefix}/queue/data?session_hash=${encodeURIComponent(sessionHash)}`,
+    {
+      method: 'GET',
+      redirect: 'manual',
+      headers: { Accept: 'text/event-stream', 'x-gradio-user': 'api', ...headers },
+      ...(options.signal ? { signal: options.signal } : {}),
+    },
+  );
 
   assertNotRedirected(streamResponse, 'Hugging Face Image');
 
@@ -236,7 +464,7 @@ export async function generateWithHuggingFaceImage(
     );
   }
 
-  const payload = await readGradioResultEvent(streamResponse, 'Hugging Face Image');
+  const payload = await readFluxQueueResultEvent(streamResponse, 'Hugging Face Image');
   const fileRef = Array.isArray(payload) ? payload[0] : null;
   const resolved = resolveGradioFileUrl(spaceUrl, fileRef);
   if (!resolved) {

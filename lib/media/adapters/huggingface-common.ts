@@ -61,12 +61,15 @@ interface GradioFileRef {
 /**
  * Normalize a Gradio file payload into an absolute file URL, if any. Accepts
  * a bare URL string or a FileData object (`{url?, path?, mime_type?}`); a
- * relative `url` resolves against the Space, a bare `path` against its
- * `/gradio_api/file=` route.
+ * relative `url` resolves against the Space, a bare `path` against its file
+ * route — `gradio_api/file=` on Gradio 5 Spaces (e.g. FLUX.1-dev), `file=`
+ * on Gradio 4 Spaces (e.g. LivePortrait, whose live payloads always carry an
+ * absolute `url` so this is only a fallback).
  */
 export function resolveGradioFileUrl(
   spaceUrl: string,
   ref: unknown,
+  fileRoute: 'gradio_api/file=' | 'file=' = 'gradio_api/file=',
 ): { url: string; mimeType?: string } | null {
   if (typeof ref === 'string' && ref) {
     const url = /^https?:\/\//i.test(ref) ? ref : new URL(ref, spaceUrl).toString();
@@ -82,7 +85,7 @@ export function resolveGradioFileUrl(
       return { url, mimeType };
     }
     if (typeof file.path === 'string' && file.path) {
-      return { url: `${spaceUrl}/gradio_api/file=${file.path}`, mimeType };
+      return { url: `${spaceUrl}/${fileRoute}${file.path}`, mimeType };
     }
   }
   return null;

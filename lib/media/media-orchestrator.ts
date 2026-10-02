@@ -20,6 +20,10 @@ import { db, mediaFileKey, type MediaFileRecord } from '@/lib/device-storage/dat
 import type { SceneOutline } from '@/lib/types/generation';
 import type { MediaGenerationRequest } from '@/lib/media/types';
 import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
+import { isGeneratedMediaPlaceholder } from '@/lib/media/media-ref';
+import { mayNameAPoolAsset } from '@/lib/media/media-placeholder';
+import { isConcreteMediaAddress } from '@/lib/media/resolve-media-ref';
+import { withAssetUrl } from '@/lib/media/use-asset-url';
 import { commitToPool } from '@/lib/media/commit-to-pool';
 import {
   ASSET_QUOTA_EXCEEDED,
@@ -1039,6 +1043,31 @@ async function callImageApi(
       aspectRatio: req.aspectRatio,
       style: req.style,
       stageId,
+      // FLUX.1-dev `/infer` overrides edited in Settings (Hugging Face FLUX
+      // provider only; other providers ignore unknown body fields). An
+      // explicit request size still wins over the stored width/height.
+      ...(settings.imageProviderId === 'huggingface-image'
+        ? {
+            ...(providerConfig?.fluxParams?.seed !== undefined
+              ? { seed: providerConfig.fluxParams.seed }
+              : {}),
+            ...(providerConfig?.fluxParams?.randomizeSeed !== undefined
+              ? { randomizeSeed: providerConfig.fluxParams.randomizeSeed }
+              : {}),
+            ...(providerConfig?.fluxParams?.guidanceScale !== undefined
+              ? { guidanceScale: providerConfig.fluxParams.guidanceScale }
+              : {}),
+            ...(providerConfig?.fluxParams?.numInferenceSteps !== undefined
+              ? { numInferenceSteps: providerConfig.fluxParams.numInferenceSteps }
+              : {}),
+            ...(providerConfig?.fluxParams?.width !== undefined
+              ? { width: providerConfig.fluxParams.width }
+              : {}),
+            ...(providerConfig?.fluxParams?.height !== undefined
+              ? { height: providerConfig.fluxParams.height }
+              : {}),
+          }
+        : {}),
     }),
     signal: abortSignal,
   });
@@ -1091,6 +1120,20 @@ async function callVideoApiForElement(
   if (!VIDEO_PROVIDERS[settings.videoProviderId]?.requiresSourceImage) {
     return callVideoApi(req, abortSignal);
   }
+  // 1. Reuse a still already committed on the same slide (e.g. a class image
+  //    generated earlier) — no second image billing and no new failure mode.
+  const { stage, scenes } = useStageStore.getState();
+  if (stage?.id === stageId) {
+    for (const candidate of findSiblingImageSources(scenes, req.elementId)) {
+      throwIfAborted(abortSignal);
+      const reused = await materializeSiblingStill(candidate.src);
+      if (reused) {
+        log.info(`Animating slide image ${candidate.elementId} for ${req.elementId}`);
+        return callVideoApi({ ...req, sourceImageUrl: reused }, abortSignal);
+      }
+    }
+  }
+  // 2. Otherwise generate the still from the same prompt.
   let sourceImageUrl: string;
   try {
     const still = await callImageApi(req, stageId, abortSignal);
@@ -1102,6 +1145,92 @@ async function callVideoApiForElement(
   }
   throwIfAborted(abortSignal);
   return callVideoApi({ ...req, sourceImageUrl }, abortSignal);
+}
+
+/** A committed slide image usable as an animation source. */
+export interface SiblingImageSource {
+  elementId: string;
+  src: string;
+}
+
+/**
+ * Find committed image elements on the same slide as a video placeholder.
+ * Pure over plain scene data (unit-testable); scene/element shapes are read
+ * defensively because editor and playback variants differ. Placeholders and
+ * the video element itself are never candidates.
+ */
+export function findSiblingImageSources(
+  scenes: unknown,
+  videoElementId: string,
+): SiblingImageSource[] {
+  if (!Array.isArray(scenes)) return [];
+  for (const scene of scenes) {
+    const elements = (scene as { content?: { canvas?: { elements?: unknown[] } } })?.content?.canvas
+      ?.elements;
+    if (!Array.isArray(elements)) continue;
+    const ownsVideo = elements.some((el) => {
+      const e = el as { id?: unknown; src?: unknown; mediaRef?: unknown };
+      return (
+        e?.mediaRef === videoElementId || e?.src === videoElementId || e?.id === videoElementId
+      );
+    });
+    if (!ownsVideo) continue;
+    const sources: SiblingImageSource[] = [];
+    for (const el of elements) {
+      const e = el as { id?: unknown; type?: unknown; src?: unknown };
+      if (e?.type !== 'image' || typeof e.src !== 'string' || !e.src) continue;
+      if (e.id === videoElementId) continue;
+      if (isGeneratedMediaPlaceholder(e.src)) continue;
+      sources.push({ elementId: typeof e.id === 'string' ? e.id : '', src: e.src });
+    }
+    return sources;
+  }
+  return [];
+}
+
+/** Stills above this are skipped (the data: URL would burst request limits). */
+const MAX_SIBLING_STILL_BYTES = 8 * 1024 * 1024;
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error('could not read image bytes'));
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Turn a sibling image src into a server-fetchable URL. Remote `https:` refs
+ * pass through so the server downloads them directly; everything local —
+ * opaque asset ids (resolved through the pool lease), `blob:`, same-origin
+ * `http:` — is read here and inlined as a `data:` URL. Returns undefined
+ * when the candidate is unusable so the caller tries the next sibling.
+ */
+export async function materializeSiblingStill(src: string): Promise<string | undefined> {
+  const trimmed = src.trim();
+  if (!trimmed) return undefined;
+  if (/^https:/i.test(trimmed)) return trimmed;
+  try {
+    let fetchable = trimmed;
+    if (!isConcreteMediaAddress(trimmed)) {
+      // A reference the pool never issued is not worth asking the pool
+      // about (see the placeholder-lease guard): placeholders never reach
+      // here, but this keeps the lease site safe if callers change.
+      if (!mayNameAPoolAsset(trimmed)) return undefined;
+      const leased = await withAssetUrl(trimmed, (url) => url);
+      if (!leased) return undefined;
+      fetchable = leased;
+    }
+    const response = await fetch(fetchable);
+    if (!response.ok) return undefined;
+    const blob = await response.blob();
+    if (blob.size === 0 || blob.size > MAX_SIBLING_STILL_BYTES) return undefined;
+    if (blob.type && !blob.type.startsWith('image/')) return undefined;
+    return await blobToDataUrl(blob);
+  } catch {
+    return undefined;
+  }
 }
 
 async function callVideoApi(

@@ -22,6 +22,7 @@ vi.mock('@/lib/server/provider-fetch', () => ({
   providerFetch: vi.fn(async (input: string | URL, init?: RequestInit) => {
     return fetch(input, init);
   }),
+  resolveAllowLocalNetworks: vi.fn(() => false),
 }));
 
 vi.mock('@/lib/server/ssrf-guard', async (importOriginal) => {
@@ -433,8 +434,9 @@ describe('generateMediaForClassroom model fallback', () => {
     const fluxSpace = 'https://black-forest-labs-flux-1-dev.hf.space';
     const lpSpace = 'https://klingteam-liveportrait.hf.space';
     const sseImage =
-      'event: generating\ndata: [null]\n\n' +
-      `event: complete\ndata: [{"url": "${fluxSpace}/gradio_api/file=/tmp/still.png"}, 7]\n\n`;
+      'data: {"msg":"process_starts","event_id":"img-1"}\n\n' +
+      `data: {"msg":"process_completed","event_id":"img-1","output":{"data":[{"url": "${fluxSpace}/gradio_api/file=/tmp/still.png"}, 7]},"success":true}\n\n` +
+      'data: {"msg":"close_stream","event_id":null}\n\n';
     const sseVideo =
       'event: estimation\ndata: {"rank": 1}\n\n' +
       'event: process_completed\ndata: [{"url": "/file=/tmp/o.mp4"}, {"url": "/file=/tmp/o_concat.mp4"}]\n\n';
@@ -445,10 +447,16 @@ describe('generateMediaForClassroom model fallback', () => {
       });
 
     const fetchMock = vi.fn(async (url: string) => {
-      if (url === `${fluxSpace}/gradio_api/call/infer`) {
+      if (url === `${fluxSpace}/config`) {
+        return new Response(
+          JSON.stringify({ dependencies: [{ api_name: 'infer' }], api_prefix: '/gradio_api' }),
+          { status: 200 },
+        );
+      }
+      if (url === `${fluxSpace}/gradio_api/queue/join`) {
         return new Response(JSON.stringify({ event_id: 'img-1' }), { status: 200 });
       }
-      if (url === `${fluxSpace}/gradio_api/call/infer/img-1`) {
+      if (url.startsWith(`${fluxSpace}/gradio_api/queue/data`)) {
         return new Response(sseImage, {
           status: 200,
           headers: { 'content-type': 'text/event-stream' },
@@ -507,13 +515,13 @@ describe('generateMediaForClassroom model fallback', () => {
     );
     const urls = fetchMock.mock.calls.map(([url]) => String(url));
     // The still is generated before the video job is submitted.
-    expect(urls.indexOf(`${fluxSpace}/gradio_api/call/infer`)).toBeGreaterThanOrEqual(0);
+    expect(urls.indexOf(`${fluxSpace}/gradio_api/queue/join`)).toBeGreaterThanOrEqual(0);
     expect(urls.indexOf(`${lpSpace}/queue/join`)).toBeGreaterThan(
-      urls.indexOf(`${fluxSpace}/gradio_api/call/infer`),
+      urls.indexOf(`${fluxSpace}/gradio_api/queue/join`),
     );
     // The uploaded source is the generated still, driven by the default clip.
-    const joinCall = fetchMock.mock.calls.find(([url]) =>
-      String(url).endsWith('/queue/join'),
+    const joinCall = fetchMock.mock.calls.find(
+      ([url]) => String(url) === `${lpSpace}/queue/join`,
     ) as unknown as [string, RequestInit];
     const joinBody = JSON.parse(joinCall[1].body as string);
     expect(joinBody.data[0]).toMatchObject({ path: '/tmp/s.jpg' });

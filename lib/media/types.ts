@@ -170,6 +170,18 @@ export interface ImageGenerationOptions {
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
   /** Optional artistic style (must be supported by the chosen provider) */
   style?: string;
+  /**
+   * FLUX.1-dev `/infer` parameters (Hugging Face FLUX provider only; every
+   * other provider ignores them). Defaults mirror the Space's API docs:
+   * seed 0, randomize_seed true, guidance_scale 3.5, num_inference_steps 28.
+   */
+  seed?: number;
+  /** When true (default), the Space randomizes the seed per call. */
+  randomizeSeed?: boolean;
+  /** CFG strength for the FLUX.1-dev `/infer` endpoint. */
+  guidanceScale?: number;
+  /** Denoising steps for the FLUX.1-dev `/infer` endpoint. */
+  numInferenceSteps?: number;
   /** Owning stage, for server-side attribution of a generation call. */
   stageId?: string;
   /** Cancel server-side provider I/O (agent runtime / background callers). */
@@ -319,6 +331,16 @@ export interface VideoGenerationOptions {
    * applies.
    */
   drivingVideoUrl?: string;
+  /**
+   * LivePortrait `/gpu_wrapped_execute_video` flags (API docs defaults: all
+   * `true`). `relativeMotion` keeps the driving motion relative to the source
+   * pose, `doCrop` crops the source face before animation, `pasteBack`
+   * pastes the animated face back onto the original frame. Omitted flags
+   * default to `true`, mirroring the Space.
+   */
+  relativeMotion?: boolean;
+  doCrop?: boolean;
+  pasteBack?: boolean;
   /** Owning stage, for server-side attribution of a generation call. */
   stageId?: string;
   /** Cancel server-side provider I/O (agent runtime / background callers). */
