@@ -142,7 +142,9 @@
     "softClosing": "토론 계속하기",
     "error": {
       "emptyAgentResponses": "에이전트가 빈 응답을 반환하여 토론이 중단되었습니다. 다시 시도하거나 모델 설정을 확인하세요.",
-      "streamInterrupted": "스트림이 예기치 않게 종료되어 토론이 완료되지 않았습니다. 다시 시도해 주세요."
+      "streamInterrupted": "스트림이 예기치 않게 종료되어 토론이 완료되지 않았습니다. 다시 시도해 주세요.",
+      "rateLimited": "모델에 요청이 몰리고 있습니다. 잠시 후 다시 시도해 주세요.",
+      "providerUnavailable": "모델 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요."
     },
     "elementReference": {
       "button": "수업 자료 참조",

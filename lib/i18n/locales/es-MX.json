@@ -142,7 +142,9 @@
     "softClosing": "Continuar debate",
     "error": {
       "emptyAgentResponses": "Los agentes devolvieron respuestas vacías; el debate se detuvo. Inténtalo de nuevo o revisa la configuración de tu modelo.",
-      "streamInterrupted": "El streaming terminó inesperadamente; el debate no se completó. Inténtalo de nuevo."
+      "streamInterrupted": "El streaming terminó inesperadamente; el debate no se completó. Inténtalo de nuevo.",
+      "rateLimited": "El modelo está recibiendo demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "providerUnavailable": "El servicio del modelo no está disponible temporalmente. Inténtalo de nuevo en un momento."
     },
     "elementReference": {
       "button": "Referenciar contenido del curso",

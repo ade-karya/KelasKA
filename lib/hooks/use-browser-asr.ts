@@ -116,7 +116,13 @@ export function useBrowserASR(options: UseBrowserASROptions = {}) {
     };
 
     recognition.onerror = (event: { error: string }) => {
-      log.error('Speech recognition error:', event.error);
+      // 'no-speech' (user silent) and 'aborted' (our own stop/cancel) are
+      // expected conditions — keep them out of console.error.
+      if (event.error === 'no-speech' || event.error === 'aborted') {
+        log.warn('Speech recognition ended:', event.error);
+      } else {
+        log.error('Speech recognition error:', event.error);
+      }
       const errorCodeMap: Record<string, ASRErrorCode> = {
         'no-speech': 'no-speech',
         'audio-capture': 'audio-capture',

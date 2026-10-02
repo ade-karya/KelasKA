@@ -142,7 +142,9 @@
     "softClosing": "Continue discussion",
     "error": {
       "emptyAgentResponses": "Agents returned empty responses; discussion stopped. Try again or check your model settings.",
-      "streamInterrupted": "Stream ended unexpectedly; discussion didn't complete. Please try again."
+      "streamInterrupted": "Stream ended unexpectedly; discussion didn't complete. Please try again.",
+      "rateLimited": "The model is getting too many requests right now. Please wait a moment and try again.",
+      "providerUnavailable": "The model service is temporarily unavailable. Please try again shortly."
     },
     "elementReference": {
       "button": "Reference courseware",

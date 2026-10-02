@@ -162,7 +162,15 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           };
 
           recognition.onerror = (event: { error: string }) => {
-            log.error('Speech recognition error:', event.error);
+            // 'no-speech' (user silent) and 'aborted' (our own stop/cancel)
+            // are expected conditions — log at warn so they don't surface
+            // as console errors in monitoring.
+            const benignError = event.error === 'no-speech' || event.error === 'aborted';
+            if (benignError) {
+              log.warn('Speech recognition ended:', event.error);
+            } else {
+              log.error('Speech recognition error:', event.error);
+            }
             let errorMessage = '语音识别失败';
 
             switch (event.error) {

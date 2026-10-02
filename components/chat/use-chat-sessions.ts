@@ -392,6 +392,38 @@ export function getPiSingleRequestOutcome(
 }
 
 /**
+ * Classify a flattened live-chat failure into a translated message key.
+ *
+ * Provider failures reach the client as plain strings (the SDK `RetryError`
+ * chain is flattened server-side: "Failed after 3 attempts. Last error: Too
+ * Many Requests"). Match the transport wording so learners see an actionable,
+ * translated message instead of `Error: Failed after 3 attempts...`.
+ * Returns null for unknown failures, which keep the raw `Error: ...` text.
+ */
+export function getLiveErrorMessageKey(
+  message: string,
+): 'chat.error.rateLimited' | 'chat.error.providerUnavailable' | null {
+  if (/too many requests|rate[_\s-]?limit|quota|429|try again shortly/i.test(message)) {
+    return 'chat.error.rateLimited';
+  }
+  if (
+    /temporarily unavailable|model provider|overloaded|bad gateway|gateway timeout|50[0234]/i.test(
+      message,
+    )
+  ) {
+    return 'chat.error.providerUnavailable';
+  }
+  return null;
+}
+
+/** Render a live-chat failure: translated when classified, raw `Error: ...` otherwise. */
+export function toLiveErrorMessage(error: unknown, t: (key: string) => string): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  const key = getLiveErrorMessageKey(raw);
+  return key ? t(key) : `Error: ${raw}`;
+}
+
+/**
  * Attach the user's per-stage LLM routes (`x-model-routes`) to an outgoing chat
  * request's headers, so the classroom-interaction override reaches the server.
  * The header is omitted when no stage is routed (following the mainline).
@@ -1760,10 +1792,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           return;
         }
         log.error('[ChatArea] Resume error:', error);
-        clearLiveSessionAfterError(
-          sessionId,
-          `Error: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        clearLiveSessionAfterError(sessionId, toLiveErrorMessage(error, t));
       } finally {
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
@@ -1772,7 +1801,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         }
       }
     },
-    [clearLiveSessionAfterError, runAgentLoopFn],
+    [clearLiveSessionAfterError, runAgentLoopFn, t],
   );
 
   /**
@@ -1971,10 +2000,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         }
 
         log.error('[ChatArea] Error:', error);
-        clearLiveSessionAfterError(
-          sessionId!,
-          `Error: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        clearLiveSessionAfterError(sessionId!, toLiveErrorMessage(error, t));
       } finally {
         // Only clean up if this is still the active controller (avoid race with interrupt)
         if (abortControllerRef.current === controller) {

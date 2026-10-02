@@ -24,6 +24,7 @@ import {
 import { runPiDirectorLoop } from '@/lib/chat/pi/director-loop';
 import type { SendEvent } from '@/lib/chat/pi/types';
 import { resolveModel } from '@/lib/server/resolve-model';
+import { friendlyUpstreamChatMessage } from '@/lib/server/llm-error-response';
 import { parseUserStageRoutes } from '@/lib/server/model-routes';
 import { apiError } from '@/lib/server/api-response';
 import type { ThinkingConfig } from '@/lib/types/provider';
@@ -48,6 +49,21 @@ import {
 const log = createLogger('Pi Chat API');
 
 export const maxDuration = 300;
+
+/**
+ * Map an in-loop failure to the SSE `error` message the chat UI renders.
+ *
+ * Failures already flattened to a string upstream (e.g. pi's
+ * `director.state.errorMessage`) keep their text — the streamFn adapter maps
+ * those at the source. Anything still carrying the SDK error object (a
+ * `RetryError: Failed after N attempts...` from a child tool path) is mapped
+ * here so learners see an actionable message instead of transport details.
+ */
+export function toPiStreamErrorMessage(error: unknown): string {
+  return (
+    friendlyUpstreamChatMessage(error) ?? (error instanceof Error ? error.message : String(error))
+  );
+}
 
 export async function POST(req: NextRequest) {
   if (!isPiChatEnabled()) {
@@ -332,7 +348,7 @@ async function chat(req: NextRequest, principal: OwnerPrincipal): Promise<Respon
         try {
           await send({
             type: 'error',
-            data: { message: error instanceof Error ? error.message : String(error) },
+            data: { message: toPiStreamErrorMessage(error) },
           });
           await writer.close();
         } catch {

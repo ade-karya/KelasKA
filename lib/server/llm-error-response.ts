@@ -62,6 +62,22 @@ function messageForStatus(status: number): string {
 }
 
 /**
+ * Short actionable message for a live-chat stream failure that still carries
+ * the SDK error object (e.g. `RetryError: Failed after N attempts...`).
+ * Returns undefined when the error carries no upstream HTTP status, so callers
+ * keep the original message.
+ */
+export function friendlyUpstreamChatMessage(error: unknown): string | undefined {
+  const status = statusFromError(error);
+  if (status === 429) return 'Upstream rate limit reached. Please try again shortly.';
+  if (status !== undefined && status >= 500)
+    return 'Upstream model provider is temporarily unavailable. Please try again.';
+  if (status === 401 || status === 403)
+    return 'Upstream authentication failed. Please check the model configuration.';
+  return undefined;
+}
+
+/**
  * Preserve a provider's HTTP semantics for client retry classification without
  * exposing provider response bodies, URLs, or credential-adjacent details.
  */

@@ -5,6 +5,7 @@ import {
   consumePiWhiteboardEvent,
   createPreviousLiveSessionContext,
   createPiSessionBoundaryContext,
+  getLiveErrorMessageKey,
   getPiSessionBoundaryContext,
   getPiSingleRequestOutcome,
   fetchStatelessChat,
@@ -16,6 +17,7 @@ import {
   runPiSingleRequest,
   shouldAwaitPresentationAction,
   lectureActionPersistParams,
+  toLiveErrorMessage,
   withPiInclassWhiteboardTools,
   withPiWebSearchSettings,
   withStageRoutesHeader,
@@ -737,6 +739,39 @@ describe('runPiSingleRequest', () => {
     expect(onIterationEnd).not.toHaveBeenCalled();
     expect(onResponseAccepted).toHaveBeenCalledOnce();
     expect(clearAfterError).toHaveBeenCalledWith('session-1', 'chat.error.streamInterrupted');
+  });
+});
+
+describe('live-chat error classification', () => {
+  it.each([
+    // The exact production failure from the 429 report.
+    [
+      'Failed after 3 attempts. Last error: Too Many Requests',
+      'chat.error.rateLimited',
+    ],
+    ['Too Many Requests', 'chat.error.rateLimited'],
+    ['Pi chat request failed: 429', 'chat.error.rateLimited'],
+    ['Upstream rate limit reached. Please try again shortly.', 'chat.error.rateLimited'],
+    [
+      'Upstream model provider is temporarily unavailable. Please try again.',
+      'chat.error.providerUnavailable',
+    ],
+    ['LLM stream finished with other', null],
+    ['whiteboard changed', null],
+    ['', null],
+  ])('maps %p to %p', (message, expected) => {
+    expect(getLiveErrorMessageKey(message)).toBe(expected);
+  });
+
+  it('translates classified failures and keeps raw text otherwise', () => {
+    const t = (key: string) => `translated:${key}`;
+    expect(toLiveErrorMessage(new Error('Failed after 3 attempts. Last error: quota'), t)).toBe(
+      'translated:chat.error.rateLimited',
+    );
+    expect(toLiveErrorMessage(new Error('something unexpected'), t)).toBe(
+      'Error: something unexpected',
+    );
+    expect(toLiveErrorMessage('plain string failure', t)).toBe('Error: plain string failure');
   });
 });
 

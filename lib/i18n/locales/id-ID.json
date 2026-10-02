@@ -142,7 +142,9 @@
     "softClosing": "Lanjutkan diskusi",
     "error": {
       "emptyAgentResponses": "Agent terus-menerus tidak merespons, diskusi telah dihentikan. Silakan coba lagi atau periksa konfigurasi model.",
-      "streamInterrupted": "Aliran data terputus tiba-tiba, diskusi tidak selesai. Silakan coba lagi."
+      "streamInterrupted": "Aliran data terputus tiba-tiba, diskusi tidak selesai. Silakan coba lagi.",
+      "rateLimited": "Model sedang menerima terlalu banyak permintaan. Tunggu sebentar, lalu coba lagi.",
+      "providerUnavailable": "Layanan model sedang tidak tersedia untuk sementara. Silakan coba lagi nanti."
     },
     "elementReference": {
       "button": "Rujuk materi",
