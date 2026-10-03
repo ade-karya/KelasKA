@@ -290,6 +290,7 @@ export interface ProviderFields {
   apiKey?: string;
   baseUrl?: string | null;
   models?: string[] | null;
+  options?: Record<string, string | number | boolean> | null;
 }
 
 /**

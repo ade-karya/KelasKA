@@ -43,6 +43,8 @@ export function MediaServicePanel({
   defaultBaseUrl,
   catalogue,
   children,
+  belowKey,
+  keyPlaceholder,
 }: ServicePanelProps & {
   kind: 'image' | 'video';
   /** The registry's endpoint, shown as the request URL. */
@@ -51,6 +53,10 @@ export function MediaServicePanel({
   catalogue: readonly CatalogueModel[];
   /** What replaces the model list (ComfyUI's workflows). */
   children?: ReactNode;
+  /** Shown between the endpoint and the model list (provider hints, options). */
+  belowKey?: ReactNode;
+  /** Placeholder for the API key input (Kling's `accessKey:secretKey`, …). */
+  keyPlaceholder?: string;
 }) {
   const { t } = useI18n();
   const provider = entry.provider;
@@ -104,6 +110,7 @@ export function MediaServicePanel({
             <ApiKeyField
               name={`${kind}-api-key-${entry.id}`}
               provider={provider}
+              placeholder={keyPlaceholder}
               onSave={(apiKey) => saveServiceProvider(view, apply, entry, { apiKey }, t)}
               onRemove={() => saveServiceProvider(view, apply, entry, { apiKey: '' }, t)}
             >
@@ -155,6 +162,8 @@ export function MediaServicePanel({
           </div>
         </>
       )}
+
+      {belowKey}
 
       {children ?? (
         <div className="space-y-3">

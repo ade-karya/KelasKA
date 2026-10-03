@@ -10,6 +10,7 @@ import { Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { modelChange, modelRef } from '@/lib/model-settings/edit';
 import { MediaServicePanel } from './media-service-panel';
+import { FluxOptionsEditor, HuggingFaceHint, MediaModelsManager } from './media-service-extras';
 import { reportApply, rootUse, type ServicePanelProps } from './server-settings';
 
 interface WorkflowEntry {
@@ -27,6 +28,11 @@ export function ImageSettings(props: ServicePanelProps) {
   const { t } = useI18n();
   const registry = IMAGE_PROVIDERS[entry.registryId as ImageProviderId];
   const isComfyUI = entry.registryId === 'comfyui-image';
+  const isHuggingFace = entry.registryId === 'huggingface-image';
+  const isOpenRouter = entry.registryId === 'openrouter-image';
+  // Provider extras edit the workspace's own provider: deployment services
+  // are read-only, so their panels keep the hint only.
+  const ownProvider = entry.provider?.source === 'workspace' ? entry.provider : undefined;
   const use = rootUse(view, 'image', entry.id);
 
   // ComfyUI workflow list state
@@ -139,6 +145,22 @@ export function ImageSettings(props: ServicePanelProps) {
       kind="image"
       defaultBaseUrl={registry?.defaultBaseUrl}
       catalogue={registry?.models ?? []}
+      belowKey={
+        (isHuggingFace || (isOpenRouter && ownProvider)) && (
+          <div className="space-y-3">
+            {isHuggingFace && <HuggingFaceHint kind="image" />}
+            {isHuggingFace && ownProvider && (
+              <FluxOptionsEditor
+                key={`${entry.id}:${JSON.stringify(entry.provider?.options ?? null)}`}
+                {...props}
+              />
+            )}
+            {isOpenRouter && ownProvider && (
+              <MediaModelsManager kind="image" {...props} />
+            )}
+          </div>
+        )
+      }
     >
       {workflowList || undefined}
     </MediaServicePanel>

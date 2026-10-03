@@ -120,8 +120,8 @@ These features need their own slot assigned, usually with a provider of their ow
 | Feature | Slot | Example presets |
 |---------|------|-----------------|
 | Web Search | `webSearch` | `tavily`, `exa`, `bocha`, `brave`, `baidu` |
-| Image Generation | `image` | `seedream`, `qwen-image`, `nano-banana`, `openai-image` |
-| Video Generation | `video` | `seedance`, `kling`, `veo`, `minimax-video` |
+| Image Generation | `image` | `seedream`, `qwen-image`, `nano-banana`, `openai-image`, `huggingface-image`, `openrouter-image` |
+| Video Generation | `video` | `seedance`, `kling`, `veo`, `minimax-video`, `huggingface-video`, `openrouter-video` |
 | TTS | `tts` | `openai-tts`, `azure-tts`, `glm-tts`, `qwen-tts`, `minimax-tts` |
 | Speech Recognition | `asr` | `openai-whisper`, `qwen-asr`, `funasr-asr` |
 | Document Parsing | `document` | `mineru-cloud`, `mineru`, `alidocmind` |
@@ -141,6 +141,29 @@ slots:
   webSearch: tavily
   image: seedream
 ```
+
+The Hugging Face providers need a user access token (`hf_...` in `.env.local`): FLUX.1-dev is a gated model, so accept its license on huggingface.co first. FLUX.1-dev takes non-secret `/infer` fields as provider `options` (the model settings' FLUX panel writes the same keys); the image route merges them into the request:
+
+```yaml
+providers:
+  hf-image:
+    preset: huggingface-image
+    apiKey: ${IMAGE_HUGGINGFACE_API_KEY}
+    options:
+      guidanceScale: 3.5
+      numInferenceSteps: 28
+      seed: 42
+      randomizeSeed: true
+  hf-video:
+    preset: huggingface-video
+    apiKey: ${VIDEO_HUGGINGFACE_API_KEY}
+
+slots:
+  image: hf-image
+  video: hf-video
+```
+
+A configured provider's options win over the request's; while the slot is unassigned the request's win. Free tier is roughly 5 GPU-min and 3 ZeroGPU runs a day (one image-to-video clip costs 2 runs: the source still plus the animation).
 
 These are all optional. Classroom generation works without them — they only unlock richer content. To turn one off explicitly, set its slot to `null`.
 

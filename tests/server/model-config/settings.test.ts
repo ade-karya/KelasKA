@@ -304,6 +304,54 @@ describe('applyModelSettingsChange', () => {
     expect(config.providers?.mine).toEqual({ preset: 'openai', models: ['gpt-5.6'] });
   });
 
+  it('stores provider options, keeps them when omitted and clears them when nulled', async () => {
+    let config = await applyModelSettingsChange(null, {
+      kind: 'provider',
+      id: 'mine',
+      preset: 'openai',
+      apiKey: 'sk-1',
+      options: { guidanceScale: 3.5, seed: 42, randomizeSeed: false },
+    });
+    expect(config.providers?.mine).toEqual({
+      preset: 'openai',
+      apiKey: 'sk-1',
+      options: { guidanceScale: 3.5, seed: 42, randomizeSeed: false },
+    });
+    // Omitted: kept.
+    config = await applyModelSettingsChange(config, {
+      kind: 'provider',
+      id: 'mine',
+      preset: 'openai',
+      models: ['gpt-5.6'],
+    });
+    expect(config.providers?.mine?.options).toEqual({
+      guidanceScale: 3.5,
+      seed: 42,
+      randomizeSeed: false,
+    });
+    // Null: cleared.
+    config = await applyModelSettingsChange(config, {
+      kind: 'provider',
+      id: 'mine',
+      preset: 'openai',
+      options: null,
+    });
+    expect(config.providers?.mine).toEqual({
+      preset: 'openai',
+      apiKey: 'sk-1',
+      models: ['gpt-5.6'],
+    });
+    // Credential-sounding names are refused, like in openmaic.yml.
+    await expect(
+      applyModelSettingsChange(config, {
+        kind: 'provider',
+        id: 'mine',
+        preset: 'openai',
+        options: { apiToken: 'hf_123' },
+      }),
+    ).rejects.toThrow(/Invalid provider options/);
+  });
+
   it('keeps workspace providers out of what only the deployment may set', async () => {
     for (const [provider, message] of [
       [{ id: 'operator', preset: 'openai' }, /deployment declares this provider id/],

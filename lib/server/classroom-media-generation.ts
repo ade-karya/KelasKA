@@ -36,6 +36,7 @@ import type { SceneOutline } from '@/lib/types/generation';
 import type { Scene } from '@/lib/types/stage';
 import type { SpeechAction } from '@/lib/types/action';
 import type { ImageProviderId } from '@/lib/media/types';
+import type { ImageGenerationOptions } from '@/lib/media/types';
 import type { VideoProviderId } from '@/lib/media/types';
 import type { TTSProviderId } from '@/lib/audio/types';
 import { splitLongSpeechActions } from '@/lib/audio/tts-utils';
@@ -265,7 +266,11 @@ export async function generateMediaForClassroom(
             fetchImpl: image!.managed ? managedMediaProviderFetch : mediaProviderFetch,
           },
           resolveImageSize(
-            { prompt: req.prompt, aspectRatio: req.aspectRatio || '16:9' },
+            {
+              ...adapterOptions(image),
+              prompt: req.prompt,
+              aspectRatio: req.aspectRatio || '16:9',
+            } as unknown as ImageGenerationOptions,
             { providerId, modelId: model },
           ),
         );
@@ -338,6 +343,7 @@ export async function generateMediaForClassroom(
         }
 
         const normalized = normalizeVideoOptions(providerId, {
+          ...adapterOptions(video),
           prompt: req.prompt,
           aspectRatio: (req.aspectRatio as '16:9' | '4:3' | '1:1' | '9:16') || '16:9',
           ...(sourceImageUrl ? { sourceImageUrl } : {}),

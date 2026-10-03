@@ -27,6 +27,7 @@ import {
   resolveImageModel,
 } from '@/lib/server/provider-config';
 import {
+  adapterOptions,
   mediaResolutionResponse,
   RequestedProviderRefusedError,
   resolveMediaSlot,
@@ -113,7 +114,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sizedOptions = resolveImageSize(body, { providerId, modelId: model });
+    // The provider's own options (openmaic.yml `options`, or the workspace
+    // provider's) meet the request's the documented way: a configured
+    // provider's win (FLUX `/infer` fields, …), otherwise the request's do.
+    const sizedOptions = resolveImageSize(
+      adapterOptions(connection, body as unknown as Record<string, unknown>) as unknown as ImageGenerationOptions,
+      { providerId, modelId: model },
+    );
 
     log.info(
       `Generating image: provider=${providerId}, model=${model || 'default'}, ` +

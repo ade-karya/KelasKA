@@ -685,6 +685,58 @@ LANGKAH=".env.local"
 ACCESS_CODE_NEW="$(rand_hex 24)"      # 48 char, di atas minimum 16
 DEV_TOKEN_NEW="$(rand_hex 16)"
 
+tulis_openmaic_yml() {
+  # Slot `agent` (Pro Workbench + agent runtime) dari tier installer.
+  # MODEL_ROUTES tidak lagi dibaca server (menolak start tanpanya file ini),
+  # jadi tier ditulis ke sini, bukan ke .env.local. Heredoc SENGAJA tanpa
+  # quote agar ${tier...} terekspansi; referensi key ditulis \${VAR} agar
+  # literal sampai ke file (server yang menginterpolasinya saat start).
+  # $1=tier (tier1|tier2|tier3), $2=model `provider:model` tier ini.
+  local tier="$1" model="$2"
+  local provider="${model%%:*}" api="openai-completions" keyvar=""
+  if [[ "$tier" == "tier3" ]]; then
+    api="opencode-cli"
+  elif [[ "$tier" == "tier2" ]]; then
+    keyvar="OPENCODE_GO_API_KEY"
+  else
+    keyvar="GOOGLE_API_KEY"
+  fi
+  cat <<EOF
+# =============================================================================
+# OpenMAIC model configuration — dibuat oleh install.sh (tier=${tier}).
+# Slot \`agent\` mengemudikan Pro Workbench/agent runtime (butuh tool calling).
+# Server membaca file ini saat start — restart setelah mengubah. Panduan:
+# packages/docs (Configuration) dan skills/openmaic/references/provider-keys.md.
+# Key tetap di .env.local dan dirujuk sebagai \${VAR}; nilai kustom Anda di
+# file ini tidak disentuh installer (hanya dibuat bila belum ada).
+# =============================================================================
+providers:
+  ${provider}:
+    preset: ${provider}
+$(if [[ -n "$keyvar" ]]; then printf '    apiKey: ${%s}\n' "$keyvar"; fi)
+slots:
+  agent:
+    model: ${model}
+    api: ${api}
+EOF
+}
+
+tulis_openmaic_yml_bila_belum_ada() {
+  # Buat openmaic.yml dari tier hanya bila belum ada: nilai kustom Anda di
+  # file yang sudah ada tidak pernah disentuh installer.
+  local tier="$1" model="$2" tmp=""
+  if [[ -f openmaic.yml ]]; then
+    info "openmaic.yml sudah ada — dipertahankan (slot agent tidak diubah)."
+    return 0
+  fi
+  tmp="$(mktemp openmaic.yml.tmp.XXXXXX)"
+  tulis_openmaic_yml "$tier" "$model" > "$tmp" \
+    || { rm -f "$tmp"; fail "gagal menulis openmaic.yml (lihat error di atas)."; }
+  chmod 644 "$tmp"
+  mv -f "$tmp" openmaic.yml
+  info "openmaic.yml dibuat (slot agent = ${model}, tier=${tier})."
+}
+
 tulis_template_env() {
   local db_url="$1" access_code="$2" dev_token="$3" agent_runtime="$4" opencode_bin="$5"
   local tier_name="$6" tier_default="$7" tier_driver="$8" tier_pin="$9"
@@ -719,7 +771,10 @@ tulis_template_env() {
 # --- Tier model Pro Workbench (auto: ${tier_name}) --------------------------------
 # Harus \`provider:model\` dengan provider terdaftar; tanpa ini resolveModel throw.
 DEFAULT_MODEL=${tier_default}
-# Route eksplisit maic-agent-driver (wajib + \`api\` saat agent runtime aktif).
+# Slot agent (Pro Workbench + agent runtime) TIDAK lagi lewat MODEL_ROUTES:
+# server menolak start bila MODEL_ROUTES diset tanpa openmaic.yml, dan
+# mengabaikannya bila openmaic.yml ada. install.sh menulis openmaic.yml
+# (slot \`agent\` = model + \`api\` tier ini) di samping .env.local.
 # Tier ber-key (1/2): HTTP OpenAI-compatible (\`openai-completions\`).
 # Tier-3 gratis: driver khusus CLI (\`opencode-cli\`, alias \`cli\`/\`opencode\`) —
 # eksekusi lokal \`opencode run\` tanpa key; function tools via envelope
@@ -728,7 +783,7 @@ DEFAULT_MODEL=${tier_default}
 # berurutan, argumen divalidasi terhadap skema tool, sekali repair otomatis
 # bila upaya call gagal parse, dan skills disajikan identik (prompt sama) —
 # hanya seed yang tetap unsupported.
-MODEL_ROUTES='${tier_driver}'
+# (Dulu: MODEL_ROUTES='{"maic-agent-driver":{...}}' — sudah dipindah ke openmaic.yml.)
 
 # --- OpenCode CLI (eksekusi lokal, tanpa API key untuk model FREE) -------------
 # Server memanggil binary ini per request (prompt via stdin, JSON via stdout).
@@ -1439,6 +1494,7 @@ if [[ ! -f .env.local ]]; then
       || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
     chmod 600 "$TMP_ENV_BARU"
     mv -f "$TMP_ENV_BARU" .env.local
+    tulis_openmaic_yml_bila_belum_ada "$TIER" "$TIER_DEFAULT"
     if [[ "$AGENT_RT" == "false" ]]; then
       info "Agent runtime nonaktif (tanpa DATABASE_URL). Tier-3 tetap didukung driver CLI bila DB ada."
     fi
@@ -1448,6 +1504,7 @@ if [[ ! -f .env.local ]]; then
       || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
     chmod 600 "$TMP_ENV_BARU"
     mv -f "$TMP_ENV_BARU" .env.local
+    tulis_openmaic_yml_bila_belum_ada "$TIER" "$TIER_DEFAULT"
     # Tanpa Postgres, seluruh blok persistence dikomentari. Pola harus cocok
     # dengan nilai APA PUN (template mengisinya dengan token acak), bukan hanya
     # baris kosong — dulu `PERSISTENCE_DEV_TOKEN=` tidak pernah kena dan tetap
@@ -1537,26 +1594,22 @@ else
       fi
       ;;
   esac
+  # Slot agent kini tinggal di openmaic.yml (MODEL_ROUTES tidak dibaca server:
+  # tanpa file ini server menolak start; dengan file ini routes diabaikan).
+  # Buat dari tier bila belum ada; file yang sudah ada tidak disentuh.
+  tulis_openmaic_yml_bila_belum_ada "$TIER" "$TIER_DEFAULT"
   CUR_DRIVER="$(sed -n -E 's/^[^#]*"maic-agent-driver"[^}]*"model"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' .env.local | head -1)"
   case "$CUR_DRIVER" in
     ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|opencode:longcat-2.5-preview-free|opencode:mimo-v2.6-flash-free|opencode:ling-3.0-flash-fin-free|opencode:nemotron-3-ultra-free|opencode:nemotron-3.5-lightning-free|opencode:*-free|tokendance:deepseek-v4.1-flash)
-      if [[ "$CUR_DRIVER" != "$TIER_DEFAULT" ]]; then
-        DR_RE='ollama:[^"\\} ]*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3\.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle|opencode:longcat-2\.5-preview-free|opencode:mimo-v2\.6-flash-free|opencode:ling-3\.0-flash-fin-free|opencode:nemotron-3-ultra-free|opencode:nemotron-3\.5-lightning-free|opencode:[^"\\} ]*-free|tokendance:deepseek-v4\.1-flash'
-        DM_ESCAPED2="$(sed_escape_replacement "$TIER_DEFAULT")"
-        sed -i -E "/^[[:space:]]*MODEL_ROUTES=/ s#(${DR_RE})#${DM_ESCAPED2}#g" .env.local
-        info "MODEL_ROUTES maic-agent-driver dipindah ${CUR_DRIVER} -> ${TIER_DEFAULT} (${TIER})."
-      fi
+      # Nilai milik installer: sudah diwakili slot agent openmaic.yml di atas,
+      # jadi baris warisan dikomentari (nilai dipertahankan sebagai jejak).
+      sed -i -E 's|^[[:space:]]*MODEL_ROUTES=|# MODEL_ROUTES (dipindah ke openmaic.yml slot agent; tidak dibaca server) was: |' .env.local
+      info "MODEL_ROUTES warisan dikomentari (slot agent kini di openmaic.yml = ${TIER_DEFAULT}, ${TIER})."
+      ;;
+    ?*)
+      warn "MODEL_ROUTES kustom terdeteksi (${CUR_DRIVER}) — server mengabaikannya selama openmaic.yml ada; pindahkan manual ke slots bila masih diperlukan, lalu hapus barisnya."
       ;;
   esac
-  # Normalisasi api driver tier-3 ke driver khusus CLI: model opencode/*
-  # yang masih memakai "openai-completions" (warisan sebelum driver CLI)
-  # dipindah ke "opencode-cli" agar transport eksplisit. Berlaku untuk nilai
-  # milik installer; nilai kustom (provider non-opencode) tidak disentuh.
-  if [[ "$TIER" == "tier3" ]] && grep -qE '^[[:space:]]*MODEL_ROUTES=.*opencode:[^"]*.*openai-completions' .env.local 2>/dev/null; then
-    sed -i -E '/^[[:space:]]*MODEL_ROUTES=/ s#"api"[[:space:]]*:[[:space:]]*"openai-completions"#"api":"opencode-cli"#' .env.local
-    info 'MODEL_ROUTES maic-agent-driver api dinormalisasi openai-completions -> opencode-cli (driver khusus tier-3).'
-  fi
-  # OPENCODE_MODELS: pastikan_var_env di bawah tidak menimpa nilai yang sudah
   # ada, jadi pin milik installer harus dipindah eksplisit di sini. Nilai
   # kustom lain tidak disentuh. Daftar kini login-aware: sudah login berisi
   # SEMUA model tersedia, belum login berisi SEMUA model free (tombol
@@ -1616,7 +1669,8 @@ else
     unset _go_milik_installer
   fi
   pastikan_var_env .env.local DEFAULT_MODEL "$TIER_DEFAULT"
-  pastikan_var_env .env.local MODEL_ROUTES "$TIER_DRIVER"
+  # MODEL_ROUTES tidak lagi ditulis/di-ensure: server tidak membacanya
+  # (slot agent tinggal di openmaic.yml; lihat migrasi di atas).
   pastikan_var_env .env.local OPENCODE_BIN ""
   # Key tier1/tier2 opsional; jangan buat key kosong yang mengesankan wajib
   # — tier dipilih dari key yang terisi. Cukup pastikan pin model tersedia.

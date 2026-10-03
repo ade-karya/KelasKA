@@ -10,21 +10,21 @@ import {
   savedProviderResponse,
 } from '@/lib/server/model-config/saved-provider';
 
-const log = createLogger('ProbeImageModels');
+const log = createLogger('ProbeVideoModels');
 
 /**
- * POST /api/provider/probe-image-models
+ * POST /api/provider/probe-video-models
  *
- * Discovers the FREE ($0) OpenRouter image models a base URL + key exposes.
- * Joins the dedicated image catalog (`GET {base}/images/models`,
+ * Discovers the FREE ($0) OpenRouter video models a base URL + key exposes.
+ * Joins the dedicated video catalog (`GET {base}/videos/models`,
  * `{ id, name }`) with the unified pricing source
- * (`GET {base}/models?output_modalities=image`) and keeps only entries whose
+ * (`GET {base}/models?output_modalities=video`) and keeps only entries whose
  * pricing proves $0 per https://openrouter.ai/docs/api_reference/overview →
  * list-models. Returns proper catalog `name`s so the settings panel never
  * shows a prettified id.
  *
  * Either `{ baseUrl, apiKey }` (an explicit endpoint) or `{ provider }` (one
- * of the workspace's own image services, whose stored endpoint and key are
+ * of the workspace's own video services, whose stored endpoint and key are
  * used) is accepted.
  */
 export async function POST(req: NextRequest) {
@@ -37,18 +37,18 @@ export async function POST(req: NextRequest) {
       baseUrl?: string;
       apiKey?: string;
     };
-    // The settings name one of the workspace's own image services
+    // The settings name one of the workspace's own video services
     // (`provider`): its stored endpoint and key are used, nothing else.
     const saved = (body as { provider?: unknown }).provider;
     if (saved !== undefined) {
       try {
         const ref = savedProviderRef(saved);
         if (!ref) return apiError('MISSING_REQUIRED_FIELD', 400, 'provider is required');
-        const connection = await savedMediaConnection(req, 'image', ref);
+        const connection = await savedMediaConnection(req, 'video', ref);
         baseUrl = connection.baseUrl ?? 'https://openrouter.ai/api/v1';
         apiKey = connection.apiKey;
       } catch (error) {
-        const refused = savedProviderResponse(error, 'image model');
+        const refused = savedProviderResponse(error, 'video model');
         if (refused) return refused;
         throw error;
       }
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     const baseUrlError = await validateClientBaseUrl(baseUrl);
     if (baseUrlError) return apiError('INVALID_REQUEST', 400, baseUrlError);
 
-    const models = await fetchOpenRouterMediaModels('image', baseUrl, apiKey || '');
+    const models = await fetchOpenRouterMediaModels('video', baseUrl, apiKey || '');
 
     return apiSuccess({
       models,
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       filtered: 0,
     });
   } catch (error) {
-    log.warn('Image model probe failed:', error);
+    log.warn('Video model probe failed:', error);
     if (error instanceof ModelFetchError) {
       if (error.status >= 300 && error.status < 400) {
         return apiError('REDIRECT_NOT_ALLOWED', 403, 'Redirects are not allowed');

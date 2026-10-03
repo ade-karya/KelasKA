@@ -35,6 +35,7 @@ import { validateClientBaseUrl } from '@/lib/server/ssrf-guard';
 import { withVideoProviderFetch } from '@/lib/server/media-provider-fetch';
 import { isZeroGpuQuotaMessage } from '@/lib/media/media-failure';
 import {
+  adapterOptions,
   mediaResolutionResponse,
   RequestedProviderRefusedError,
   resolveMediaSlot,
@@ -102,8 +103,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize options against provider capabilities
-    const options = normalizeVideoOptions(providerId, body);
+    // Normalize options against provider capabilities. The provider's own
+    // options (openmaic.yml `options`, or the workspace provider's) meet the
+    // request's the documented way: a configured provider's win (LivePortrait
+    // motion flags, …), otherwise the request's do.
+    const options = normalizeVideoOptions(
+      providerId,
+      adapterOptions(connection, body as unknown as Record<string, unknown>) as unknown as VideoGenerationOptions,
+    );
 
     log.info(
       `Generating video: provider=${providerId}, model=${model || 'default'}, ` +
