@@ -158,31 +158,13 @@ describe('/api/model-config', () => {
     expect(resolved).toMatchObject({ providerId: 'openai', modelId: 'gpt-5.6', apiKey: SECRET });
   });
 
-  it('saves provider options through PUT and shows them back in the view', async () => {
-    let response = await put('bob', null, {
+  it('refuses provider options through PUT: they are the deployment\u2019s (openmaic.yml)', async () => {
+    const response = await put('bob', null, {
       kind: 'provider',
       id: 'mine',
       preset: 'openai',
       apiKey: SECRET,
-      options: { guidanceScale: 3.5, randomizeSeed: true },
-    });
-    expect(response.status).toBe(200);
-    const view = await response.json();
-    expect(view.providers).toContainEqual({
-      capabilities: expect.any(Object),
-      id: 'mine',
-      preset: 'openai',
-      source: 'workspace',
-      options: { guidanceScale: 3.5, randomizeSeed: true },
-      key: { set: true, mask: '…4321' },
-    });
-
-    // Credential-sounding option names are refused, never stored.
-    response = await put('bob', 1, {
-      kind: 'provider',
-      id: 'mine',
-      preset: 'openai',
-      options: { apiToken: 'hf_123' },
+      options: { guidanceScale: 3.5 },
     });
     expect(response.status).toBe(400);
   });

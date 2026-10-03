@@ -29,7 +29,6 @@ import {
   ModelSettingsError,
   type ModelSettingsChange,
 } from '@/lib/server/model-config/settings';
-import { providerOptionsSchema } from '@/lib/server/model-config/openmaic-yml';
 
 export const runtime = 'nodejs';
 
@@ -72,7 +71,6 @@ const bodySchema = z
           apiKey: z.string().optional(),
           baseUrl: z.string().min(1).nullable().optional(),
           models: z.array(z.string().min(1)).nullable().optional(),
-          options: providerOptionsSchema.nullable().optional(),
         })
         .strict(),
       z.object({ kind: z.literal('remove-provider'), id }).strict(),

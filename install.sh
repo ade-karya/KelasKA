@@ -739,11 +739,11 @@ tulis_openmaic_yml_bila_belum_ada() {
 
 tulis_template_env() {
   local db_url="$1" access_code="$2" dev_token="$3" agent_runtime="$4" opencode_bin="$5"
-  local tier_name="$6" tier_default="$7" tier_driver="$8" tier_pin="$9"
-  local tier_key1_line="${10}" tier_key2_line="${11}" tier_key2go_line="${12}"
-  local tts_browser_line="${13:-TTS_BROWSER_NATIVE_ENABLED=true}"
+  local tier_name="$6" tier_default="$7" tier_pin="$8"
+  local tier_key1_line="$9" tier_key2_line="${10}" tier_key2go_line="${11}"
+  local tts_browser_line="${12:-TTS_BROWSER_NATIVE_ENABLED=true}"
   # Tanpa colon (`-` bukan `:-`): "" eksplisit = disembunyikan, bukan fallback.
-  local tier_gopin="${14-$OPENCODE_GO_FREE_FALLBACK}"
+  local tier_gopin="${13-$OPENCODE_GO_FREE_FALLBACK}"
   # PENTING: heredoc di bawah SENGAJA tanpa quote (<<EOF) agar ${...} dan
   # $(date ...) terekspansi. Konsekuensinya backtick literal dan $(...) ikut
   # dieksekusi shell — jadi semua backtick literal WAJIB ditulis \`...\`.
@@ -1388,11 +1388,6 @@ tier_default_model() {
     *)     printf '%s' "$TIER3_MODEL" ;;
   esac
 }
-tier_driver_route() {
-  # Hanya untuk tier ber-key (1/2). Tier-3 membangun route langsung via printf
-  # dengan default dinamis tier3_default_dari_daftar (lihat 2 situs pemanggil).
-  printf '{"maic-agent-driver":{"model":"%s","api":"openai-completions"}}' "$(tier_default_model "$1")"
-}
 
 # Tulis key dari environment ke file bila kolom file masih kosong (append
 # mentah via printf, tanpa sed → aman untuk karakter apa pun). Tidak menimpa
@@ -1450,12 +1445,9 @@ if [[ ! -f .env.local ]]; then
   TIER="$(pilih_tier_model .env.local)"
   if [[ "$TIER" == "tier3" ]]; then
     TIER_DEFAULT="$(tier3_default_dari_daftar "$OPENCODE_FREE_LIST")"
-    # Konstruksi langsung (tanpa sed-replace) agar tak rapuh bila format berubah.
-    TIER_DRIVER="$(printf '{"maic-agent-driver":{"model":"%s","api":"opencode-cli"}}' "$TIER_DEFAULT")"
     TIER_PIN="$OPENCODE_FREE_LIST"
   else
     TIER_DEFAULT="$(tier_default_model "$TIER")"
-    TIER_DRIVER="$(tier_driver_route "$TIER")"
     TIER_PIN="$OPENCODE_FREE_LIST"
   fi
   # Daftar model Go untuk grup kedua pemilih workbench (dipakai apa pun tiernya).
@@ -1490,7 +1482,7 @@ if [[ ! -f .env.local ]]; then
     # Tulis atomik via file sementara + mv: bila template gagal di tengah,
     # .env.local tidak pernah ada dalam keadaan terpotong — run ulang aman.
     TMP_ENV_BARU="$(mktemp .env.local.tmp.XXXXXX)"
-    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" "$TIER_GO_PIN" > "$TMP_ENV_BARU" \
+    tulis_template_env "$DATABASE_URL_VALUE" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" "$TIER_GO_PIN" > "$TMP_ENV_BARU" \
       || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
     chmod 600 "$TMP_ENV_BARU"
     mv -f "$TMP_ENV_BARU" .env.local
@@ -1500,7 +1492,7 @@ if [[ ! -f .env.local ]]; then
     fi
   else
     TMP_ENV_BARU="$(mktemp .env.local.tmp.XXXXXX)"
-    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_DRIVER" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" "$TIER_GO_PIN" > "$TMP_ENV_BARU" \
+    tulis_template_env "" "$ACCESS_CODE_NEW" "$DEV_TOKEN_NEW" "$AGENT_RT" "" "$TIER" "$TIER_DEFAULT" "$TIER_PIN" "$TIER1_KEY_LINE" "$TIER2_KEY_LINE" "$TIER2GO_KEY_LINE" "$TTS_BROWSER_LINE" "$TIER_GO_PIN" > "$TMP_ENV_BARU" \
       || { rm -f "$TMP_ENV_BARU"; fail "gagal menulis template .env.local (lihat error di atas)."; }
     chmod 600 "$TMP_ENV_BARU"
     mv -f "$TMP_ENV_BARU" .env.local
@@ -1553,10 +1545,8 @@ else
   TIER="$(pilih_tier_model .env.local)"
   if [[ "$TIER" == "tier3" ]]; then
     TIER_DEFAULT="$(tier3_default_dari_daftar "$OPENCODE_FREE_LIST")"
-    TIER_DRIVER="$(printf '{"maic-agent-driver":{"model":"%s","api":"opencode-cli"}}' "$TIER_DEFAULT")"
   else
     TIER_DEFAULT="$(tier_default_model "$TIER")"
-    TIER_DRIVER="$(tier_driver_route "$TIER")"
   fi
   info "Tier model Pro Workbench: ${TIER} (${TIER_DEFAULT})."
   if [[ "${OPENCODE_LOGIN_DETECTED:-0}" -eq 1 ]]; then

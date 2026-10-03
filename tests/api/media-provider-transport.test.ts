@@ -313,8 +313,13 @@ describe('media provider routes on the strict transport', () => {
 
       expect(res).toEqual({
         status: 500,
-        json: { success: false, errorCode: 'INTERNAL_ERROR', error: 'Video generation failed' },
+        json: {
+          success: false,
+          errorCode: 'INTERNAL_ERROR',
+          error: 'Video generation failed (seedance / seedance-test)',
+        },
       });
+      expect(JSON.stringify(res.json)).not.toContain('internal-secret-body');
       expect(provider.lastUrl()).toBe('/api/v3/contents/generations/tasks');
     });
   });

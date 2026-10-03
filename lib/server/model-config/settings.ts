@@ -40,7 +40,6 @@ import {
 import { isForceDisabled, isLocalEndpoint } from './media';
 import {
   checkModelConfigShape,
-  providerOptionsSchema,
   thinkingEffortIssue,
   type ModelConfigFile,
   type SlotAssignment,
@@ -68,7 +67,11 @@ export interface ProviderView {
   source: 'deployment' | 'workspace';
   baseUrl?: string;
   models?: string[];
-  /** The provider's non-secret adapter options (FLUX `/infer` fields, …). */
+  /**
+   * A deployment provider's non-secret adapter options (FLUX `/infer`
+   * fields, …), shown read-only: workspace edits cannot set options, they
+   * are the deployment's (openmaic.yml).
+   */
   options?: Record<string, string | number | boolean>;
   /** What it offers, with the models to pick from per capability. */
   capabilities: CapabilityModels;
@@ -171,11 +174,6 @@ export type ModelSettingsChange =
       apiKey?: string;
       baseUrl?: string | null;
       models?: string[] | null;
-      /**
-       * The provider's non-secret adapter options (a FLUX `guidanceScale`,
-       * …). Omitted: keep what is stored. Null: clear them.
-       */
-      options?: Record<string, string | number | boolean> | null;
     }
   | { kind: 'remove-provider'; id: string };
 
@@ -412,7 +410,6 @@ export function modelSettingsView(stored: StoredWorkspaceConfig | null): ModelSe
       source: 'workspace' as const,
       ...(provider.baseUrl ? { baseUrl: viewEndpoint(provider.baseUrl) } : {}),
       ...(provider.models ? { models: [...provider.models] } : {}),
-      ...(provider.options ? { options: { ...provider.options } } : {}),
       capabilities: capabilityModels(getProviderPreset(provider.preset), provider.models, {
         // An official regional endpoint is the service's own, not a custom one.
         chatOnly: provider.baseUrl !== undefined && !officialEndpointOf(provider),
@@ -632,27 +629,14 @@ export async function applyModelSettingsChange(
       (typedBaseUrl && officialEndpointOf({ preset: change.preset, baseUrl: typedBaseUrl })) ||
       typedBaseUrl;
     const models = change.models === undefined ? existing?.models : (change.models ?? undefined);
-    // Non-secret adapter options ride the same edit: omitted keeps them, null
-    // clears them. Names that sound like credentials are refused (they would
-    // be shown in the settings view), like in openmaic.yml.
-    let options = existing?.options;
-    if (change.options !== undefined) {
-      if (change.options !== null) {
-        const parsed = providerOptionsSchema.safeParse(change.options);
-        if (!parsed.success) {
-          throw new ModelSettingsError('INVALID_PROVIDER', 'Invalid provider options');
-        }
-        options = parsed.data;
-      } else {
-        options = undefined;
-      }
-    }
+    // Provider options are the deployment's (openmaic.yml): a workspace edit
+    // never stores them, so even a well-formed options field is dropped here
+    // (and refused earlier by the route's strict body schema).
     const provider: Provider = {
       preset: change.preset,
       ...(apiKey ? { apiKey } : {}),
       ...(baseUrl ? { baseUrl } : {}),
       ...(models?.length ? { models } : {}),
-      ...(options && Object.keys(options).length ? { options } : {}),
     };
     await checkProvider(change.id, provider);
     providers[change.id] = provider;
@@ -777,7 +761,6 @@ const importedProviderSchema = z
     apiKey: z.string().min(1).optional(),
     baseUrl: z.string().min(1).optional(),
     models: z.array(z.string().min(1)).min(1).optional(),
-    options: providerOptionsSchema.optional(),
   })
   .strict();
 
@@ -791,7 +774,7 @@ function sameSecret(a: string | undefined, b: string | undefined): boolean {
 /**
  * Whether a stored workspace provider is the proposed one, as an import would
  * store it: same preset, key, endpoint (an official regional endpoint in its
- * normalised form), models and options.
+ * normalised form) and models.
  */
 function storesProposedProvider(
   stored: Provider,
@@ -802,16 +785,13 @@ function storesProposedProvider(
       officialEndpointOf({ preset: proposed.preset, baseUrl: proposed.baseUrl })) ||
     proposed.baseUrl;
   const models = (list: string[] | undefined) => JSON.stringify(list?.length ? list : []);
-  const options = (opts: Record<string, string | number | boolean> | undefined) =>
-    JSON.stringify(opts && Object.keys(opts).length ? opts : {});
   // Evaluated in full, so the answer takes as long whichever part differs.
   const sameKey = sameSecret(stored.apiKey, proposed.apiKey);
   return (
     sameKey &&
     stored.preset === proposed.preset &&
     stored.baseUrl === baseUrl &&
-    models(stored.models) === models(proposed.models) &&
-    options(stored.options) === options(proposed.options)
+    models(stored.models) === models(proposed.models)
   );
 }
 

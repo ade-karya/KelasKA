@@ -10,7 +10,7 @@ import { Loader2, CheckCircle2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { modelChange, modelRef } from '@/lib/model-settings/edit';
 import { MediaServicePanel } from './media-service-panel';
-import { FluxOptionsEditor, HuggingFaceHint, MediaModelsManager } from './media-service-extras';
+import { FluxOptionsPanel, HuggingFaceHint, MediaModelsManager } from './media-service-extras';
 import { reportApply, rootUse, type ServicePanelProps } from './server-settings';
 
 interface WorkflowEntry {
@@ -33,6 +33,10 @@ export function ImageSettings(props: ServicePanelProps) {
   // Provider extras edit the workspace's own provider: deployment services
   // are read-only, so their panels keep the hint only.
   const ownProvider = entry.provider?.source === 'workspace' ? entry.provider : undefined;
+  // FLUX parameters are read-only wherever they come from (options are the
+  // deployment's): the panel shows the deployment's values or the Space
+  // defaults, with a pointer to openmaic.yml.
+  const showFlux = isHuggingFace && entry.provider;
   const use = rootUse(view, 'image', entry.id);
 
   // ComfyUI workflow list state
@@ -149,10 +153,10 @@ export function ImageSettings(props: ServicePanelProps) {
         (isHuggingFace || (isOpenRouter && ownProvider)) && (
           <div className="space-y-3">
             {isHuggingFace && <HuggingFaceHint kind="image" />}
-            {isHuggingFace && ownProvider && (
-              <FluxOptionsEditor
+            {showFlux && (
+              <FluxOptionsPanel
                 key={`${entry.id}:${JSON.stringify(entry.provider?.options ?? null)}`}
-                {...props}
+                entry={entry}
               />
             )}
             {isOpenRouter && ownProvider && (
