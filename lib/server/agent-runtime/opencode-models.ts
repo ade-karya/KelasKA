@@ -46,7 +46,7 @@ function dataDir(): string {
 
 export function activeModelFilePath(): string {
   const override = process.env.OPENCODE_ACTIVE_MODEL_FILE?.trim();
-  if (override) return path.isAbsolute(override) ? override : path.join(process.cwd(), override);
+  if (override) return path.isAbsolute(override) ? override : path.join(/*turbopackIgnore: true*/ process.cwd(), override);
   return path.join(dataDir(), OPENCODE_ACTIVE_MODEL_FILE);
 }
 
@@ -223,8 +223,8 @@ export function readActiveModelOverride(): {
 } | null {
   try {
     const file = activeModelFilePath();
-    if (!fs.existsSync(file)) return null;
-    const parsed = JSON.parse(fs.readFileSync(file, 'utf8')) as ActiveModelFile;
+    if (!fs.existsSync(/*turbopackIgnore: true*/ file)) return null;
+    const parsed = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, 'utf8')) as ActiveModelFile;
     const input = parseOpencodeModelInput(parsed.model ?? '');
     if (!input || !isActivatedOpencodeId(input.bare, input.provider)) return null;
     const out: { modelString: string; api: string; thinking?: ThinkingConfig } = {
@@ -266,7 +266,7 @@ export function writeActiveModelOverride(
       ? (normalizeThinkingConfig(capability, rawThinking as ThinkingConfig) ?? undefined)
       : undefined;
   const dir = dataDir();
-  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
   const payload: ActiveModelFile = {
     model: input.modelString,
     api: OPENCODE_DRIVER_API,
@@ -274,11 +274,11 @@ export function writeActiveModelOverride(
     updatedAt: Date.now(),
   };
   const tmp = path.join(
-    dir,
+    /*turbopackIgnore: true*/ dir,
     `${OPENCODE_ACTIVE_MODEL_FILE}.tmp.${process.pid}.${Math.random().toString(36).slice(2)}`,
   );
-  fs.writeFileSync(tmp, JSON.stringify(payload, null, 2));
-  fs.renameSync(tmp, activeModelFilePath());
+  fs.writeFileSync(/*turbopackIgnore: true*/ tmp, JSON.stringify(payload, null, 2));
+  fs.renameSync(/*turbopackIgnore: true*/ tmp, /*turbopackIgnore: true*/ activeModelFilePath());
   const saved: { modelString: string; api: string; thinking?: ThinkingConfig } = {
     modelString: payload.model!,
     api: payload.api!,

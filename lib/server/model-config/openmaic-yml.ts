@@ -414,12 +414,12 @@ export function loadModelConfigFile(
 ): ModelConfigFile | null {
   const explicit = env.OPENMAIC_CONFIG?.trim();
   const file = path.resolve(cwd, explicit || DEFAULT_MODEL_CONFIG_FILE);
-  if (!fs.existsSync(file)) {
+  if (!fs.existsSync(/*turbopackIgnore: true*/ file)) {
     if (explicit)
       throw new ModelConfigError(file, ['OPENMAIC_CONFIG points at a file that does not exist']);
     return null;
   }
-  return parseModelConfig(fs.readFileSync(file, 'utf-8'), { file, env });
+  return parseModelConfig(fs.readFileSync(/*turbopackIgnore: true*/ file, 'utf-8'), { file, env });
 }
 
 /** Boot check: an invalid configuration file stops the server. */

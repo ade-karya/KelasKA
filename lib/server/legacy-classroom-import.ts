@@ -208,7 +208,7 @@ async function importClassroomMedia(
   // compares real paths on both sides.
   let classroomRoot: string | null;
   try {
-    classroomRoot = await fs.realpath(path.join(context.directory, context.legacyId));
+    classroomRoot = await fs.realpath(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ context.directory, context.legacyId));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     classroomRoot = null;
@@ -222,9 +222,9 @@ async function importClassroomMedia(
     let assetId: string | null = null;
     try {
       if (!classroomRoot) throw new ImportRefusedError();
-      const realPath = await fs.realpath(path.join(classroomRoot, relativeFile));
+      const realPath = await fs.realpath(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ classroomRoot, relativeFile));
       if (!realPath.startsWith(classroomRoot + path.sep)) throw new ImportRefusedError();
-      const bytes = await fs.readFile(realPath);
+      const bytes = await fs.readFile(/*turbopackIgnore: true*/ realPath);
       const mimeType = classroomMediaMimeType(path.extname(realPath)) ?? 'application/octet-stream';
       const stored = await storeGeneratedAsset({
         ownerId: context.ownerId,
@@ -307,7 +307,7 @@ async function readLegacyClassroom(
   filePath: string,
   legacyId: string,
 ): Promise<{ document: { stage: Stage; scenes: Scene[] } } | { skip: string }> {
-  const raw = await fs.readFile(filePath, 'utf-8');
+  const raw = await fs.readFile(/*turbopackIgnore: true*/ filePath, 'utf-8');
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -403,7 +403,7 @@ export async function importLegacyClassrooms(
 
   let entries: string[];
   try {
-    entries = await fs.readdir(directory);
+    entries = await fs.readdir(/*turbopackIgnore: true*/ directory);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return summary;
     throw error;
@@ -471,7 +471,7 @@ export async function importLegacyClassrooms(
 
         try {
           const read = await readLegacyClassroom(
-            path.join(directory, `${legacyId}.json`),
+            /*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ directory, `${legacyId}.json`),
             legacyId,
           );
           if ('skip' in read) {
