@@ -2290,15 +2290,19 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
       fi
       unset _live_milik_installer
     fi
-    # Sinkronkan DEFAULT_MODEL/MODEL_ROUTES tier3 bila masih pin lama single-id:
-    # jangan timpa kustom non-opencode, hanya preset installer.
+    # Sinkronkan DEFAULT_MODEL tier3 bila masih pin lama single-id (jangan
+    # timpa kustom non-opencode, hanya preset installer). Slot agent di
+    # openmaic.yml ikut diselaraskan bila file milik installer dan modelnya
+    # pin lama yang sama; MODEL_ROUTES warisan tidak disentuh lagi (mati).
     if grep -qE '^[[:space:]]*DEFAULT_MODEL=opencode:(space-bunny-free|muse-spark-1.3-contributor-free|big-pickle)$' .env.local 2>/dev/null; then
       TIER3_LIVE_DEFAULT="$(tier3_default_dari_daftar "$OPENCODE_FREE_LIVE")"
       TIER3_LIVE_ESCAPED="$(sed_escape_replacement "$TIER3_LIVE_DEFAULT")"
       sed -i -E "s|^[[:space:]]*DEFAULT_MODEL=.*|DEFAULT_MODEL=${TIER3_LIVE_ESCAPED}|" .env.local
-      DR_LIVE_RE='opencode:space-bunny-free|opencode:muse-spark-1\.3-contributor-free|opencode:big-pickle'
-      sed -i -E "/^[[:space:]]*MODEL_ROUTES=/ s#(${DR_LIVE_RE})#${TIER3_LIVE_ESCAPED}#g" .env.local
-      info "DEFAULT_MODEL/MODEL_ROUTES diselaraskan ke default live ${TIER3_LIVE_DEFAULT}."
+      if grep -q "dibuat oleh install.sh" openmaic.yml 2>/dev/null && grep -qE '^[[:space:]]*model: opencode:(space-bunny-free|muse-spark-1.3-contributor-free|big-pickle)$' openmaic.yml 2>/dev/null; then
+        sed -i -E "s|^([[:space:]]*model: )opencode:(space-bunny-free|muse-spark-1.3-contributor-free|big-pickle)$|\1${TIER3_LIVE_ESCAPED}|" openmaic.yml
+        info "Slot agent openmaic.yml diselaraskan ke default live ${TIER3_LIVE_DEFAULT}."
+      fi
+      info "DEFAULT_MODEL diselaraskan ke default live ${TIER3_LIVE_DEFAULT}."
     fi
     # OPENCODE_GO_MODELS (grup kedua pemilih workbench): segarkan dengan pola
     # milik-installer yang sama; kustom operator dipertahankan. Kosong = hidden.
@@ -2531,10 +2535,10 @@ echo "       (tampilan sama dengan chat classic) memilih di antaranya"
 echo "       (GET/POST /api/agent/models, tersimpan di"
 echo "       data/agent-driver-model.json dan dipakai run berikutnya TANPA restart;"
 echo "       hanya berlaku saat driver tier-3 CLI free, tier ber-key tak dibajak)."
-echo "    Driver agen (MODEL_ROUTES maic-agent-driver): tier ber-key via HTTP"
+echo "    Driver agen (slot agent openmaic.yml): tier ber-key via HTTP"
 echo "    (openai-completions/responses); tier-3 gratis via driver khusus CLI"
-echo "    (opencode-cli, tanpa key, envelope tool_calls). Route yang hilang tetap"
-echo "    gagal keras (wajib dikonfigurasi eksplisit)."
+echo "    (opencode-cli, tanpa key, envelope tool_calls). Slot agent tanpa"
+echo "    model membuat agent runtime menolak start dengan pesan yang jelas."
 echo "  - Agent runtime + workbench butuh Postgres ${PG_MAJOR} (semua tier, termasuk tier-3 CLI)."
 echo "  - Performa: PARALLEL_SCENE_CONCURRENCY=5 (scene paralel, maks kode 10;"
 echo "    turunkan bila kena 429, naikkan s.d. 10 di server besar) + ffmpeg apt"

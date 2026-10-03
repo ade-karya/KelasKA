@@ -245,13 +245,16 @@ function capabilityModels(
     const registryId = preset.capabilities[capability]?.registryId;
     if (registryId && isForceDisabled(capability, registryId)) continue;
     const offered = preset.trustsModelCatalogue === false ? [] : presetModels(preset, capability);
-    // A provider's own model list narrows (or names) the chat models it serves.
+    // A provider's own model list narrows (or names) the models it serves:
+    // the chat models for chat, and the fetched/pinned ids (a $0 OpenRouter
+    // list, a hand-added id) everywhere else. Unknown ids ride the catalogue
+    // entry when it names them, else their id.
     const models =
-      capability === 'chat' && pinned?.length
+      pinned?.length && registryId
         ? pinned.map(
             (id) =>
               offered.find((model) => model.id === id) ??
-              catalogueModel(capability, registryId!, id),
+              catalogueModel(capability, registryId, id),
           )
         : offered;
     result[capability] = { models, ...(registryId ? { registryId } : {}) };

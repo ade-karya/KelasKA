@@ -171,6 +171,24 @@ describe('modelSettingsView', () => {
     expect(provider('oc').capabilities.chat?.models).toEqual([]);
   });
 
+  it("names a workspace media provider's saved models instead of only the catalogue", () => {
+    const view = modelSettingsView({
+      config: {
+        providers: {
+          oi: {
+            preset: 'openai-image',
+            apiKey: 'sk-k',
+            models: ['my-model'],
+          },
+        },
+      },
+      revision: 1,
+      unreadableSecrets: [],
+    });
+    const models = view.providers.find((entry) => entry.id === 'oi')?.capabilities.image?.models;
+    expect(models?.map((model) => model.id)).toEqual(['my-model']);
+  });
+
   it('neither offers nor accepts a provider the operator switched off', async () => {
     vi.stubEnv('TTS_OPENAI_ENABLED', 'false');
     vi.stubEnv('TTS_MINIMAX_ENABLED', 'false');
