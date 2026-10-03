@@ -47,7 +47,9 @@
 #   7. Direktori `data/` untuk classroom store berbasis file.
 #   8. Dependensi JS via `pnpm install --frozen-lockfile`
 #      (postinstall otomatis build workspace packages + sync vendor importer).
-#   9. Verifikasi: vendor bundle PPTX + kontrak Node engine.
+#   9. Verifikasi: vendor bundle PPTX + kontrak Node engine + bootstrap skema
+#      database eager (28 tabel persistence + agent runtime via tsx, agar boot
+#      pertama bersih tanpa error 42P01; idempoten, gagal = warning saja).
 #  10. pgAdmin4 web (default ON; lewati dengan --no-pgadmin): repo resmi
 #      pgadmin.org + paket `pgadmin4-web` + setup-web.sh non-interaktif
 #      (--yes + PGADMIN_SETUP_EMAIL/PASSWORD). Kredensial awal dibuat acak
@@ -2205,6 +2207,28 @@ if [[ "$WITH_INSTALL" -eq 1 ]]; then
 
   info "Verifikasi kontrak Node engine..."
   node scripts/check-node-engine-contract.mjs
+
+  # Bootstrap skema database eager (28 tabel persistence + agent runtime) agar
+  # boot pertama bersih — tanpa ini tabel LAZY dibuat saat server jalan dan
+  # log dev pertama penuh error 42P01 (relation "agent_sessions" does not
+  # exist, dst.) sampai tiap store terinisialisasi. Idempoten (IF NOT EXISTS);
+  # runtime tetap lazy-bootstrap sendiri bila langkah ini dilewati/gagal.
+  LANGKAH="bootstrap skema database"
+  if [[ "$WITH_POSTGRES" -eq 1 && -f scripts/bootstrap-db-schema.mts ]]; then
+    DB_URL_EFEKTIF="$(env_get .env.local DATABASE_URL)"
+    if [[ -n "$DB_URL_EFEKTIF" ]]; then
+      info "Bootstrap skema database (eager, via tsx)..."
+      if DATABASE_URL="$DB_URL_EFEKTIF" pnpm exec tsx scripts/bootstrap-db-schema.mts; then
+        info "Skema database: OK (boot pertama bersih)."
+      else
+        warn "Bootstrap skema database gagal; skema tetap dibuat lazy saat server jalan. Cek DATABASE_URL lalu ulangi manual: DATABASE_URL=\"\$(grep '^DATABASE_URL=' .env.local | cut -d= -f2-)\" pnpm exec tsx scripts/bootstrap-db-schema.mts"
+      fi
+    else
+      info "Lewati bootstrap skema database (DATABASE_URL kosong di .env.local)."
+    fi
+  else
+    info "Lewati bootstrap skema database (--no-postgres/--no-install: butuh Postgres + node_modules)."
+  fi
 else
   info "Lewati pnpm install (--no-install). Jalankan manual nanti: pnpm install"
 fi
