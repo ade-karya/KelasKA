@@ -73,5 +73,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|logos/).*)'],
+  // Keep `/api/*` covered (access-code 401 lives in proxy). Exclude Next
+  // internals, metadata files and public static assets so they don't pay
+  // for anonymous-owner + 200MB body buffering on every image/font/JSON hit.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|favicon.png|apple-icon.png|sitemap.xml|robots.txt|logos|avatars|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$|.*\\.avif$|.*\\.ico$|.*\\.txt$|.*\\.xml$|.*\\.json$|.*\\.webmanifest$).*)',
+  ],
 };

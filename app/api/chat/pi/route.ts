@@ -344,7 +344,15 @@ async function chat(req: NextRequest, principal: OwnerPrincipal): Promise<Respon
           return;
         }
 
-        log.error('Pi chat stream error:', error);
+        // Transient upstream failures (rate limit, overloaded provider) are
+        // expected under load and already stream a friendly retry hint to the
+        // chat UI. Keep them out of error-level monitors; unexpected failures
+        // keep error level.
+        if (friendlyUpstreamChatMessage(error) !== undefined) {
+          log.warn('Pi chat stream error (transient upstream):', error);
+        } else {
+          log.error('Pi chat stream error:', error);
+        }
         try {
           await send({
             type: 'error',

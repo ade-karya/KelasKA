@@ -36,7 +36,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
   });
 
   it('GET mengembalikan semua model aktif kedua provider + model driver saat ini', async () => {
-    const { GET } = await import('@/app/api/agent/models/route.ts');
+    const { GET } = await import('@/app/api/agent/models/route');
     const res = await GET();
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
@@ -59,7 +59,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
   });
 
   it('POST memilih model aktif dan GET berikutnya memakai override', async () => {
-    const { GET, POST } = await import('@/app/api/agent/models/route.ts');
+    const { GET, POST } = await import('@/app/api/agent/models/route');
     const req = new NextRequest('http://localhost/api/agent/models', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -76,7 +76,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
   });
 
   it('POST memilih model opencode-go beserta varian thinking', async () => {
-    const { GET, POST } = await import('@/app/api/agent/models/route.ts');
+    const { GET, POST } = await import('@/app/api/agent/models/route');
     const req = new NextRequest('http://localhost/api/agent/models', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -100,7 +100,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
   });
 
   it('POST menolak model di luar allowlist', async () => {
-    const { POST } = await import('@/app/api/agent/models/route.ts');
+    const { POST } = await import('@/app/api/agent/models/route');
     const req = new NextRequest('http://localhost/api/agent/models', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -130,7 +130,7 @@ describe('grup Go disembunyikan bila belum login (OPENCODE_GO_MODELS kosong)', (
   });
 
   it('GET hanya model opencode; POST Go ditolak', async () => {
-    const { GET, POST } = await import('@/app/api/agent/models/route.ts');
+    const { GET, POST } = await import('@/app/api/agent/models/route');
     const res = await GET();
     expect(res.status).toBe(200);
     const body = (await res.json()) as {

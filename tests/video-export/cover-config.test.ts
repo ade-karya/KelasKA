@@ -154,6 +154,11 @@ describe('getVideoExportCoverLabels', () => {
       pblCtaPrompt: 'Want to explore project-based learning?',
       ctaVisit: 'Visit',
     },
+    'id-ID': {
+      quizCtaPrompt: 'Ingin mencoba kuis interaktif secara langsung?',
+      pblCtaPrompt: 'Ingin ikut serta dalam pembelajaran proyek?',
+      ctaVisit: 'Kunjungi',
+    },
     'zh-CN': {
       quizCtaPrompt: '想亲自体验互动测验？',
       pblCtaPrompt: '想亲自参与项目学习？',

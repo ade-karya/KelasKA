@@ -17,6 +17,7 @@ import { statelessGenerate } from '@/lib/orchestration/stateless-generate';
 import { isProviderKeyRequired } from '@/lib/ai/providers';
 import type { StatelessChatRequest, StatelessEvent } from '@/lib/types/chat';
 import { apiError } from '@/lib/server/api-response';
+import { friendlyUpstreamChatMessage } from '@/lib/server/llm-error-response';
 import { createLogger } from '@/lib/logger';
 import { resolveModel } from '@/lib/server/resolve-model';
 import { parseUserStageRoutes } from '@/lib/server/model-routes';
@@ -169,17 +170,31 @@ export async function POST(req: NextRequest) {
           return;
         }
 
-        log.error(
-          `Chat stream error [model=${body.model ?? 'unknown'}, agents=${body.config?.agentIds?.length ?? 0}, messages=${body.messages?.length ?? 0}]:`,
-          error,
-        );
+        // Transient upstream failures already reach the chat UI as a friendly
+        // retry hint; keep them out of error-level monitors.
+        if (friendlyUpstreamChatMessage(error) !== undefined) {
+          log.warn(
+            `Chat stream error (transient upstream) [model=${body.model ?? 'unknown'}, agents=${body.config?.agentIds?.length ?? 0}, messages=${body.messages?.length ?? 0}]:`,
+            error,
+          );
+        } else {
+          log.error(
+            `Chat stream error [model=${body.model ?? 'unknown'}, agents=${body.config?.agentIds?.length ?? 0}, messages=${body.messages?.length ?? 0}]:`,
+            error,
+          );
+        }
 
         // Try to send error event
         try {
           const errorEvent: StatelessEvent = {
             type: 'error',
             data: {
-              message: error instanceof Error ? error.message : String(error),
+              // Map SDK transport failures (e.g. RetryError after 429/5xx) to
+              // the same friendly wording the Pi route streams, so the client
+              // can classify them into a translated retry hint.
+              message:
+                friendlyUpstreamChatMessage(error) ??
+                (error instanceof Error ? error.message : String(error)),
             },
           };
           await writer.write(encoder.encode(`data: ${JSON.stringify(errorEvent)}\n\n`));

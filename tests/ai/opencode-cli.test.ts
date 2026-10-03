@@ -242,7 +242,7 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
     const stub = writeStub('opencode-fail', ERROR_STUB);
     vi.stubEnv('OPENCODE_BIN', stub);
     await expect(runOpencodeCli({ modelId: 'big-pickle', promptText: 'hi' })).rejects.toThrow(
-      /exit 1.*not logged in.*opencode auth login/s,
+      /exit 1[\s\S]*not logged in[\s\S]*opencode auth login/,
     );
   }, 30_000);
 
@@ -343,8 +343,8 @@ describe('opencode-cli bridge (pola open-design runtimes/)', () => {
     const stub = writeStub('opencode', SUCCESS_STUB);
     vi.stubEnv('OPENCODE_BIN', stub);
     const model = createOpencodeCliModel('big-pickle');
-    expect(model.provider).toBe('opencode');
-    expect(model.modelId).toBe('big-pickle');
+    expect((model as unknown as { provider: string }).provider).toBe('opencode');
+    expect((model as unknown as { modelId: string }).modelId).toBe('big-pickle');
     expect((model as unknown as { specificationVersion: string }).specificationVersion).toBe('v3');
     const result = await (
       model as unknown as {

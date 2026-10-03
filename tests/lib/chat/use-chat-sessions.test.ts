@@ -10,6 +10,7 @@ import {
   getPiSingleRequestOutcome,
   fetchStatelessChat,
   isOpenLiveSession,
+  isTransientLiveError,
   normalizeStoredSessionsForRestore,
   retireLiveRequestResources,
   resumeSoftClosingSessionForFollowUp,
@@ -683,6 +684,77 @@ describe('runPiSingleRequest', () => {
     expect(onResponseAccepted).not.toHaveBeenCalled();
   });
 
+  it('prefers the server error body over the generic status message', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              success: false,
+              errorCode: 'RATE_LIMITED',
+              error: 'Upstream rate limit reached. Please try again shortly.',
+            }),
+            { status: 429 },
+          ),
+      ),
+    );
+
+    try {
+      await expect(
+        runPiSingleRequest(
+          'session-1',
+          {
+            messages: [],
+            storeState: {},
+            config: { agentIds: ['teacher-1'] },
+            apiKey: '',
+          } as unknown as Parameters<typeof runPiSingleRequest>[1],
+          new AbortController(),
+          'qa',
+          () => ({ onEvent: vi.fn(), onIterationEnd: vi.fn() }),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          { current: vi.fn() },
+          (key) => key,
+        ),
+      ).rejects.toThrow('Upstream rate limit reached. Please try again shortly.');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('falls back to the status message when the server error body is empty', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('oops', { status: 503 })));
+
+    try {
+      await expect(
+        runPiSingleRequest(
+          'session-1',
+          {
+            messages: [],
+            storeState: {},
+            config: { agentIds: ['teacher-1'] },
+            apiKey: '',
+          } as unknown as Parameters<typeof runPiSingleRequest>[1],
+          new AbortController(),
+          'qa',
+          () => ({ onEvent: vi.fn(), onIterationEnd: vi.fn() }),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          { current: vi.fn() },
+          (key) => key,
+        ),
+      ).rejects.toThrow('Pi chat request failed: 503');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('treats EOF without a done event as interrupted without waiting for drain', async () => {
     const encoder = new TextEncoder();
     const body = new ReadableStream<Uint8Array>({
@@ -772,6 +844,23 @@ describe('live-chat error classification', () => {
       'Error: something unexpected',
     );
     expect(toLiveErrorMessage('plain string failure', t)).toBe('Error: plain string failure');
+  });
+
+  it('flags transient upstream failures for warn-level logging', () => {
+    expect(isTransientLiveError(new Error('Upstream rate limit reached. Please try again shortly.'))).toBe(
+      true,
+    );
+    expect(
+      isTransientLiveError(
+        new Error('Upstream model provider is temporarily unavailable. Please try again.'),
+      ),
+    ).toBe(true);
+    expect(isTransientLiveError(new Error('Failed after 3 attempts. Last error: quota'))).toBe(
+      true,
+    );
+    expect(isTransientLiveError(new Error('Pi chat request failed: 503'))).toBe(true);
+    expect(isTransientLiveError(new Error('something unexpected'))).toBe(false);
+    expect(isTransientLiveError(new DOMException('Aborted', 'AbortError'))).toBe(false);
   });
 });
 
