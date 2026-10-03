@@ -73,7 +73,7 @@ const log = createLogger('AIProviders');
 export type { ProviderId, ProviderConfig, ModelInfo, ModelConfig };
 
 /** Provider IDs whose logos are monochrome-dark and need `dark:invert` in dark mode */
-export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'openrouter', 'ollama']);
+export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'openrouter', 'ollama', 'atlascloud']);
 
 /**
  * Fallback thinking untuk id CLI live yang belum terdaftar di
@@ -254,6 +254,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     defaultBaseUrl: 'https://api.atlascloud.ai/v1',
     supportsModelDiscovery: true,
     requiresApiKey: true,
+    icon: '/logos/atlascloud.svg',
     models: [
       {
         id: 'qwen/qwen3.5-flash',

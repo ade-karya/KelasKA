@@ -4,6 +4,7 @@ import { Box, ExternalLink, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { MONO_LOGO_PROVIDERS } from '@/lib/ai/providers';
+import { logoScaleClass } from './model-picker';
 import { PINNED_PROVIDER_ID, PROVIDER_SIGNUP_LINKS, pickRegionalLink } from './provider-links';
 
 export interface ProviderListItem {
@@ -73,6 +74,7 @@ export function ProviderList({
                       className={cn(
                         'size-4 object-contain',
                         MONO_LOGO_PROVIDERS.has(provider.registryId) && 'dark:invert',
+                        logoScaleClass(provider.icon),
                       )}
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
