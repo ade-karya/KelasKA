@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulasi Aliran Fotosintesis — Dari Cahaya, Air & CO2 Menjadi Glukosa</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style>
+html,body{height:100%;background:#020617;}
+#flowSvg{width:100%;height:100%;display:block;touch-action:manipulation;}
+.node{cursor:pointer;transition:opacity .4s, transform .2s;}
+.node.hidden-node{opacity:0;pointer-events:none;}
+.node rect.card{fill:#fff;stroke-width:2.5;}
+.node.active rect.card{stroke:#facc15;stroke-width:4;}
+.node text{font-family:system-ui,sans-serif;}
+.edge{transition:opacity .4s;}
+.edge.hidden-edge{opacity:0;}
+.edge-label{fill:#e2e8f0;font-size:12px;font-weight:700;paint-order:stroke;stroke:#020617;stroke-width:4px;}
+.flow-dash{stroke-dasharray:8 7;animation:dashmove 1s linear infinite;}
+@keyframes dashmove{to{stroke-dashoffset:-15;}}
+input[type=range]{width:100%;min-height:44px;accent-color:#22c55e;cursor:pointer;}
+button{min-height:44px;touch-action:manipulation;}
+.step-dot{width:10px;height:10px;border-radius:9999px;background:#334155;}
+.step-dot.on{background:#22c55e;}
+#sidebar{transition:transform .3s ease, opacity .3s;}
+#sidebar.collapsed{display:none;}
+@media(max-width:767px){
+ #sidebar{position:fixed;z-index:40;left:0;right:0;bottom:0;max-height:62vh;overflow-y:auto;border-radius:1rem 1rem 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.6);}
+ #sidebar.collapsed{display:none;}
+}
+.pulse{animation:pl 1.4s infinite;}
+@keyframes pl{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+</style>
+<script type="application/json" id="widget-config">
+{"type":"flowchart","title":"Simulasi Aliran Fotosintesis","subject":"Biologi","concept":"fotosintesis","description":"Visualisasi interaktif input-output fotosintesis: air, CO2, cahaya menjadi glukosa dan oksigen.","equation":"6H2O + 6CO2 + cahaya → C6H12O6 + 6O2","variables":[{"name":"cahaya","label":"Intensitas Cahaya","min":0,"max":1200,"step":10,"default":700,"unit":"lux"},{"name":"co2","label":"Kadar CO2","min":0,"max":1000,"step":10,"default":420,"unit":"ppm"},{"name":"air","label":"Ketersediaan Air","min":0,"max":100,"step":1,"default":75,"unit":"%"}],"steps":["Cahaya","Air & CO2","Daun","Kloroplas","Reaksi Terang","Siklus Calvin","Panen Glukosa & Oksigen"],"nodes":[{"id":"cahaya","step":1},{"id":"air","step":2},{"id":"co2","step":2},{"id":"daun","step":3},{"id":"kloroplas","step":4},{"id":"terang","step":5},{"id":"calvin","step":6},{"id":"glukosa","step":7},{"id":"oksigen","step":7}]}
+</script>
+</head>
+<body class="text-slate-100 min-h-screen">
+<div class="max-w-7xl mx-auto p-3 md:p-5">
+<header class="flex flex-wrap items-center gap-2 mb-3">
+<div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-green-400 to-emerald-700 grid place-items-center text-2xl">🌿</div>
+<div class="flex-1 min-w-[200px]">
+<h1 class="text-lg md:text-2xl font-extrabold">Simulasi Aliran Fotosintesis</h1>
+<p class="text-xs md:text-sm text-slate-300">6H<sub>2</sub>O + 6CO<sub>2</sub> + cahaya → C<sub>6</sub>H<sub>12</sub>O<sub>6</sub> + 6O<sub>2</sub> • Klik kotak untuk detail • Atur slider & amati panah!</p>
+</div>
+<span id="stepBadge" class="text-xs font-bold px-3 py-2 rounded-full bg-emerald-700 border border-emerald-400">Langkah 1 / 7</span>
+<button id="sidebarToggle" class="md:hidden px-4 py-2 rounded-xl bg-slate-800 border border-slate-600 font-bold text-sm">☰ Panel</button>
+</header>
+
+<div class="flex flex-col md:flex-row gap-3 md:items-stretch">
+<!-- SIDEBAR -->
+<aside id="sidebar" class="w-full md:w-[350px] shrink-0 bg-slate-900/95 border border-slate-700 rounded-2xl p-4 flex flex-col gap-4 max-h-[62vh] md:max-h-none overflow-y-auto">
+<div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3">
+<div class="flex items-center justify-between mb-1">
+<h2 class="font-bold text-sm text-emerald-300">🧭 LANGKAH ALUR</h2>
+<span id="stepName" class="text-xs font-bold text-amber-300">Cahaya</span>
+</div>
+<div id="stepDots" class="flex gap-1.5 my-2"></div>
+<p id="stepDesc" class="text-xs text-slate-300 leading-relaxed min-h-[44px]">Matahari memberi energi. Tanpa cahaya, fotosintesis tidak mulai.</p>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<button id="prevBtn" class="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 font-bold text-sm border border-slate-500">← Kembali</button>
+<button id="nextBtn" class="px-3 py-2 rounded-xl bg-green-600 hover:bg-green-500 font-bold text-sm">Lanjut →</button>
+</div>
+<div class="flex gap-2 mt-2">
+<button id="autoBtn" class="flex-1 px-3 py-2 rounded-xl bg-sky-700 hover:bg-sky-600 font-bold text-xs">▶ Otomatis</button>
+<button id="resetSteps" class="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 font-bold text-xs border border-slate-500">↺ Ulang</button>
+</div>
+</div>
+
+<div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3 space-y-3">
+<h2 class="font-bold text-sm text-yellow-300">🎛️ ATUR INPUT (Coba!)</h2>
+<div>
+<div class="flex justify-between text-sm font-bold"><label for="sl-cahaya">☀️ Cahaya</label><span id="v-cahaya" class="font-mono text-amber-300">700 lux</span></div>
+<input id="sl-cahaya" type="range" min="0" max="1200" step="10" value="700" aria-label="Intensitas cahaya">
+<div class="text-[11px] text-slate-400">0 = malam • 1200 = terik</div>
+</div>
+<div>
+<div class="flex justify-between text-sm font-bold"><label for="sl-co2">💨 CO2</label><span id="v-co2" class="font-mono text-sky-300">420 ppm</span></div>
+<input id="sl-co2" type="range" min="0" max="1000" step="10" value="420" aria-label="Kadar CO2">
+<div class="text-[11px] text-slate-400">~420 udara luar • &gt;800 rumah kaca</div>
+</div>
+<div>
+<div class="flex justify-between text-sm font-bold"><label for="sl-air">💧 Air</label><span id="v-air" class="font-mono text-cyan-300">75 %</span></div>
+<input id="sl-air" type="range" min="0" max="100" step="1" value="75" aria-label="Ketersediaan air">
+<div class="text-[11px] text-slate-400">&lt;30% kering → stomata menutup</div>
+</div>
+</div>
+
+<div id="detailBox" class="bg-white text-slate-900 rounded-xl p-3 border-2 border-emerald-400">
+<div class="text-xs font-bold text-emerald-700">🔍 DETAIL NODE — klik kotak di diagram</div>
+<div id="detailTitle" class="font-extrabold text-base mt-1">☀️ Cahaya Matahari</div>
+<div id="detailSub" class="text-xs font-semibold text-slate-600">Sumber energi • Reaksi terang</div>
+<p id="detailDesc" class="text-sm mt-1 leading-relaxed">Cahaya ditangkap <b>klorofil</b> (zat hijau daun di dalam <b>kloroplas</b>). Energi ini memecah air dan membuat baterai sel (ATP + NADPH).</p>
+<div id="detailFact" class="text-xs mt-2 bg-emerald-50 border border-emerald-200 rounded-lg p-2">💡 Fakta: Daun hijau karena klorofil memantulkan hijau, menyerap merah & biru.</div>
+</div>
+
+<div class="bg-slate-800/70 border border-slate-700 rounded-xl p-3">
+<h2 class="font-bold text-sm text-green-300">📦 HASIL PANEN</h2>
+<div class="mt-2 text-sm">🍬 Glukosa (makanan): <b id="glcVal" class="font-mono text-green-300">0</b></div>
+<div class="h-3 rounded-full bg-slate-700 overflow-hidden mt-1"><div id="glcBar" class="h-full bg-green-400" style="width:0%"></div></div>
+<div class="mt-2 text-sm">🫧 Oksigen (O2): <b id="o2Val" class="font-mono text-sky-300">0</b></div>
+<div class="h-3 rounded-full bg-slate-700 overflow-hidden mt-1"><div id="o2Bar" class="h-full bg-sky-400" style="width:0%"></div></div>
+<div class="mt-2 text-xs">Faktor pembatas: <b id="limitVal" class="text-amber-300">-</b></div>
+<div id="conclusion" class="text-xs mt-2 bg-amber-950/60 border border-amber-600/50 rounded-lg p-2 leading-relaxed text-amber-100">Atur slider lalu tekan Lanjut sampai panen!</div>
+<button id="quizBtn" class="mt-2 w-full px-3 py-2 rounded-xl bg-violet-700 hover:bg-violet-600 font-bold text-xs">🧠 Cek Simpulan Saya</button>
+<div id="quizBox" class="hidden mt-2 text-xs space-y-2">
+<p>Jika cahaya = 0, apa yang terjadi?</p>
+<div class="grid grid-cols-1 gap-1">
+<button data-q="a" class="quiz-opt px-2 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-left">A. Glukosa tetap banyak</button>
+<button data-q="b" class="quiz-opt px-2 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-left">B. Glukosa & O2 berhenti (tidak ada energi)</button>
+<button data-q="c" class="quiz-opt px-2 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-left">C. Hanya oksigen naik</button>
+</div>
+<p id="quizMsg" class="font-bold"></p>
+</div>
+</div>
+</aside>
+
+<!-- DIAGRAM -->
+<main class="flex-1 min-w-0 flex flex-col gap-2">
+<div id="canvasWrap" class="relative bg-slate-950 rounded-2xl border-2 border-slate-700 overflow-hidden h-[58vh] md:h-[640px] min-h-[420px]">
+<svg id="flowSvg" viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Diagram alir fotosintesis"></svg>
+<div class="absolute top-2 left-2 flex flex-wrap gap-1.5 text-[11px] font-mono">
+<span class="px-2 py-1 rounded-lg bg-black/70 border border-white/20">⚡ Laju <span id="ovRate">0%</span></span>
+<span class="px-2 py-1 rounded-lg bg-black/70 border border-white/20 text-green-300">🍬 <span id="ovGlc">0</span></span>
+<span class="px-2 py-1 rounded-lg bg-black/70 border border-white/20 text-sky-300">O2 <span id="ovO2">0</span></span>
+</div>
+<div id="ovLimit" class="absolute top-2 right-2 text-[11px] font-bold px-2 py-1 rounded-lg bg-amber-500/90 text-white">Pembatas: -</div>
+<div class="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1.5 text-[10px] md:text-[11px] font-bold pointer-events-none">
+<span class="px-2 py-1 rounded-lg bg-white/10 border border-white/20">🟡 cahaya</span>
+<span class="px-2 py-1 rounded-lg bg-white/10 border border-white/20">🔵 air/CO2</span>
+<span class="px-2 py-1 rounded-lg bg-white/10 border border-white/20">🟢 daun/kloroplas</span>
+<span class="px-2 py-1 rounded-lg bg-white/10 border border-white/20">🟣 reaksi</span>
+<span class="px-2 py-1 rounded-lg bg-white/10 border border-white/20">⭐ hasil</span>
+</div>
+</div>
+<div class="bg-slate-900 border border-slate-700 rounded-2xl p-3 text-xs md:text-sm flex flex-wrap gap-x-4 gap-y-1">
+<span>💡 <b>Geser slider</b> → panah bergerak cepat/lambat. Panah putus = aliran terhambat!</span>
+<span class="font-mono text-yellow-200" id="formulaLive">cahaya 700 • CO2 420 • air 75%</span>
+</div>
+<details class="bg-slate-900 border border-slate-700 rounded-2xl p-3 text-sm">
+<summary class="font-bold cursor-pointer">📖 Penjelasan guru (SMP/SMA)</summary>
+<ul class="list-disc ml-5 mt-2 text-slate-300 text-xs md:text-sm space-y-1">
+<li><b>Klorofil</b> = zat hijau penangkap cahaya. <b>Kloroplas</b> = pabrik tempat fotosintesis (isi klorofil).</li>
+<li><b>Stomata</b> = mulut daun, pintu CO2. Kering → menutup → CO2 macet.</li>
+<li><b>Reaksi terang</b> (butuh cahaya, di tilakoid): belah H2O → O2 + energi (ATP/NADPH).</li>
+<li><b>Siklus Calvin</b> (tak butuh cahaya langsung, di stroma): rakit CO2 + energi → glukosa (C6H12O6).</li>
+<li><b>Hukum minimum:</b> input paling kecil membatasi hasil. Coba nol-kan satu slider!</li>
+</ul>
+</details>
+</main>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var cfg=JSON.parse(document.getElementById('widget-config').textContent);
+var NODES=[
+{id:"cahaya",x:20,y:30,w:190,h:92,icon:"☀️",title:"Cahaya Matahari",sub:"Sumber energi",color:"#eab308",step:1,desc:"Cahaya adalah tenaga fotosintesis. Tanpa cahaya, reaksi terang berhenti.",fact:"💡 Fakta: Lampu terang bisa menggantikan matahari di rumah kaca."},
+{id:"air",x:20,y:264,w:190,h:92,icon:"💧",title:"Air (H2O)",sub:"Dari akar → xilem",color:"#0284c7",step:2,desc:"Air diserap akar, naik lewat pembuluh xilem ke daun. Di reaksi terang, air dipecah (fotolisis).",fact:"💡 Fotolisis: 2H2O → 4H+ + 4e- + O2. Oksigen yang kamu hirup dari sini!"},
+{id:"co2",x:20,y:478,w:190,h:92,icon:"💨",title:"CO2",sub:"Dari udara → stomata",color:"#64748b",step:2,desc:"Karbon dioksida masuk lewat stomata (mulut daun di permukaan bawah). Bahan utama gula.",fact:"💡 Udara luar ~420 ppm. Rumah kaca sengaja ditambah CO2 agar panen naik."},
+{id:"daun",x:285,y:264,w:195,h:112,icon:"🍃",title:"Daun & Stomata",sub:"Pintu gerbang",color:"#16a34a",step:3,desc:"Daun = dapur tumbuhan. Stomata mengatur keluar-masuk gas. Kering → stomata menutup.",fact:"💡 Stomata membuka siang, menutup saat layu untuk hemat air."},
+{id:"kloroplas",x:555,y:264,w:205,h:112,icon:"🟢",title:"Kloroplas",sub:"Pabrik + klorofil",color:"#059669",step:4,desc:"Kloroplas (badan hijau di sel daun) berisi klorofil yang menangkap cahaya.",fact:"💡 Satu sel daun bisa berisi 40–50 kloroplas!"},
+{id:"terang",x:555,y:52,w:205,h:108,icon:"⚡",title:"Reaksi Terang",sub:"Di tilakoid • butuh cahaya",color:"#7c3aed",step:5,desc:"Pakai cahaya + air → hasilkan O2 + baterai energi (ATP & NADPH). O2 dilepas ke udara.",fact:"💡 Terang = siang hari saja. Malam reaksi ini mati total."},
+{id:"calvin",x:555,y:468,w:205,h:108,icon:"🔄",title:"Siklus Calvin",sub:"Di stroma • rakit gula",color:"#db2777",step:6,desc:"Pakai CO2 + baterai dari reaksi terang → rakit glukosa (C6H12O6). Tak butuh cahaya langsung.",fact:"💡 Dinamai Melvin Calvin, pemenang Nobel 1961."},
+{id:"glukosa",x:810,y:120,w:170,h:104,icon:"🍬",title:"Glukosa",sub:"C6H12O6 • makanan",color:"#f59e0b",step:7,desc:"Gula = makanan tumbuhan. Disimpan sebagai pati atau dipakai tumbuh.",fact:"💡 Nasi & kentang manis karena pati dari glukosa ini!"},
+{id:"oksigen",x:810,y:380,w:170,h:104,icon:"🫧",title:"Oksigen (O2)",sub:"Dilepas ke udara",color:"#0ea5e9",step:7,desc:"Oksigen sisa fotolisis keluar lewat stomata. Inilah yang kita hirup.",fact:"💡 Hutan & fitoplankton laut = paru-paru Bumi."}
+];
+var EDGES=[
+{from:"cahaya",to:"terang",label:"energi cahaya",color:"#facc15"},
+{from:"air",to:"daun",label:"H2O via xilem",color:"#38bdf8"},
+{from:"co2",to:"daun",label:"via stomata",color:"#94a3b8"},
+{from:"daun",to:"kloroplas",label:"masuk daun",color:"#4ade80"},
+{from:"kloroplas",to:"terang",label:"klorofil menangkap",color:"#4ade80"},
+{from:"terang",to:"oksigen",label:"O2 dilepas",color:"#38bdf8"},
+{from:"terang",to:"calvin",label:"ATP + NADPH",color:"#c084fc"},
+{from:"co2",to:"calvin",label:"CO2 bahan gula",color:"#94a3b8",dashed:true},
+{from:"calvin",to:"glukosa",label:"jadi C6H12O6",color:"#fbbf24"}
+];
+var STEP_NAMES=["","Cahaya","Air & CO2","Daun","Kloroplas","Reaksi Terang","Siklus Calvin","Panen Glukosa & Oksigen"];
+var STEP_DESC=["",
+"Matahari memberi energi. Tanpa cahaya, fotosintesis tidak mulai. Klik kotak ☀️!",
+"Tambah 2 bahan: Air dari akar dan CO2 dari udara. Geser slider air & CO2!",
+"Daun adalah dapur + pintu gerbang. Stomata mengatur gas masuk.",
+"Kloroplas = pabrik hijau berisi klorofil penangkap cahaya.",
+"Reaksi terang: belah air → O2 + baterai energi. Butuh cahaya!",
+"Siklus Calvin: rakit CO2 + energi → gula. Tak butuh cahaya langsung.",
+"Panen! Amati glukosa & oksigen. Nol-kan satu slider → buktikan hukum minimum!"];
+var svg=document.getElementById('flowSvg');
+var NS="http://www.w3.org/2000/svg";
+var state={step:1,vars:{cahaya:700,co2:420,air:75},glc:0,o2:0,auto:false,autoT:null,selected:"cahaya"};
+var nodeById={},edgeEls=[],particles=[];
+NODES.forEach(function(n){nodeById[n.id]=n;});
+function fmt(n){return Math.round(n).toLocaleString('id-ID');}
+// defs markers
+var defs=document.createElementNS(NS,"defs");
+EDGES.forEach(function(e,i){
+var m=document.createElementNS(NS,"marker");
+m.setAttribute("id","arr"+i);m.setAttribute("markerWidth","10");m.setAttribute("markerHeight","10");
+m.setAttribute("refX","8");m.setAttribute("refY","3");m.setAttribute("orient","auto");
+var p=document.createElementNS(NS,"path");
+p.setAttribute("d","M0,0 L8,3 L0,6 Z");p.setAttribute("fill",e.color);
+m.appendChild(p);defs.appendChild(m);e._m=i;});
+svg.appendChild(defs);
+var edgeLayer=document.createElementNS(NS,"g");svg.appendChild(edgeLayer);
+var nodeLayer=document.createElementNS(NS,"g");svg.appendChild(nodeLayer);
+var partLayer=document.createElementNS(NS,"g");svg.appendChild(partLayer);
+// grid bg
+(function(){
+var g=document.createElementNS(NS,"g");
+for(var x=0;x<1000;x+=40){var l=document.createElementNS(NS,"line");l.setAttribute("x1",x);l.setAttribute("y1",0);l.setAttribute("x2",x);l.setAttribute("y2",640);l.setAttribute("stroke","rgba(255,255,255,.06)");g.appendChild(l);}
+for(var y=0;y<640;y+=40){var l2=document.createElementNS(NS,"line");l2.setAttribute("x1",0);l2.setAttribute("y1",y);l2.setAttribute("x2",1000);l2.setAttribute("y2",y);l2.setAttribute("stroke","rgba(255,255,255,.06)");g.appendChild(l2);}
+svg.insertBefore(g,edgeLayer);})();
+// endpoint calc from node dimensions (rect clip)
+function edgeEndpoints(a,b){
+var ax=a.x+a.w/2,ay=a.y+a.h/2,bx=b.x+b.w/2,by=b.y+b.h/2;
+function clip(n,tx,ty){
+var cx=n.x+n.w/2,cy=n.y+n.h/2;
+var dx=tx-cx,dy=ty-cy;
+if(dx===0&&dy===0)return[cx,cy];
+var sx=(n.w/2)/Math.abs(dx||1e-9),sy=(n.h/2)/Math.abs(dy||1e-9);
+var s=Math.min(sx,sy);
+return[cx+dx*s,cy+dy*s];}
+var p1=clip(a,bx,by),p2=clip(b,ax,ay);
+return{p1:p1,p2:p2};}
+function edgePathD(a,b){
+var e=edgeEndpoints(a,b);
+var mx=(e.p1[0]+e.p2[0])/2;
+return"M"+e.p1[0]+","+e.p1[1]+" Q"+mx+","+((e.p1[1]+e.p2[1])/2)+" "+e.p2[0]+","+e.p2[1];}
+// build edges
+EDGES.forEach(function(e){
+var g=document.createElementNS(NS,"g");g.setAttribute("class","edge");
+var path=document.createElementNS(NS,"path");
+path.setAttribute("d",edgePathD(nodeById[e.from],nodeById[e.to]));
+path.setAttribute("fill","none");path.setAttribute("stroke",e.color);
+path.setAttribute("stroke-width","3");path.setAttribute("class","flow-dash");
+path.setAttribute("marker-end","url(#arr"+e._m+")");
+if(e.dashed)path.setAttribute("stroke-dasharray","4 6");
+g.appendChild(path);
+var mid=edgeEndpoints(nodeById[e.from],nodeById[e.to]);
+var tx=document.createElementNS(NS,"text");
+tx.setAttribute("x",(mid.p1[0]+mid.p2[0])/2);
+tx.setAttribute("y",(mid.p1[1]+mid.p2[1])/2-8);
+tx.setAttribute("text-anchor","middle");tx.setAttribute("class","edge-label");
+tx.textContent=e.label;g.appendChild(tx);
+edgeLayer.appendChild(g);
+e._el=g;e._path=path;e._label=tx;
+for(var k=0;k<2;k++){var c=document.createElementNS(NS,"circle");
+c.setAttribute("r",6-k*1.5);c.setAttribute("fill",e.color);
+c.setAttribute("stroke","#020617");c.setAttribute("stroke-width","1.5");
+partLayer.appendChild(c);particles.push({el:c,edge:e,off:Math.random()});}
+});
+// build nodes
+NODES.forEach(function(n){
+var g=document.createElementNS(NS,"g");
+g.setAttribute("class","node");g.setAttribute("data-id",n.id);
+g.setAttribute("tabindex","0");g.setAttribute("role","button");
+g.setAttribute("aria-label",n.title);
+var r=document.createElementNS(NS,"rect");
+r.setAttribute("x",n.x);r.setAttribute("y",n.y);
+r.setAttribute("width",n.w);r.setAttribute("height",n.h);
+r.setAttribute("rx","14");r.setAttribute("class","card");
+r.setAttribute("stroke",n.color);
+var bar=document.createElementNS(NS,"rect");
+bar.setAttribute("x",n.x);bar.setAttribute("y",n.y);
+bar.setAttribute("width",n.w);bar.setAttribute("height","8");bar.setAttribute("rx","4");
+bar.setAttribute("fill",n.color);
+g.appendChild(r);g.appendChild(bar);
+var t1=document.createElementNS(NS,"text");
+t1.setAttribute("x",n.x+n.w/2);t1.setAttribute("y",n.y+36);
+t1.setAttribute("text-anchor","middle");t1.setAttribute("font-size","26");t1.textContent=n.icon;
+g.appendChild(t1);
+var t2=document.createElementNS(NS,"text");
+t2.setAttribute("x",n.x+n.w/2);t2.setAttribute("y",n.y+60);
+t2.setAttribute("text-anchor","middle");t2.setAttribute("font-size","13");t2.setAttribute("font-weight","800");t2.setAttribute("fill","#0f172a");
+t2.textContent=n.title;g.appendChild(t2);
+var t3=document.createElementNS(NS,"text");
+t3.setAttribute("x",n.x+n.w/2);t3.setAttribute("y",n.y+78);
+t3.setAttribute("text-anchor","middle");t3.setAttribute("font-size","10.5");t3.setAttribute("fill","#475569");t3.setAttribute("font-weight","600");
+t3.textContent=n.sub;g.appendChild(t3);
+g.addEventListener("click",function(){selectNode(n.id);});
+g.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();selectNode(n.id);}});
+nodeLayer.appendChild(g);n._el=g;});
+function selectNode(id){
+state.selected=id;var n=nodeById[id];
+document.querySelectorAll(".node").forEach(function(el){el.classList.remove("active");});
+if(n._el)n._el.classList.add("active");
+document.getElementById("detailTitle").textContent=n.icon+" "+n.title;
+document.getElementById("detailSub").textContent=n.sub;
+document.getElementById("detailDesc").innerHTML=n.desc.replace("klorofil","<b>klorofil</b>").replace("kloroplas","<b>kloroplas</b>");
+document.getElementById("detailFact").textContent=n.fact;}
+function factors(){
+var L=state.vars.cahaya,C=state.vars.co2,W=state.vars.air;
+var fL=L<=0?0:L/(L+200);
+var fC=C<=50?0:(C-50)/(C+350);
+var fW=W<=0?0:Math.pow(Math.min(100,W)/100,0.7);
+if(W<20)fW*=W/20;
+return{fL:fL,fC:fC,fW:fW};}
+function limiter(f){
+if(state.vars.cahaya===0)return"Gelap — tanpa cahaya";
+if(state.vars.air<20)return"Air (layu, stomata tutup)";
+if(state.vars.co2<=60)return"CO2 (kurang bahan)";
+var m=Math.min(f.fL,f.fC,f.fW);
+if(m===f.fL)return"Cahaya";if(m===f.fC)return"CO2";return"Air";}
+function visibleIds(){
+return NODES.filter(function(n){return n.step<=state.step;}).map(function(n){return n.id;});}
+function refresh(){
+var vis={};visibleIds().forEach(function(id){vis[id]=true;});
+NODES.forEach(function(n){
+n._el.classList.toggle("hidden-node",!vis[n.id]);});
+EDGES.forEach(function(e){
+var show=vis[e.from]&&vis[e.to];
+e._el.classList.toggle("hidden-edge",!show);
+e._visible=show;});
+particles.forEach(function(p){p.el.style.display=p.edge._visible?"block":"none";});
+document.getElementById("stepBadge").textContent="Langkah "+state.step+" / 7";
+document.getElementById("stepName").textContent=STEP_NAMES[state.step];
+document.getElementById("stepDesc").textContent=STEP_DESC[state.step];
+var dots=document.getElementById("stepDots");dots.innerHTML="";
+for(var i=1;i<=7;i++){var d=document.createElement("div");d.className="step-dot"+(i<=state.step?" on":"");dots.appendChild(d);}
+document.getElementById("prevBtn").disabled=state.step<=1;
+document.getElementById("nextBtn").textContent=state.step>=7?"Selesai ✓":"Lanjut →";
+liveCalc();}
+function liveCalc(){
+var f=factors();
+var rate=f.fL*f.fC*f.fW;
+var lim=limiter(f);
+var showHarvest=state.step>=7;
+var glc=showHarvest?rate*100:rate*100*Math.min(1,state.step/7);
+var o2=showHarvest?rate*120:0;
+document.getElementById("v-cahaya").textContent=fmt(state.vars.cahaya)+" lux";
+document.getElementById("v-co2").textContent=fmt(state.vars.co2)+" ppm";
+document.getElementById("v-air").textContent=Math.round(state.vars.air)+" %";
+document.getElementById("glcVal").textContent=glc.toFixed(1)+" unit";
+document.getElementById("o2Val").textContent=o2.toFixed(1)+" unit";
+document.getElementById("glcBar").style.width=Math.min(100,glc)+"%";
+document.getElementById("o2Bar").style.width=Math.min(100,o2/1.2)+"%";
+document.getElementById("limitVal").textContent=lim;
+document.getElementById("ovRate").textContent=Math.round(rate*100)+"%";
+document.getElementById("ovGlc").textContent=glc.toFixed(0);
+document.getElementById("ovO2").textContent=o2.toFixed(0);
+document.getElementById("ovLimit").textContent="Pembatas: "+lim;
+document.getElementById("formulaLive").textContent="cahaya "+fmt(state.vars.cahaya)+" • CO2 "+fmt(state.vars.co2)+" • air "+Math.round(state.vars.air)+"%";
+var msg;
+if(state.vars.cahaya===0)msg="🌑 Gelap! Reaksi terang mati → tidak ada ATP, tidak ada gula & O2. Naikkan cahaya!";
+else if(state.vars.air<20)msg="🥀 Kering! Stomata menutup, CO2 macet. Tambah air agar panah daun→kloroplas mengalir.";
+else if(state.vars.co2<=60)msg="💨 CO2 habis! Siklus Calvin kekurangan bahan. Naikkan CO2.";
+else if(rate<0.05)msg="🐢 Aliran macet — periksa "+lim+". Naikkan input terkecil!";
+else if(rate<0.3)msg="🚶 Aliran lambat ("+Math.round(rate*100)+"%). Pembatas: "+lim+".";
+else if(rate<0.6)msg="🏃 Aliran lancar! "+lim+" masih membatasi. Naikkan sedikit lagi.";
+else msg="🚀 Optimum! Glukosa & O2 melimpah. Coba nol-kan satu input untuk membuktikan!";
+document.getElementById("conclusion").textContent=(state.step>=7?"✅ Kesimpulan: ":"💬 ")+msg+(state.step>=7?" Makin besar cahaya+CO2+air → makin banyak glukosa & oksigen.":"");
+edgeElsRate=rate;
+EDGES.forEach(function(e){
+var blocked=(e.from==="co2"&&state.vars.co2<=60)||(e.from==="air"&&state.vars.air<20)||(e.from==="cahaya"&&state.vars.cahaya===0);
+e._path.style.opacity=blocked?0.2:(0.35+0.65*rate+0.25);
+e._path.style.animationDuration=rate<0.02?"0s":(2.2-rate*1.9)+"s";
+e._path.style.strokeWidth=(2+rate*3).toFixed(1);});}
+var edgeElsRate=0;
+// sliders
+[["sl-cahaya","cahaya"],["sl-co2","co2"],["sl-air","air"]].forEach(function(p){
+document.getElementById(p[0]).addEventListener("input",function(ev){
+state.vars[p[1]]=parseFloat(ev.target.value);liveCalc();});});
+// steps
+document.getElementById("nextBtn").onclick=function(){if(state.step<7){state.step++;refresh();}stopAuto();};
+document.getElementById("prevBtn").onclick=function(){if(state.step>1){state.step--;refresh();}};
+document.getElementById("resetSteps").onclick=function(){state.step=1;state.glc=0;state.o2=0;stopAuto();refresh();};
+function stopAuto(){state.auto=false;document.getElementById("autoBtn").textContent="▶ Otomatis";if(state.autoT){clearInterval(state.autoT);state.autoT=null;}}
+document.getElementById("autoBtn").onclick=function(){
+if(state.auto){stopAuto();return;}
+state.auto=true;document.getElementById("autoBtn").textContent="⏸ Stop";
+state.autoT=setInterval(function(){
+if(state.step>=7){stopAuto();return;}
+state.step++;refresh();},1600);};
+document.getElementById("sidebarToggle").onclick=function(){
+document.getElementById("sidebar").classList.toggle("collapsed");};
+if(window.innerWidth<768)document.getElementById("sidebar").classList.add("collapsed");
+// quiz
+document.getElementById("quizBtn").onclick=function(){
+var b=document.getElementById("quizBox");b.classList.toggle("hidden");};
+document.querySelectorAll(".quiz-opt").forEach(function(btn){
+btn.onclick=function(){
+var ok=btn.dataset.q==="b";
+document.getElementById("quizMsg").textContent=ok?"✅ Benar! Tanpa cahaya tidak ada energi → gula & O2 berhenti.":"❌ Coba lagi — ingat cahaya = sumber energi.";
+document.getElementById("quizMsg").style.color=ok?"#4ade80":"#f87171";};});
+// particles animation
+var last=performance.now();
+function tick(now){
+var dt=Math.min(0.05,(now-last)/1000);last=now;
+var f=factors();var rate=f.fL*f.fC*f.fW;
+var speed=0.05+rate*0.6;
+particles.forEach(function(p){
+if(!p.edge._visible)return;
+p.off+=dt*speed*(p.edge.dashed?0.7:1);
+if(p.off>1)p.off-=1;
+try{
+var L=p.edge._path.getTotalLength();
+var pt=p.edge._path.getPointAtLength(p.off*L);
+p.el.setAttribute("cx",pt.x);p.el.setAttribute("cy",pt.y);
+var blocked=(p.edge.from==="co2"&&state.vars.co2<=60)||(p.edge.from==="air"&&state.vars.air<20)||(p.edge.from==="cahaya"&&state.vars.cahaya===0);
+p.el.style.opacity=blocked?0.15:(rate<0.02?0.4:1);
+var s=3+rate*5;p.el.setAttribute("r",s);}catch(e){}});
+requestAnimationFrame(tick);}
+// keyboard
+document.addEventListener("keydown",function(e){
+var tag=(document.activeElement&&document.activeElement.tagName)||"";
+if(e.code==="Space"&&tag!=="INPUT"&&tag!=="BUTTON"){e.preventDefault();if(state.step<7){state.step++;refresh();}}
+if(e.key==="ArrowRight"&&state.step<7){state.step++;refresh();}
+if(e.key==="ArrowLeft"&&state.step>1){state.step--;refresh();}});
+// external widget state
+window.addEventListener("message",function(ev){
+var d=ev.data||{};
+if(d.type==="SET_WIDGET_STATE"&&d.state){
+Object.keys(d.state).forEach(function(k){
+if(k in state.vars){state.vars[k]=d.state[k];
+var s=document.getElementById("sl-"+k);if(s)s.value=d.state[k];}});
+liveCalc();}});
+refresh();selectNode("cahaya");requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

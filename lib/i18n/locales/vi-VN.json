@@ -430,7 +430,16 @@
       "sendBackward": "Đưa xuống dưới",
       "alignTop": "Căn trên",
       "alignMiddle": "Căn giữa",
-      "alignBottom": "Căn dưới"
+      "alignBottom": "Căn dưới",
+      "alignCenterBoth": "Căn giữa cả hai trục",
+      "setLink": "Đặt liên kết",
+      "ruler": "Thước",
+      "grid": "Lưới",
+      "gridNone": "Không",
+      "gridSmall": "Nhỏ",
+      "gridMedium": "Vừa",
+      "gridLarge": "Lớn",
+      "resetPage": "Đặt lại trang"
     },
     "background": {
       "label": "Nền",
@@ -1853,7 +1862,8 @@
     "capabilities": {
       "streaming": "Truyền liên tục",
       "tools": "Công cụ",
-      "vision": "Đọc ảnh"
+      "vision": "Đọc ảnh",
+      "thinking": "Suy luận"
     },
     "claudeSearchModel": "Mô hình tìm kiếm",
     "claudeSearchModelHint": "Mô hình Claude dùng để tìm kiếm trên web và tóm tắt kết quả.",

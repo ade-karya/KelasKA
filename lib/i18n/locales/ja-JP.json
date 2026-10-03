@@ -430,7 +430,16 @@
       "sendBackward": "背面へ移動",
       "alignTop": "上揃え",
       "alignMiddle": "垂直中央揃え",
-      "alignBottom": "下揃え"
+      "alignBottom": "下揃え",
+      "alignCenterBoth": "中央揃え（両軸）",
+      "setLink": "リンクを設定",
+      "ruler": "ルーラー",
+      "grid": "グリッド",
+      "gridNone": "なし",
+      "gridSmall": "小",
+      "gridMedium": "中",
+      "gridLarge": "大",
+      "resetPage": "ページをリセット"
     },
     "background": {
       "label": "背景",
@@ -1853,7 +1862,8 @@
     "capabilities": {
       "streaming": "ストリーミング",
       "tools": "ツール",
-      "vision": "画像認識"
+      "vision": "画像認識",
+      "thinking": "思考"
     },
     "claudeSearchModel": "検索モデル",
     "claudeSearchModelHint": "ウェブ検索を実行し、結果を要約する Claude モデル。",

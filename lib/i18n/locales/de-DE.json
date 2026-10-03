@@ -430,7 +430,16 @@
       "sendBackward": "Eine Ebene nach hinten",
       "alignTop": "Oben ausrichten",
       "alignMiddle": "Mittig ausrichten",
-      "alignBottom": "Unten ausrichten"
+      "alignBottom": "Unten ausrichten",
+      "alignCenterBoth": "Beide Achsen zentrieren",
+      "setLink": "Link festlegen",
+      "ruler": "Lineal",
+      "grid": "Raster",
+      "gridNone": "Keine",
+      "gridSmall": "Klein",
+      "gridMedium": "Mittel",
+      "gridLarge": "Groß",
+      "resetPage": "Seite zurücksetzen"
     },
     "background": {
       "label": "Hintergrund",
@@ -1853,7 +1862,8 @@
     "capabilities": {
       "streaming": "Streaming",
       "tools": "Tools",
-      "vision": "Bildverarbeitung"
+      "vision": "Bildverarbeitung",
+      "thinking": "Denken"
     },
     "claudeSearchModel": "Suchmodell",
     "claudeSearchModelHint": "Das Claude-Modell, das Websuchen ausführt und Ergebnisse zusammenfasst.",

@@ -36,17 +36,17 @@ export function BrandLogo({
       divider: 'h-6 w-px bg-border/60',
     },
     lg: {
-      logo: 'h-16 md:h-20 w-auto object-contain',
-      text: 'text-3xl md:text-4xl font-black tracking-tight',
-      gap: 'gap-3 md:gap-4',
-      divider: 'h-10 md:h-12 w-px bg-border/60',
+      logo: 'h-10 sm:h-16 md:h-20 w-auto object-contain',
+      text: 'text-2xl sm:text-3xl md:text-4xl font-black tracking-tight',
+      gap: 'gap-2 sm:gap-3 md:gap-4',
+      divider: 'h-6 sm:h-10 md:h-12 w-px bg-border/60',
     },
   };
 
   const currentSize = sizeClasses[size];
 
   return (
-    <div className={cn('inline-flex items-center', currentSize.gap, className)}>
+    <div className={cn('inline-flex max-w-full flex-wrap items-center', currentSize.gap, className)}>
       {showLogos && (
         <div className={cn('flex items-center', currentSize.gap)}>
           <img

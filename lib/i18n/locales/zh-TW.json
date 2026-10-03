@@ -656,7 +656,16 @@
       "sendBackward": "下移一層",
       "alignTop": "頂端對齊",
       "alignMiddle": "垂直置中",
-      "alignBottom": "底端對齊"
+      "alignBottom": "底端對齊",
+      "alignCenterBoth": "水平垂直置中",
+      "setLink": "設定連結",
+      "ruler": "尺規",
+      "grid": "格線",
+      "gridNone": "無",
+      "gridSmall": "小",
+      "gridMedium": "中",
+      "gridLarge": "大",
+      "resetPage": "重設目前頁面"
     },
     "common": {
       "cancel": "取消",
@@ -1838,7 +1847,8 @@
     "capabilities": {
       "streaming": "串流",
       "tools": "工具",
-      "vision": "視覺"
+      "vision": "視覺",
+      "thinking": "思考"
     },
     "claudeSearchModel": "搜尋模型",
     "claudeSearchModelHint": "用於執行網路搜尋並總結結果的 Claude 模型。",

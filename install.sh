@@ -74,6 +74,13 @@
 #   --no-opencode       Lewati instalasi OpenCode CLI v2.
 #   --with-opencode     Instal OpenCode CLI v2 (default sudah ON; flag ini
 #                       no-op, disediakan agar eksplisit).
+#   --no-upstream       Lewati pengaturan git remote `upstream`
+#                       (default: remote `upstream` dipastikan menunjuk ke
+#                       https://github.com/THU-MAIC/OpenMAIC.git).
+#   --with-upstream     Pastikan git remote `upstream` terpasang (default sudah
+#                       ON; flag ini no-op, disediakan agar eksplisit).
+#   --upstream-url=URL  Paksa URL remote `upstream` (default:
+#                       https://github.com/THU-MAIC/OpenMAIC.git).
 #   --no-install        Lewati `pnpm install` (hanya siapkan sistem + env).
 #   --build             Jalankan `npm run build` di akhir sebagai pembuktian.
 #   --with-playwright   Instal browser Chromium untuk e2e Playwright.
@@ -153,6 +160,10 @@ WITH_PGADMIN=1
 WITH_FFMPEG=1
 WITH_OPENCODE=1
 WITH_BROWSER_TTS=1
+WITH_UPSTREAM=1
+# Remote git upstream (repo asli OpenMAIC). Bisa dioverride via
+# --upstream-url=URL atau env UPSTREAM_URL.
+UPSTREAM_URL="${UPSTREAM_URL:-https://github.com/THU-MAIC/OpenMAIC.git}"
 PG_PASSWORD="${PG_PASSWORD:-}"
 # Kredensial login awal pgAdmin (setup-web.sh non-interaktif). Fallback ke
 # nama var upstream (PGADMIN_SETUP_*) bila user mengekspornya manual.
@@ -195,6 +206,9 @@ for arg in "$@"; do
     --no-browser-tts)  WITH_BROWSER_TTS=0 ;;
     --with-opencode)   WITH_OPENCODE=1 ;;
     --no-opencode)     WITH_OPENCODE=0 ;;
+    --with-upstream)   WITH_UPSTREAM=1 ;;
+    --no-upstream)     WITH_UPSTREAM=0 ;;
+    --upstream-url=*)  UPSTREAM_URL="${arg#*=}"; [[ -n "$UPSTREAM_URL" ]] || fail "--upstream-url butuh nilai (contoh: --upstream-url=https://github.com/THU-MAIC/OpenMAIC.git)." ;;
     --pg-major=*)      PG_MAJOR="${arg#*=}" ;;
     --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (tier gratis: opencode:muse-spark-1.3-contributor-free). Hapus flag tersebut dan ulangi." ;;
     --pg-password=*)   PG_PASSWORD="${arg#*=}"; [[ -n "$PG_PASSWORD" ]] || fail "--pg-password butuh nilai (contoh: --pg-password=rahasia)." ;;
@@ -372,12 +386,65 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_BUILD" -eq 1 ]]; then
     echo "  - jalankan npm run build sebagai pembuktian"
   fi
+  if [[ "$WITH_UPSTREAM" -eq 1 ]]; then
+    echo "  - pastikan git remote 'upstream' -> ${UPSTREAM_URL}"
+  else
+    echo "  - tanpa pengaturan git remote 'upstream' (--no-upstream)"
+  fi
   echo "  - buat/lengkapi .env.local (auto-tier Pro Workbench 1 LLM -> 2 opencode paid -> 3 free CLI), direktori data/, pnpm install"
   # Tanpa TTY, `read` langsung gagal dan `set -e` mematikan script tanpa pesan
   # yang berguna — lebih baik gagal dengan instruksi yang jelas.
   [[ -t 0 ]] || fail "Tidak ada TTY untuk konfirmasi. Jalankan ulang dengan --yes (non-interaktif)."
   read -rp "Lanjut? [y/N] " jawab
   [[ "$jawab" =~ ^[yY]$ ]] || { info "Dibatalkan."; exit 0; }
+fi
+
+# ==================================================== 0. Git remote upstream
+# Pastikan remote `upstream` menunjuk ke repo asli OpenMAIC agar fork tetap
+# bisa `git fetch upstream` / `git pull upstream <branch>`. Idempoten: hanya
+# add bila belum ada, set-url bila beda, diam bila sudah benar. Tidak fetch
+# (tetap offline-friendly) dan tidak pernah menyentuh `origin` maupun branch.
+# Dilewati bila bukan checkout git (unduhan ZIP) atau dengan --no-upstream.
+LANGKAH="git: remote upstream"
+# Helper: git sebagai pemilik sesi (bukan /root saat sudo) agar .git/config
+# tidak berubah owner. -c safe.directory menahan error "dubious ownership"
+# saat root menyentuh repo milik user lain.
+git_sebagai_pemilik() {
+  local pemilik="${SUDO_USER:-$(id -un)}"
+  if [[ "$(id -un)" == "$pemilik" ]]; then
+    git -c safe.directory="$ROOT_DIR" "$@"
+  else
+    run_as_root -H -u "$pemilik" git -c safe.directory="$ROOT_DIR" "$@"
+  fi
+}
+if [[ "$WITH_UPSTREAM" -eq 1 ]]; then
+  if ! command -v git >/dev/null 2>&1; then
+    warn "git tidak ditemukan — lewati pengaturan remote 'upstream' (pasang git lalu ulangi)."
+  elif ! git_sebagai_pemilik rev-parse --git-dir >/dev/null 2>&1; then
+    info "Bukan checkout git — lewati pengaturan remote 'upstream'."
+  elif [[ -z "$UPSTREAM_URL" ]]; then
+    warn "UPSTREAM_URL kosong — lewati pengaturan remote 'upstream'."
+  else
+    UPSTREAM_SAAT_INI="$(git_sebagai_pemilik remote get-url upstream 2>/dev/null || true)"
+    if [[ -z "$UPSTREAM_SAAT_INI" ]]; then
+      if git_sebagai_pemilik remote add upstream "$UPSTREAM_URL" >/dev/null 2>&1; then
+        info "git remote 'upstream' ditambahkan -> ${UPSTREAM_URL}."
+      else
+        warn "Gagal menambah git remote 'upstream' — atur manual: git remote add upstream ${UPSTREAM_URL}"
+      fi
+    elif [[ "$UPSTREAM_SAAT_INI" != "$UPSTREAM_URL" ]]; then
+      if git_sebagai_pemilik remote set-url upstream "$UPSTREAM_URL" >/dev/null 2>&1; then
+        info "git remote 'upstream' diperbarui ${UPSTREAM_SAAT_INI} -> ${UPSTREAM_URL}."
+      else
+        warn "Gagal memperbarui git remote 'upstream' — atur manual: git remote set-url upstream ${UPSTREAM_URL}"
+      fi
+    else
+      info "git remote 'upstream' sudah benar (${UPSTREAM_URL})."
+    fi
+    unset UPSTREAM_SAAT_INI
+  fi
+else
+  info "Lewati git remote 'upstream' (--no-upstream)."
 fi
 
 # ============================================================ 1. Paket sistem
@@ -2289,7 +2356,7 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
       TIER3_LIVE_ESCAPED="$(sed_escape_replacement "$TIER3_LIVE_DEFAULT")"
       sed -i -E "s|^[[:space:]]*DEFAULT_MODEL=.*|DEFAULT_MODEL=${TIER3_LIVE_ESCAPED}|" .env.local
       if grep -q "dibuat oleh install.sh" openmaic.yml 2>/dev/null && grep -qE '^[[:space:]]*model: opencode:(space-bunny-free|muse-spark-1.3-contributor-free|big-pickle)$' openmaic.yml 2>/dev/null; then
-        sed -i -E "s|^([[:space:]]*model: )opencode:(space-bunny-free|muse-spark-1.3-contributor-free|big-pickle)$|\1${TIER3_LIVE_ESCAPED}|" openmaic.yml
+        sed -i -E "s#^([[:space:]]*model: )opencode:(space-bunny-free|muse-spark-1.3-contributor-free|big-pickle)\$#\1${TIER3_LIVE_ESCAPED}#" openmaic.yml
         info "Slot agent openmaic.yml diselaraskan ke default live ${TIER3_LIVE_DEFAULT}."
       fi
       info "DEFAULT_MODEL diselaraskan ke default live ${TIER3_LIVE_DEFAULT}."

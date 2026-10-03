@@ -430,7 +430,16 @@
       "sendBackward": "Reculer",
       "alignTop": "Aligner en haut",
       "alignMiddle": "Aligner au milieu",
-      "alignBottom": "Aligner en bas"
+      "alignBottom": "Aligner en bas",
+      "alignCenterBoth": "Centrer (les deux axes)",
+      "setLink": "Définir le lien",
+      "ruler": "Règle",
+      "grid": "Grille",
+      "gridNone": "Aucune",
+      "gridSmall": "Petite",
+      "gridMedium": "Moyenne",
+      "gridLarge": "Grande",
+      "resetPage": "Réinitialiser la page"
     },
     "background": {
       "label": "Arrière-plan",
@@ -1853,7 +1862,8 @@
     "capabilities": {
       "streaming": "Diffusion en continu",
       "tools": "Outils",
-      "vision": "Vision"
+      "vision": "Vision",
+      "thinking": "Réflexion"
     },
     "claudeSearchModel": "Modèle de recherche",
     "claudeSearchModelHint": "Le modèle Claude qui effectue les recherches web et résume les résultats.",

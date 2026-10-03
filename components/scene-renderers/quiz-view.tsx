@@ -89,6 +89,13 @@ const QuizMathText = memo(function QuizMathText({
   );
 });
 
+/** Localized fallback when the grading service is unreachable. */
+function getGradingFallbackComment(language: string): string {
+  if (language === 'id-ID') return 'Layanan penilaian tidak tersedia. Nilai dasar diberikan.';
+  if (language.startsWith('zh')) return '评分服务暂时不可用，已给予基础分。';
+  return 'Grading service unavailable. Base score given.';
+}
+
 /** Call /api/quiz-grade for a single short-answer question. */
 async function gradeShortAnswerQuestion(
   q: QuizQuestion,
@@ -130,10 +137,7 @@ async function gradeShortAnswerQuestion(
       correct: null,
       status: 'incorrect',
       earned: Math.round(pts * 0.5),
-      aiComment:
-        language === 'zh-CN'
-          ? '评分服务暂时不可用，已给予基础分。'
-          : 'Grading service unavailable. Base score given.',
+      aiComment: getGradingFallbackComment(language),
     };
   }
 }

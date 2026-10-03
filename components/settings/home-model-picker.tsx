@@ -95,13 +95,13 @@ export function HomeModelPicker({
             onClick={onOpenCourseModels}
             aria-label={t('toolbar.perStageSetup')}
             className={cn(
-              'inline-flex min-w-0 items-center gap-1.5 border border-border/60 bg-background font-medium transition-colors',
+              'inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-border/60 bg-background px-2.5 py-1 text-xs font-medium transition-colors',
               'hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
               className,
             )}
           >
             <Layers className="size-3.5 shrink-0 text-violet-500" aria-hidden="true" />
-            <span className="shrink-0">{t('toolbar.perStageSetup')}</span>
+            <span className="shrink-0 truncate">{t('toolbar.perStageSetup')}</span>
             {plan && (
               <span className="min-w-0 truncate text-muted-foreground">
                 <span aria-hidden="true">· </span>
@@ -137,7 +137,7 @@ export function HomeModelPicker({
             <button
               type="button"
               onClick={onOpenCourseModels}
-              className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-1.5 py-1 text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              className="inline-flex max-w-full shrink-0 items-center whitespace-normal sm:whitespace-nowrap rounded-full px-1.5 py-1 text-left text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               {t('toolbar.stagesSetSeparately', { count: overrides.length })}
             </button>

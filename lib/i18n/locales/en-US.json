@@ -430,7 +430,16 @@
       "sendBackward": "Send backward",
       "alignTop": "Align top",
       "alignMiddle": "Align middle",
-      "alignBottom": "Align bottom"
+      "alignBottom": "Align bottom",
+      "alignCenterBoth": "Center both",
+      "setLink": "Set link",
+      "ruler": "Ruler",
+      "grid": "Grid",
+      "gridNone": "None",
+      "gridSmall": "Small",
+      "gridMedium": "Medium",
+      "gridLarge": "Large",
+      "resetPage": "Reset page"
     },
     "background": {
       "label": "Background",

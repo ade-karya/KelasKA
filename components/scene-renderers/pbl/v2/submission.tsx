@@ -257,7 +257,9 @@ export function buildRevisionGuidanceMessage(args: {
   revisionAttempt?: number;
 }): PBLChatMessage | null {
   if (!args.instructorId) return null;
-  const zh = args.language === 'zh-CN' || args.language === 'zh-TW';
+  const lang = args.language ?? '';
+  const isZh = lang === 'zh-CN' || lang === 'zh-TW';
+  const isId = lang === 'id-ID' || lang.toLowerCase().startsWith('id');
   const attempt = Math.max(1, args.revisionAttempt ?? 1);
   const zhOpening =
     attempt <= 1
@@ -271,17 +273,29 @@ export function buildRevisionGuidanceMessage(args: {
       : attempt === 2
         ? 'This still needs one more revision pass.'
         : 'Please keep revising this before we move on.';
-  const content = zh
+  const idOpening =
+    attempt <= 1
+      ? 'Tahan dulu versi ini sebelum lanjut.'
+      : attempt === 2
+        ? 'Kali ini masih perlu satu putaran revisi.'
+        : 'Masih perlu diperbaiki lagi.';
+  const content = isZh
     ? [
         zhOpening,
         '',
         '先参照上面的任务点评，把最影响下一步的一两处改稳。改好后在右侧重新提交，我再帮你看。',
       ].join('\n')
-    : [
-        enOpening,
-        '',
-        "Use the task review above to tighten the one or two points that most affect the next step. Submit the revision on the right, and I'll review it again.",
-      ].join('\n');
+    : isId
+      ? [
+          idOpening,
+          '',
+          'Perkuat satu-dua hal yang paling memengaruhi langkah berikutnya berdasarkan ulasan tugas di atas. Setelah diperbaiki, kirim ulang di sisi kanan, saya akan periksa lagi.',
+        ].join('\n')
+      : [
+          enOpening,
+          '',
+          "Use the task review above to tighten the one or two points that most affect the next step. Submit the revision on the right, and I'll review it again.",
+        ].join('\n');
   return {
     id: 'msg_' + Date.now().toString(16) + Math.random().toString(16).slice(2, 6),
     agentId: args.instructorId,

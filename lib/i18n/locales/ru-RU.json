@@ -430,7 +430,16 @@
       "sendBackward": "Переместить назад",
       "alignTop": "Выровнять по верхнему краю",
       "alignMiddle": "Выровнять по центру",
-      "alignBottom": "Выровнять по нижнему краю"
+      "alignBottom": "Выровнять по нижнему краю",
+      "alignCenterBoth": "По центру по обеим осям",
+      "setLink": "Задать ссылку",
+      "ruler": "Линейка",
+      "grid": "Сетка",
+      "gridNone": "Нет",
+      "gridSmall": "Мелкая",
+      "gridMedium": "Средняя",
+      "gridLarge": "Крупная",
+      "resetPage": "Сбросить страницу"
     },
     "background": {
       "label": "Фон",
@@ -1853,7 +1862,8 @@
     "capabilities": {
       "streaming": "Стриминг",
       "tools": "Инструменты",
-      "vision": "Видение"
+      "vision": "Видение",
+      "thinking": "Рассуждение"
     },
     "claudeSearchModel": "Модель поиска",
     "claudeSearchModelHint": "Модель Claude, которая выполняет веб-поиск и обобщает результаты.",

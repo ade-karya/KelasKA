@@ -250,7 +250,7 @@ export function GenerationToolbar({
   const pillActive = `${pillCls} border-violet-200/60 dark:border-violet-700/50 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300`;
 
   return (
-    <div className="flex items-center gap-1 flex-wrap">
+    <div className="flex min-w-0 items-center gap-1 flex-wrap">
       {/* ── Course model: pill (picker popover), read-only pill, or Set-up CTA (#580) ── */}
       {llmEditable ? (
         // Editable: the picker, with nothing selected while `llm` resolves to
@@ -269,7 +269,7 @@ export function GenerationToolbar({
           }
           placeholder={t('toolbar.pickModel')}
           ariaLabel={llm ? `${currentProviderName} / ${modelId}` : t('toolbar.pickModel')}
-          className="h-8 w-auto max-w-[260px] gap-1.5 rounded-full px-2.5 text-xs"
+          className="h-8 w-auto max-w-[160px] sm:max-w-[260px] gap-1.5 rounded-full px-2.5 text-xs"
           t={t}
         />
       ) : llm ? (

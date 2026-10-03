@@ -430,7 +430,16 @@
       "sendBackward": "下移一层",
       "alignTop": "顶部对齐",
       "alignMiddle": "垂直居中",
-      "alignBottom": "底部对齐"
+      "alignBottom": "底部对齐",
+      "alignCenterBoth": "水平垂直居中",
+      "setLink": "设置链接",
+      "ruler": "标尺",
+      "grid": "网格线",
+      "gridNone": "无",
+      "gridSmall": "小",
+      "gridMedium": "中",
+      "gridLarge": "大",
+      "resetPage": "重置当前页"
     },
     "background": {
       "label": "背景",
@@ -1853,7 +1862,8 @@
     "capabilities": {
       "streaming": "流式",
       "tools": "工具",
-      "vision": "视觉"
+      "vision": "视觉",
+      "thinking": "思考"
     },
     "claudeSearchModel": "搜索模型",
     "claudeSearchModelHint": "用于执行网络搜索并总结结果的 Claude 模型。",

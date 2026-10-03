@@ -71,6 +71,7 @@ import {
   deleteFolder,
   setStageFolder,
   FolderNameError,
+  isAccessCodeRequiredError,
   LIBRARY_CHANGED_EVENT,
   type DeleteFolderMode,
 } from '@/lib/utils/stage-storage';
@@ -94,6 +95,7 @@ import {
 } from '@/lib/config/feature-flags';
 import { useImportPptx } from '@/lib/import/use-import-pptx';
 import { InteractiveModeButton } from '@/components/generation/interactive-mode-button';
+import { BrandLogo } from '@/components/brand-logo';
 import { ProBadge } from '@/components/workbench/ProBadge';
 import { arrivedByProSwap, startProSwap } from '@/lib/workbench/pro-swap';
 import {
@@ -284,6 +286,13 @@ function HomePage() {
         replaceThumbnails({});
       }
     } catch (err) {
+      // Pre-auth (ACCESS_CODE gate): expected, not a persistence failure.
+      if (isAccessCodeRequiredError(err)) {
+        log.debug('Skipping classroom load: access code required (pre-auth).');
+        setClassrooms([]);
+        replaceThumbnails({});
+        return;
+      }
       log.error('Failed to load classrooms:', err);
       toast.error('Persistence is unavailable. Saved classrooms could not be loaded.');
     }
@@ -293,6 +302,10 @@ function HomePage() {
     try {
       setFolders(await listFolders());
     } catch (err) {
+      if (isAccessCodeRequiredError(err)) {
+        log.debug('Skipping folder load: access code required (pre-auth).');
+        return;
+      }
       log.error('Failed to load folders:', err);
     }
   };
@@ -813,13 +826,11 @@ function HomePage() {
         initial={heroEnter({ opacity: 0, y: 20 })}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
-        className={cn('relative z-20 w-full max-w-[800px] flex flex-col items-center mt-[10vh]')}
+        className={cn('relative z-20 w-full max-w-[800px] flex flex-col items-center mt-6 sm:mt-[10vh] px-1 sm:px-0')}
       >
-        {/* ── Logo ── */}
+        {/* ── Logo: Kemendikdasmen + DPRD + Kelas KA ── */}
         <div className="relative" data-pro-morph="lockup">
-          <motion.img
-            src="/logo-horizontal.png"
-            alt="OpenMAIC"
+          <motion.div
             initial={heroEnter({ opacity: 0, scale: 0.9 })}
             animate={{ opacity: 1, scale: 1 }}
             transition={{
@@ -828,8 +839,10 @@ function HomePage() {
               stiffness: 200,
               damping: 20,
             }}
-            className="h-12 md:h-16 mb-2 -ml-2 md:-ml-3"
-          />
+            className="mb-2"
+          >
+            <BrandLogo size="lg" className="flex-wrap justify-center" />
+          </motion.div>
           {workbenchEntryEnabled ? (
             <div
               className="absolute left-full top-0 ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]"
@@ -845,7 +858,7 @@ function HomePage() {
           initial={heroEnter({ opacity: 0 })}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.25 }}
-          className="text-sm text-muted-foreground/60 mb-8"
+          className="text-[13px] sm:text-sm text-muted-foreground/60 mb-6 sm:mb-8 text-center text-balance px-2"
         >
           {t('home.slogan')}
         </motion.p>
@@ -862,8 +875,10 @@ function HomePage() {
             className="w-full rounded-2xl border border-border/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-xl shadow-black/[0.03] dark:shadow-black/20 transition-shadow focus-within:shadow-2xl focus-within:shadow-violet-500/[0.06]"
           >
             {/* ── Greeting + Profile + Agents ── */}
-            <div className="relative z-20 flex items-start justify-between">
-              <GreetingBar />
+            <div className="relative z-20 flex min-w-0 items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <GreetingBar />
+              </div>
               <div className="pr-3 pt-3.5 shrink-0">
                 <AgentBar />
               </div>
@@ -873,7 +888,7 @@ function HomePage() {
             <textarea
               ref={textareaRef}
               placeholder={t('upload.requirementPlaceholder')}
-              className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none min-h-[140px] max-h-[300px]"
+              className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none min-h-[110px] sm:min-h-[140px] max-h-[300px]"
               value={form.requirement}
               onChange={(e) => updateForm('requirement', e.target.value)}
               onKeyDown={handleKeyDown}
@@ -881,8 +896,8 @@ function HomePage() {
             />
 
             {/* Toolbar row */}
-            <div className="px-3 pb-3 flex items-end gap-2">
-              <div className="flex-1 min-w-0">
+            <div className="px-3 pb-3 flex flex-wrap items-center gap-2">
+              <div className="flex-1 min-w-[180px] basis-48">
                 <GenerationToolbar
                   courseMaterials={form.courseMaterials}
                   onCourseMaterialsAdd={addCourseMaterials}
@@ -896,52 +911,56 @@ function HomePage() {
                 />
               </div>
 
-              {/* Interactive mode toggle */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <InteractiveModeButton
-                    pressed={form.interactiveMode}
-                    label={t('toolbar.interactiveModeLabel')}
-                    onPressedChange={(pressed) => updateForm('interactiveMode', pressed)}
-                  />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  {t('toolbar.interactiveModeHint')}
-                </TooltipContent>
-              </Tooltip>
+              {/* Interactive mode toggle + voice + send */}
+              <div className="ms-auto flex w-full sm:w-auto items-center justify-end gap-2 flex-wrap">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <InteractiveModeButton
+                      pressed={form.interactiveMode}
+                      label={t('toolbar.interactiveModeLabel')}
+                      onPressedChange={(pressed) => updateForm('interactiveMode', pressed)}
+                      className="max-w-[160px] sm:max-w-none [&>span:last-child]:truncate"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {t('toolbar.interactiveModeHint')}
+                  </TooltipContent>
+                </Tooltip>
 
-              {/* Voice input */}
-              <SpeechButton
-                size="md"
-                onTranscription={(text) => {
-                  setForm((prev) => {
-                    const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
-                    updateRequirementCache(next);
-                    return { ...prev, requirement: next };
-                  });
-                }}
-              />
+                {/* Voice input */}
+                <SpeechButton
+                  size="md"
+                  onTranscription={(text) => {
+                    setForm((prev) => {
+                      const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
+                      updateRequirementCache(next);
+                      return { ...prev, requirement: next };
+                    });
+                  }}
+                />
 
-              {/* Send button */}
-              <button
-                onClick={handleGenerate}
-                disabled={!canGenerate || preparingGenerate}
-                className={cn(
-                  'shrink-0 h-8 rounded-lg flex items-center justify-center gap-1.5 transition-all px-3',
-                  canGenerate && !preparingGenerate
-                    ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-sm cursor-pointer'
-                    : 'bg-muted text-muted-foreground/40 cursor-not-allowed',
-                )}
-              >
-                <span className="text-xs font-medium">
-                  {preparingGenerate ? t('stage.generating') : t('toolbar.enterClassroom')}
-                </span>
-                {preparingGenerate ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <ArrowUp className="size-3.5" />
-                )}
-              </button>
+                {/* Send button */}
+                <button
+                  onClick={handleGenerate}
+                  disabled={!canGenerate || preparingGenerate}
+                  aria-label={preparingGenerate ? t('stage.generating') : t('toolbar.enterClassroom')}
+                  className={cn(
+                    'shrink-0 h-8 rounded-lg flex items-center justify-center gap-1.5 transition-all px-3',
+                    canGenerate && !preparingGenerate
+                      ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-sm cursor-pointer'
+                      : 'bg-muted text-muted-foreground/40 cursor-not-allowed',
+                  )}
+                >
+                  <span className="hidden min-[420px]:inline text-xs font-medium whitespace-nowrap">
+                    {preparingGenerate ? t('stage.generating') : t('toolbar.enterClassroom')}
+                  </span>
+                  {preparingGenerate ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <ArrowUp className="size-3.5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -951,7 +970,7 @@ function HomePage() {
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="mt-2 flex w-full justify-start px-1"
+            className="mt-2 flex w-full max-w-full flex-wrap justify-start px-1"
           >
             <Tooltip>
               <TooltipTrigger asChild>
@@ -961,17 +980,17 @@ function HomePage() {
                   aria-checked={form.vocationalTestMode}
                   onClick={() => updateForm('vocationalTestMode', !form.vocationalTestMode)}
                   className={cn(
-                    'inline-flex h-7 items-center gap-2 rounded-full border px-2.5 text-[11px] font-medium transition-colors',
+                    'inline-flex max-w-full h-7 flex-wrap items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
                     form.vocationalTestMode
                       ? 'border-cyan-400/70 bg-cyan-50 text-cyan-700 shadow-[0_0_10px_rgba(6,182,212,0.16)] dark:bg-cyan-950/40 dark:text-cyan-300'
                       : 'border-border/70 bg-background/70 text-muted-foreground hover:border-cyan-300/60 hover:text-cyan-700 dark:hover:text-cyan-300',
                   )}
                 >
                   <span className="rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal text-cyan-700 dark:bg-cyan-900/45 dark:text-cyan-300">
-                    测试功能
+                    {t('home.vocationalTestBadge')}
                   </span>
                   <Sparkles className="size-3.5" />
-                  <span>职教任务</span>
+                  <span>{t('home.vocationalTestLabel')}</span>
                   <span
                     className={cn(
                       'relative h-3.5 w-6 rounded-full transition-colors',
@@ -988,7 +1007,7 @@ function HomePage() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                从当前输入框提交职教实操训练测试
+                {t('home.vocationalTestTooltip')}
               </TooltipContent>
             </Tooltip>
           </motion.div>
@@ -1080,7 +1099,7 @@ function HomePage() {
                   <motion.div
                     key="search-input"
                     initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 200 }}
+                    animate={{ opacity: 1, width: 'min(200px, 44vw)' }}
                     exit={{ opacity: 0, width: 0 }}
                     transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
                     className="overflow-hidden"
@@ -1329,7 +1348,7 @@ function HomePage() {
 
       {/* Footer — flows with content, at the very end */}
       <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40">
-        OpenMAIC Open Source Project
+        Kelas Kecerdasan Artifisial
       </div>
     </div>
   );
@@ -1418,7 +1437,7 @@ function GreetingBar() {
   };
 
   return (
-    <div ref={containerRef} className="relative pl-4 pr-2 pt-3.5 pb-1 w-auto">
+    <div ref={containerRef} className="relative w-full min-w-0 max-w-full pl-4 pr-2 pt-3.5 pb-1">
       <input
         ref={avatarInputRef}
         type="file"
@@ -1430,7 +1449,7 @@ function GreetingBar() {
       {/* ── Collapsed pill (always in flow) ── */}
       {!open && (
         <div
-          className="flex items-center gap-2.5 cursor-pointer transition-all duration-200 group rounded-full px-2.5 py-1.5 border border-border/50 text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 active:scale-[0.97]"
+          className="flex min-w-0 max-w-full items-center gap-2.5 cursor-pointer transition-all duration-200 group rounded-full px-2.5 py-1.5 border border-border/50 text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 active:scale-[0.97]"
           onClick={() => setOpen(true)}
         >
           <div className="shrink-0 relative">
@@ -1444,8 +1463,8 @@ function GreetingBar() {
           <div className="flex-1 min-w-0">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="leading-none select-none flex items-center gap-1">
-                  <span className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
+                <span className="leading-none select-none flex min-w-0 items-center gap-1">
+                  <span className="truncate text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
                     {t('home.greetingWithName', { name: displayName })}
                   </span>
                   <ChevronDown className="size-3 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors shrink-0" />
@@ -1669,7 +1688,9 @@ function ClassroomCard({
   const isTaskEngineMode = classroom.taskEngineMode === true;
   const showModeBadge = classroom.interactiveMode || isTaskEngineMode;
   const ModeBadgeIcon = isTaskEngineMode ? Sparkles : Atom;
-  const modeBadgeLabel = isTaskEngineMode ? 'Vocational Mode' : t('toolbar.interactiveModeLabel');
+  const modeBadgeLabel = isTaskEngineMode
+    ? t('home.vocationalTestLabel')
+    : t('toolbar.interactiveModeLabel');
 
   const startRename = (e: React.MouseEvent) => {
     e.stopPropagation();

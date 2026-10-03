@@ -430,7 +430,16 @@
       "sendBackward": "إرسال إلى الخلف",
       "alignTop": "محاذاة للأعلى",
       "alignMiddle": "محاذاة للوسط",
-      "alignBottom": "محاذاة للأسفل"
+      "alignBottom": "محاذاة للأسفل",
+      "alignCenterBoth": "توسيط على المحورين",
+      "setLink": "تعيين الرابط",
+      "ruler": "المسطرة",
+      "grid": "الشبكة",
+      "gridNone": "بلا",
+      "gridSmall": "صغيرة",
+      "gridMedium": "متوسطة",
+      "gridLarge": "كبيرة",
+      "resetPage": "إعادة تعيين الصفحة"
     },
     "background": {
       "label": "الخلفية",
@@ -1853,7 +1862,8 @@
     "capabilities": {
       "streaming": "التدفق",
       "tools": "الأدوات",
-      "vision": "الرؤية"
+      "vision": "الرؤية",
+      "thinking": "التفكير"
     },
     "claudeSearchModel": "نموذج البحث",
     "claudeSearchModelHint": "نموذج Claude الذي يقوم بالبحث في الويب وتلخيص النتائج.",

@@ -35,6 +35,7 @@ import {
   listFolders,
   createFolder,
   setStageFolder,
+  isAccessCodeRequiredError,
   type StageListItem,
 } from '@/lib/utils/stage-storage';
 import type { FolderRecord } from '@/lib/types/folder';
@@ -129,6 +130,16 @@ export function useHomeDiscovery({
           setState('ready');
         },
         fail: (err) => {
+          // Pre-auth (ACCESS_CODE gate, no cookie yet): expected state, not a
+          // failure. Stay on an empty library without error chrome or toast;
+          // the access-code modal covers auth and `auth-change` reloads us.
+          if (isAccessCodeRequiredError(err)) {
+            log.debug('Skipping classroom load: access code required (pre-auth).');
+            setClassrooms([]);
+            stateRef.current = 'ready';
+            setState('ready');
+            return;
+          }
           log.error('Failed to load classrooms:', err);
           // A background reconciliation must not replace an already-usable tree
           // with error chrome because of one transient read failure. Initial
@@ -149,7 +160,13 @@ export function useHomeDiscovery({
       folderLoaderRef.current = createCoalescedLatestLoader({
         load: listFolders,
         commit: setFolders,
-        fail: (err) => log.error('Failed to load folders:', err),
+        fail: (err) => {
+          if (isAccessCodeRequiredError(err)) {
+            log.debug('Skipping folder load: access code required (pre-auth).');
+            return;
+          }
+          log.error('Failed to load folders:', err);
+        },
       });
     }
     return folderLoaderRef.current();

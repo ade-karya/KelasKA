@@ -47,7 +47,18 @@
     "ttsPreview": "Pratinjau",
     "ttsPreviewing": "Memutar...",
     "interactiveModeHint": "Aktifkan mode interaktif mendalam untuk membuat lebih banyak konten interaktif",
-    "interactiveModeLabel": "Interaktif mendalam"
+    "interactiveModeLabel": "Interaktif mendalam",
+    "modelChangeFailed": "Gagal mengganti model: {{message}}",
+    "modelLockedHint": "Model yang dipakai kursus, ditetapkan server ini",
+    "pickModel": "Pilih model",
+    "defaultModel": "Default",
+    "defaultModelNote": "Mengubah model default; tahap yang diatur terpisah tetap memakai model sendiri.",
+    "stagesSetSeparately": "{{count}} tahap diatur terpisah",
+    "stagesSetSeparately_one": "{{count}} tahap diatur terpisah",
+    "stagesSetSeparately_other": "{{count}} tahap diatur terpisah",
+    "stagesSetSeparatelyHint": "Tahap yang memakai model sendiri",
+    "perStageSetup": "Pengaturan per tahap",
+    "perStageSetupHint": "Setiap tahap kursus memakai model sendiri"
   },
   "export": {
     "pptx": "Ekspor PPTX",
@@ -160,7 +171,8 @@
         "imageMetadata": "Gambar (hanya rujuk metadata)",
         "videoMetadata": "Video (hanya rujuk metadata)",
         "audioMetadata": "Audio (hanya rujuk metadata)"
-      }
+      },
+      "whiteboardChanged": "Elemen papan tulis yang dirujuk telah berubah atau tidak tersedia. Pilih ulang atau hapus rujukan sebelum mengirim."
     },
     "interactiveRuntimeError": {
       "title": "Interaksi ini gagal berjalan",
@@ -418,7 +430,16 @@
       "sendBackward": "Mundur satu lapis",
       "alignTop": "Rata atas",
       "alignMiddle": "Rata tengah vertikal",
-      "alignBottom": "Rata bawah"
+      "alignBottom": "Rata bawah",
+      "alignCenterBoth": "Tengah dua sumbu",
+      "setLink": "Atur tautan",
+      "ruler": "Penggaris",
+      "grid": "Garis kisi",
+      "gridNone": "Tidak ada",
+      "gridSmall": "Kecil",
+      "gridMedium": "Sedang",
+      "gridLarge": "Besar",
+      "resetPage": "Atur ulang halaman"
     },
     "background": {
       "label": "Latar",
@@ -1036,7 +1057,9 @@
     "fileTooLarge": "File terlalu besar. Pilih file yang lebih kecil dari 50MB",
     "courseMaterialCountLimit": "Anda dapat mengunggah maksimal 5 file materi kursus",
     "courseMaterialTotalSizeLimit": "Total ukuran materi kursus harus di bawah 150MB",
-    "unsupportedCourseMaterial": "Format ini tidak didukung oleh ekstraktor saat ini. Ganti ekstraktor atau pilih file lain."
+    "unsupportedCourseMaterial": "Format ini tidak didukung oleh ekstraktor saat ini. Ganti ekstraktor atau pilih file lain.",
+    "courseMaterialFormats": "Mendukung {{formats}} — hingga {{size}}MB per file",
+    "formatListSeparator": ", "
   },
   "generation": {
     "pdfLoadFailed": "Gagal memuat file PDF, silakan coba lagi",
@@ -1147,7 +1170,8 @@
     "webSearchFailed": "Pencarian web gagal",
     "outlinesReadyCount": "{{ready}} / {{total}} bagian siap",
     "jumpToBlankTitle": "Lompat ke bagian yang judulnya belum dilengkapi",
-    "analyzingMediaMaterial": "Menganalisis konten audio/video"
+    "analyzingMediaMaterial": "Menganalisis konten audio/video",
+    "modelSettingsUnavailable": "Pengaturan model tidak dapat dibaca, pembuatan dihentikan. Silakan coba lagi."
   },
   "settings": {
     "title": "Pengaturan",
@@ -1894,7 +1918,11 @@
       "planNoteEditable": "Ini adalah konfigurasi default; model tiap node dapat diubah di “Konfigurasi Model Kursus”",
       "statusDisabled": "Terhubung (nonaktif)",
       "enableThisPlan": "Aktifkan paket ini",
-      "enableThisPlanHint": "Jika dimatikan, paket ini tidak lagi muncul di konfigurasi model kursus"
+      "enableThisPlanHint": "Jika dimatikan, paket ini tidak lagi muncul di konfigurasi model kursus",
+      "applyTitle": "Gunakan pengaturan yang disarankan paket ini?",
+      "applyBody": "{{name}} menyarankan model sendiri untuk tahap berikut, yang saat ini memakai model pilihan Anda:",
+      "applyKeep": "Pertahankan pengaturan saya",
+      "applyRecommended": "Gunakan pengaturan paket"
     },
     "skills": {
       "nav": "Skill",
@@ -2002,7 +2030,211 @@
     },
     "enableThisProvider": "Aktifkan provider ini",
     "enableThisProviderHint": "Jika dimatikan, provider ini tidak lagi muncul di Konfigurasi Model Kursus.",
-    "more": "Tindakan lainnya"
+    "more": "Tindakan lainnya",
+    "providerGoogleTTS": "Google Gemini TTS",
+    "ttsSpeedUnsupported": "Penyedia ini tidak mendukung pengaturan kecepatan.",
+    "providerLinks": {
+      "domestic": "Tiongkok Daratan",
+      "getApiKey": "Dapatkan API key",
+      "international": "Internasional"
+    },
+    "serverConfig": {
+      "loading": "Memuat pengaturan model…",
+      "loadFailed": "Tidak dapat memuat pengaturan model: {{message}}",
+      "retry": "Coba lagi",
+      "unavailableTitle": "Model dikelola oleh server",
+      "unavailableBody": "Server ini tidak menyimpan pengaturan model per workspace, jadi memakai model yang dikonfigurasi administrator.",
+      "conflict": "Pengaturan berubah di tempat lain dan telah dimuat ulang. Periksa lalu coba lagi.",
+      "lockedNow": "Server kini mengatur bagian ini, jadi tidak diubah.",
+      "unconfirmed": "Jawaban server hilang, jadi pengaturan dimuat ulang. Periksa apakah perubahan berhasil.",
+      "serverOnly": "Hanya konfigurasi server (openmaic.yml) yang dapat mengatur layanan ini. Hubungi administrator server.",
+      "serverOnlyPolicy": "Server ini tidak mengizinkan workspace menambah layanan sendiri. Hubungi administrator server.",
+      "endpointServerOnly": "Layanan ini memakai endpoint sendiri; hanya konfigurasi server yang dapat mengarahkannya ke tempat lain.",
+      "endpointChatOnly": "Dengan endpoint sendiri, layanan ini hanya dipakai untuk model bahasa.",
+      "keyStored": "Kunci tersimpan di server ({{mask}}).",
+      "keyStoredPlaceholder": "Kunci tersimpan {{mask}} — ketik yang baru untuk mengganti",
+      "keyUnreadable": "Kunci tersimpan tidak dapat dibaca lagi. Masukkan ulang.",
+      "removeKey": "Hapus kunci",
+      "showKey": "Tampilkan kunci",
+      "hideKey": "Sembunyikan kunci",
+      "inUse": "Dipakai",
+      "modelFromCatalogue": "Nama, kemampuan, dan jendela konteks model berasal dari katalog bawaan.",
+      "modelWhenInUse": "Dipakai setelah layanan ini dipilih di Konfigurasi Model Kursus.",
+      "planServer": "Dikonfigurasi oleh server",
+      "providerIdHint": "Disimpan sebagai \"{{id}}\"",
+      "openaiCompatible": "Kompatibel OpenAI",
+      "notNarration": "Layanan ini bukan narasi workspace.",
+      "useForNarration": "Pakai untuk narasi",
+      "fetchNotSaved": "Model ditemukan tetapi tidak dapat disimpan. Coba lagi.",
+      "regionalEndpointHint": "Azure Speech hanya menerima endpoint resmi sesuai region resource Anda: {{template}}."
+    },
+    "modelSettings": {
+      "card": {
+        "edit": "{{name}}: {{value}}. Ubah",
+        "toggle": "Nyalakan atau matikan {{name}}",
+        "providerDefault": "Model default",
+        "off": "Mati",
+        "unassigned": "Belum diatur",
+        "invalid": "Pengaturan tidak valid",
+        "locked": "Diatur oleh server",
+        "lockedHint": "Diatur oleh konfigurasi server. Tidak dapat diubah di sini.",
+        "followers": "Bagian yang mengikuti: {{count}}",
+        "childrenFollow": "Jenis halaman · semua mengikuti",
+        "childrenOwn": "Jenis halaman · {{count}} sendiri"
+      },
+      "legend": {
+        "label": "Legenda",
+        "follows": "Mengikuti induk",
+        "own": "Pengaturan sendiri",
+        "locked": "Diatur oleh server"
+      },
+      "map": {
+        "label": "Peta model kursus. Seret atau pakai tombol panah untuk menggeser; pakai kontrol zoom untuk memperbesar.",
+        "outside": "Di luar alur",
+        "standalone": "Mandiri",
+        "perPage": "Per halaman",
+        "zoom": "Zoom",
+        "zoomIn": "Perbesar (+)",
+        "zoomOut": "Perkecil (-)",
+        "fit": "Sesuaikan tampilan (0)",
+        "reset": "Atur ulang ke 100%",
+        "hint": "Seret untuk menggeser · ⌘/Ctrl + scroll untuk zoom · klik dua kali area kosong untuk menyesuaikan"
+      },
+      "picker": {
+        "follow": "Ikuti {{name}}",
+        "providers": "Penyedia",
+        "providerDefault": "Model default",
+        "modelId": "ID Model",
+        "use": "Gunakan",
+        "off": "Mati",
+        "offHint": "Bagian ini tidak dijalankan",
+        "noProviders": "Belum ada layanan yang menyediakan ini. Siapkan di Layanan Model.",
+        "fallback": "Cadangan",
+        "noFallback": "Tidak ada",
+        "manageProviders": "Kelola di Layanan Model",
+        "conflict": "Pengaturan berubah di tempat lain dan telah dimuat ulang. Periksa lalu coba lagi.",
+        "lockedNow": "Server kini mengatur bagian ini, jadi tidak diubah.",
+        "clear": "Hapus pengaturan sendiri",
+        "clearHint": "Pakai pengaturan server, jika ada",
+        "unconfirmed": "Jawaban server hilang, jadi pengaturan dimuat ulang. Periksa apakah perubahan berhasil.",
+        "thinking": "Penalaran"
+      },
+      "slots": {
+        "llm": {
+          "name": "Model default",
+          "desc": "Model bahasa yang dipakai semua bagian kecuali yang punya pengaturan sendiri."
+        },
+        "courseResearch": {
+          "name": "Kueri pencarian",
+          "desc": "Mengubah topik kursus menjadi kueri pencarian web."
+        },
+        "courseOutline": {
+          "name": "Kerangka",
+          "desc": "Merancang halaman-halaman kursus."
+        },
+        "courseAgents": {
+          "name": "Peran",
+          "desc": "Membuat guru dan teman sekelas di kelas."
+        },
+        "courseContent": {
+          "name": "Konten halaman",
+          "desc": "Menulis tiap halaman. Jenis halaman tanpa pengaturan sendiri akan mengikuti ini."
+        },
+        "courseContentSlide": {
+          "name": "Slide",
+          "desc": "Menulis halaman slide."
+        },
+        "courseContentQuiz": {
+          "name": "Kuis",
+          "desc": "Menulis halaman kuis."
+        },
+        "courseContentInteractive": {
+          "name": "Halaman interaktif",
+          "desc": "Menulis halaman interaktif."
+        },
+        "courseContentPbl": {
+          "name": "Proyek",
+          "desc": "Menulis halaman pembelajaran berbasis proyek."
+        },
+        "courseActions": {
+          "name": "Aksi kuliah",
+          "desc": "Menyusun ucapan dan tindakan guru di tiap halaman."
+        },
+        "classroom": {
+          "name": "Kelas",
+          "desc": "Diskusi, penilaian kuis, dan proyek saat belajar."
+        },
+        "agent": {
+          "name": "Agent",
+          "desc": "Membuat dan mengedit kursus bersama Anda. Perlu model yang mendukung tool calling."
+        },
+        "tts": {
+          "name": "Narasi",
+          "desc": "Membacakan materi kuliah."
+        },
+        "asr": {
+          "name": "Input suara",
+          "desc": "Mengubah pertanyaan suara di kelas menjadi teks."
+        },
+        "image": {
+          "name": "Gambar",
+          "desc": "Membuat gambar untuk halaman."
+        },
+        "video": {
+          "name": "Video",
+          "desc": "Membuat klip video untuk halaman."
+        },
+        "webSearch": {
+          "name": "Pencarian web",
+          "desc": "Mencari di web saat membuat kursus."
+        },
+        "document": {
+          "name": "Pengurai dokumen",
+          "desc": "Membaca dokumen yang diunggah."
+        }
+      },
+      "source": {
+        "inherited": "Mengikuti {{name}}",
+        "deployment": "Server",
+        "default": "Default server"
+      },
+      "stations": {
+        "research": "Riset web",
+        "media": "Gambar / video",
+        "lines": {
+          "rewrite": "Kueri",
+          "search": "Cari",
+          "image": "Gambar",
+          "video": "Video"
+        }
+      },
+      "empty": {
+        "prompt": "Belum ada model bahasa. Siapkan layanan di Layanan Model atau hubungkan paket di Token Plan; modelnya akan mengisi bagian yang belum diatur.",
+        "open": "Buka Layanan Model",
+        "askAdmin": "Belum ada model bahasa yang dikonfigurasi. Minta administrator server untuk menyiapkannya."
+      }
+    },
+    "unimported": {
+      "toast": "Sebagian pengaturan model dari browser ini tidak dapat dipindahkan ke server. Daftarnya ada di Pengaturan → Layanan Model.",
+      "title": "Sebagian pengaturan dari browser ini tidak dapat dipindahkan ke server",
+      "description": "Pengaturan tersebut beserta kuncinya hanya tersimpan di browser ini. Siapkan ulang di sini (atau di konfigurasi server), lalu buang.",
+      "modelChoice": "Pilihan model untuk {{slot}}: {{assignment}}",
+      "copyKey": "Salin kunci",
+      "copyKeyPair": "Salin pasangan kunci",
+      "keyCopied": "Tersalin",
+      "copyFailed": "Tidak dapat menyalin",
+      "dismiss": "Buang",
+      "dismissTitle": "Buang pengaturan ini?",
+      "dismissDescription": "Kuncinya akan dihapus dari browser ini. Tindakan ini tidak dapat dibatalkan.",
+      "reason": {
+        "refused": "Server menolaknya: {{detail}}",
+        "reserved": "Server sudah mengonfigurasi layanan dengan nama ini.",
+        "customService": "Layanan ucapan kustom hanya dapat dikonfigurasi di server (openmaic.yml).",
+        "keyPair": "Layanan yang memakai pasangan kunci hanya dapat dikonfigurasi di server (openmaic.yml).",
+        "unsupported": "Jenis provider kustom ini tidak dapat dipindahkan: tambahkan lagi sebagai endpoint yang kompatibel OpenAI.",
+        "unconfirmed": "Server tidak mengonfirmasi bahwa pengaturan telah diimpor."
+      }
+    }
   },
   "workspace": {
     "untitledCourse": "Kelas tanpa nama",

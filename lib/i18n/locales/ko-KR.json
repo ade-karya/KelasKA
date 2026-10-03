@@ -567,7 +567,16 @@
       "sendBackward": "뒤로 보내기",
       "alignTop": "위쪽 정렬",
       "alignMiddle": "세로 가운데 정렬",
-      "alignBottom": "아래쪽 정렬"
+      "alignBottom": "아래쪽 정렬",
+      "alignCenterBoth": "가로·세로 중앙",
+      "setLink": "링크 설정",
+      "ruler": "눈금자",
+      "grid": "격자",
+      "gridNone": "없음",
+      "gridSmall": "작게",
+      "gridMedium": "중간",
+      "gridLarge": "크게",
+      "resetPage": "페이지 초기화"
     },
     "background": {
       "image": "이미지",
@@ -1853,7 +1862,8 @@
     "capabilities": {
       "streaming": "스트리밍",
       "tools": "도구",
-      "vision": "비전"
+      "vision": "비전",
+      "thinking": "사고"
     },
     "claudeSearchModel": "검색 모델",
     "claudeSearchModelHint": "웹 검색을 수행하고 결과를 요약하는 Claude 모델입니다.",
