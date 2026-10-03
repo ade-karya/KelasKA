@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useDeferredValue, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -51,9 +51,12 @@ import type {
   SessionDocumentSource,
   UserRequirements,
 } from '@/lib/types/generation';
-import { useSettingsStore } from '@/lib/store/settings';
-import { hasUsableLLMProvider } from '@/lib/store/settings-validation';
-import { HIDDEN_PROVIDER_IDS } from '@/lib/types/provider';
+import {
+  courseGenerationUsable,
+  requireModelCapabilities,
+} from '@/lib/model-settings/capabilities';
+import { withResearchDecision } from '@/lib/generation/research-decision';
+import { useModelCapabilities } from '@/lib/model-settings/use-model-settings';
 import { useUserProfileStore, AVATAR_OPTIONS } from '@/lib/store/user-profile';
 import {
   StageListItem,
@@ -68,7 +71,6 @@ import {
   deleteFolder,
   setStageFolder,
   FolderNameError,
-  isAccessCodeRequiredError,
   LIBRARY_CHANGED_EVENT,
   type DeleteFolderMode,
 } from '@/lib/utils/stage-storage';
@@ -92,7 +94,6 @@ import {
 } from '@/lib/config/feature-flags';
 import { useImportPptx } from '@/lib/import/use-import-pptx';
 import { InteractiveModeButton } from '@/components/generation/interactive-mode-button';
-import { BrandLogo } from '@/components/brand-logo';
 import { ProBadge } from '@/components/workbench/ProBadge';
 import { arrivedByProSwap, startProSwap } from '@/lib/workbench/pro-swap';
 import {
@@ -141,39 +142,19 @@ function HomePage() {
     workbenchRuntimeCache === true,
   );
   useEffect(() => {
-    if (!workbenchBuildEnabled) return;
+    if (!workbenchBuildEnabled || workbenchRuntimeCache !== null) return;
     let cancelled = false;
-    const probeRuntime = () => {
-      fetch('/api/agent/runtime', { credentials: 'include' })
-        .then((response) => (response.ok ? response.json() : null))
-        .then((body) => {
-          // A pre-auth 401 answers !ok → null → false, which would hide the
-          // Pro entry until a hard reload. The access-authenticated listener
-          // below re-probes once the cookie exists, so a false cached here is
-          // always corrected right after login.
-          workbenchRuntimeCache = body?.enabled === true;
-          if (!cancelled) setWorkbenchRuntimeEnabled(workbenchRuntimeCache);
-        })
-        .catch(() => {
-          // A failed probe keeps the entry hidden and allows a later visit to retry.
-        });
-    };
-    // Pre-auth the probe runs without a cookie and caches false; re-probe as
-    // soon as the access-code modal completes so the Pro badge appears without
-    // a manual reload.
-    const onAuthenticated = () => {
-      workbenchRuntimeCache = null;
-      probeRuntime();
-    };
-    if (workbenchRuntimeCache === null) {
-      probeRuntime();
-    } else {
-      setWorkbenchRuntimeEnabled(workbenchRuntimeCache);
-    }
-    window.addEventListener('openmaic:access-authenticated', onAuthenticated);
+    fetch('/api/agent/runtime')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        workbenchRuntimeCache = body?.enabled === true;
+        if (!cancelled) setWorkbenchRuntimeEnabled(workbenchRuntimeCache);
+      })
+      .catch(() => {
+        // A failed probe keeps the entry hidden and allows a later visit to retry.
+      });
     return () => {
       cancelled = true;
-      window.removeEventListener('openmaic:access-authenticated', onAuthenticated);
     };
   }, [workbenchBuildEnabled]);
   const workbenchEntryEnabled = workbenchBuildEnabled && workbenchRuntimeEnabled;
@@ -194,18 +175,10 @@ function HomePage() {
   const { cachedValue: cachedRequirement, updateCache: updateRequirementCache } =
     useDraftCache<string>({ key: 'requirementDraft' });
 
-  // A usable LLM provider exists ⇒ a concrete model is always selected (#580
-  // invariant). Gate generation on this single condition (state A vs B)
-  // instead of inspecting modelId directly.
-  // Provider internal tersembunyi (opencode/opencode-go) tidak dihitung sebagai usable di UI.
-  const providersConfig = useSettingsStore((s) => s.providersConfig);
-  const visibleProvidersConfig = useMemo(() => {
-    if (!providersConfig) return providersConfig;
-    return Object.fromEntries(
-      Object.entries(providersConfig).filter(([id]) => !HIDDEN_PROVIDER_IDS.has(id)),
-    );
-  }, [providersConfig]);
-  const hasUsableProvider = hasUsableLLMProvider(visibleProvidersConfig);
+  // Generation needs the course slots it resolves (outline, content, actions)
+  // to name a model, whether or not the llm root does (the server's view;
+  // while it cannot be read the server has the last word).
+  const hasUsableProvider = courseGenerationUsable(useModelCapabilities());
   const [recentOpen, setRecentOpen] = useState(true);
   const persistRecentOpen = (next: boolean) => {
     setRecentOpen(next);
@@ -280,12 +253,12 @@ function HomePage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const thumbnailsRef = useRef<Record<string, Slide>>({});
 
-  const replaceThumbnails = useCallback((slides: Record<string, Slide>) => {
+  const replaceThumbnails = (slides: Record<string, Slide>) => {
     const previous = thumbnailsRef.current;
     thumbnailsRef.current = slides;
     setThumbnails(slides);
     window.setTimeout(() => revokeThumbnailSlideMediaUrls(previous), 0);
-  }, []);
+  };
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -299,7 +272,7 @@ function HomePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [themeOpen]);
 
-  const loadClassrooms = useCallback(async () => {
+  const loadClassrooms = async () => {
     try {
       const list = await listStages();
       setClassrooms(list);
@@ -311,33 +284,18 @@ function HomePage() {
         replaceThumbnails({});
       }
     } catch (err) {
-      // Pre-auth (ACCESS_CODE gate, no cookie yet): expected on first open.
-      // Stay silent with an empty library; the access-authenticated event
-      // below reloads once the user completes the modal.
-      if (isAccessCodeRequiredError(err)) {
-        log.debug('Skipping classroom load: access code required (pre-auth).');
-        setClassrooms([]);
-        replaceThumbnails({});
-        return;
-      }
       log.error('Failed to load classrooms:', err);
       toast.error('Persistence is unavailable. Saved classrooms could not be loaded.');
     }
-  }, [replaceThumbnails]);
+  };
 
-  const loadFolders = useCallback(async () => {
+  const loadFolders = async () => {
     try {
       setFolders(await listFolders());
     } catch (err) {
-      // Same pre-auth case as loadClassrooms: silent empty list, no error log.
-      if (isAccessCodeRequiredError(err)) {
-        log.debug('Skipping folder load: access code required (pre-auth).');
-        setFolders([]);
-        return;
-      }
       log.error('Failed to load folders:', err);
     }
-  }, []);
+  };
 
   // Capture the active folder when an import starts so the imported course
   // lands in that folder, not whichever folder is active when the async import
@@ -379,38 +337,10 @@ function HomePage() {
     useMediaGenerationStore.getState().revokeObjectUrls();
     useMediaGenerationStore.setState({ tasks: {} });
 
-    let cancelled = false;
-    const reloadLibrary = () => {
-      if (cancelled) return;
-      void Promise.all([loadClassrooms(), loadFolders()]);
-    };
-    // On ACCESS_CODE-gated deployments the home mounts behind the modal with
-    // no cookie yet: /api/stages and /api/folders would answer 401. Check the
-    // gate first and skip the initial fetch while unauthenticated — the modal
-    // success path dispatches `openmaic:access-authenticated`, which reloads.
+    // Read sessionStorage on the client only (avoids SSR hydration mismatch).
     // Both reads resolve before flipping `hydrated`, so the hero layout does
     // not thrash as each lands independently.
-    const initLibrary = async () => {
-      try {
-        const res = await fetch('/api/access-code/status', { credentials: 'include' });
-        const data = (await res.json().catch(() => null)) as {
-          enabled?: unknown;
-          authenticated?: unknown;
-        } | null;
-        if (!cancelled && data?.enabled === true && data?.authenticated !== true) {
-          setHydrated(true);
-          return;
-        }
-      } catch {
-        // Status check failed: fall through to the normal fetch path, whose
-        // own pre-auth handling keeps the console clean.
-      }
-      if (cancelled) return;
-      await Promise.all([loadClassrooms(), loadFolders()]);
-      if (!cancelled) setHydrated(true);
-    };
-    void initLibrary();
-    window.addEventListener('openmaic:access-authenticated', reloadLibrary);
+    void Promise.all([loadClassrooms(), loadFolders()]).finally(() => setHydrated(true));
 
     // Courses can arrive in the background (the one-way import of what this
     // browser stored before persistence moved to the server).
@@ -420,13 +350,11 @@ function HomePage() {
     window.addEventListener(LIBRARY_CHANGED_EVENT, onLibraryChanged);
 
     return () => {
-      cancelled = true;
-      window.removeEventListener('openmaic:access-authenticated', reloadLibrary);
       window.removeEventListener(LIBRARY_CHANGED_EVENT, onLibraryChanged);
       revokeThumbnailSlideMediaUrls(thumbnailsRef.current);
       thumbnailsRef.current = {};
     };
-  }, [loadClassrooms, loadFolders]);
+  }, []);
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -655,28 +583,12 @@ function HomePage() {
 
     setError(null);
 
-    // The material list and the extractor provider config are frozen for the
-    // duration of prep: `preparingGenerate` makes add/remove inert and
-    // disables the toolbar affordances (including the extractor Select and the
-    // web-search toggle), so neither can change under the session build below.
-    // Capture both at click time and build the session from this snapshot,
-    // never from live form state or live store state.
+    // The material list is frozen for the duration of prep: `preparingGenerate`
+    // makes add/remove inert, so it cannot change under the session build
+    // below. Capture it at click time and build the session from this
+    // snapshot, never from live form state. (The extractor is the workspace's
+    // document slot, resolved on the server.)
     const frozenMaterials = [...form.courseMaterials].sort((a, b) => a.order - b.order);
-    const settingsSnapshot = useSettingsStore.getState();
-    const frozenPdfProviderId = settingsSnapshot.pdfProviderId;
-    const frozenPdfProviderConfig = settingsSnapshot.pdfProvidersConfig?.[
-      settingsSnapshot.pdfProviderId
-    ]
-      ? {
-          apiKey: settingsSnapshot.pdfProvidersConfig[settingsSnapshot.pdfProviderId].apiKey,
-          baseUrl: settingsSnapshot.pdfProvidersConfig[settingsSnapshot.pdfProviderId].baseUrl,
-          accessKeyId:
-            settingsSnapshot.pdfProvidersConfig[settingsSnapshot.pdfProviderId].accessKeyId,
-          accessKeySecret:
-            settingsSnapshot.pdfProvidersConfig[settingsSnapshot.pdfProviderId].accessKeySecret,
-        }
-      : undefined;
-
     // Flip the generating UI state before material bytes are copied locally.
     setPreparingGenerate(true);
     try {
@@ -685,24 +597,23 @@ function HomePage() {
         requirement: form.requirement,
         userNickname: userProfile.nickname || undefined,
         userBio: userProfile.bio || undefined,
-        // Course-level web search now lives in settings (课程模型配置 → 联网调研)
-        webSearch: useSettingsStore.getState().webSearchEnabled || undefined,
+        // Research follows the workspace's webSearch slot; decided below from
+        // a successful read (and again when generation starts).
         interactiveMode: form.vocationalTestMode ? true : form.interactiveMode,
         ...(form.vocationalTestMode ? { taskEngineMode: true } : {}),
       };
 
+      // Nothing is saved from settings that could not be read.
+      const capabilities = await requireModelCapabilities();
+      if (!capabilities) throw new Error(t('generation.modelSettingsUnavailable'));
+      Object.assign(
+        requirements,
+        withResearchDecision({ requirements }, capabilities).requirements,
+      );
+
       let documentSources: SessionDocumentSource[] | undefined;
-      let pdfProviderId: string | undefined;
-      let pdfProviderConfig:
-        | { apiKey?: string; baseUrl?: string; accessKeyId?: string; accessKeySecret?: string }
-        | undefined;
 
       if (frozenMaterials.length > 0) {
-        // The session is built from the click-time snapshot (frozen above),
-        // never from live store state.
-        pdfProviderId = frozenPdfProviderId;
-        pdfProviderConfig = frozenPdfProviderConfig;
-
         const storedDocumentKeys: string[] = [];
         try {
           documentSources = [];
@@ -720,7 +631,6 @@ function HomePage() {
               }),
               order: index + 1,
               storageKey,
-              providerId: pdfProviderId,
             });
           }
         } catch (error) {
@@ -740,8 +650,6 @@ function HomePage() {
         pdfStorageKey: documentSources?.[0]?.storageKey,
         pdfFileName: documentSources?.[0]?.name,
         documentMimeType: documentSources?.[0]?.mimeType,
-        pdfProviderId,
-        pdfProviderConfig,
         sceneOutlines: null,
         currentStep: 'generating' as const,
       };
@@ -907,9 +815,11 @@ function HomePage() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className={cn('relative z-20 w-full max-w-[800px] flex flex-col items-center mt-[10vh]')}
       >
-        {/* ── Logo: Kemendikdasmen + DPRD Riau + Kelas KA ── */}
+        {/* ── Logo ── */}
         <div className="relative" data-pro-morph="lockup">
-          <motion.div
+          <motion.img
+            src="/logo-horizontal.png"
+            alt="OpenMAIC"
             initial={heroEnter({ opacity: 0, scale: 0.9 })}
             animate={{ opacity: 1, scale: 1 }}
             transition={{
@@ -918,10 +828,8 @@ function HomePage() {
               stiffness: 200,
               damping: 20,
             }}
-            className="mb-2"
-          >
-            <BrandLogo size="lg" />
-          </motion.div>
+            className="h-12 md:h-16 mb-2 -ml-2 md:-ml-3"
+          />
           {workbenchEntryEnabled ? (
             <div
               className="absolute left-full top-0 ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]"
@@ -1060,10 +968,10 @@ function HomePage() {
                   )}
                 >
                   <span className="rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal text-cyan-700 dark:bg-cyan-900/45 dark:text-cyan-300">
-                    {t('home.vocationalTestBadge')}
+                    测试功能
                   </span>
                   <Sparkles className="size-3.5" />
-                  <span>{t('home.vocationalTestLabel')}</span>
+                  <span>职教任务</span>
                   <span
                     className={cn(
                       'relative h-3.5 w-6 rounded-full transition-colors',
@@ -1080,7 +988,7 @@ function HomePage() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                {t('home.vocationalTestTooltip')}
+                从当前输入框提交职教实操训练测试
               </TooltipContent>
             </Tooltip>
           </motion.div>
@@ -1421,7 +1329,7 @@ function HomePage() {
 
       {/* Footer — flows with content, at the very end */}
       <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40">
-        Kelas Kecerdasan Artifisial
+        OpenMAIC Open Source Project
       </div>
     </div>
   );

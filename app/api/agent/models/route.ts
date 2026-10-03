@@ -1,6 +1,6 @@
 import { isAgentRuntimeConfigured } from '@/lib/config/feature-flags';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-import { getStageRoute } from '@/lib/server/model-routes';
+import { lookupSlot } from '@/lib/server/model-config/runtime';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 import {
   activatedOpencodeModels,
@@ -35,9 +35,9 @@ export interface AgentModelItem {
  *        (data/agent-driver-model.json). Berlaku untuk run berikutnya
  *        tanpa restart.
  *
- * `active` = override tombol bila ada, else MODEL_ROUTES maic-agent-driver,
- * else default tier3. `thinking` = varian thinking aktif (override, else
- * route; tanpa default suntikan). `models` = SEMUA model yang
+ * `active` = override tombol bila ada, else slot `agent` (openmaic.yml /
+ * model settings), else default tier3. `thinking` = varian thinking aktif
+ * (override, else slot; tanpa default suntikan). `models` = SEMUA model yang
  * diaktifkan installer di OPENCODE_MODELS / OPENCODE_GO_MODELS
  * (fallback katalog).
  */
@@ -47,18 +47,36 @@ export async function GET() {
   }
   const models = activatedOpencodeModels();
   const override = readActiveModelOverride();
-  const routeModel = getStageRoute('maic-agent-driver')?.model?.trim() || '';
-  const active = override?.modelString || routeModel || defaultTier3ModelString();
-  // Varian aktif: override tombol, else thinking stage operator. Default
+  // Slot `agent` owns the driver model now (MODEL_ROUTES is gone upstream).
+  // Unassigned/disabled -> fall through to the tier-3 default.
+  let slotModel = '';
+  let slotThinking: ThinkingConfig | undefined;
+  let slotApi: string | undefined;
+  try {
+    const lookup = await lookupSlot('agent', null);
+    const resolution =
+      lookup.configured.status === 'unassigned' ? lookup.defaults() : lookup.configured;
+    if (resolution.status === 'assigned') {
+      slotModel =
+        resolution.modelId && resolution.providerId
+          ? `${resolution.providerId}:${resolution.modelId}`
+          : (resolution.modelId ?? '');
+      slotThinking = resolution.thinking;
+      slotApi = resolution.api;
+    }
+  } catch {
+    // Slot unreadable -> default below.
+  }
+  const active = override?.modelString || slotModel || defaultTier3ModelString();
+  // Varian aktif: override tombol, else thinking slot operator. Default
   // capability TIDAK disuntik di sini — kontrol picker menampilkannya sendiri
   // (getDefaultThinkingConfig) dan tak ada yang tersimpan sebelum user menyentuh.
-  const thinking: ThinkingConfig | undefined =
-    override?.thinking ?? getStageRoute('maic-agent-driver')?.thinking;
+  const thinking: ThinkingConfig | undefined = override?.thinking ?? slotThinking;
   return apiSuccess({
     active,
-    driverApi: override?.api ?? getStageRoute('maic-agent-driver')?.api ?? 'opencode-cli',
+    driverApi: override?.api ?? slotApi ?? 'opencode-cli',
     ...(thinking ? { thinking } : {}),
-    source: override ? 'workbench-override' : routeModel ? 'model-routes' : 'default',
+    source: override ? 'workbench-override' : slotModel ? 'agent-slot' : 'default',
     models,
   });
 }

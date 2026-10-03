@@ -20,14 +20,11 @@ import {
   lectureActionPersistParams,
   toLiveErrorMessage,
   withPiInclassWhiteboardTools,
-  withPiWebSearchSettings,
-  withStageRoutesHeader,
   MANUAL_STOP_END_OPTIONS,
   takeSoftCloseRegistration,
 } from '@/components/chat/use-chat-sessions';
 import { useCanvasStore } from '@/lib/store/canvas';
 import { useStageStore } from '@/lib/store/stage';
-import { useSettingsStore } from '@/lib/store/settings';
 import type { ChatRequestTemplate } from '@/components/chat/use-chat-sessions';
 import type { UIMessage } from 'ai';
 import type { ChatMessageMetadata } from '@/lib/types/chat';
@@ -279,7 +276,6 @@ describe('withPiInclassWhiteboardTools', () => {
         sessionType: 'qa',
         triggerAgentId: 'default-2',
       },
-      apiKey: 'test-key',
     } satisfies ChatRequestTemplate;
 
     const next = withPiInclassWhiteboardTools(request);
@@ -292,122 +288,6 @@ describe('withPiInclassWhiteboardTools', () => {
       piEnableWhiteboardTools: true,
     });
     expect(request.config).not.toHaveProperty('piEnableWhiteboardTools');
-  });
-});
-
-describe('withPiWebSearchSettings', () => {
-  const request = {
-    messages: [],
-    config: { agentIds: ['default-1'] },
-    apiKey: 'llm-key',
-    baseUrl: 'https://llm-provider.test',
-    model: 'llm:model',
-  } satisfies ChatRequestTemplate;
-
-  it('serializes only the selected Claude provider fields and keeps LLM fields separate', () => {
-    const next = withPiWebSearchSettings(
-      {
-        ...request,
-        baiduSubSources: { webSearch: false, baike: true, scholar: true },
-      },
-      {
-        webSearchProviderId: 'claude',
-        webSearchProvidersConfig: {
-          claude: {
-            apiKey: 'claude-search-key',
-            baseUrl: 'https://must-not-leak.test',
-            enabled: true,
-            requiresApiKey: true,
-            isServerConfigured: true,
-            modelId: 'claude-sonnet-5',
-          },
-          tavily: {
-            apiKey: 'non-selected-key',
-            baseUrl: 'https://non-selected.test',
-            enabled: true,
-          },
-        } as Parameters<typeof withPiWebSearchSettings>[1]['webSearchProvidersConfig'],
-        baiduSubSources: { webSearch: true, baike: false, scholar: true },
-      },
-    );
-
-    expect(next).toMatchObject({
-      apiKey: 'llm-key',
-      baseUrl: 'https://llm-provider.test',
-      model: 'llm:model',
-      webSearchProviderId: 'claude',
-      webSearchApiKey: 'claude-search-key',
-      webSearchModelId: 'claude-sonnet-5',
-    });
-    expect(next).not.toHaveProperty('webSearchProvidersConfig');
-    expect(next).not.toHaveProperty('webSearchBaseUrl');
-    expect(next).not.toHaveProperty('baiduSubSources');
-    expect(JSON.stringify(next)).not.toContain('must-not-leak.test');
-    expect(JSON.stringify(next)).not.toContain('non-selected-key');
-  });
-
-  it('serializes Baidu sub-sources only for the selected Baidu provider', () => {
-    const next = withPiWebSearchSettings(
-      {
-        ...request,
-        webSearchApiKey: 'stale-key',
-        webSearchBaseUrl: 'https://stale-search.test',
-        webSearchModelId: 'stale-model',
-      },
-      {
-        webSearchProviderId: 'baidu',
-        webSearchProvidersConfig: {
-          baidu: {
-            apiKey: 'baidu-key',
-            baseUrl: 'https://qianfan.baidubce.com',
-            enabled: true,
-          },
-        } as Parameters<typeof withPiWebSearchSettings>[1]['webSearchProvidersConfig'],
-        baiduSubSources: { webSearch: false, baike: true, scholar: false },
-      },
-    );
-
-    expect(next).toMatchObject({
-      webSearchProviderId: 'baidu',
-      webSearchApiKey: 'baidu-key',
-      webSearchBaseUrl: 'https://qianfan.baidubce.com',
-      baiduSubSources: { webSearch: false, baike: true, scholar: false },
-    });
-    expect(next).not.toHaveProperty('webSearchModelId');
-    expect(JSON.stringify(next)).not.toContain('stale-key');
-    expect(JSON.stringify(next)).not.toContain('stale-model');
-  });
-
-  it('removes stale selected-provider fields when the new provider has no key or model', () => {
-    const next = withPiWebSearchSettings(
-      {
-        ...request,
-        webSearchApiKey: 'stale-key',
-        webSearchBaseUrl: 'https://stale-search.test',
-        webSearchModelId: 'stale-model',
-        baiduSubSources: { webSearch: false, baike: true, scholar: true },
-      },
-      {
-        webSearchProviderId: 'brave',
-        webSearchProvidersConfig: {
-          brave: { apiKey: '', baseUrl: '', enabled: true },
-        } as Parameters<typeof withPiWebSearchSettings>[1]['webSearchProvidersConfig'],
-        baiduSubSources: { webSearch: true, baike: false, scholar: false },
-      },
-    );
-
-    expect(next).toMatchObject({
-      apiKey: 'llm-key',
-      baseUrl: 'https://llm-provider.test',
-      model: 'llm:model',
-      webSearchProviderId: 'brave',
-    });
-    expect(next).not.toHaveProperty('webSearchApiKey');
-    expect(next).not.toHaveProperty('webSearchBaseUrl');
-    expect(next).not.toHaveProperty('webSearchModelId');
-    expect(next).not.toHaveProperty('baiduSubSources');
-    expect(JSON.stringify(next)).not.toContain('stale-key');
-    expect(JSON.stringify(next)).not.toContain('stale-model');
   });
 });
 
@@ -531,7 +411,6 @@ describe('runPiSingleRequest', () => {
               messages: [],
               storeState: { stage },
               config: { agentIds: ['teacher-1'] },
-              apiKey: '',
               elementReference: {
                 kind: 'whiteboard_element',
                 whiteboardId: 'board',
@@ -601,7 +480,6 @@ describe('runPiSingleRequest', () => {
             messages: [],
             storeState: { stage: snapshot },
             config: { agentIds: ['teacher-1'] },
-            apiKey: '',
             elementReference: {
               kind: 'whiteboard_element',
               whiteboardId: 'board',
@@ -663,7 +541,6 @@ describe('runPiSingleRequest', () => {
             messages: [],
             storeState: {},
             config: { agentIds: ['teacher-1'] },
-            apiKey: '',
           } as unknown as Parameters<typeof runPiSingleRequest>[1],
           new AbortController(),
           'qa',
@@ -791,7 +668,6 @@ describe('runPiSingleRequest', () => {
           messages: [],
           storeState: {},
           config: { agentIds: ['teacher-1'] },
-          apiKey: '',
         } as unknown as Parameters<typeof runPiSingleRequest>[1],
         new AbortController(),
         'qa',
@@ -942,71 +818,24 @@ describe('Pi Native whiteboard Browser events', () => {
   });
 });
 
-describe('per-stage user routes on classroom chat requests', () => {
-  const originalRoutes = useSettingsStore.getState().llmStageRoutes;
-  const originalProviders = useSettingsStore.getState().providersConfig;
+describe('classroom chat requests carry no provider data', () => {
+  afterEach(() => vi.unstubAllGlobals());
 
-  beforeEach(() => {
-    vi.unstubAllGlobals();
-    const providers = useSettingsStore.getState().providersConfig;
-    useSettingsStore.setState({
-      llmStageRoutes: {
-        'chat-adapter': { providerId: 'openai', modelId: 'gpt-5.4-mini' },
-      },
-      providersConfig: {
-        ...providers,
-        openai: {
-          ...(providers.openai ?? {}),
-          apiKey: 'sk-test',
-          baseUrl: 'https://api.openai.com/v1',
-          enabled: true,
-          requiresApiKey: true,
-          models: [{ id: 'gpt-5.4-mini', name: 'gpt-5.4-mini' }],
-        },
-      } as typeof providers,
-    });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    useSettingsStore.setState({
-      llmStageRoutes: originalRoutes,
-      providersConfig: originalProviders,
-    });
-  });
-
-  it('withStageRoutesHeader serializes the routed stages', () => {
-    const headers = withStageRoutesHeader({ 'Content-Type': 'application/json' });
-    expect(JSON.parse(headers['x-model-routes']!)).toEqual({
-      'chat-adapter': expect.objectContaining({ model: 'openai:gpt-5.4-mini' }),
-    });
-    expect(headers['Content-Type']).toBe('application/json');
-  });
-
-  it('omits x-model-routes when no stage is routed', () => {
-    useSettingsStore.setState({ llmStageRoutes: {} });
-    const headers = withStageRoutesHeader({ 'Content-Type': 'application/json' });
-    expect(headers).not.toHaveProperty('x-model-routes');
-  });
-
-  it('sends x-model-routes on the stateless /api/chat request', async () => {
+  it('sends the stateless /api/chat request without model headers', async () => {
     const fetchMock = vi.fn(async () => new Response('data: {}\n\n', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     await fetchStatelessChat({ messages: [] }, new AbortController().signal);
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/chat',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'x-model-routes': expect.stringContaining('chat-adapter'),
-        }),
-      }),
-    );
+    expect(fetchMock).toHaveBeenCalledWith('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [] }),
+      signal: expect.any(AbortSignal),
+    });
   });
 
-  it('sends x-model-routes on the /api/chat/pi request', async () => {
+  it('sends the /api/chat/pi request without model headers or keys', async () => {
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.close();
@@ -1021,7 +850,6 @@ describe('per-stage user routes on classroom chat requests', () => {
         messages: [],
         storeState: {},
         config: { agentIds: ['teacher-1'] },
-        apiKey: '',
       } as unknown as Parameters<typeof runPiSingleRequest>[1],
       new AbortController(),
       'qa',
@@ -1034,14 +862,12 @@ describe('per-stage user routes on classroom chat requests', () => {
       (key) => key,
     );
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/chat/pi',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'x-model-routes': expect.stringContaining('chat-adapter'),
-        }),
-      }),
-    );
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('/api/chat/pi');
+    expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+    const sent = JSON.parse(String(init.body));
+    for (const field of ['apiKey', 'baseUrl', 'model', 'providerType', 'webSearchProviderId']) {
+      expect(sent).not.toHaveProperty(field);
+    }
   });
 });
