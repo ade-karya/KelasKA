@@ -38,13 +38,6 @@ const nextConfig: NextConfig = {
         : []),
     ],
   },
-  outputFileTracingExcludes: {
-    // The Turbopack warnings about "dynamic filesystem access causes tracing
-    // of the whole project" end here as whole `public/` payloads inside every
-    // server function. Static assets are served from the CDN, never read from
-    // the function bundle, so keep them (and sourcemaps) out of the trace.
-    '/*': ['public/vendor/**', 'public/**/*.map', '**/*.map'],
-  },
   typescript: {
     tsconfigPath: process.env.NODE_ENV === 'production' ? 'tsconfig.build.json' : 'tsconfig.json',
   },
