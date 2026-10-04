@@ -54,7 +54,6 @@ const LOCALE_RESOURCES: Record<Locale, Record<string, unknown>> = {
   'ko-KR': koKR,
   'es-MX': esMX,
   'fr-FR': frFR,
-  'id-ID': idID,
   'vi-VN': viVN,
   'pt-BR': ptBR,
   'ru-RU': ruRU,
