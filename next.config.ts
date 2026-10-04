@@ -14,11 +14,6 @@ const nextConfig: NextConfig = {
       'lib/server/agent-runtime/import-pptx-worker.mjs',
       'skills/openmaic/**',
       'skills/agent-runtime/**',
-      // The ComfyUI workflow lister/loader reads public/ through
-      // turbopackIgnore-scoped joins (see lib/media/comfyui-workflows.ts),
-      // so the tracer no longer sees it: pin the one committed workflow
-      // file explicitly instead of shipping all of public/ in functions.
-      'public/comfyui-workflow.json',
       // Loaded through a runtime-only `import('undici')` (see the LLM
       // dispatcher in lib/ai/providers.ts and the Google proxy transport), so
       // the output tracer never sees it and standalone builds ship without it.
@@ -60,13 +55,9 @@ const nextConfig: NextConfig = {
     // egress cannot resolve their SDK in the shipped deployment.
     '@aws-sdk/client-s3',
     '@aws-sdk/s3-request-presigner',
-    '@vercel/blob',
   ],
   experimental: {
-    // Vercel Functions reject request bodies above ~4.5 MB at the platform
-    // edge before the app runs, so a 200mb allowance there is misleading and
-    // only valid for self-hosted/Docker. Omit it on Vercel builds.
-    ...(!isVercelBuild ? { proxyClientMaxBodySize: '200mb' } : {}),
+    proxyClientMaxBodySize: '200mb',
   },
   // Dev-only origin allow-list: Next blocks hydration/HMR for hosts that do
   // not match the server origin (127.0.0.1, tunnel publik, dsb). Tanpa ini
