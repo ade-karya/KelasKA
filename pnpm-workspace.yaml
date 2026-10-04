@@ -12,7 +12,10 @@ allowBuilds:
   es5-ext: false
   esbuild: true
   msw: false
-  onnxruntime-node: true
+  # onnxruntime-node (via dev-only hyperframes CLI) downloads GPU binaries from
+  # api.nuget.org in postinstall, which times out on Vercel (ETIMEDOUT/ENETUNREACH).
+  # Not imported by Next.js build, so skip its install script.
+  onnxruntime-node: false
   protobufjs: true
   sharp: true
   unrs-resolver: true
