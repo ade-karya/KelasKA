@@ -193,7 +193,10 @@ export async function readUsageRecords(opts: ReadOptions = {}): Promise<UsageRec
   for (const file of files.sort()) {
     let content: string;
     try {
-      content = await fs.readFile(path.join(/*turbopackIgnore: true*/ dir, file), 'utf-8');
+      content = await fs.readFile(
+        /*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ dir, file),
+        'utf-8',
+      );
     } catch {
       continue;
     }

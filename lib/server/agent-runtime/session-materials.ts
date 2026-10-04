@@ -13,6 +13,7 @@ import {
   PgAgentSessionMaterialStore,
   ensureAgentSessionMaterialSchema,
 } from '@openmaic/storage/material/pg';
+import { ensureAgentSessionSchema } from '@openmaic/storage/agent-session/pg';
 import {
   createMaterialId,
   type AgentSessionMaterial,
@@ -30,6 +31,8 @@ import { getMaterialByteStore } from '@/lib/server/materials/bytes';
 import { getAgentSessionStore } from './store';
 import { isPptxMaterial } from './pptx-mime';
 import type { ExtractedWebPage } from './fetch-url';
+import type { ConnectableQueryable } from '@openmaic/storage/server/reference';
+import { withSchemaBootstrapLock } from '@/lib/persistence/schema-bootstrap-lock';
 
 interface AgentSessionMaterialStoreState {
   connectionString?: string;
@@ -50,8 +53,17 @@ async function createMaterialStore(connectionString: string): Promise<PgAgentSes
   const { pool } = await getServerPersistenceProvider(connectionString);
   // The material table references agent_sessions(id), so the agent-session
   // schema (provisioned by getAgentSessionStore) must exist first — the same
-  // dependency the URL trust-gate table has inside that schema.
-  await ensureAgentSessionMaterialSchema(pool);
+  // dependency the URL trust-gate table has inside that schema. On a fresh
+  // database the material bootstrap alone fails with 42P01 (relation
+  // "agent_sessions" does not exist), so provision both in dependency order.
+  await withSchemaBootstrapLock(
+    pool as unknown as ConnectableQueryable,
+    ensureAgentSessionSchema,
+  );
+  await withSchemaBootstrapLock(
+    pool as unknown as ConnectableQueryable,
+    ensureAgentSessionMaterialSchema,
+  );
   return new PgAgentSessionMaterialStore(pool);
 }
 

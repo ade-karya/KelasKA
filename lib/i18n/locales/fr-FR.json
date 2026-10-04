@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "L’apprentissage génératif en classe interactive multi-agents",
-    "greetingWithName": "Bonjour, {{name}}"
+    "greetingWithName": "Bonjour, {{name}}",
+    "vocationalTestBadge": "Fonction de test",
+    "vocationalTestLabel": "Tâche professionnelle",
+    "vocationalTestTooltip": "Envoyer un test de formation pratique professionnelle depuis le champ de saisie actuel"
   },
   "toolbar": {
     "pdfParser": "Analyseur",
@@ -47,7 +50,18 @@
     "interactiveModeLabel": "Mode interactif",
     "vocationalTestBadge": "Fonction test",
     "vocationalTask": "Tâche professionnelle",
-    "vocationalTestHint": "Soumettre un test pratique professionnel depuis la saisie actuelle"
+    "vocationalTestHint": "Soumettre un test pratique professionnel depuis la saisie actuelle",
+    "modelChangeFailed": "Impossible de changer de modèle : {{message}}",
+    "modelLockedHint": "Le modèle utilisé pour les cours, défini par ce serveur",
+    "pickModel": "Choisir un modèle",
+    "defaultModel": "Par défaut",
+    "defaultModelNote": "Modifie le modèle par défaut ; les étapes configurées séparément gardent le leur.",
+    "stagesSetSeparately": "{{count}} étapes configurées séparément",
+    "stagesSetSeparately_one": "{{count}} étape configurée séparément",
+    "stagesSetSeparately_other": "{{count}} étapes configurées séparément",
+    "stagesSetSeparatelyHint": "Étapes avec leur propre modèle",
+    "perStageSetup": "Configuration par étape",
+    "perStageSetupHint": "Chaque étape du cours a son propre modèle"
   },
   "export": {
     "pptx": "Exporter en PPTX",
@@ -106,7 +120,10 @@
     "subtitlesFailed": "Échec du téléchargement des sous-titres",
     "noSlides": "Aucune diapositive à exporter",
     "noSlidesSkipped": "Aucune diapositive dans ce cours. Export PPTX ignoré.",
-    "nothingToExport": "Rien à exporter"
+    "nothingToExport": "Rien à exporter",
+    "videoQueueFull": "La file d’attente de rendu est pleine. Réessayez dans quelques instants.",
+    "videoRenderInProgress": "Un rendu est déjà en cours. Réessayez dans quelques instants.",
+    "videoTooLarge": "Le fichier d’exportation dépasse la taille maximale autorisée par le service."
   },
   "import": {
     "classroom": "Importer une classe",
@@ -139,14 +156,16 @@
     "softClosing": "Poursuivre la discussion",
     "error": {
       "emptyAgentResponses": "Les agents n’ont renvoyé aucune réponse ; la discussion s’est arrêtée. Réessayez ou vérifiez les paramètres de votre modèle.",
-      "streamInterrupted": "Le flux s’est interrompu de façon inattendue ; la discussion n’a pas abouti. Veuillez réessayer."
+      "streamInterrupted": "Le flux s’est interrompu de façon inattendue ; la discussion n’a pas abouti. Veuillez réessayer.",
+      "rateLimited": "Le modèle reçoit trop de requêtes en ce moment. Veuillez patienter un instant puis réessayer.",
+      "providerUnavailable": "Le service de modèle est temporairement indisponible. Veuillez réessayer dans un instant."
     },
     "elementReference": {
-      "button": "Référencer le contenu du cours",
-      "unavailable": "Seuls la diapositive PPT actuelle ou un composant interactif pris en charge peuvent être référencés",
-      "instruction": "Cliquez sur un élément du support de cours · Échap pour quitter",
-      "fallback": "Autres éléments de la diapositive ({{count}})",
-      "clear": "Retirer la référence au contenu du cours",
+      "button": "Référencer du contenu",
+      "unavailable": "Le contenu actuel ne permet pas de référencer des éléments.",
+      "instruction": "Cliquez sur un élément · Échap pour quitter",
+      "fallback": "Autres éléments ({{count}})",
+      "clear": "Retirer la référence",
       "summary": {
         "noText": "Sans texte",
         "emptyContent": "Aucun contenu",
@@ -155,7 +174,8 @@
         "imageMetadata": "Image (métadonnées uniquement)",
         "videoMetadata": "Vidéo (métadonnées uniquement)",
         "audioMetadata": "Audio (métadonnées uniquement)"
-      }
+      },
+      "whiteboardChanged": "L’élément du tableau blanc a changé ou n’est plus disponible. Sélectionnez-le à nouveau ou retirez la référence avant d’envoyer."
     },
     "tabs": {
       "lecture": "Notes",
@@ -173,6 +193,10 @@
       "qa": "Q/R",
       "discussion": "DISC",
       "lecture": "COURS"
+    },
+    "interactiveRuntimeError": {
+      "title": "Cette activité interactive n'a pas pu s'exécuter",
+      "dismiss": "Fermer"
     }
   },
   "actions": {
@@ -409,7 +433,16 @@
       "sendBackward": "Reculer",
       "alignTop": "Aligner en haut",
       "alignMiddle": "Aligner au milieu",
-      "alignBottom": "Aligner en bas"
+      "alignBottom": "Aligner en bas",
+      "alignCenterBoth": "Centrer (les deux axes)",
+      "setLink": "Définir le lien",
+      "ruler": "Règle",
+      "grid": "Grille",
+      "gridNone": "Aucune",
+      "gridSmall": "Petite",
+      "gridMedium": "Moyenne",
+      "gridLarge": "Grande",
+      "resetPage": "Réinitialiser la page"
     },
     "background": {
       "label": "Arrière-plan",
@@ -1027,7 +1060,9 @@
     "fileTooLarge": "Fichier trop volumineux. Veuillez choisir un fichier de moins de 50 Mo",
     "courseMaterialCountLimit": "Vous pouvez envoyer jusqu’à 5 supports de cours",
     "courseMaterialTotalSizeLimit": "La taille totale des supports de cours doit rester sous 150 Mo",
-    "unsupportedCourseMaterial": "Ce format n’est pas pris en charge par l’extracteur actuel. Changez d’extracteur ou choisissez un autre fichier."
+    "unsupportedCourseMaterial": "{{parser}} ne prend pas en charge ce type de fichier. Formats pris en charge : {{formats}}",
+    "courseMaterialFormats": "Formats pris en charge : {{formats}} — jusqu’à {{size}} Mo par fichier",
+    "formatListSeparator": ", "
   },
   "generation": {
     "pdfLoadFailed": "Échec du chargement du fichier PDF, veuillez réessayer",
@@ -1138,7 +1173,8 @@
     "webSearchFailed": "Échec de la recherche web",
     "outlinesReadyCount": "{{ready}} / {{total}} sections prêtes",
     "jumpToBlankTitle": "Aller à une section dont le titre manque encore",
-    "analyzingMediaMaterial": "Analyse de l’audio et de la vidéo"
+    "analyzingMediaMaterial": "Analyse de l’audio et de la vidéo",
+    "modelSettingsUnavailable": "Les réglages des modèles n'ont pas pu être lus : la génération s'est arrêtée. Réessayez."
   },
   "settings": {
     "title": "Paramètres",
@@ -1243,14 +1279,16 @@
       "brave": "Brave Search",
       "baidu": "Baidu",
       "claude": "Claude",
-      "searxng": "SearXNG"
+      "searxng": "SearXNG",
+      "opencode": "OpenCode CLI"
     },
     "providerTypes": {
       "openai": "Protocole OpenAI",
       "azure": "Azure OpenAI",
       "anthropic": "Protocole Claude",
       "google": "Protocole Gemini",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "modèles",
     "modelSingular": "modèle",
@@ -1294,7 +1332,8 @@
     "capabilities": {
       "vision": "Vision",
       "tools": "Outils",
-      "streaming": "Diffusion en continu"
+      "streaming": "Diffusion en continu",
+      "thinking": "Réflexion"
     },
     "contextWindow": "Contexte",
     "contextShort": "ctx",
@@ -1774,13 +1813,13 @@
     "modelNotConfigured": "Veuillez choisir un modèle pour commencer",
     "dangerZone": "Zone sensible",
     "clearCache": "Vider le cache local",
-    "clearCacheDescription": "Supprimer toutes les données stockées localement : classes enregistrées, historique des discussions, cache audio et paramètres de l’application. Cette action est irréversible.",
+    "clearCacheDescription": "Supprimer les données que ce navigateur conserve localement : cache audio et multimédia, historique d’annulation, profils de voix du navigateur et paramètres de l’application. Vos classes et l’historique des discussions sont stockés sur le serveur et ne sont pas affectés.",
     "clearCacheConfirmTitle": "Voulez-vous vraiment vider tout le cache ?",
-    "clearCacheConfirmDescription": "Toutes les données suivantes seront définitivement supprimées, sans possibilité de récupération :",
-    "clearCacheConfirmItems": "Classes et scènes, historique des discussions, cache audio et images, paramètres et préférences de l’application",
+    "clearCacheConfirmDescription": "Les données suivantes seront définitivement supprimées de ce navigateur :",
+    "clearCacheConfirmItems": "Cache audio et multimédia, historique d’annulation, profils de voix du navigateur, paramètres et préférences de l’application",
     "clearCacheConfirmInput": "Saisissez « DELETE » pour continuer",
     "clearCacheConfirmPhrase": "DELETE",
-    "clearCacheButton": "Supprimer définitivement toutes les données",
+    "clearCacheButton": "Supprimer les données locales",
     "clearCacheSuccess": "Cache vidé, la page va se recharger dans un instant",
     "clearCacheFailed": "Échec du vidage du cache, veuillez réessayer",
     "clearCacheBlockedByOtherTabs": "Fermez les autres onglets de l'application, puis réessayez.",
@@ -1855,7 +1894,36 @@
       "updateKey": "Mettre à jour la clé",
       "modelsCount": "{{n}} modèles",
       "capabilities": "Capacités proposées",
-      "offeredNote": "Modèles proposés par ce forfait. Choisissez ceux que vous voulez voir dans la barre de génération : leur disponibilité dépend de votre niveau de forfait, et les modèles non pris en charge produiront une erreur au moment de la génération."
+      "offeredNote": "Modèles proposés par ce forfait. Choisissez ceux que vous voulez voir dans la barre de génération : leur disponibilité dépend de votre niveau de forfait, et les modèles non pris en charge produiront une erreur au moment de la génération.",
+      "statusConnected": "Connecté",
+      "keyStorage": "La clé est conservée chiffrée sur le serveur et n'est plus jamais affichée. La connexion applique aux étapes du cours les modèles recommandés par cette offre ; si cela remplace des modèles que vous avez choisis, une confirmation vous est demandée.",
+      "saveKey": "Enregistrer et activer",
+      "cancelKeyUpdate": "Annuler la mise à jour",
+      "manageAccount": "Gérer le compte",
+      "disconnect": "Déconnecter",
+      "disconnectTitle": "Déconnecter ce plan ?",
+      "disconnectBody": "Une fois déconnecté, ce plan ne sera plus utilisé pour les nouvelles requêtes. Votre abonnement chez le fournisseur n'est pas annulé.",
+      "statusNotConnected": "Non connecté",
+      "balanceManagement": "Gérer le solde",
+      "modelPlan": "Voir le plan de modèles",
+      "planNoteEntitlement": "Les capacités et tarifs du plan sont définis par le fournisseur.",
+      "planUnavailable": "Modèle non divulgué",
+      "planNoteEditable": "Ceci est la configuration par défaut ; le modèle de chaque nœud peut être modifié dans la configuration des modèles de cours.",
+      "capImage": "Génération d'images",
+      "capLlm": "Génération de texte",
+      "capTts": "Synthèse vocale",
+      "capVideo": "Génération de vidéo",
+      "capWebSearch": "Recherche web",
+      "saved": "Paramètres de connexion enregistrés",
+      "stageInteractive": "Interactif",
+      "stageSlide": "Diapositives",
+      "applyTitle": "Utiliser la configuration recommandée de cette offre ?",
+      "applyBody": "{{name}} recommande ses propres modèles pour ces étapes, qui utilisent actuellement des modèles que vous avez choisis :",
+      "applyKeep": "Garder ma configuration",
+      "applyRecommended": "Utiliser la configuration recommandée",
+      "statusDisabled": "Connecté (désactivé)",
+      "enableThisPlan": "Activer ce forfait",
+      "enableThisPlanHint": "Désactivé, ce forfait n'apparaît plus dans la configuration des modèles de cours."
     },
     "skills": {
       "nav": "Skills",
@@ -1886,7 +1954,297 @@
     },
     "ttsBrowserNativeTimelineNotice": "La synthèse vocale native du navigateur ne prend pas en charge les fonctions audio de la piste de l’éditeur (écoute, régénération et sonorisation groupée). Choisissez un fournisseur de synthèse vocale géré pour produire et gérer l’audio réplique par réplique.",
     "alidocmindAccessKeyId": "Identifiant de clé d’accès",
-    "alidocmindAccessKeySecret": "Secret de clé d’accès"
+    "alidocmindAccessKeySecret": "Secret de clé d’accès",
+    "providerGoogleTTS": "Google Gemini TTS",
+    "qwenCloneUploadShort": "Téléverser",
+    "ttsSpeedUnsupported": "This provider does not support speed adjustment.",
+    "courseModels": {
+      "nav": "Configuration des modèles de cours",
+      "mainModel": "Modèle principal",
+      "mainModelHint": "Les étapes qui suivent le modèle principal partagent ce modèle ; cliquez sur une carte pour personnaliser une étape",
+      "mainModelTooltip": "Toutes les étapes qui suivent le modèle principal utilisent ce modèle. Cliquez sur une carte du pipeline pour épingler un modèle spécifique pour cette étape (une route d'étape au niveau utilisateur, en dessous du MODEL_ROUTES de l'opérateur). Les sous-étapes plus fines se règlent dans l'inspecteur de la carte.",
+      "noProviderHint": "Aucun modèle de langue configuré — configurez-en un dans Services de modèles",
+      "followMainline": "Suivre le principal",
+      "followParent": "Suivre le parent",
+      "restoreFollow": "Restaurer le suivi du principal",
+      "stopped": "Désactivé",
+      "loop": "boucle",
+      "parallel": "parallèle",
+      "visionSupported": "Vision prise en charge",
+      "modelSource": "Source du modèle",
+      "mainlineUnset": "Non spécifié",
+      "pickModel": "Choisir un modèle",
+      "pickProvider": "Choisir un service",
+      "optionInvalid": "Indisponible",
+      "subStagesTitle": "Sous-étapes",
+      "subStages": {
+        "title": "Génération du titre",
+        "slide": "Diapositives",
+        "quiz": "Quiz",
+        "interactive": "Script interactif",
+        "pbl": "Scénario PBL"
+      },
+      "servicesAndModels": "Service et modèle",
+      "searchService": "Service de recherche",
+      "parseService": "Service d'analyse",
+      "asrTranscribe": "Transcription vocale",
+      "aiIllustration": "Illustrations IA",
+      "aiVideo": "Vidéo IA",
+      "stations": {
+        "docParse": "Analyse des documents",
+        "webResearch": "Recherche web",
+        "outline": "Planification du plan",
+        "agents": "Profils d'agents",
+        "sceneContent": "Contenu de la scène",
+        "sceneActions": "Actions de la scène",
+        "tts": "Synthèse vocale",
+        "media": "Génération de médias",
+        "interaction": "Interaction en classe",
+        "desc": {
+          "doc-parse": "Les supports du cours téléversés (documents, diapositives, audio/vidéo) sont analysés en texte ; l'audio et la vidéo sont transcrits automatiquement.",
+          "web-research": "Recherche sur le web du matériel complémentaire selon la demande du cours ; les requêtes sont reformulées par un petit LLM.",
+          "outline": "Comprend la demande et les supports pour produire le titre du cours et les plans par scène (revus par un humain).",
+          "agents": "Génère les profils des agents enseignant et élève (personnalité, avatar, voix).",
+          "scene-content": "Génère le contenu diapositives, quiz, interactions et PBL par scène — l'étape LLM la plus lourde du pipeline.",
+          "scene-actions": "Complète la narration et les actions pédagogiques de chaque scène pour alimenter la synthèse vocale et le déroulé en classe.",
+          "tts": "Synthétise la narration en voix d'enseignant/élève (par scène, en série).",
+          "media": "Résout les emplacements image/vidéo du contenu généré, en parallèle de la boucle par scène.",
+          "interaction": "Le runtime de la classe après génération : chat multi-agent, runtime PBL et notation des quiz."
+        }
+      },
+      "mediaEnableNeedsSetup": "Configurez d'abord une clé API dans Services de modèles ou activez un Token Plan."
+    },
+    "modelServices": {
+      "configured": "Configuré",
+      "configuredHint": "Configuré et disponible pour la génération de cours",
+      "desc": {
+        "asr": "Configurer les services de reconnaissance vocale et le modèle par défaut",
+        "image": "Configurer les services de génération d'images (clés API, flux de travail et catalogues de modèles)",
+        "pdf": "Configurer les identifiants du service d'analyse de documents (les services intégrés ne nécessitent aucune configuration)",
+        "providers": "Configurer les identifiants, points de terminaison et catalogues de modèles des services de modèles de langue",
+        "tts": "Configurer les services de synthèse vocale, les voix et les modèles",
+        "video": "Configurer les identifiants et catalogues de modèles des services de génération vidéo",
+        "webSearch": "Configurer les services de recherche web et les sources de récupération"
+      },
+      "nav": "Services de modèles",
+      "notConfigured": "Non configuré",
+      "notConfiguredHint": "Pas encore configuré — saisissez les identifiants pour l'activer",
+      "pending": "À configurer",
+      "ready": "Prêt"
+    },
+    "more": "Plus d'actions",
+    "providerLinks": {
+      "domestic": "Chine",
+      "getApiKey": "Obtenir une clé API",
+      "international": "International"
+    },
+    "serverConfig": {
+      "loading": "Chargement des paramètres des modèles…",
+      "loadFailed": "Impossible de charger les paramètres des modèles : {{message}}",
+      "retry": "Réessayer",
+      "unavailableTitle": "Les modèles sont gérés par le serveur",
+      "unavailableBody": "Ce serveur ne conserve pas de paramètres de modèles par espace de travail ; il utilise les modèles configurés par son administrateur.",
+      "conflict": "Les paramètres ont été modifiés ailleurs et rechargés. Vérifiez-les puis réessayez.",
+      "lockedNow": "Ce réglage est désormais défini par le serveur ; il n'a pas été modifié.",
+      "unconfirmed": "La réponse du serveur a été perdue ; les paramètres ont été rechargés. Vérifiez si la modification a été prise en compte.",
+      "serverOnly": "Seule la configuration du serveur (openmaic.yml) peut configurer ce service. Contactez l'administrateur du serveur.",
+      "serverOnlyPolicy": "Ce serveur ne permet pas aux espaces de travail d'ajouter leurs propres services. Contactez l'administrateur du serveur.",
+      "endpointServerOnly": "Ce service est joint à son propre point d'accès ; seule la configuration du serveur peut en indiquer un autre.",
+      "endpointChatOnly": "Avec son propre point d'accès, ce service ne sert qu'aux modèles de langage.",
+      "keyStored": "Une clé est enregistrée sur le serveur ({{mask}}).",
+      "keyStoredPlaceholder": "Clé enregistrée {{mask}} — saisissez-en une nouvelle pour la remplacer",
+      "keyUnreadable": "La clé enregistrée ne peut plus être lue. Saisissez-la à nouveau.",
+      "removeKey": "Supprimer la clé",
+      "showKey": "Afficher la clé",
+      "hideKey": "Masquer la clé",
+      "inUse": "Utilisé",
+      "modelFromCatalogue": "Le nom, les capacités et la fenêtre de contexte du modèle proviennent du catalogue intégré.",
+      "modelWhenInUse": "Utilisé une fois ce service sélectionné dans la configuration des modèles du cours.",
+      "planServer": "Configuré par le serveur",
+      "providerIdHint": "Enregistré sous « {{id}} »",
+      "openaiCompatible": "Compatible OpenAI",
+      "notNarration": "Ce service n'est pas la narration de l'espace de travail.",
+      "useForNarration": "Utiliser pour la narration",
+      "fetchNotSaved": "Les modèles ont été trouvés mais n'ont pas pu être enregistrés. Réessayez.",
+      "regionalEndpointHint": "Azure Speech n'accepte que le point de terminaison officiel de la région de votre ressource : {{template}}."
+    },
+    "modelSettings": {
+      "card": {
+        "edit": "{{name}} : {{value}}. Modifier",
+        "toggle": "Activer ou désactiver {{name}}",
+        "providerDefault": "Modèle par défaut",
+        "off": "Désactivé",
+        "unassigned": "Non défini",
+        "invalid": "Réglage invalide",
+        "locked": "Défini par le serveur",
+        "lockedHint": "Défini par la configuration du serveur. Impossible de le modifier ici.",
+        "followers": "Étapes qui le suivent : {{count}}",
+        "childrenFollow": "Types de page · tous suivent",
+        "childrenOwn": "Types de page · {{count}} propres"
+      },
+      "legend": {
+        "label": "Légende",
+        "follows": "Suit le parent",
+        "own": "Réglage propre",
+        "locked": "Défini par le serveur"
+      },
+      "map": {
+        "label": "Carte des modèles du cours. Faites glisser ou utilisez les flèches pour vous déplacer, et les boutons de zoom pour zoomer.",
+        "outside": "Hors du pipeline",
+        "standalone": "Autonome",
+        "perPage": "Page par page",
+        "zoom": "Zoom",
+        "zoomIn": "Zoom avant (+)",
+        "zoomOut": "Zoom arrière (-)",
+        "fit": "Ajuster à la vue (0)",
+        "reset": "Revenir à 100 %",
+        "hint": "Glisser pour se déplacer · ⌘/Ctrl + molette pour zoomer · double-clic sur le vide pour ajuster"
+      },
+      "picker": {
+        "follow": "Suivre {{name}}",
+        "providers": "Fournisseurs",
+        "providerDefault": "Modèle par défaut",
+        "modelId": "ID du modèle",
+        "use": "Utiliser",
+        "off": "Désactivé",
+        "offHint": "Cette étape ne s’exécute pas",
+        "noProviders": "Aucun service ne le propose encore. Configurez-en un dans Services de modèles.",
+        "fallback": "Secours",
+        "noFallback": "Aucun",
+        "manageProviders": "Gérer dans les services de modèles",
+        "conflict": "Les réglages ont été modifiés ailleurs et rechargés. Vérifiez-les puis réessayez.",
+        "lockedNow": "Le serveur définit désormais ce réglage ; rien n’a été modifié.",
+        "clear": "Retirer le réglage propre",
+        "clearHint": "Utiliser le réglage du serveur, s’il en a un",
+        "unconfirmed": "La réponse du serveur a été perdue ; les réglages ont été rechargés. Vérifiez si la modification a été prise en compte.",
+        "thinking": "Réflexion"
+      },
+      "slots": {
+        "llm": {
+          "name": "Modèle par défaut",
+          "desc": "Le modèle de langage utilisé par chaque étape sans réglage propre."
+        },
+        "courseResearch": {
+          "name": "Requêtes de recherche",
+          "desc": "Transforme le sujet du cours en requêtes de recherche web."
+        },
+        "courseOutline": {
+          "name": "Plan",
+          "desc": "Planifie les pages du cours."
+        },
+        "courseAgents": {
+          "name": "Rôles",
+          "desc": "Crée les enseignants et les camarades de la classe."
+        },
+        "courseContent": {
+          "name": "Contenu des pages",
+          "desc": "Rédige chaque page. Les types de page sans réglage propre le suivent."
+        },
+        "courseContentSlide": {
+          "name": "Diapositives",
+          "desc": "Rédige les pages de diapositives."
+        },
+        "courseContentQuiz": {
+          "name": "Quiz",
+          "desc": "Rédige les pages de quiz."
+        },
+        "courseContentInteractive": {
+          "name": "Pages interactives",
+          "desc": "Rédige les pages interactives."
+        },
+        "courseContentPbl": {
+          "name": "Projets",
+          "desc": "Rédige les pages d’apprentissage par projet."
+        },
+        "courseActions": {
+          "name": "Actions de cours",
+          "desc": "Scénarise ce que les enseignants disent et font sur chaque page."
+        },
+        "classroom": {
+          "name": "Classe",
+          "desc": "Discussion, correction des quiz et projets pendant l’apprentissage."
+        },
+        "agent": {
+          "name": "Agent",
+          "desc": "Crée et modifie des cours avec vous. Nécessite un modèle prenant en charge l’appel d’outils."
+        },
+        "tts": {
+          "name": "Narration",
+          "desc": "Lit les cours à voix haute."
+        },
+        "asr": {
+          "name": "Saisie vocale",
+          "desc": "Transcrit en texte les questions posées à l’oral en classe."
+        },
+        "image": {
+          "name": "Images",
+          "desc": "Génère des images pour les pages."
+        },
+        "video": {
+          "name": "Vidéo",
+          "desc": "Génère des clips vidéo pour les pages."
+        },
+        "webSearch": {
+          "name": "Recherche web",
+          "desc": "Effectue des recherches sur le web pendant la génération d’un cours."
+        },
+        "document": {
+          "name": "Analyse de documents",
+          "desc": "Lit les documents importés."
+        }
+      },
+      "source": {
+        "inherited": "Suit {{name}}",
+        "deployment": "Serveur",
+        "default": "Défaut du serveur"
+      },
+      "stations": {
+        "research": "Recherche web",
+        "media": "Images / vidéo",
+        "lines": {
+          "rewrite": "Requête",
+          "search": "Recherche",
+          "image": "Image",
+          "video": "Vidéo"
+        }
+      },
+      "empty": {
+        "prompt": "Aucun modèle de langage pour l'instant. Configurez un service dans Services de modèles ou connectez une offre dans Token Plan ; ses modèles remplissent les parties non définies.",
+        "open": "Ouvrir les services de modèles",
+        "askAdmin": "Aucun modèle de langage n'est configuré. Demandez à l'administrateur du serveur d'en configurer un."
+      }
+    },
+    "unimported": {
+      "toast": "Certains réglages de modèles de ce navigateur n'ont pas pu être transférés sur le serveur. Ils sont listés dans Paramètres → Services de modèles.",
+      "title": "Certains réglages de ce navigateur n'ont pas pu être transférés sur le serveur",
+      "description": "Ils sont conservés uniquement dans ce navigateur, avec leurs clés. Reconfigurez-les ici (ou dans la configuration du serveur), puis supprimez-les.",
+      "modelChoice": "Modèle choisi pour {{slot}} : {{assignment}}",
+      "copyKey": "Copier la clé",
+      "copyKeyPair": "Copier la paire de clés",
+      "keyCopied": "Copié",
+      "copyFailed": "Impossible de copier",
+      "dismiss": "Supprimer",
+      "dismissTitle": "Supprimer ces réglages ?",
+      "dismissDescription": "Leurs clés sont effacées de ce navigateur. Cette action est irréversible.",
+      "reason": {
+        "refused": "Le serveur ne l'a pas accepté : {{detail}}",
+        "reserved": "Le serveur configure déjà un service sous ce nom.",
+        "customService": "Un service vocal personnalisé ne peut être configuré que sur le serveur (openmaic.yml).",
+        "keyPair": "Un service utilisant une paire de clés ne peut être configuré que sur le serveur (openmaic.yml).",
+        "unsupported": "Ce type de fournisseur personnalisé ne peut pas être transféré : ajoutez-le à nouveau comme point de terminaison compatible OpenAI.",
+        "unconfirmed": "Le serveur n'a pas confirmé l'importation."
+      }
+    },
+    "providerHuggingFaceImage": "Hugging Face FLUX",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face LivePortrait",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. LivePortrait animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the LivePortrait Space",
+    "enableThisProvider": "Activer ce service",
+    "enableThisProviderHint": "Désactivé, ce service n'apparaît plus dans la configuration des modèles de cours."
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

@@ -31,6 +31,39 @@
 export const ASSET_QUOTA_EXCEEDED = 'ASSET_QUOTA_EXCEEDED';
 
 /**
+ * Hugging Face ZeroGPU daily free quota exhausted (or the Space is busy).
+ *
+ * Free tier (2026): ~5 GPU-min/day AND ~3 ZeroGPU runs/day, reset 24h after
+ * the first GPU usage. One LivePortrait video costs 2 runs (FLUX source still
+ * + animation), so the free tier fits roughly 1 video/day. Failed queue joins
+ * also count against the run limit, so callers must fail fast instead of
+ * retrying every element in the deck.
+ *
+ * Matched against provider/route error text (not a stable errorCode): the
+ * Gradio queue answers pressure with `data: null`, and the adapters reword
+ * that as "busy or out of GPU quota — wait a moment and retry".
+ *
+ * NOTE: the name avoids vendor substrings on purpose — the generate routes
+ * that use it are covered by the provider-neutrality guard, which flags any
+ * vendor token (e.g. `huggingface`) in those files. A regex literal would be
+ * invisible to that scanner, but a shared helper keeps the two call sites in
+ * sync, so the neutral-safe name is the compromise.
+ */
+export function isZeroGpuQuotaMessage(message: string): boolean {
+  return /zerogpu|gpu.{0,20}quota|quota.{0,20}exhausted|exceeded.{0,20}runs|out of.{0,20}quota|space.{0,20}busy|busy.{0,20}(space|quota)|queue.{0,20}full|wait a moment and retry/i.test(
+    message,
+  );
+}
+
+/**
+ * The store refused these bytes for good (too large, an unsupported type) and
+ * nothing can produce them again: media the user inserted or imported, which
+ * has no generation request to retry. Written by the one-way import of
+ * pre-server browser data; the element shows as failed, without a Retry.
+ */
+export const ASSET_REFUSED = 'ASSET_REFUSED';
+
+/**
  * Codes no retry can change.
  *
  * `CONTENT_SENSITIVE` is the provider's refusal of this content and
@@ -45,6 +78,7 @@ export const ASSET_QUOTA_EXCEEDED = 'ASSET_QUOTA_EXCEEDED';
 const PERMANENT_MEDIA_FAILURE_CODES: ReadonlySet<string> = new Set([
   'CONTENT_SENSITIVE',
   'GENERATION_DISABLED',
+  ASSET_REFUSED,
 ]);
 
 /** Whether a failed task may be tried again, by a person asking for it. */

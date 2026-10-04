@@ -34,12 +34,7 @@ import { claimStageSceneLoadToken, isCurrentStageSceneLoadToken } from '@/lib/st
 import { loadImageMapping } from '@/lib/utils/image-storage';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSceneGenerator } from '@/lib/hooks/use-scene-generator';
-import { useMediaGenerationStore } from '@/lib/store/media-generation';
-import { clearNarrationAllocations } from '@/lib/audio/narration-allocations';
 import { useNarrationAdoption } from '@/lib/audio/use-narration-adoption';
-import { clearPendingMediaAllocations } from '@/lib/media/pending-media-allocations';
-import { useWhiteboardHistoryStore } from '@/lib/store/whiteboard-history';
-import { useCanvasStore } from '@/lib/store/canvas';
 import { createLogger } from '@/lib/logger';
 import { MediaStageProvider } from '@/lib/contexts/media-stage-context';
 import { generateMediaForOutlines } from '@/lib/media/media-orchestrator';
@@ -47,28 +42,13 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { FileQuestion, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAgentRegistry } from '@/lib/orchestration/registry/store';
-import {
-  applyClassroomStageAndScenes,
-  defaultClassroomLoadDeps,
-  runClassroomLoad,
-} from '@/lib/classroom/load-classroom';
+import { defaultClassroomLoadDeps, runClassroomLoad } from '@/lib/classroom/load-classroom';
 import {
   paneAvailabilityRetryDelay,
   resolveClassroomSurfaceView,
   shouldResumeClassroomGeneration,
 } from '@/lib/classroom/progressive-load-policy';
-import { fetchStageMeta } from '@/lib/classroom/stage-meta-client';
-import {
-  classroomGenerationOwnership,
-  noteStageOwnership,
-  retryWhileOwnershipUnresolved,
-  type ClassroomGenerationOwnership,
-} from '@/lib/classroom/stage-ownership-signal';
-import {
-  noteStageGenerationOwnership,
-  useMayGenerateForStage,
-} from '@/lib/classroom/generation-permission';
-import { isServerBackedMediaPersistence } from '@/lib/persistence/media-persistence';
+import { useClassroomSession } from '@/lib/classroom/use-classroom-session';
 
 const log = createLogger('Classroom');
 
@@ -101,14 +81,6 @@ export function ClassroomSurface({
    * deleted or never existed.
    */
   const [notFound, setNotFound] = useState(false);
-  /**
-   * Whether this browser may start generation for this course, from the shared
-   * permission store the stage-meta sidecar feeds. Gates the resume effect and
-   * the outline-retry affordance alike, so what is offered and what is allowed
-   * cannot diverge.
-   */
-  const mayGenerate = useMayGenerateForStage(classroomId);
-
   const generationStartedRef = useRef(false);
   const activeClassroomIdRef = useRef<string | null>(null);
   const loadEpochRef = useRef(0);
@@ -117,6 +89,12 @@ export function ClassroomSurface({
     onComplete: () => {
       log.info('[Classroom] All scenes generated');
     },
+  });
+
+  const { mayGenerate, refreshOwnership } = useClassroomSession({
+    classroomId,
+    variant,
+    stopGeneration: stop,
   });
 
   const loadClassroom = useCallback(
@@ -131,13 +109,6 @@ export function ClassroomSurface({
           isCurrent,
           loadFromStorage,
           getCurrentStage: () => useStageStore.getState().stage,
-          fetchClassroom: defaultClassroomLoadDeps.fetchClassroom,
-          applyFallbackScenes: (args) =>
-            defaultClassroomLoadDeps.applyFallbackScenes({
-              ...args,
-              isCurrent,
-              applyStageAndScenes: applyClassroomStageAndScenes,
-            }),
           loadRestoredMediaTasks: defaultClassroomLoadDeps.loadRestoredMediaTasks,
           applyRestoredMediaTasks: (restored) =>
             defaultClassroomLoadDeps.applyRestoredMediaTasks(restored, isCurrent),
@@ -166,18 +137,6 @@ export function ClassroomSurface({
           return 'absent';
         }
 
-        if (loadResult.outcome === 'unavailable') {
-          if (variant === 'pane') {
-            // Retry through the availability schedule; exhaustion lands on the
-            // error card with Retry, not the not-found claim.
-            return 'unavailable';
-          }
-          setLoadUnavailable(true);
-          setError(LOAD_UNAVAILABLE_ERROR);
-          setLoading(false);
-          return 'failed';
-        }
-
         if (loadResult.outcome === 'cancelled') return 'cancelled';
         if (loadResult.outcome === 'failed') return 'failed';
 
@@ -202,43 +161,6 @@ export function ClassroomSurface({
       }
     },
     [classroomId, loadFromStorage, variant],
-  );
-
-  const refreshOwnership = useCallback(
-    (isCurrent: () => boolean) => {
-      if (!isCurrent() || !isServerBackedMediaPersistence()) return;
-
-      const askOwnership = async (): Promise<ClassroomGenerationOwnership> => {
-        try {
-          const result = await fetchStageMeta(classroomId);
-          if (!isCurrent()) return 'unresolved';
-          const ownership = classroomGenerationOwnership(result);
-          noteStageGenerationOwnership(classroomId, ownership);
-
-          // The standalone route also uses the sidecar to set edit access. The
-          // hosted pane owns that decision at its workspace boundary.
-          if (variant === 'page') {
-            if (result.outcome === 'found') {
-              noteStageOwnership(classroomId, true, { isOwner: result.meta.isOwner });
-              useStageStore.getState().setViewerAccess({ isOwner: result.meta.isOwner });
-            } else if (result.outcome === 'unavailable') {
-              noteStageOwnership(classroomId, false, null);
-            } else {
-              noteStageOwnership(classroomId, true, null);
-            }
-          }
-          return ownership;
-        } catch {
-          if (!isCurrent()) return 'unresolved';
-          noteStageGenerationOwnership(classroomId, 'unresolved');
-          if (variant === 'page') noteStageOwnership(classroomId, false, null);
-          return 'unresolved';
-        }
-      };
-
-      void retryWhileOwnershipUnresolved(askOwnership, { isCurrent });
-    },
-    [classroomId, variant],
   );
 
   const retryClassroom = useCallback(() => {
@@ -287,30 +209,7 @@ export function ClassroomSurface({
     setLoadUnavailable(false);
     setNotFound(false);
     /* eslint-enable react-hooks/set-state-in-effect */
-    // Ownership belongs to the departing course; the new one must re-earn it
-    // before anything it holds may be generated.
-    noteStageGenerationOwnership(classroomId, 'unresolved');
     generationStartedRef.current = false;
-
-    // Clear previous classroom's media tasks to prevent cross-classroom contamination.
-    // Placeholder IDs (gen_img_1, gen_vid_1) are NOT globally unique across stages,
-    // so stale tasks from a previous classroom would shadow the new one's.
-    const mediaStore = useMediaGenerationStore.getState();
-    mediaStore.revokeObjectUrls();
-    useMediaGenerationStore.setState({ tasks: {} });
-    // Allocations parked by an interrupted run on THIS id must go with them.
-    // Classic placeholders are reused across runs of the same course, so a
-    // survivor would be handed to a different slide of the next deck.
-    clearPendingMediaAllocations(classroomId);
-    clearNarrationAllocations(classroomId);
-
-    // Clear whiteboard history to prevent snapshots from a previous course leaking in.
-    useWhiteboardHistoryStore.getState().clearHistory();
-
-    // Reset edit-time canvas selection/scale: the classroom load paths set
-    // mode:'playback' via raw setState (not setMode), so an unfinished Pro-mode
-    // session in the previous course wouldn't otherwise clear its canvas state.
-    useCanvasStore.getState().resetCanvasState();
 
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let availabilityAttempt = 0;
@@ -371,9 +270,8 @@ export function ClassroomSurface({
         activeClassroomIdRef.current = null;
       }
       if (retryTimer) clearTimeout(retryTimer);
-      stop();
     };
-  }, [classroomId, loadClassroom, refreshOwnership, stop, variant]);
+  }, [classroomId, loadClassroom, refreshOwnership, variant]);
 
   // Narration written before this application stored media server-side is a
   // derived key that only this browser can resolve. Both classroom surfaces
@@ -449,6 +347,7 @@ export function ClassroomSurface({
           agents: params.agents,
           userProfile: params.userProfile,
           languageDirective: params.languageDirective || stage.languageDirective,
+          taskEngineMode: stage.taskEngineMode,
         });
 
       const imageMapping: Record<string, string> = {};

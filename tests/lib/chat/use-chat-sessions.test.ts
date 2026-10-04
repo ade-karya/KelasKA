@@ -1,21 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChatSession } from '@/lib/types/chat';
 import {
   consumePiSessionBoundaryContext,
   consumePiWhiteboardEvent,
   createPreviousLiveSessionContext,
   createPiSessionBoundaryContext,
+  getLiveErrorMessageKey,
   getPiSessionBoundaryContext,
   getPiSingleRequestOutcome,
+  fetchStatelessChat,
   isOpenLiveSession,
+  isTransientLiveError,
   normalizeStoredSessionsForRestore,
   retireLiveRequestResources,
   resumeSoftClosingSessionForFollowUp,
   resumeSoftClosingSessionWithoutMessage,
   runPiSingleRequest,
   shouldAwaitPresentationAction,
+  lectureActionPersistParams,
+  toLiveErrorMessage,
   withPiInclassWhiteboardTools,
-  withPiWebSearchSettings,
   MANUAL_STOP_END_OPTIONS,
   takeSoftCloseRegistration,
 } from '@/components/chat/use-chat-sessions';
@@ -272,7 +276,6 @@ describe('withPiInclassWhiteboardTools', () => {
         sessionType: 'qa',
         triggerAgentId: 'default-2',
       },
-      apiKey: 'test-key',
     } satisfies ChatRequestTemplate;
 
     const next = withPiInclassWhiteboardTools(request);
@@ -285,122 +288,6 @@ describe('withPiInclassWhiteboardTools', () => {
       piEnableWhiteboardTools: true,
     });
     expect(request.config).not.toHaveProperty('piEnableWhiteboardTools');
-  });
-});
-
-describe('withPiWebSearchSettings', () => {
-  const request = {
-    messages: [],
-    config: { agentIds: ['default-1'] },
-    apiKey: 'llm-key',
-    baseUrl: 'https://llm-provider.test',
-    model: 'llm:model',
-  } satisfies ChatRequestTemplate;
-
-  it('serializes only the selected Claude provider fields and keeps LLM fields separate', () => {
-    const next = withPiWebSearchSettings(
-      {
-        ...request,
-        baiduSubSources: { webSearch: false, baike: true, scholar: true },
-      },
-      {
-        webSearchProviderId: 'claude',
-        webSearchProvidersConfig: {
-          claude: {
-            apiKey: 'claude-search-key',
-            baseUrl: 'https://must-not-leak.test',
-            enabled: true,
-            requiresApiKey: true,
-            isServerConfigured: true,
-            modelId: 'claude-sonnet-5',
-          },
-          tavily: {
-            apiKey: 'non-selected-key',
-            baseUrl: 'https://non-selected.test',
-            enabled: true,
-          },
-        } as Parameters<typeof withPiWebSearchSettings>[1]['webSearchProvidersConfig'],
-        baiduSubSources: { webSearch: true, baike: false, scholar: true },
-      },
-    );
-
-    expect(next).toMatchObject({
-      apiKey: 'llm-key',
-      baseUrl: 'https://llm-provider.test',
-      model: 'llm:model',
-      webSearchProviderId: 'claude',
-      webSearchApiKey: 'claude-search-key',
-      webSearchModelId: 'claude-sonnet-5',
-    });
-    expect(next).not.toHaveProperty('webSearchProvidersConfig');
-    expect(next).not.toHaveProperty('webSearchBaseUrl');
-    expect(next).not.toHaveProperty('baiduSubSources');
-    expect(JSON.stringify(next)).not.toContain('must-not-leak.test');
-    expect(JSON.stringify(next)).not.toContain('non-selected-key');
-  });
-
-  it('serializes Baidu sub-sources only for the selected Baidu provider', () => {
-    const next = withPiWebSearchSettings(
-      {
-        ...request,
-        webSearchApiKey: 'stale-key',
-        webSearchBaseUrl: 'https://stale-search.test',
-        webSearchModelId: 'stale-model',
-      },
-      {
-        webSearchProviderId: 'baidu',
-        webSearchProvidersConfig: {
-          baidu: {
-            apiKey: 'baidu-key',
-            baseUrl: 'https://qianfan.baidubce.com',
-            enabled: true,
-          },
-        } as Parameters<typeof withPiWebSearchSettings>[1]['webSearchProvidersConfig'],
-        baiduSubSources: { webSearch: false, baike: true, scholar: false },
-      },
-    );
-
-    expect(next).toMatchObject({
-      webSearchProviderId: 'baidu',
-      webSearchApiKey: 'baidu-key',
-      webSearchBaseUrl: 'https://qianfan.baidubce.com',
-      baiduSubSources: { webSearch: false, baike: true, scholar: false },
-    });
-    expect(next).not.toHaveProperty('webSearchModelId');
-    expect(JSON.stringify(next)).not.toContain('stale-key');
-    expect(JSON.stringify(next)).not.toContain('stale-model');
-  });
-
-  it('removes stale selected-provider fields when the new provider has no key or model', () => {
-    const next = withPiWebSearchSettings(
-      {
-        ...request,
-        webSearchApiKey: 'stale-key',
-        webSearchBaseUrl: 'https://stale-search.test',
-        webSearchModelId: 'stale-model',
-        baiduSubSources: { webSearch: false, baike: true, scholar: true },
-      },
-      {
-        webSearchProviderId: 'brave',
-        webSearchProvidersConfig: {
-          brave: { apiKey: '', baseUrl: '', enabled: true },
-        } as Parameters<typeof withPiWebSearchSettings>[1]['webSearchProvidersConfig'],
-        baiduSubSources: { webSearch: true, baike: false, scholar: false },
-      },
-    );
-
-    expect(next).toMatchObject({
-      apiKey: 'llm-key',
-      baseUrl: 'https://llm-provider.test',
-      model: 'llm:model',
-      webSearchProviderId: 'brave',
-    });
-    expect(next).not.toHaveProperty('webSearchApiKey');
-    expect(next).not.toHaveProperty('webSearchBaseUrl');
-    expect(next).not.toHaveProperty('webSearchModelId');
-    expect(next).not.toHaveProperty('baiduSubSources');
-    expect(JSON.stringify(next)).not.toContain('stale-key');
-    expect(JSON.stringify(next)).not.toContain('stale-model');
   });
 });
 
@@ -441,13 +328,254 @@ describe('shouldAwaitPresentationAction', () => {
   });
 });
 
+describe('lectureActionPersistParams', () => {
+  it('omits undefined spotlight dimOpacity so session JSON persist stays lossless', () => {
+    const omitted = lectureActionPersistParams({
+      id: 'spot-1',
+      type: 'spotlight',
+      elementId: 'el-1',
+    });
+    expect(omitted).toEqual({ elementId: 'el-1' });
+    expect(omitted).not.toHaveProperty('dimOpacity');
+    expect(JSON.stringify(omitted)).toBe('{"elementId":"el-1"}');
+
+    expect(
+      lectureActionPersistParams({
+        id: 'spot-1',
+        type: 'spotlight',
+        elementId: 'el-1',
+        dimOpacity: 0,
+      }),
+    ).toEqual({ elementId: 'el-1', dimOpacity: 0 });
+  });
+
+  it('omits undefined discussion prompt and keeps laser params required-only', () => {
+    expect(
+      lectureActionPersistParams({
+        id: 'disc-1',
+        type: 'discussion',
+        topic: 'Heat islands',
+      }),
+    ).toEqual({ topic: 'Heat islands' });
+    expect(
+      lectureActionPersistParams({
+        id: 'laser-1',
+        type: 'laser',
+        elementId: 'el-2',
+      }),
+    ).toEqual({ elementId: 'el-2' });
+  });
+});
+
 describe('runPiSingleRequest', () => {
+  it.each([
+    'removed-before-post',
+    'runtime-authoritative',
+    'server-rejected',
+    'unrelated-error',
+  ] as const)(
+    'does not silently send a question without its whiteboard reference on %s',
+    async (scenario) => {
+      const previousStage = useStageStore.getState().stage;
+      const previousCanvas = useCanvasStore.getState();
+      const stage = {
+        id: 'stage-1',
+        whiteboard: [
+          { id: 'board', elements: scenario === 'removed-before-post' ? [] : [{ id: 'text-1' }] },
+        ],
+      } as unknown as NonNullable<typeof previousStage>;
+      useStageStore.setState({ stage });
+      useCanvasStore.setState({
+        whiteboardClearing: false,
+        runtimeWhiteboardProjection:
+          scenario === 'runtime-authoritative'
+            ? { stageId: 'stage-1', lastSeq: 7, whiteboard: stage.whiteboard![0] }
+            : null,
+      });
+      const fetchMock = vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              reason: scenario === 'server-rejected' ? 'whiteboard_reference_changed' : undefined,
+            }),
+            { status: 400 },
+          ),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const onResponseAccepted = vi.fn();
+      try {
+        await expect(
+          runPiSingleRequest(
+            'session-1',
+            {
+              messages: [],
+              storeState: { stage },
+              config: { agentIds: ['teacher-1'] },
+              elementReference: {
+                kind: 'whiteboard_element',
+                whiteboardId: 'board',
+                elementId: 'text-1',
+              },
+            } as unknown as Parameters<typeof runPiSingleRequest>[1],
+            new AbortController(),
+            'qa',
+            () => ({ onEvent: vi.fn(), onIterationEnd: vi.fn() }),
+            vi.fn(),
+            vi.fn(),
+            vi.fn(),
+            vi.fn(),
+            { current: vi.fn() },
+            (key) => key,
+            onResponseAccepted,
+          ),
+        ).rejects.toThrow(
+          scenario === 'unrelated-error'
+            ? 'Pi chat request failed: 400'
+            : 'chat.elementReference.whiteboardChanged',
+        );
+        expect(fetchMock).toHaveBeenCalledTimes(
+          scenario === 'removed-before-post' || scenario === 'runtime-authoritative' ? 0 : 1,
+        );
+        if (scenario === 'server-rejected') {
+          const init = (fetchMock.mock.calls as unknown as [string, RequestInit][])[0][1];
+          expect(JSON.parse(init.body as string).elementReference.kind).toBe('whiteboard_element');
+        }
+        expect(onResponseAccepted).not.toHaveBeenCalled();
+      } finally {
+        vi.unstubAllGlobals();
+        useStageStore.setState({ stage: previousStage });
+        useCanvasStore.setState({
+          whiteboardClearing: previousCanvas.whiteboardClearing,
+          runtimeWhiteboardProjection: previousCanvas.runtimeWhiteboardProjection,
+        });
+      }
+    },
+  );
+
+  it.each([true, false])(
+    'checks the outgoing stage snapshot rather than the live stage (snapshot has element: %s)',
+    async (snapshotHasElement) => {
+      const previousStage = useStageStore.getState().stage;
+      const previousCanvas = useCanvasStore.getState();
+      const makeStage = (hasElement: boolean) =>
+        ({
+          id: 'stage-1',
+          whiteboard: [{ id: 'board', elements: hasElement ? [{ id: 'text-1' }] : [] }],
+        }) as unknown as NonNullable<typeof previousStage>;
+      const snapshot = makeStage(snapshotHasElement);
+      useStageStore.setState({ stage: makeStage(!snapshotHasElement) });
+      useCanvasStore.setState({ whiteboardClearing: false, runtimeWhiteboardProjection: null });
+      const fetchMock = vi.fn(
+        async () =>
+          new Response('data: {"type":"done","data":{}}\n\n', {
+            headers: { 'X-OpenMAIC-Element-Reference-Accepted': '1' },
+          }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const onResponseAccepted = vi.fn();
+      try {
+        const result = runPiSingleRequest(
+          'session-1',
+          {
+            messages: [],
+            storeState: { stage: snapshot },
+            config: { agentIds: ['teacher-1'] },
+            elementReference: {
+              kind: 'whiteboard_element',
+              whiteboardId: 'board',
+              elementId: 'text-1',
+            },
+          } as unknown as Parameters<typeof runPiSingleRequest>[1],
+          new AbortController(),
+          'qa',
+          () => ({
+            onEvent: vi.fn(),
+            onIterationEnd: vi.fn(async () => ({
+              directorState: undefined,
+              totalAgents: 0,
+              agentHadContent: false,
+            })),
+          }),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          { current: vi.fn() },
+          (key) => key,
+          onResponseAccepted,
+        );
+        if (snapshotHasElement) {
+          await result;
+          expect(fetchMock).toHaveBeenCalledOnce();
+          const init = (fetchMock.mock.calls as unknown as [string, RequestInit][])[0][1];
+          expect(JSON.parse(init.body as string).storeState.stage).toEqual(snapshot);
+          expect(onResponseAccepted).toHaveBeenCalledOnce();
+        } else {
+          await expect(result).rejects.toThrow('chat.elementReference.whiteboardChanged');
+          expect(fetchMock).not.toHaveBeenCalled();
+          expect(onResponseAccepted).not.toHaveBeenCalled();
+        }
+      } finally {
+        vi.unstubAllGlobals();
+        useStageStore.setState({ stage: previousStage });
+        useCanvasStore.setState({
+          whiteboardClearing: previousCanvas.whiteboardClearing,
+          runtimeWhiteboardProjection: previousCanvas.runtimeWhiteboardProjection,
+        });
+      }
+    },
+  );
+
   it('does not accept the first-request context when fetch fails before a response', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => Promise.reject(new Error('network down'))),
     );
     const onResponseAccepted = vi.fn();
+
+    try {
+      await expect(
+        runPiSingleRequest(
+          'session-1',
+          {
+            messages: [],
+            storeState: {},
+            config: { agentIds: ['teacher-1'] },
+          } as unknown as Parameters<typeof runPiSingleRequest>[1],
+          new AbortController(),
+          'qa',
+          () => ({ onEvent: vi.fn(), onIterationEnd: vi.fn() }),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          { current: vi.fn() },
+          (key) => key,
+          onResponseAccepted,
+        ),
+      ).rejects.toThrow('network down');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+
+    expect(onResponseAccepted).not.toHaveBeenCalled();
+  });
+
+  it('prefers the server error body over the generic status message', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              success: false,
+              errorCode: 'RATE_LIMITED',
+              error: 'Upstream rate limit reached. Please try again shortly.',
+            }),
+            { status: 429 },
+          ),
+      ),
+    );
 
     try {
       await expect(
@@ -468,14 +596,40 @@ describe('runPiSingleRequest', () => {
           vi.fn(),
           { current: vi.fn() },
           (key) => key,
-          onResponseAccepted,
         ),
-      ).rejects.toThrow('network down');
+      ).rejects.toThrow('Upstream rate limit reached. Please try again shortly.');
     } finally {
       vi.unstubAllGlobals();
     }
+  });
 
-    expect(onResponseAccepted).not.toHaveBeenCalled();
+  it('falls back to the status message when the server error body is empty', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('oops', { status: 503 })));
+
+    try {
+      await expect(
+        runPiSingleRequest(
+          'session-1',
+          {
+            messages: [],
+            storeState: {},
+            config: { agentIds: ['teacher-1'] },
+            apiKey: '',
+          } as unknown as Parameters<typeof runPiSingleRequest>[1],
+          new AbortController(),
+          'qa',
+          () => ({ onEvent: vi.fn(), onIterationEnd: vi.fn() }),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          vi.fn(),
+          { current: vi.fn() },
+          (key) => key,
+        ),
+      ).rejects.toThrow('Pi chat request failed: 503');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('treats EOF without a done event as interrupted without waiting for drain', async () => {
@@ -514,7 +668,6 @@ describe('runPiSingleRequest', () => {
           messages: [],
           storeState: {},
           config: { agentIds: ['teacher-1'] },
-          apiKey: '',
         } as unknown as Parameters<typeof runPiSingleRequest>[1],
         new AbortController(),
         'qa',
@@ -534,6 +687,56 @@ describe('runPiSingleRequest', () => {
     expect(onIterationEnd).not.toHaveBeenCalled();
     expect(onResponseAccepted).toHaveBeenCalledOnce();
     expect(clearAfterError).toHaveBeenCalledWith('session-1', 'chat.error.streamInterrupted');
+  });
+});
+
+describe('live-chat error classification', () => {
+  it.each([
+    // The exact production failure from the 429 report.
+    [
+      'Failed after 3 attempts. Last error: Too Many Requests',
+      'chat.error.rateLimited',
+    ],
+    ['Too Many Requests', 'chat.error.rateLimited'],
+    ['Pi chat request failed: 429', 'chat.error.rateLimited'],
+    ['Upstream rate limit reached. Please try again shortly.', 'chat.error.rateLimited'],
+    [
+      'Upstream model provider is temporarily unavailable. Please try again.',
+      'chat.error.providerUnavailable',
+    ],
+    ['LLM stream finished with other', null],
+    ['whiteboard changed', null],
+    ['', null],
+  ])('maps %p to %p', (message, expected) => {
+    expect(getLiveErrorMessageKey(message)).toBe(expected);
+  });
+
+  it('translates classified failures and keeps raw text otherwise', () => {
+    const t = (key: string) => `translated:${key}`;
+    expect(toLiveErrorMessage(new Error('Failed after 3 attempts. Last error: quota'), t)).toBe(
+      'translated:chat.error.rateLimited',
+    );
+    expect(toLiveErrorMessage(new Error('something unexpected'), t)).toBe(
+      'Error: something unexpected',
+    );
+    expect(toLiveErrorMessage('plain string failure', t)).toBe('Error: plain string failure');
+  });
+
+  it('flags transient upstream failures for warn-level logging', () => {
+    expect(isTransientLiveError(new Error('Upstream rate limit reached. Please try again shortly.'))).toBe(
+      true,
+    );
+    expect(
+      isTransientLiveError(
+        new Error('Upstream model provider is temporarily unavailable. Please try again.'),
+      ),
+    ).toBe(true);
+    expect(isTransientLiveError(new Error('Failed after 3 attempts. Last error: quota'))).toBe(
+      true,
+    );
+    expect(isTransientLiveError(new Error('Pi chat request failed: 503'))).toBe(true);
+    expect(isTransientLiveError(new Error('something unexpected'))).toBe(false);
+    expect(isTransientLiveError(new DOMException('Aborted', 'AbortError'))).toBe(false);
   });
 });
 
@@ -612,5 +815,59 @@ describe('Pi Native whiteboard Browser events', () => {
       }),
       signal: controller.signal,
     });
+  });
+});
+
+describe('classroom chat requests carry no provider data', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('sends the stateless /api/chat request without model headers', async () => {
+    const fetchMock = vi.fn(async () => new Response('data: {}\n\n', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await fetchStatelessChat({ messages: [] }, new AbortController().signal);
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [] }),
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it('sends the /api/chat/pi request without model headers or keys', async () => {
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.close();
+      },
+    });
+    const fetchMock = vi.fn(async () => new Response(body, { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await runPiSingleRequest(
+      'session-1',
+      {
+        messages: [],
+        storeState: {},
+        config: { agentIds: ['teacher-1'] },
+      } as unknown as Parameters<typeof runPiSingleRequest>[1],
+      new AbortController(),
+      'qa',
+      () => ({ onEvent: vi.fn(), onIterationEnd: vi.fn(async () => null) }),
+      vi.fn(),
+      vi.fn(),
+      vi.fn(),
+      vi.fn(),
+      { current: vi.fn() },
+      (key) => key,
+    );
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('/api/chat/pi');
+    expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+    const sent = JSON.parse(String(init.body));
+    for (const field of ['apiKey', 'baseUrl', 'model', 'providerType', 'webSearchProviderId']) {
+      expect(sent).not.toHaveProperty(field);
+    }
   });
 });

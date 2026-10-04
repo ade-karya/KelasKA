@@ -3,10 +3,11 @@ import type { NextConfig } from 'next';
 const isVercelBuild = Boolean(process.env.VERCEL);
 
 const nextConfig: NextConfig = {
-  // Dev-only origin allow-list: Next blocks hydration/HMR for hosts that do
-  // not match the server origin (127.0.0.1, tunnel publik, dsb). Tanpa ini
-  // halaman hanya menampilkan HTML SSR (hero opacity-0 = layar putih).
-  allowedDevOrigins: ['127.0.0.1', 'localhost', '*.trycloudflare.com', '*.lhr.life', '*.localhost.run', '*.loca.lt'],
+  env: {
+    // Pin even the unset/default value in both client and server bundles.
+    // A runtime-only override must not disable the route the built client uses.
+    NEXT_PUBLIC_PI_CHAT_ENABLED: process.env.NEXT_PUBLIC_PI_CHAT_ENABLED ?? '',
+  },
   output: process.env.VERCEL ? undefined : 'standalone',
   outputFileTracingIncludes: {
     '/*': [
@@ -74,6 +75,19 @@ const nextConfig: NextConfig = {
     // only valid for self-hosted/Docker. Omit it on Vercel builds.
     ...(!isVercelBuild ? { proxyClientMaxBodySize: '200mb' } : {}),
   },
+  // Dev-only origin allow-list: Next blocks hydration/HMR for hosts that do
+  // not match the server origin (127.0.0.1, tunnel publik, dsb). Tanpa ini
+  // halaman hanya menampilkan HTML SSR (hero opacity-0 = layar putih).
+  // Union of the Vercel tunnel list and the Colab 'kelaska.riau.ai' entry.
+  allowedDevOrigins: [
+    '127.0.0.1',
+    'localhost',
+    '*.trycloudflare.com',
+    '*.lhr.life',
+    '*.localhost.run',
+    '*.loca.lt',
+    'kelaska.riau.ai',
+  ],
   async headers() {
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
     const frameAncestors = extraAncestors ? `'self' ${extraAncestors}` : "'self'";
@@ -89,6 +103,16 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: `frame-ancestors ${frameAncestors}`,
           },
+        ],
+      },
+      {
+        // Provider logos are drawn wherever services are listed, and each tab
+        // switch mounts a fresh set of them. With Next's default `max-age=0`
+        // every one is revalidated first and stays blank until the server
+        // answers. They are not content-hashed, so cache for a day, not forever.
+        source: '/logos/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
         ],
       },
     ];

@@ -160,6 +160,9 @@ const anthropicFable5Effort: ThinkingCapability = {
 };
 
 const kimiK3Effort = effortCapability('openai', ['low', 'high', 'max'], 'max');
+
+// TokenDance 网关统一 reasoning_effort（见 THINKING_CAPABILITIES 末尾的注释）
+const tokendanceEffort = effortCapability('openai', ['low', 'medium', 'high'], 'medium');
 const grok46Effort = effortCapability('openai', ['low', 'medium', 'high', 'xhigh'], 'high');
 const grok45Effort = effortCapability('openai', ['low', 'medium', 'high'], 'high');
 const grok43Effort = effortCapability('openai', ['none', 'low', 'medium', 'high'], 'none');
@@ -314,6 +317,16 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
   [getModelMetadataKey('anthropic', 'claude-sonnet-4-5')]: anthropicManualEffort,
   [getModelMetadataKey('anthropic', 'claude-haiku-4-5')]: anthropicBudget,
 
+  // gemini-3.8/3.7-flash: thinking always on; levels low|medium|high, default medium
+  // ("minimal is not supported and returns an error" — docs, 12.09.2026).
+  [getModelMetadataKey('google', 'gemini-3.8-flash')]: levelCapability(
+    ['low', 'medium', 'high'],
+    'medium',
+  ),
+  [getModelMetadataKey('google', 'gemini-3.7-flash')]: levelCapability(
+    ['low', 'medium', 'high'],
+    'medium',
+  ),
   [getModelMetadataKey('google', 'gemini-3.6-flash')]: levelCapability(
     ['minimal', 'low', 'medium', 'high'],
     'medium',
@@ -379,11 +392,16 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
   [getModelMetadataKey('qwen', 'qwen3-vl-plus')]: qwenBudgetDisabled,
 
   [getModelMetadataKey('deepseek', 'deepseek-v4-pro')]: deepseekEffort,
-  [getModelMetadataKey('deepseek', 'deepseek-v4-flash')]: deepseekEffort,
-  [getModelMetadataKey('deepseek', 'deepseek-v4-flash-vision-exp')]: deepseekEffort,
+  [getModelMetadataKey('deepseek', 'deepseek-flash')]: deepseekEffort,
   [getModelMetadataKey('atlascloud', 'deepseek-ai/deepseek-v4-pro')]: deepseekEffort,
 
   [getModelMetadataKey('kimi', 'kimi-k3')]: kimiK3Effort,
+  // Kimi Coding Plan 的套餐模型 id（K3 家族与 K2.8 coding 系列）：与对应
+  // 官方目录条目同款思考能力，token plan 播种目录后行内思考控件可用。
+  [getModelMetadataKey('kimi', 'k3')]: kimiK3Effort,
+  [getModelMetadataKey('kimi', 'k3-256k')]: kimiK3Effort,
+  [getModelMetadataKey('kimi', 'kimi-for-coding')]: fixedThinkingCapability,
+  [getModelMetadataKey('kimi', 'kimi-for-coding-highspeed')]: fixedThinkingCapability,
   [getModelMetadataKey('kimi', 'kimi-k2.7-code')]: fixedThinkingCapability,
   [getModelMetadataKey('kimi', 'kimi-k2.7-code-highspeed')]: fixedThinkingCapability,
   [getModelMetadataKey('kimi', 'kimi-k2.6')]: toggleCapability('kimi'),
@@ -417,6 +435,9 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
   [getModelMetadataKey('doubao', 'doubao-seed-2.0-code')]: doubaoSeed20Effort,
   [getModelMetadataKey('doubao', 'doubao-seed-2.0-lite')]: doubaoSeed20Effort,
   [getModelMetadataKey('doubao', 'doubao-seed-2.0-mini')]: doubaoSeed20Effort,
+  // Agent Plan 新增的 Seed 2.1 dotted 别名（token-plan preset 默认主线模型），
+  // 与 2.0 dotted 系列同族，思考控制一致。
+  [getModelMetadataKey('doubao', 'doubao-seed-2.1-turbo')]: doubaoSeed20Effort,
   // Cross-vendor models the Ark Agent Plan also serves through its
   // OpenAI-compatible endpoint (all under the `doubao` provider id). Verified
   // against a live plan key: each accepts the gateway's unified `reasoning_effort`
@@ -456,6 +477,8 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
 
   [getModelMetadataKey('tencent-hunyuan', 'hy3-preview')]: hunyuanHy3Effort,
 
+  [getModelMetadataKey('xiaomi', 'mimo-v2.6-pro')]: toggleCapability('xiaomi'),
+  [getModelMetadataKey('xiaomi', 'mimo-v2.6-flash')]: toggleCapability('xiaomi'),
   [getModelMetadataKey('xiaomi', 'mimo-v2.5-pro')]: toggleCapability('xiaomi'),
   [getModelMetadataKey('xiaomi', 'mimo-v2-pro')]: toggleCapability('xiaomi'),
   [getModelMetadataKey('xiaomi', 'mimo-v2.5')]: toggleCapability('xiaomi'),
@@ -467,6 +490,230 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
   [getModelMetadataKey('lemonade', 'Gemma-4-26B-A4B-it-GGUF')]: lemonadeToggleBudget,
   [getModelMetadataKey('lemonade', 'gpt-oss-20b')]: lemonadeToggleBudget,
   [getModelMetadataKey('lemonade', 'GPT-OSS-20B-GGUF')]: lemonadeToggleBudget,
+
+  // TokenDance 网关（OpenAI 兼容，/gateway/v1）：套餐目录统一透传网关的
+  // reasoning_effort 字段（low/medium/high）——包括网关自有的 cogevol 系列
+  // 和跨厂商模型（各家原生思考传输不经网关透传，统一走网关字段；与火山
+  // Ark 套餐跨厂商模型的口径一致）。
+  [getModelMetadataKey('tokendance', 'cogevol-base')]: tokendanceEffort,
+  [getModelMetadataKey('tokendance', 'cogevol-slide-0828')]: tokendanceEffort,
+  [getModelMetadataKey('tokendance', 'cogevol-interactive-0828')]: tokendanceEffort,
+  [getModelMetadataKey('tokendance', 'deepseek-v4.1-flash')]: tokendanceEffort,
+  [getModelMetadataKey('tokendance', 'deepseek-v4-pro')]: tokendanceEffort,
+  [getModelMetadataKey('tokendance', 'glm-5.3')]: tokendanceEffort,
+  [getModelMetadataKey('tokendance', 'kimi-k3')]: tokendanceEffort,
+  [getModelMetadataKey('tokendance', 'qwen3.8-max')]: tokendanceEffort,
+  [getModelMetadataKey('tokendance', 'seed-2.1-pro')]: tokendanceEffort,
+  [getModelMetadataKey('tokendance', 'minimax-m3')]: tokendanceEffort,
+
+  // OpenCode CLI (Zen, provider `opencode` / `opencode-go`): varian thinking
+  // NATIF `#variant` (`opencode run -m <provider>/<id>#<variant>`, dipilih via
+  // /variants TUI). Himpunan valid TERVERIFIKASI LIVE per model (Okt 2026):
+  // variant tak dikenal ditolak CLI ("Variant unavailable"), jadi daftar di
+  // sini harus persis hasil probe, bukan asumsi. Model tanpa varian natif
+  // memakai set generik yang disalurkan sebagai instruksi prompt oleh
+  // lib/ai/opencode-cli.ts (bukan wire-param).
+  //   muse-spark-1.3-contributor-free: minimal,low,medium,high,xhigh
+  //     (none + max ditolak)
+  //   space-bunny-free: low,medium,high,max,xhigh (none + minimal ditolak)
+  //   fledge-alpha-free: low,high,max (medium + lainnya ditolak)
+  // Model `opencode-go/*` yang gagal probe karena 401 (kredensial ini tidak
+  // mengentitle-nya) + yang terprobe tanpa varian (kimi, deepseek, glm-5.2,
+  // qwen, minimax, mimo, longcat, hy4-preview): set generik prompt-hint
+  // (aman: tak pernah memicu "Variant unavailable"). Pengecualian: inferensi
+  // keluarga yang bukti parsialnya kuat (lihat OPENCODE_NATIVE_VARIANTS di
+  // lib/ai/opencode-cli.ts) — bila meleset, runOpencodeCli ulangi otomatis
+  // tanpa variant, jadi tak pernah fatal.
+  [getModelMetadataKey('opencode-go', 'muse-spark-1.2-contributor')]: effortCapability(
+    'opencode',
+    ['minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'muse-spark-1.3-contributor')]: effortCapability(
+    'opencode',
+    ['minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'space-bunny-free')]: effortCapability(
+    'opencode',
+    ['low', 'medium', 'high', 'max', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'gpt-5.6-luna')]: effortCapability(
+    'opencode',
+    ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'gpt-6-luna')]: effortCapability(
+    'opencode',
+    ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'muse-spark-1.3-contributor-free')]: effortCapability(
+    'opencode',
+    ['minimal', 'low', 'medium', 'high', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'space-bunny-free')]: effortCapability(
+    'opencode',
+    ['low', 'medium', 'high', 'max', 'xhigh'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'fledge-alpha-free')]: effortCapability(
+    'opencode',
+    ['low', 'high', 'max'],
+    'low',
+  ),
+  [getModelMetadataKey('opencode', 'big-pickle')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'longcat-2.5-preview-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'mimo-v2.6-flash-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'ling-3.0-flash-fin-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'nemotron-3-ultra-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'nemotron-3.5-lightning-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'deepseek-v4-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'deepseek-v4-flash-vision-exp')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'deepseek-v4-pro')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'deepseek-v4.1-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'glm-5.2')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'glm-5.3')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'glm-5.3-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'grok-4.6')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'grok-4.7')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'hy3')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'hy4-preview')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'kimi-k2.7-code')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'kimi-k3')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'longcat-2.0')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'longcat-2.5-preview-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'mimo-v2.5')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'mimo-v2.5-pro')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'mimo-v2.6-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'mimo-v2.6-pro')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'minimax-m2.7')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'minimax-m3')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'qwen3.7-plus')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'qwen3.8-flash')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode-go', 'qwen3.8-max')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
 };
 
 export function getCatalogThinkingCapability(
@@ -479,6 +726,59 @@ export function getCatalogThinkingCapability(
 
   if (providerId === 'lemonade') {
     return lemonadeToggleBudget;
+  }
+
+  return undefined;
+}
+
+/**
+ * Thinking capability for a probed (fetched) model id. Exact catalog entries
+ * win; otherwise family patterns infer a capability so newly released models
+ * (e.g. a future `gemini-3.9-flash` that the catalog does not list yet) still
+ * get a working thinking control instead of silently losing it.
+ *
+ * Gemini rules follow https://ai.google.dev/gemini-api/docs/openai: thinking
+ * cannot be disabled on Gemini 3 / 2.5 Pro (level or budget-only control),
+ * while 2.5 Flash / Flash-Lite expose a toggleable budget.
+ */
+export function getProbedThinkingCapability(
+  providerId: string,
+  modelId: string,
+): ThinkingCapability | undefined {
+  const exact = getCatalogThinkingCapability(providerId, modelId);
+  if (exact) return exact;
+
+  if (providerId === 'google') {
+    const id = getCanonicalModelId(providerId, modelId).toLowerCase();
+    if (!id.includes('gemini')) return undefined;
+    if (/gemini-2\.5-pro/.test(id)) {
+      return budgetOnlyCapability(
+        'google',
+        { min: 128, max: 32768, step: 1024, allowDynamic: true },
+        -1,
+      );
+    }
+    if (/gemini-2\.5-flash-lite/.test(id)) {
+      return toggleBudgetCapability(
+        'google',
+        { min: 0, max: 24576, step: 1024, allowDynamic: true, disableValue: 0 },
+        false,
+        0,
+      );
+    }
+    if (/gemini-2\.5/.test(id)) {
+      return toggleBudgetCapability(
+        'google',
+        { min: 0, max: 24576, step: 1024, allowDynamic: true, disableValue: 0 },
+        true,
+        -1,
+      );
+    }
+    if (/gemini-3\.[87]/.test(id)) {
+      return levelCapability(['low', 'medium', 'high'], 'medium');
+    }
+    // Gemini 3 family and later: thinking always on, level-adjustable.
+    return levelCapability(['low', 'medium', 'high'], 'medium');
   }
 
   return undefined;

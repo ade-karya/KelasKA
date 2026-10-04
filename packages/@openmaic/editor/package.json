@@ -1,6 +1,6 @@
 {
   "name": "@openmaic/editor",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "description": "Composable slide editing core, React surface, and UI for OpenMAIC.",
   "type": "module",
   "main": "./dist/core/index.js",
@@ -8,19 +8,23 @@
   "exports": {
     ".": {
       "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.js"
+      "import": "./dist/core/index.js",
+      "require": "./dist/core/index.js"
     },
     "./core": {
       "types": "./dist/core/index.d.ts",
-      "import": "./dist/core/index.js"
+      "import": "./dist/core/index.js",
+      "require": "./dist/core/index.js"
     },
     "./react": {
       "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js"
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.js"
     },
     "./ui": {
       "types": "./dist/ui/index.d.ts",
-      "import": "./dist/ui/index.js"
+      "import": "./dist/ui/index.js",
+      "require": "./dist/ui/index.js"
     }
   },
   "files": [

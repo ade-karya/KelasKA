@@ -19,6 +19,14 @@ import {
 import { generateWithGrokVideo, testGrokVideoConnectivity } from './adapters/grok-video-adapter';
 import { generateWithHappyHorse, testHappyHorseConnectivity } from './adapters/happyhorse-adapter';
 import {
+  generateWithHuggingFaceVideo,
+  testHuggingFaceVideoConnectivity,
+} from './adapters/huggingface-video-adapter';
+import {
+  generateWithHuggingFaceWanVideo,
+  HUGGINGFACE_WAN_MODEL,
+} from './adapters/huggingface-wan-video-adapter';
+import {
   generateWithOpenRouterVideo,
   testOpenRouterVideoConnectivity,
 } from './adapters/openrouter-video-adapter';
@@ -75,13 +83,15 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
     requiresApiKey: true,
     defaultBaseUrl: 'https://generativelanguage.googleapis.com',
     models: [
-      { id: 'veo-3.1-fast-generate-001', name: 'Veo 3.1 Fast' },
-      { id: 'veo-3.1-generate-001', name: 'Veo 3.1' },
+      // Gemini API model IDs (the -001 names for 3.1 exist only on Vertex AI)
+      { id: 'veo-3.1-fast-generate-preview', name: 'Veo 3.1 Fast' },
+      { id: 'veo-3.1-generate-preview', name: 'Veo 3.1' },
+      { id: 'veo-3.1-lite-generate-preview', name: 'Veo 3.1 Lite' },
       { id: 'veo-3.0-fast-generate-001', name: 'Veo 3.0 Fast' },
       { id: 'veo-3.0-generate-001', name: 'Veo 3.0' },
       { id: 'veo-2.0-generate-001', name: 'Veo 2.0' },
     ],
-    supportedAspectRatios: ['16:9', '1:1', '9:16'],
+    supportedAspectRatios: ['16:9', '9:16'],
     supportedDurations: [8],
     supportedResolutions: ['720p'],
     maxDuration: 8,
@@ -142,6 +152,38 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
     supportedResolutions: ['480p', '720p', '1080p'],
     maxDuration: 10,
   },
+  'huggingface-video': {
+    id: 'huggingface-video',
+    name: 'Hugging Face LivePortrait',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://klingteam-liveportrait.hf.space',
+    icon: '/logos/huggingface.svg',
+    // Image-to-video portrait animation (KlingTeam/LivePortrait Space): the
+    // source portrait comes from `options.sourceImageUrl` — typically a just
+    // generated image — and motion from the Space's bundled driving clip
+    // unless `options.drivingVideoUrl` overrides it. Generation needs a user
+    // access token (hf_...) — the Settings panel's "Login with Hugging Face"
+    // entry point walks the user through that.
+    //
+    // Second model: Wan 2.2 14B I2V (zerogpu-aoti/wan2-2-fp8da-aoti-faster
+    // Space, FP8 + Lightning LoRA, 4-8 steps) — same image-to-video shape but
+    // text-driven: the animation follows `options.prompt`, with
+    // duration/steps/guidance tunable via the generation options. Dispatch is
+    // by model id (see generateVideo below); connectivity is a shared login
+    // probe, so both models test the same way.
+    models: [
+      { id: 'KlingTeam/LivePortrait', name: 'LivePortrait' },
+      {
+        id: 'zerogpu-aoti/wan2-2-fp8da-aoti-faster',
+        name: 'Wan 2.2 14B I2V FP8 (Lightning LoRA)',
+      },
+    ],
+    supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
+    // Image-to-video: orchestrators generate the source still from the prompt
+    // first (the "video based on the generated image" flow) when the request
+    // carries no sourceImageUrl of its own.
+    requiresSourceImage: true,
+  },
 };
 
 export async function testVideoConnectivity(
@@ -162,6 +204,8 @@ export async function testVideoConnectivity(
       return testHappyHorseConnectivity(config);
     case 'openrouter-video':
       return testOpenRouterVideoConnectivity(config);
+    case 'huggingface-video':
+      return testHuggingFaceVideoConnectivity(config);
     default:
       return {
         success: false,
@@ -231,6 +275,13 @@ export async function generateVideo(
       return generateWithHappyHorse(config, options);
     case 'openrouter-video':
       return generateWithOpenRouterVideo(config, options);
+    case 'huggingface-video':
+      // Two Spaces behind one provider id: the Wan 2.2 I2V Space speaks a
+      // different Gradio protocol (sse_v3 `/generate_video`) than the
+      // LivePortrait Space (Gradio 4 queue), so dispatch on the model.
+      return config.model === HUGGINGFACE_WAN_MODEL
+        ? generateWithHuggingFaceWanVideo(config, options)
+        : generateWithHuggingFaceVideo(config, options);
     default:
       throw new Error(`Unsupported video provider: ${config.providerId}`);
   }

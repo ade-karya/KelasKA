@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "멀티 에이전트 인터랙티브 교실에서 펼치는 생성형 학습",
-    "greetingWithName": "안녕하세요, {{name}}!"
+    "greetingWithName": "안녕하세요, {{name}}!",
+    "vocationalTestBadge": "테스트 기능",
+    "vocationalTestLabel": "직업훈련 과제",
+    "vocationalTestTooltip": "현재 입력창에서 직업 실습 훈련 테스트를 제출합니다"
   },
   "toolbar": {
     "pdfParser": "파서",
@@ -47,7 +50,18 @@
     "interactiveModeLabel": "인터랙티브 모드",
     "vocationalTestBadge": "테스트 기능",
     "vocationalTask": "직업 과제",
-    "vocationalTestHint": "현재 입력창에서 직업 실습 테스트 제출"
+    "vocationalTestHint": "현재 입력창에서 직업 실습 테스트 제출",
+    "modelChangeFailed": "모델을 변경할 수 없습니다: {{message}}",
+    "modelLockedHint": "강의에 사용되는 모델(이 서버에서 설정)",
+    "pickModel": "모델 선택",
+    "defaultModel": "기본",
+    "defaultModelNote": "여기서는 기본 모델을 변경합니다. 따로 설정한 단계는 영향을 받지 않습니다",
+    "stagesSetSeparately": "{{count}}개 단계 별도 설정",
+    "stagesSetSeparately_one": "{{count}}개 단계 별도 설정",
+    "stagesSetSeparately_other": "{{count}}개 단계 별도 설정",
+    "stagesSetSeparatelyHint": "자체 모델을 쓰는 단계",
+    "perStageSetup": "단계별 설정",
+    "perStageSetupHint": "코스 생성의 모든 단계에 자체 모델이 설정되어 있습니다"
   },
   "export": {
     "pptx": "PPTX 내보내기",
@@ -106,7 +120,10 @@
     "subtitlesFailed": "자막 다운로드 실패",
     "noSlides": "내보낼 슬라이드가 없습니다",
     "noSlidesSkipped": "이 코스에 슬라이드가 없어 PPTX를 건너뛰었습니다",
-    "nothingToExport": "내보낼 항목이 없습니다"
+    "nothingToExport": "내보낼 항목이 없습니다",
+    "videoQueueFull": "렌더링 대기열이 혼잡합니다. 잠시 후 다시 시도해 주세요.",
+    "videoRenderInProgress": "이미 렌더링 작업이 진행 중입니다. 잠시 후 다시 시도해 주세요.",
+    "videoTooLarge": "내보내기 파일이 서비스의 크기 제한을 초과했습니다."
   },
   "import": {
     "classroom": "교실 가져오기",
@@ -139,14 +156,16 @@
     "softClosing": "토론 계속하기",
     "error": {
       "emptyAgentResponses": "에이전트가 빈 응답을 반환하여 토론이 중단되었습니다. 다시 시도하거나 모델 설정을 확인하세요.",
-      "streamInterrupted": "스트림이 예기치 않게 종료되어 토론이 완료되지 않았습니다. 다시 시도해 주세요."
+      "streamInterrupted": "스트림이 예기치 않게 종료되어 토론이 완료되지 않았습니다. 다시 시도해 주세요.",
+      "rateLimited": "모델에 요청이 몰리고 있습니다. 잠시 후 다시 시도해 주세요.",
+      "providerUnavailable": "모델 서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요."
     },
     "elementReference": {
-      "button": "수업 자료 참조",
-      "unavailable": "현재 PPT 슬라이드 또는 지원되는 인터랙티브 컴포넌트만 참조할 수 있습니다",
-      "instruction": "강의 자료 요소를 클릭하세요 · Esc로 종료",
-      "fallback": "기타 슬라이드 요소 ({{count}})",
-      "clear": "수업 자료 참조 제거",
+      "button": "내용 참조",
+      "unavailable": "현재 콘텐츠는 요소 참조를 지원하지 않습니다.",
+      "instruction": "요소 클릭 · Esc로 종료",
+      "fallback": "기타 요소 ({{count}})",
+      "clear": "참조 제거",
       "summary": {
         "noText": "텍스트 없음",
         "emptyContent": "콘텐츠 없음",
@@ -155,7 +174,8 @@
         "imageMetadata": "이미지 (메타데이터만)",
         "videoMetadata": "비디오 (메타데이터만)",
         "audioMetadata": "오디오 (메타데이터만)"
-      }
+      },
+      "whiteboardChanged": "참조한 화이트보드 요소가 변경되었거나 사용할 수 없습니다. 다시 선택하거나 참조를 제거한 후 보내세요."
     },
     "tabs": {
       "lecture": "노트",
@@ -173,6 +193,10 @@
       "qa": "Q&A",
       "discussion": "토론",
       "lecture": "강의"
+    },
+    "interactiveRuntimeError": {
+      "title": "이 인터랙티브를 실행하지 못했습니다",
+      "dismiss": "닫기"
     }
   },
   "actions": {
@@ -546,7 +570,16 @@
       "sendBackward": "뒤로 보내기",
       "alignTop": "위쪽 정렬",
       "alignMiddle": "세로 가운데 정렬",
-      "alignBottom": "아래쪽 정렬"
+      "alignBottom": "아래쪽 정렬",
+      "alignCenterBoth": "가로·세로 중앙",
+      "setLink": "링크 설정",
+      "ruler": "눈금자",
+      "grid": "격자",
+      "gridNone": "없음",
+      "gridSmall": "작게",
+      "gridMedium": "중간",
+      "gridLarge": "크게",
+      "resetPage": "페이지 초기화"
     },
     "background": {
       "image": "이미지",
@@ -1027,7 +1060,9 @@
     "fileTooLarge": "파일이 너무 큽니다. 50MB 미만의 파일을 선택해주세요",
     "courseMaterialCountLimit": "강의 자료 파일은 최대 5개까지 업로드할 수 있습니다",
     "courseMaterialTotalSizeLimit": "강의 자료 전체 크기는 150MB 미만이어야 합니다",
-    "unsupportedCourseMaterial": "현재 파서가 이 형식을 지원하지 않습니다. 파서를 변경하거나 다른 파일을 선택하세요."
+    "unsupportedCourseMaterial": "{{parser}}에서 지원하지 않는 파일 형식입니다. 지원 형식: {{formats}}",
+    "courseMaterialFormats": "{{formats}} 지원 — 파일당 최대 {{size}}MB",
+    "formatListSeparator": ", "
   },
   "generation": {
     "pdfLoadFailed": "PDF 파일 불러오기에 실패했습니다. 다시 시도해주세요",
@@ -1138,7 +1173,8 @@
     "webSearchFailed": "웹 검색에 실패했습니다",
     "outlinesReadyCount": "{{ready}} / {{total}}개 섹션 준비됨",
     "jumpToBlankTitle": "제목이 필요한 섹션으로 이동",
-    "analyzingMediaMaterial": "오디오/비디오 분석 중"
+    "analyzingMediaMaterial": "오디오/비디오 분석 중",
+    "modelSettingsUnavailable": "모델 설정을 읽을 수 없어 생성을 중단했습니다. 다시 시도해 주세요."
   },
   "settings": {
     "title": "설정",
@@ -1243,14 +1279,16 @@
       "brave": "Brave Search",
       "baidu": "Baidu",
       "claude": "Claude",
-      "searxng": "SearXNG"
+      "searxng": "SearXNG",
+      "opencode": "OpenCode CLI"
     },
     "providerTypes": {
       "openai": "OpenAI 프로토콜",
       "azure": "Azure OpenAI",
       "anthropic": "Claude 프로토콜",
       "google": "Gemini 프로토콜",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "개 모델",
     "modelSingular": "개 모델",
@@ -1294,7 +1332,8 @@
     "capabilities": {
       "vision": "비전",
       "tools": "도구",
-      "streaming": "스트리밍"
+      "streaming": "스트리밍",
+      "thinking": "사고"
     },
     "contextWindow": "컨텍스트",
     "contextShort": "ctx",
@@ -1774,13 +1813,13 @@
     "modelNotConfigured": "시작하려면 모델을 선택하세요",
     "dangerZone": "위험 구역",
     "clearCache": "로컬 캐시 지우기",
-    "clearCacheDescription": "교실 기록, 채팅 내역, 오디오 캐시, 앱 설정 등 로컬에 저장된 모든 데이터를 삭제합니다. 이 작업은 취소할 수 없습니다.",
+    "clearCacheDescription": "이 브라우저에 로컬로 저장된 데이터(오디오·미디어 캐시, 실행 취소 기록, 브라우저 음성 프로필, 앱 설정)를 삭제합니다. 교실과 채팅 내역은 서버에 저장되므로 영향을 받지 않습니다.",
     "clearCacheConfirmTitle": "모든 캐시를 지우시겠습니까?",
-    "clearCacheConfirmDescription": "다음 데이터가 영구적으로 삭제되며 복구할 수 없습니다:",
-    "clearCacheConfirmItems": "교실 및 장면, 채팅 내역, 오디오 및 이미지 캐시, 앱 설정 및 환경설정",
+    "clearCacheConfirmDescription": "이 브라우저에서 다음 데이터가 영구적으로 삭제됩니다:",
+    "clearCacheConfirmItems": "오디오 및 미디어 캐시, 실행 취소 기록, 브라우저 음성 프로필, 앱 설정 및 환경설정",
     "clearCacheConfirmInput": "계속하려면 \"DELETE\"를 입력하세요",
     "clearCacheConfirmPhrase": "DELETE",
-    "clearCacheButton": "모든 데이터 영구 삭제",
+    "clearCacheButton": "로컬 데이터 삭제",
     "clearCacheSuccess": "캐시가 지워졌습니다. 잠시 후 페이지가 새로 고침됩니다",
     "clearCacheFailed": "캐시 삭제에 실패했습니다. 다시 시도해 주세요",
     "clearCacheBlockedByOtherTabs": "앱을 연 다른 탭을 닫고 다시 시도해 주세요.",
@@ -1855,7 +1894,36 @@
       "updateKey": "Update key",
       "modelsCount": "{{n}} models",
       "capabilities": "Capabilities offered",
-      "offeredNote": "Models offered by this plan. Pick the ones you want on the generation bar — availability depends on your plan tier, and unsupported models will error at generation time."
+      "offeredNote": "Models offered by this plan. Pick the ones you want on the generation bar — availability depends on your plan tier, and unsupported models will error at generation time.",
+      "statusConnected": "연결됨",
+      "keyStorage": "키는 서버에 암호화되어 저장되며 다시 표시되지 않습니다. 연결하면 이 플랜의 추천 모델이 코스 단계에 적용됩니다. 직접 선택한 모델이 바뀌는 경우 먼저 확인을 요청합니다.",
+      "saveKey": "저장하고 사용 설정",
+      "cancelKeyUpdate": "업데이트 취소",
+      "manageAccount": "계정 관리",
+      "disconnect": "연결 해제",
+      "disconnectTitle": "이 플랜의 연결을 해제할까요?",
+      "disconnectBody": "해제 후 이 플랜은 새 요청에 사용되지 않습니다. 서비스 제공자의 구독은 취소되지 않습니다.",
+      "statusNotConnected": "연결 안 됨",
+      "balanceManagement": "잔액 관리",
+      "modelPlan": "모델 플랜 보기",
+      "planNoteEntitlement": "플랜 기능과 요금은 서비스 제공자 기준입니다.",
+      "planUnavailable": "모델 미공개",
+      "planNoteEditable": "기본 구성입니다. 각 노드의 모델은 '코스 모델 설정'에서 변경할 수 있습니다.",
+      "capImage": "이미지 생성",
+      "capLlm": "텍스트 생성",
+      "capTts": "음성 합성",
+      "capVideo": "영상 생성",
+      "capWebSearch": "웹 검색",
+      "saved": "연결 설정이 저장되었습니다",
+      "stageInteractive": "인터랙티브",
+      "stageSlide": "슬라이드",
+      "applyTitle": "이 플랜의 추천 구성을 사용할까요?",
+      "applyBody": "{{name}}에서 다음 단계에 자체 모델을 추천합니다. 이 단계들은 현재 직접 선택한 모델을 사용 중입니다:",
+      "applyKeep": "현재 구성 유지",
+      "applyRecommended": "플랜 추천 구성 사용",
+      "statusDisabled": "연결됨(사용 안 함)",
+      "enableThisPlan": "이 플랜 사용",
+      "enableThisPlanHint": "끄면 이 플랜은 코스 모델 설정에 더 이상 표시되지 않습니다."
     },
     "skills": {
       "nav": "스킬",
@@ -1886,7 +1954,297 @@
     },
     "ttsBrowserNativeTimelineNotice": "브라우저 내장 TTS는 편집기 타임라인의 오디오 기능(미리듣기·다시 생성·전체 음성 생성)을 지원하지 않습니다. 관리형 TTS 공급자로 전환하면 줄별 오디오를 생성·관리할 수 있습니다.",
     "alidocmindAccessKeyId": "AccessKey ID",
-    "alidocmindAccessKeySecret": "AccessKey Secret"
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "providerGoogleTTS": "Google Gemini TTS",
+    "qwenCloneUploadShort": "업로드",
+    "ttsSpeedUnsupported": "This provider does not support speed adjustment.",
+    "courseModels": {
+      "nav": "코스 모델 설정",
+      "mainModel": "메인 모델",
+      "mainModelHint": "메인을 따르는 단계는 이 모델을 공유합니다. 카드를 클릭하면 단계별로 지정할 수 있어요",
+      "mainModelTooltip": "메인을 따르는 모든 단계는 이 모델을 사용합니다. 파이프라인 카드를 클릭하면 해당 단계에 특정 모델을 고정할 수 있습니다(운영자의 MODEL_ROUTES보다 우선순위가 낮은 사용자 수준 단계 라우팅). 더 세분화된 하위 단계는 카드의 인스펙터에서 설정합니다.",
+      "noProviderHint": "아직 언어 모델이 구성되지 않았습니다. \"모델 서비스\"에서 설정하세요",
+      "followMainline": "메인 따르기",
+      "followParent": "상위 따르기",
+      "restoreFollow": "메인 따르기로 복원",
+      "stopped": "비활성화됨",
+      "loop": "루프",
+      "parallel": "병렬",
+      "visionSupported": "이미지 입력 지원",
+      "modelSource": "모델 출처",
+      "mainlineUnset": "지정되지 않음",
+      "pickModel": "모델 선택",
+      "pickProvider": "서비스 선택",
+      "optionInvalid": "사용 불가",
+      "subStagesTitle": "하위 단계",
+      "subStages": {
+        "title": "제목 생성",
+        "slide": "슬라이드",
+        "quiz": "퀴즈",
+        "interactive": "인터랙티브 스크립트",
+        "pbl": "PBL 시나리오"
+      },
+      "servicesAndModels": "서비스 및 모델",
+      "searchService": "검색 서비스",
+      "parseService": "파싱 서비스",
+      "asrTranscribe": "음성 전사",
+      "aiIllustration": "AI 일러스트",
+      "aiVideo": "AI 영상",
+      "stations": {
+        "docParse": "문서 파싱",
+        "webResearch": "웹 리서치",
+        "outline": "개요 설계",
+        "agents": "에이전트 프로필",
+        "sceneContent": "장면 콘텐츠",
+        "sceneActions": "장면 액션",
+        "tts": "음성 합성",
+        "media": "미디어 생성",
+        "interaction": "수업 상호작용",
+        "desc": {
+          "doc-parse": "업로드된 코스 자료(문서·슬라이드·오디오/비디오)를 텍스트로 파싱하고, 오디오와 비디오는 자동으로 전사합니다.",
+          "web-research": "코스 요구사항에 맞춰 웹에서 보충 자료를 검색합니다. 검색어는 경량 LLM이 다시 작성합니다.",
+          "outline": "요구사항과 자료를 이해해 코스 제목과 장면별 개요를 생성합니다(사람이 검토 가능).",
+          "agents": "교사·학생 에이전트 프로필(성격·아바타·목소리)을 생성합니다.",
+          "scene-content": "장면별로 슬라이드·퀴즈·인터랙션·PBL 콘텐츠를 생성합니다. 파이프라인에서 가장 무거운 LLM 단계입니다.",
+          "scene-actions": "장면별 내레이션과 교수 액션을 채워 음성 합성과 수업 재생에 공급합니다.",
+          "tts": "내레이션을 교사·학생 목소리로 합성합니다(장면별, 순차 실행).",
+          "media": "생성된 콘텐츠 내 이미지·비디오 자리표시자를 장면 루프와 병렬로 채웁니다.",
+          "interaction": "생성 이후 수업 런타임: 멀티 에이전트 채팅, PBL 런타임, 퀴즈 채점."
+        }
+      },
+      "mediaEnableNeedsSetup": "'모델 서비스'에서 API 키를 구성하거나 Token Plan을 활성화한 뒤 켜세요."
+    },
+    "modelServices": {
+      "configured": "구성됨",
+      "configuredHint": "구성되어 코스 생성에 사용할 수 있습니다",
+      "desc": {
+        "asr": "음성 인식 서비스와 기본 모델을 설정합니다",
+        "image": "이미지 생성 서비스(API 키, 워크플로, 모델 카탈로그)를 설정합니다",
+        "pdf": "문서 파싱 서비스의 자격 증명을 설정합니다(내장 서비스는 설정이 필요 없습니다)",
+        "providers": "언어 모델 서비스의 자격 증명, API 주소, 모델 카탈로그를 설정합니다",
+        "tts": "음성 합성 서비스, 보이스, 모델을 설정합니다",
+        "video": "영상 생성 서비스의 자격 증명과 모델 카탈로그를 설정합니다",
+        "webSearch": "웹 검색 서비스와 검색 소스를 설정합니다"
+      },
+      "nav": "모델 서비스",
+      "notConfigured": "미구성",
+      "notConfiguredHint": "아직 구성되지 않았습니다. 자격 증명을 입력하면 사용할 수 있습니다",
+      "pending": "설정 필요",
+      "ready": "준비됨"
+    },
+    "more": "더보기",
+    "providerLinks": {
+      "domestic": "중국 본토",
+      "getApiKey": "API 키 받기",
+      "international": "해외"
+    },
+    "serverConfig": {
+      "loading": "모델 설정을 불러오는 중…",
+      "loadFailed": "모델 설정을 불러올 수 없습니다: {{message}}",
+      "retry": "다시 시도",
+      "unavailableTitle": "모델은 서버에서 관리합니다",
+      "unavailableBody": "이 서버는 워크스페이스별 모델 설정을 저장하지 않으므로 관리자가 구성한 모델을 사용합니다.",
+      "conflict": "설정이 다른 곳에서 변경되어 다시 불러왔습니다. 확인 후 다시 시도하세요.",
+      "lockedNow": "이제 서버가 이 항목을 설정하므로 변경되지 않았습니다.",
+      "unconfirmed": "서버 응답이 유실되어 설정을 다시 불러왔습니다. 변경이 적용되었는지 확인하세요.",
+      "serverOnly": "이 서비스는 서버 설정(openmaic.yml)에서만 구성할 수 있습니다. 서버 관리자에게 문의하세요.",
+      "serverOnlyPolicy": "이 서버는 워크스페이스가 자체 서비스를 추가하도록 허용하지 않습니다. 서버 관리자에게 문의하세요.",
+      "endpointServerOnly": "이 서비스는 공식 엔드포인트로 연결됩니다. 다른 엔드포인트는 서버 설정에서만 지정할 수 있습니다.",
+      "endpointChatOnly": "자체 엔드포인트를 사용하면 이 서비스는 언어 모델에만 사용됩니다.",
+      "keyStored": "서버에 키가 저장되어 있습니다({{mask}}).",
+      "keyStoredPlaceholder": "저장된 키 {{mask}} — 새 키를 입력하면 교체됩니다",
+      "keyUnreadable": "저장된 키를 더 이상 읽을 수 없습니다. 다시 입력하세요.",
+      "removeKey": "키 삭제",
+      "showKey": "키 표시",
+      "hideKey": "키 숨기기",
+      "inUse": "사용 중",
+      "modelFromCatalogue": "모델 이름, 기능, 컨텍스트 창은 내장 카탈로그에서 가져옵니다.",
+      "modelWhenInUse": "코스 모델 설정에서 이 서비스를 선택하면 사용됩니다.",
+      "planServer": "서버에서 구성됨",
+      "providerIdHint": "\"{{id}}\"(으)로 저장",
+      "openaiCompatible": "OpenAI 호환",
+      "notNarration": "이 서비스는 워크스페이스의 내레이션이 아닙니다.",
+      "useForNarration": "내레이션에 사용",
+      "fetchNotSaved": "모델을 찾았지만 저장하지 못했습니다. 다시 시도하세요.",
+      "regionalEndpointHint": "Azure Speech는 리소스 지역의 공식 엔드포인트만 허용합니다: {{template}}."
+    },
+    "modelSettings": {
+      "card": {
+        "edit": "{{name}}: {{value}}. 변경",
+        "toggle": "{{name}} 켜기 또는 끄기",
+        "providerDefault": "기본 모델",
+        "off": "꺼짐",
+        "unassigned": "설정 안 됨",
+        "invalid": "잘못된 설정",
+        "locked": "서버에서 설정",
+        "lockedHint": "서버 설정으로 정해져 있어 여기서 변경할 수 없습니다.",
+        "followers": "이를 따르는 단계: {{count}}",
+        "childrenFollow": "페이지 유형 · 모두 따름",
+        "childrenOwn": "페이지 유형 · 개별 설정 {{count}}개"
+      },
+      "legend": {
+        "label": "범례",
+        "follows": "상위를 따름",
+        "own": "개별 설정",
+        "locked": "서버에서 설정"
+      },
+      "map": {
+        "label": "코스 모델 맵. 드래그하거나 화살표 키로 이동하고 확대/축소 버튼으로 크기를 조절합니다.",
+        "outside": "파이프라인 외부",
+        "standalone": "독립 기능",
+        "perPage": "페이지별 생성",
+        "zoom": "확대/축소",
+        "zoomIn": "확대 (+)",
+        "zoomOut": "축소 (-)",
+        "fit": "화면에 맞추기 (0)",
+        "reset": "100%로 재설정",
+        "hint": "드래그하여 이동 · ⌘/Ctrl + 스크롤로 확대/축소 · 빈 곳을 더블클릭하면 화면에 맞춤"
+      },
+      "picker": {
+        "follow": "{{name}} 따르기",
+        "providers": "제공자",
+        "providerDefault": "기본 모델",
+        "modelId": "모델 ID",
+        "use": "사용",
+        "off": "끄기",
+        "offHint": "이 단계는 실행되지 않습니다",
+        "noProviders": "아직 이 기능을 제공하는 서비스가 없습니다. 모델 서비스에서 설정하세요.",
+        "fallback": "대체 모델",
+        "noFallback": "없음",
+        "manageProviders": "모델 서비스에서 관리",
+        "conflict": "설정이 다른 곳에서 변경되어 다시 불러왔습니다. 확인 후 다시 시도하세요.",
+        "lockedNow": "이제 서버가 이 항목을 설정하므로 변경되지 않았습니다.",
+        "clear": "개별 설정 해제",
+        "clearHint": "서버 설정이 있으면 그것을 사용합니다",
+        "unconfirmed": "서버 응답이 유실되어 설정을 다시 불러왔습니다. 변경 사항이 적용되었는지 확인하세요.",
+        "thinking": "사고"
+      },
+      "slots": {
+        "llm": {
+          "name": "기본 모델",
+          "desc": "따로 설정하지 않은 모든 단계가 이 언어 모델을 사용합니다."
+        },
+        "courseResearch": {
+          "name": "검색 쿼리",
+          "desc": "코스 주제를 웹 검색 쿼리로 바꿉니다."
+        },
+        "courseOutline": {
+          "name": "개요",
+          "desc": "코스의 페이지를 계획합니다."
+        },
+        "courseAgents": {
+          "name": "역할",
+          "desc": "교실의 교사와 학급 친구를 만듭니다."
+        },
+        "courseContent": {
+          "name": "페이지 내용",
+          "desc": "각 페이지를 작성합니다. 따로 설정하지 않은 페이지 유형은 이를 따릅니다."
+        },
+        "courseContentSlide": {
+          "name": "슬라이드",
+          "desc": "슬라이드 페이지를 작성합니다."
+        },
+        "courseContentQuiz": {
+          "name": "퀴즈",
+          "desc": "퀴즈 페이지를 작성합니다."
+        },
+        "courseContentInteractive": {
+          "name": "인터랙티브",
+          "desc": "인터랙티브 페이지를 작성합니다."
+        },
+        "courseContentPbl": {
+          "name": "프로젝트",
+          "desc": "프로젝트 기반 학습 페이지를 작성합니다."
+        },
+        "courseActions": {
+          "name": "강의 동작",
+          "desc": "각 페이지에서 교사가 말하고 행동할 내용을 구성합니다."
+        },
+        "classroom": {
+          "name": "교실",
+          "desc": "학습 중의 토론, 퀴즈 채점, 프로젝트."
+        },
+        "agent": {
+          "name": "에이전트",
+          "desc": "함께 코스를 만들고 편집합니다. 도구 호출을 지원하는 모델이 필요합니다."
+        },
+        "tts": {
+          "name": "내레이션",
+          "desc": "강의를 소리 내어 읽습니다."
+        },
+        "asr": {
+          "name": "음성 입력",
+          "desc": "교실에서 음성으로 질문하면 텍스트로 바꿉니다."
+        },
+        "image": {
+          "name": "이미지",
+          "desc": "페이지용 이미지를 생성합니다."
+        },
+        "video": {
+          "name": "동영상",
+          "desc": "페이지용 동영상 클립을 생성합니다."
+        },
+        "webSearch": {
+          "name": "웹 검색",
+          "desc": "코스를 생성하는 동안 웹을 검색합니다."
+        },
+        "document": {
+          "name": "문서 분석",
+          "desc": "업로드한 문서를 읽습니다."
+        }
+      },
+      "source": {
+        "inherited": "{{name}} 따름",
+        "deployment": "서버",
+        "default": "서버 기본값"
+      },
+      "stations": {
+        "research": "웹 조사",
+        "media": "이미지 / 동영상",
+        "lines": {
+          "rewrite": "쿼리",
+          "search": "검색",
+          "image": "이미지",
+          "video": "동영상"
+        }
+      },
+      "empty": {
+        "prompt": "아직 언어 모델이 없습니다. 모델 서비스에서 서비스를 설정하거나 Token Plan에서 플랜을 연결하면 설정되지 않은 부분에 해당 모델이 지정됩니다.",
+        "open": "모델 서비스 열기",
+        "askAdmin": "언어 모델이 구성되지 않았습니다. 서버 관리자에게 설정을 요청하세요."
+      }
+    },
+    "unimported": {
+      "toast": "이 브라우저의 일부 모델 설정을 서버로 옮기지 못했습니다. 설정 → 모델 서비스에서 확인하세요.",
+      "title": "이 브라우저의 일부 설정을 서버로 옮기지 못했습니다",
+      "description": "이 설정과 키는 이 브라우저에만 보관됩니다. 여기(또는 서버 설정)에서 다시 설정한 뒤 삭제하세요.",
+      "modelChoice": "{{slot}} 모델 선택: {{assignment}}",
+      "copyKey": "키 복사",
+      "copyKeyPair": "키 쌍 복사",
+      "keyCopied": "복사됨",
+      "copyFailed": "복사하지 못했습니다",
+      "dismiss": "삭제",
+      "dismissTitle": "이 설정을 삭제할까요?",
+      "dismissDescription": "키가 이 브라우저에서 삭제되며 되돌릴 수 없습니다.",
+      "reason": {
+        "refused": "서버가 받아들이지 않았습니다: {{detail}}",
+        "reserved": "서버에 같은 이름의 서비스가 이미 설정되어 있습니다.",
+        "customService": "사용자 지정 음성 서비스는 서버(openmaic.yml)에서만 설정할 수 있습니다.",
+        "keyPair": "키 쌍을 사용하는 서비스는 서버(openmaic.yml)에서만 설정할 수 있습니다.",
+        "unsupported": "이 유형의 사용자 지정 공급자는 옮길 수 없습니다. OpenAI 호환 엔드포인트로 다시 추가하세요.",
+        "unconfirmed": "서버가 가져오기를 확인하지 않았습니다."
+      }
+    },
+    "providerHuggingFaceImage": "Hugging Face FLUX",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face LivePortrait",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. LivePortrait animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the LivePortrait Space",
+    "enableThisProvider": "이 서비스 제공자 사용",
+    "enableThisProviderHint": "끄면 이 서비스 제공자는 코스 모델 설정에 더 이상 표시되지 않습니다."
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

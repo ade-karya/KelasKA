@@ -19,6 +19,7 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { cn } from '@/lib/utils/cn';
 import { WorkbenchChat } from '@/components/workbench/WorkbenchChat';
 import { PaneFoldButton } from './PaneFoldButton';
+import { WorkbenchModelPicker } from './WorkbenchModelPicker';
 import { useWorkbenchStore } from '@/lib/workbench/session-store';
 import { presentWorkspaceSession } from '@/lib/workbench/workspace-navigation';
 import { SESSION_TITLE_MAX_LENGTH, workbenchSessionTitle } from '@/lib/workbench/session-title';
@@ -168,6 +169,7 @@ export function WorkspaceChatPane({
         {draftConversation || !presentation ? null : (
           <span className="ws-pane-eyebrow shrink-0">{t(presentation.labelKey)}</span>
         )}
+        <WorkbenchModelPicker />
         {onCollapse ? (
           <PaneFoldButton
             testId="workspace-chat-fold"

@@ -1,23 +1,13 @@
 import { restoreAgentSelection } from '@/lib/orchestration/registry/agent-selection';
 import { applyGeneratedAgentsToRegistry } from '@/lib/orchestration/registry/store';
-import {
-  applyHydratedClassroomFallbackScenes,
-  hydrateClassroomFallbackChats,
-  type ApplyHydratedClassroomFallbackScenesArgs,
-} from '@/lib/classroom/pbl-fallback-hydration';
-import type { ChatStorageSnapshot } from '@/lib/utils/chat-storage';
-import type { ChatSession } from '@/lib/types/chat';
 import { useMediaGenerationStore, type MediaTask } from '@/lib/store/media-generation';
 import {
   markStagePersistenceDirty,
   useStageStore,
   type StageSceneLoadToken,
 } from '@/lib/store/stage';
-import { resolveStageFallbackAccess } from '@/lib/classroom/stage-ownership-signal';
-import type { MediaFileRecord } from '@/lib/utils/database';
-import { unmarkStageDeleted } from '@/lib/utils/deleted-stages';
+import type { MediaFileRecord } from '@/lib/device-storage/database';
 import type { GeneratedAgentConfig, Scene, Stage } from '@/lib/types/stage';
-import type { DocumentMigrationDeps } from '@/lib/document-store/migration';
 import type { PPTElement, Slide } from '@openmaic/dsl';
 import {
   collectDocumentMediaElements,
@@ -29,34 +19,17 @@ import { createLogger } from '@/lib/logger';
 
 const moduleLog = createLogger('ClassroomLoad');
 
-export interface ClassroomPayload {
-  stage: Stage;
-  scenes: Scene[];
-}
-
-/**
- * What `/api/classroom` had to say. This uses the same three-way vocabulary as
- * stage-meta, with endpoint-specific HTTP classification. Callers must not
- * collapse `'unavailable'` into absence: an HTTP rejection or transport
- * failure is not proof the course does not exist (#1450).
- */
-export type ClassroomFetchResult =
-  | { outcome: 'found'; classroom: ClassroomPayload }
-  | { outcome: 'absent' }
-  | { outcome: 'unavailable'; status?: number };
-
 /**
  * What a classroom load concluded about the document itself.
  *
- * `'ready'` means this course is in the store (local and/or server).
- * `'absent'` is a positive miss (404/410 or an empty success body).
- * `'unavailable'` means no usable classroom was returned. It stays on the
- * retryable error path and never becomes "not found".
+ * `'ready'` means this course is in the store. `'absent'` is a positive miss:
+ * the server has no readable course under this id. A load that could not get
+ * an answer throws inside `loadFromStorage` and ends `'failed'`, never
+ * `'absent'`.
  */
 export type ClassroomLoadResult =
   | { outcome: 'ready' }
   | { outcome: 'absent' }
-  | { outcome: 'unavailable' }
   | { outcome: 'failed' }
   | { outcome: 'cancelled' };
 
@@ -85,15 +58,6 @@ export interface RunClassroomLoadArgs<TMediaTasks = unknown> {
   isCurrent: () => boolean;
   loadFromStorage: (classroomId: string, loadToken: StageSceneLoadToken) => Promise<void>;
   getCurrentStage: () => Stage | null;
-  fetchClassroom: (
-    classroomId: string,
-    shouldConvert?: () => boolean,
-  ) => Promise<ClassroomFetchResult>;
-  applyFallbackScenes: (args: {
-    loadToken: StageSceneLoadToken;
-    stage: Stage;
-    scenes: readonly Scene[];
-  }) => Promise<boolean>;
   loadRestoredMediaTasks: (stageId: string) => Promise<TMediaTasks>;
   applyRestoredMediaTasks: (tasks: TMediaTasks) => void;
   discardRestoredMediaTasks: (tasks: TMediaTasks) => void;
@@ -140,8 +104,6 @@ export async function runClassroomLoad<TMediaTasks = unknown>({
   isCurrent,
   loadFromStorage,
   getCurrentStage,
-  fetchClassroom,
-  applyFallbackScenes,
   loadRestoredMediaTasks,
   applyRestoredMediaTasks,
   discardRestoredMediaTasks,
@@ -159,41 +121,10 @@ export async function runClassroomLoad<TMediaTasks = unknown>({
     await loadFromStorage(classroomId, loadToken);
     if (!isCurrent()) return { outcome: 'cancelled' };
 
-    if (!getCurrentStage()) {
-      log.info('No IndexedDB data, trying server-side storage for:', classroomId);
-      // The fetch path converts and commits under the per-stage document lock.
-      // Once it returns, the document owns every allocation; a later
-      // navigation may discard only this in-memory apply, never the durable
-      // assets -- so nothing here rolls allocations back.
-      const fetchResult = await fetchClassroom(classroomId, isCurrent);
-      if (!isCurrent()) return { outcome: 'cancelled' };
+    // The server document store is the only place a course lives: nothing
+    // loaded means the server has no readable course under this id.
+    if (!getCurrentStage()) return { outcome: 'absent' };
 
-      if (fetchResult.outcome === 'unavailable') {
-        // Do not continue into media/roster hydration or let the surface treat
-        // this as not-found: we never got a positive answer about the course.
-        return { outcome: 'unavailable' };
-      }
-
-      if (fetchResult.outcome === 'found') {
-        const { stage, scenes } = fetchResult.classroom;
-        const applied = await applyFallbackScenes({ loadToken, stage, scenes });
-        if (!isCurrent()) return { outcome: 'cancelled' };
-        if (!applied) {
-          log.info('Stage changed during server-side fallback hydration, skipping load:', {
-            requestedStageId: stage.id,
-            latestStageId: getCurrentStage()?.id,
-          });
-          return { outcome: 'cancelled' };
-        }
-        log.info('Loaded from server-side storage:', classroomId);
-      } else {
-        // Positive absence from the server (and nothing local). Stop before
-        // inventing a loaded empty classroom.
-        return { outcome: 'absent' };
-      }
-    }
-
-    if (!isCurrent()) return { outcome: 'cancelled' };
     // Metadata-only on the critical path: the default loader defers object-URL
     // creation for non-priority blobs, so this await is a table read, not a
     // full media hydration (the rest hydrates in the background after apply).
@@ -291,78 +222,6 @@ export async function runClassroomLoad<TMediaTasks = unknown>({
   }
 }
 
-export async function fetchClassroomFromApi(
-  classroomId: string,
-  _shouldConvert: () => boolean = () => true,
-  _deps: DocumentMigrationDeps = {},
-  fetchImpl: typeof globalThis.fetch = globalThis.fetch,
-): Promise<ClassroomFetchResult> {
-  try {
-    const res = await fetchImpl(`/api/classroom?id=${encodeURIComponent(classroomId)}`);
-    if (!res.ok) {
-      // These responses positively establish that this immutable id cannot
-      // resolve to a classroom. Authentication, authorization, conflict, and
-      // other 4xx responses do not prove absence and stay on the error path.
-      if ([400, 404, 410, 422].includes(res.status)) {
-        return { outcome: 'absent' };
-      }
-      return { outcome: 'unavailable', status: res.status };
-    }
-
-    const json = (await res.json()) as {
-      success?: boolean;
-      classroom?: ClassroomPayload;
-    };
-    if (!json.success || !json.classroom) return { outcome: 'absent' };
-    return { outcome: 'found', classroom: json.classroom };
-  } catch {
-    return { outcome: 'unavailable' };
-  }
-}
-
-export function applyClassroomStageAndScenes(
-  stage: Stage,
-  scenes: readonly Scene[],
-  options: {
-    persist?: boolean;
-    chats?: ChatSession[];
-    chatSnapshot?: ChatStorageSnapshot;
-  } = {},
-): void {
-  // Explicit document (re)creation point: deletion only removes client-side
-  // data, so revisiting the classroom URL restores the server copy under the
-  // SAME id. Lift any same-session deleted flag before the store write, or
-  // every subsequent edit of the restored classroom would be silently dropped
-  // until a reload. This is a deliberate restore, not an in-flight flush —
-  // exactly the distinction `deleted-stages.ts` requires. The deletion EPOCH
-  // stays bumped: a pre-delete flush still in flight remains permanently
-  // stale and cannot overwrite the restored document, while the
-  // `saveToStorage` below (and every later edit) captures the current epoch
-  // and persists normally.
-  unmarkStageDeleted(stage.id);
-  const nextScenes = [...scenes];
-  // A server fallback is a fresh classroom boundary. Never inherit access or
-  // producer state from whichever course previously occupied the singleton
-  // store; these defaults match an ordinary cold load (the stage-meta sidecar
-  // probe corrects them when it answers).
-  const access = resolveStageFallbackAccess(stage.id);
-  useStageStore.setState((state) => ({
-    stage,
-    scenes: nextScenes,
-    currentSceneId: nextScenes[0]?.id ?? null,
-    chats: options.chats ?? [],
-    chatSnapshot: options.chatSnapshot ?? { sessions: [], restoreMarker: null },
-    generationComplete: false,
-    isOwner: access.isOwner,
-    readOnly: !access.isOwner,
-    generationEpoch: state.generationEpoch + 1,
-    mode: 'playback',
-  }));
-  if (options.persist !== false) {
-    void useStageStore.getState().saveToStorage();
-  }
-}
-
 /**
  * Restored media state split by hydration phase. `tasks` is metadata-complete
  * and applied before first paint; records in `deferred` have their blob object
@@ -409,7 +268,7 @@ export function collectPriorityMediaRefs(
 
 export async function loadRestoredMediaTasksFromDB(stageId: string): Promise<RestoredMediaTasks> {
   try {
-    const { db } = await import('@/lib/utils/database');
+    const { db } = await import('@/lib/device-storage/database');
     const records = await db.mediaFiles.where('stageId').equals(stageId).toArray();
     const state = useStageStore.getState();
     const sameStage = state.stage?.id === stageId;
@@ -691,41 +550,18 @@ export function mergeLegacyAgentFallbacks(
 }
 
 /**
- * Read the legacy roster mirror for a stage as contract-shaped configs.
- * Read-only: production code only reads this table as a migration source for
- * pre-single-source classrooms (plus deletion hygiene when a stage is
- * removed); nothing writes new rows. Returns `null` when the read fails so
- * the caller can distinguish "empty mirror" (memoizable) from "read failed"
- * (retry on the next load).
+ * The legacy roster mirror for a stage, as contract-shaped configs.
+ *
+ * The mirror lived in the pre-server browser database, which the load path no
+ * longer reads: a course whose roster predates the document-embedded model
+ * reaches the server through the one-way importer, which lifts the roster with
+ * {@link mergeLegacyAgentFallbacks} on the way. A course loaded here is a server
+ * document, so its mirror is empty.
  */
 export async function loadLegacyAgentFallbacksFromDB(
-  stageId: string,
+  _stageId: string,
 ): Promise<GeneratedAgentConfig[] | null> {
-  try {
-    const { getGeneratedAgentsByStageId } = await import('@/lib/utils/database');
-    const records = await getGeneratedAgentsByStageId(stageId);
-    return records.map((record) => {
-      // Historical mirror rows spread the whole generated profile, so rows may
-      // carry a voiceConfig that never made it into the declared record type.
-      const voiceConfig = (record as { voiceConfig?: GeneratedAgentConfig['voiceConfig'] })
-        .voiceConfig;
-      return {
-        id: record.id,
-        name: record.name,
-        role: record.role,
-        persona: record.persona,
-        avatar: record.avatar,
-        color: record.color,
-        priority: record.priority,
-        ...(voiceConfig ? { voiceConfig } : {}),
-        ...(record.voiceDesign ? { voiceDesign: record.voiceDesign } : {}),
-      };
-    });
-  } catch {
-    // Signal failure (vs. an empty mirror): the probe memo must not treat a
-    // transient IndexedDB error as "nothing to migrate".
-    return null;
-  }
+  return [];
 }
 
 /**
@@ -745,12 +581,6 @@ export function commitMigratedAgentConfigsToStore(
 }
 
 export const defaultClassroomLoadDeps = {
-  applyFallbackScenes: (args: ApplyHydratedClassroomFallbackScenesArgs) =>
-    applyHydratedClassroomFallbackScenes({
-      ...args,
-      hydrateChats: hydrateClassroomFallbackChats,
-    }),
-  fetchClassroom: fetchClassroomFromApi,
   loadRestoredMediaTasks: loadRestoredMediaTasksFromDB,
   applyRestoredMediaTasks,
   discardRestoredMediaTasks,

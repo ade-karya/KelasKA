@@ -47,6 +47,7 @@ function normalizePercentHexCase(value: string): string {
 
 const LOCALE_RESOURCES: Record<Locale, Record<string, unknown>> = {
   'en-US': enUS,
+  'id-ID': idID,
   'zh-CN': zhCN,
   'zh-TW': zhTW,
   'ja-JP': jaJP,

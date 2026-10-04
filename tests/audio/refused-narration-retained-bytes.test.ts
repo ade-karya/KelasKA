@@ -20,8 +20,10 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
+import { setModelSettingsViewForTests } from '../helpers/model-settings-view';
+
 const mocks = vi.hoisted(() => ({
-  getCurrentModelConfig: vi.fn(),
+  parallelSceneConcurrency: 0,
   settingsState: vi.fn(),
   audioGet: vi.fn(),
   audioPut: vi.fn(),
@@ -38,12 +40,13 @@ const mocks = vi.hoisted(() => ({
   resolveAgentVoiceOptions: vi.fn(),
   listAgents: vi.fn(),
   toastWarning: vi.fn(),
-  serverBacked: vi.fn(),
 }));
 
-vi.mock('@/lib/utils/model-config', () => ({
-  getCurrentModelConfig: mocks.getCurrentModelConfig,
+// How many narration clips may be generated at once (GET /api/health).
+vi.mock('@/lib/generation/server-generation-settings', () => ({
+  getParallelSceneConcurrency: async () => mocks.parallelSceneConcurrency,
 }));
+
 vi.mock('@/lib/store/settings', () => ({
   useSettingsStore: { getState: mocks.settingsState },
 }));
@@ -52,7 +55,7 @@ vi.mock('@/lib/utils/stage-storage', () => ({
   saveStageData: mocks.saveStageData,
   saveStageDataIncremental: mocks.saveStageDataIncremental,
 }));
-vi.mock('@/lib/utils/database', () => ({
+vi.mock('@/lib/device-storage/database', () => ({
   mediaFileKey: (stageId: string, ref: string) => `${stageId}:${ref}`,
   db: {
     audioFiles: { get: mocks.audioGet, put: mocks.audioPut, delete: mocks.audioDelete },
@@ -72,9 +75,6 @@ vi.mock('@/lib/media/asset-pool-config', async (importOriginal) => {
       ({ put: mocks.poolPut }) as unknown as import('@/lib/media/asset-pool-config').AssetPoolStore,
   };
 });
-vi.mock('@/lib/persistence/media-persistence', () => ({
-  isServerBackedMediaPersistence: mocks.serverBacked,
-}));
 vi.mock('@/lib/audio/provider-enablement', () => ({
   isTTSProviderEnabled: mocks.isTTSProviderEnabled,
 }));
@@ -190,8 +190,6 @@ describe('narration refused for want of room', () => {
     mocks.mediaPut.mockReset().mockResolvedValue(undefined);
     mocks.mediaGet.mockReset().mockResolvedValue(undefined);
     mocks.mediaDelete.mockReset().mockResolvedValue(undefined);
-    mocks.serverBacked.mockReset().mockReturnValue(true);
-    mocks.getCurrentModelConfig.mockReturnValue({});
     mocks.settingsState.mockReturnValue({
       imageProviderId: '',
       imageProvidersConfig: {},
@@ -199,11 +197,13 @@ describe('narration refused for want of room', () => {
       videoProviderId: '',
       videoProvidersConfig: {},
       videoGenerationEnabled: false,
-      ttsProviderId: 'server-tts',
+      ttsVoiceProviderId: 'server-tts',
       ttsProvidersConfig: { 'server-tts': { apiKey: 'tts-key', modelId: 'tts-model' } },
       ttsVoice: 'narrator',
       ttsSpeed: 1,
     });
+    // The workspace's tts slot resolves to this provider.
+    setModelSettingsViewForTests({ tts: { registryId: 'server-tts', modelId: 'tts-model' } });
     mocks.isTTSProviderEnabled.mockReturnValue(true);
     mocks.pickNarratorAgent.mockReturnValue(undefined);
     mocks.resolveAgentVoiceOptions.mockResolvedValue({});
@@ -349,20 +349,5 @@ describe('narration refused for want of room', () => {
 
     await expect(generateAndStoreTTS('tts_s2_action_1', 'Hello class')).resolves.toBeNull();
     expect(mocks.audioPut).not.toHaveBeenCalled();
-  });
-
-  // Browser-only mode has no pool to refuse anything: document and audio share
-  // one lifetime, and the derived key is a complete address.
-  it('leaves browser-only narration exactly as it was', async () => {
-    const rows = modelAudioTable();
-    mocks.serverBacked.mockReturnValue(false);
-    mockFetch.mockResolvedValueOnce(ttsResponse());
-
-    const scene = sceneWithOneLine();
-    await expect(generateTTSForScene(scene)).resolves.toEqual({ success: true, failedCount: 0 });
-
-    expect(mocks.poolPut).not.toHaveBeenCalled();
-    expect(audioIdOf(scene)).toBe(derivedRef);
-    expect(rows.get(derivedRef)).toBeDefined();
   });
 });

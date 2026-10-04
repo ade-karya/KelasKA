@@ -5,6 +5,8 @@
  * claims, lease generations, event ordering, cancellation, and conversation
  * recovery. A client connection is never part of the execution lifetime.
  */
+import { serverMediaConnection } from '@/lib/server/model-config/media';
+import { backgroundWorkspaceId } from '@/lib/server/model-config/runtime';
 import { randomUUID } from 'node:crypto';
 import { Session, type AgentEvent, type AgentMessage } from '@earendil-works/pi-agent-core';
 import {
@@ -24,6 +26,7 @@ import { parseElementRefs, type ElementRef } from '@/lib/workbench/element-refs'
 import type { Scene, SlideContent } from '@/lib/types/stage';
 
 import { resolveAgentDriverModel } from './agent-driver-model';
+import { opencodeCliStreamFnOptions } from './agent-driver-opencode';
 import { buildAskUserTool } from './ask-user';
 import { agentRuntimeConfig as config } from './config';
 import { buildCreateSkillTool } from './create-skill';
@@ -75,6 +78,7 @@ import { buildScenePreviewTools } from './scene-preview';
 import {
   AgentSessionEntryStorage,
   loadSessionEntryHistory,
+  readPriorRunRecord,
   type SessionEntryHistory,
 } from './entry-tree-storage';
 import { planResume, type ResumeAction } from './resume';
@@ -87,7 +91,8 @@ import {
 import { getAgentSessionStore } from './store';
 import { listAgentUserMessages } from './user-messages';
 import { subscribeAgentEventWakeup } from './event-notify-bus';
-import { getOwnerScopedDocumentStore } from './owner-scoped-documents';
+import { getBackgroundDocumentStore } from './owner-scoped-documents';
+import { canonicalizeStoredOwner } from '@/lib/persistence/owner-merges';
 import { assertCurrentStageMutationActive } from './mutation-fence';
 import { inventorySlide } from './course-edit/apply';
 import {
@@ -769,15 +774,33 @@ export async function composeFollowUpTextWithElementRefs(
   return composeFollowUpText({ ...message, resolvedElementRefs });
 }
 
+/**
+ * The session's opening message among the pending ones: the first, unless
+ * earlier runs left the tree empty and it was posted after the first of them
+ * (then it is a follow-up, and the session was created without one).
+ */
+export function openingMessage(
+  pending: readonly FollowUpMessage[],
+  firstRunSeq?: number,
+): FollowUpMessage | undefined {
+  const first = pending[0];
+  if (!first || firstRunSeq === undefined) return first;
+  return first.durableMessageSeq !== undefined && first.durableMessageSeq < firstRunSeq
+    ? first
+    : undefined;
+}
+
 export function planRunStart(input: {
   plan: ResumeAction;
   claimReason: AgentSessionClaimReason;
   pending: FollowUpMessage[];
   prompt: string;
   idleAttach?: boolean;
+  /** {@link SessionEntryHistory.firstRunSeq}: earlier runs left the tree empty. */
+  firstRunSeq?: number;
 }): RunStart {
-  if (input.plan.kind === 'start' && input.pending.length > 0 && input.idleAttach) {
-    const opening = input.pending[0]!;
+  const opening = openingMessage(input.pending, input.firstRunSeq);
+  if (input.plan.kind === 'start' && opening && input.idleAttach) {
     return {
       kind: 'prompt',
       text: composeFollowUpText(opening),
@@ -790,7 +813,7 @@ export function planRunStart(input: {
     // message. Its classrooms must reach the model, or the run would not know
     // which classroom the user named. Nothing else changes: the raw prompt is
     // still the base, and materials are already listed in the system block.
-    const opening = input.pending[0];
+    // Messages that are not the opening one are delivered as follow-ups.
     if (opening?.courseRefs?.length || opening?.elementRefs?.length) {
       return {
         kind: 'prompt',
@@ -946,7 +969,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     );
     return loadSessionEntryHistory(entrySession, {
       sessionId: id,
-      hasPriorRun: await store.hasSessionRunHistory(id),
+      priorRuns: () => readPriorRunRecord(store, id),
     });
   };
 
@@ -1237,7 +1260,14 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       return;
     }
 
-    if (plan.kind === 'start' && (pending.length === 0 || !idleAttach)) {
+    // `session_start` opens the conversation once. A run that starts over on
+    // a tree earlier runs left empty (they failed before completing anything)
+    // resumes it instead, so the opening prompt is not painted again.
+    if (
+      plan.kind === 'start' &&
+      recovery.firstRunSeq === undefined &&
+      (pending.length === 0 || !idleAttach)
+    ) {
       emit(LIFECYCLE.sessionStart, {
         workerId: WORKER_ID,
         pid: process.pid,
@@ -1259,13 +1289,20 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       });
     }
 
-    const driver = await resolveAgentDriverModel();
+    const driver = await resolveAgentDriverModel(await backgroundWorkspaceId(meta.ownerId));
+    if (driver.isCliDriver) {
+      log.info(
+        `session ${id}: CLI driver ${driver.connection.modelString} via ${driver.driverApi ?? 'opencode-cli'} (envelope tools, no key)`,
+      );
+    }
+    const cliOpts = driver.isCliDriver ? opencodeCliStreamFnOptions(driver) : null;
     const streamFn = createCallLlmStreamFn({
       languageModel: driver.connection.model,
-      maxOutputTokens: driver.wireMaxOutputTokens,
-      omitMaxOutputTokens: driver.wireMaxOutputTokens === undefined,
+      supportsToolImages: driver.connection.modelInfo?.capabilities?.vision,
+      maxOutputTokens: cliOpts ? cliOpts.maxOutputTokens : driver.wireMaxOutputTokens,
+      omitMaxOutputTokens: cliOpts ? cliOpts.omitMaxOutputTokens : driver.wireMaxOutputTokens === undefined,
       thinkingConfig: driver.connection.thinkingConfig,
-      source: 'agent-runtime',
+      source: cliOpts ? cliOpts.source : 'agent-runtime',
       abortSignal: abort.signal,
     });
     let questionEmitted = false;
@@ -1283,7 +1320,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     // unconfigured deployment gets no tool, so the model never sees a dead one.
     // Every result URL is registered with this session's durable URL trust
     // gate before the tool result is returned (reference semantics).
-    const search = resolveWebSearchCapability();
+    const search = await resolveWebSearchCapability(await backgroundWorkspaceId(meta.ownerId));
     const webSearchTools = search
       ? [
           buildWebSearchTool(search, (urls) =>
@@ -1300,7 +1337,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     // that carries them never persists a JSON-null key (reference semantics).
     // `getAgentSessionStore` above already guards on DATABASE_URL, so the
     // provider can only be reached with a configured connection string.
-    const ownerScopedStore = (await getOwnerScopedDocumentStore(
+    const ownerScopedStore = (await getBackgroundDocumentStore(
       meta.ownerId,
       async (transaction) => {
         assertCurrentStageMutationActive();
@@ -1314,7 +1351,11 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     // legitimately patches the document minutes after its run ended, when
     // the lease is already released; wiring the run's store there would make
     // every post-run patch throw AgentSessionLeaseLostError.
-    const mediaJobStore = (await getOwnerScopedDocumentStore(meta.ownerId, async () => {
+    // The owner the run's courses belong to now. A claim can move the run's
+    // owner to an account mid-run; the probe then sees the moved courses as
+    // the run's own, as the forwarding stores above do.
+    const currentOwner = () => canonicalizeStoredOwner(meta.ownerId);
+    const mediaJobStore = (await getBackgroundDocumentStore(meta.ownerId, async () => {
       assertCurrentStageMutationActive();
     })) as CourseStore;
     const resolveFollowUpElementContext = async (
@@ -1322,7 +1363,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     ): Promise<FollowUpMessage> => {
       if (!message.elementRefs?.length) return message;
       const stageId = message.elementRefs[0]!.stageId;
-      const access = await probeStageAccess(meta.ownerId, stageId).catch(() => null);
+      const access = await probeStageAccess(await currentOwner(), stageId).catch(() => null);
       const stageTitle = access?.kind === 'owned' ? access.stage.name : undefined;
       const targets = await resolveElementRefsForContext(
         message.elementRefs,
@@ -1343,6 +1384,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       pending,
       prompt: meta.prompt,
       idleAttach,
+      firstRunSeq: recovery.firstRunSeq,
     });
     // The owner probe is the tool layer's legality boundary: every course call
     // declares its stageId, and stageAccess resolves that stage against the
@@ -1350,18 +1392,25 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     // touches the store. One probe factory is threaded into the course+DSL
     // toolset, the curriculum toolset, and the scene-preview tool (reference
     // semantics: three call sites, one probe).
-    const stageAccess = (stageId: string) => probeStageAccess(meta.ownerId, stageId);
+    const stageAccess = async (stageId: string) => probeStageAccess(await currentOwner(), stageId);
     // The stage read/patch toolset and the stage-level CRUD it needs. All of
     // them write through `ownerScopedStore`; every stageId-bearing tool is
     // owner-gated by `withOwnerStageAuthorization`, and patch_stage is marked
     // sequential by the shared STAGE_WRITER_TOOL_NAMES registry
     // (course-tools.ts).
+    // The tts slot for this run's owner: narration, the voice catalog and
+    // voice registration all use its provider.
+    const ttsConnection = await serverMediaConnection('tts', meta.ownerId);
     const dslTools = buildDslCourseToolset({
       store: ownerScopedStore,
       backgroundStore: mediaJobStore,
+      // The video slot for this run's owner; generate_video exists only when
+      // it resolves to a usable provider.
+      videoConnection: await serverMediaConnection('video', meta.ownerId),
       stageAccess,
       onCheckpoint: (info) => emit(LIFECYCLE.checkpoint, info),
       sessionId: id,
+      ownerId: meta.ownerId,
       abortSignal: abort.signal,
       getActiveSkill: () => activeSkill,
     });
@@ -1405,6 +1454,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         onCheckpoint: (info) => emit(LIFECYCLE.checkpoint, info),
         sessionId: id,
         registeredVoices: sessionRegisteredVoices,
+        ttsConnection,
       }),
       { stageAccess },
     );
@@ -1416,8 +1466,9 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     const voiceCloneTools = buildVoiceCloneTools({
       sessionId: id,
       registeredVoices: sessionRegisteredVoices,
+      ttsConnection,
     });
-    const voiceRegistrationEnabled = hasConfiguredVoiceRegistrationCapability();
+    const voiceRegistrationEnabled = hasConfiguredVoiceRegistrationCapability(ttsConnection);
     const personalHistoryTools = buildPersonalHistoryTools(
       meta.ownerId,
       createPersonalHistorySource({
@@ -1438,7 +1489,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       // Skill created earlier IN THIS RUN is not in `installedSkills` (loaded
       // once at start), and a tool that appears only on the next run would be a
       // capability the model cannot discover when it needs it.
-      buildSkillEditTools(meta.ownerId),
+      buildSkillEditTools(meta.ownerId, currentOwner),
       // The native `read` tool is restricted to installed skill resources; it is
       // present exactly when skills exist. Discovery and invocation stay pi-native.
       skillReadTool ? [skillReadTool] : [],
@@ -1447,7 +1498,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       // web_search). The URL trust gate — not registration — is what keeps a
       // fetch inside the session's observed origins, and it is the tool's core
       // security property.
-      [buildFetchUrlTool({ sessionId: id })],
+      [buildFetchUrlTool({ sessionId: id, ownerId: meta.ownerId })],
       dslTools,
       curriculumTools,
       scenePreviewTools,

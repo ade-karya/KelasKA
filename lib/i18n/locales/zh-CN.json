@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
-    "greetingWithName": "嗨，{{name}}"
+    "greetingWithName": "嗨，{{name}}",
+    "vocationalTestBadge": "测试功能",
+    "vocationalTestLabel": "职教任务",
+    "vocationalTestTooltip": "从当前输入框提交职教实操训练测试"
   },
   "toolbar": {
     "pdfParser": "解析器",
@@ -47,7 +50,18 @@
     "interactiveModeLabel": "深度交互",
     "vocationalTestBadge": "测试功能",
     "vocationalTask": "职教任务",
-    "vocationalTestHint": "从当前输入框提交职教实操训练测试"
+    "vocationalTestHint": "从当前输入框提交职教实操训练测试",
+    "modelChangeFailed": "无法切换模型：{{message}}",
+    "modelLockedHint": "课程使用的模型，由此服务器设定",
+    "pickModel": "选择模型",
+    "defaultModel": "默认",
+    "defaultModelNote": "这里修改默认模型，单独配置的环节不受影响",
+    "stagesSetSeparately": "{{count}} 个环节单独配置",
+    "stagesSetSeparately_one": "{{count}} 个环节单独配置",
+    "stagesSetSeparately_other": "{{count}} 个环节单独配置",
+    "stagesSetSeparatelyHint": "单独配置模型的环节",
+    "perStageSetup": "按环节配置",
+    "perStageSetupHint": "课程生成的每个环节都已单独配置模型"
   },
   "export": {
     "pptx": "导出 PPTX",
@@ -106,7 +120,10 @@
     "subtitlesFailed": "字幕下载失败",
     "noSlides": "无可导出的幻灯片",
     "noSlidesSkipped": "本课程无幻灯片，已跳过 PPTX",
-    "nothingToExport": "没有可导出的内容"
+    "nothingToExport": "没有可导出的内容",
+    "videoQueueFull": "渲染队列繁忙，请稍后重试。",
+    "videoRenderInProgress": "已有渲染任务正在进行，请稍后重试。",
+    "videoTooLarge": "导出文件超过服务允许的大小。"
   },
   "import": {
     "classroom": "导入课堂",
@@ -139,14 +156,16 @@
     "softClosing": "继续讨论",
     "error": {
       "emptyAgentResponses": "智能体连续无响应,讨论已停止。请重新尝试或检查模型配置。",
-      "streamInterrupted": "数据流意外中断,讨论未能完成。请重新尝试。"
+      "streamInterrupted": "数据流意外中断,讨论未能完成。请重新尝试。",
+      "rateLimited": "模型当前请求过多,请稍后再试。",
+      "providerUnavailable": "模型服务暂时不可用,请稍后重试。"
     },
     "elementReference": {
-      "button": "引用课件",
-      "unavailable": "仅可引用当前 PPT 页面或受支持的互动组件",
-      "instruction": "点击一个课件元素 · Esc 退出",
-      "fallback": "其他课件元素（{{count}}）",
-      "clear": "取消课件引用",
+      "button": "引用内容",
+      "unavailable": "当前内容暂不支持元素引用",
+      "instruction": "点击一个元素 · Esc 退出",
+      "fallback": "其他元素（{{count}}）",
+      "clear": "取消引用",
       "summary": {
         "noText": "无文字",
         "emptyContent": "无内容",
@@ -155,7 +174,8 @@
         "imageMetadata": "图片（仅引用元数据）",
         "videoMetadata": "视频（仅引用元数据）",
         "audioMetadata": "音频（仅引用元数据）"
-      }
+      },
+      "whiteboardChanged": "引用的白板元素已变化或不可用，请重新选择或移除引用后再发送。"
     },
     "tabs": {
       "lecture": "笔记",
@@ -173,6 +193,10 @@
       "qa": "Q&A",
       "discussion": "讨论",
       "lecture": "授课"
+    },
+    "interactiveRuntimeError": {
+      "title": "这个互动未能运行",
+      "dismiss": "关闭"
     }
   },
   "actions": {
@@ -409,7 +433,16 @@
       "sendBackward": "下移一层",
       "alignTop": "顶部对齐",
       "alignMiddle": "垂直居中",
-      "alignBottom": "底部对齐"
+      "alignBottom": "底部对齐",
+      "alignCenterBoth": "水平垂直居中",
+      "setLink": "设置链接",
+      "ruler": "标尺",
+      "grid": "网格线",
+      "gridNone": "无",
+      "gridSmall": "小",
+      "gridMedium": "中",
+      "gridLarge": "大",
+      "resetPage": "重置当前页"
     },
     "background": {
       "label": "背景",
@@ -1027,7 +1060,9 @@
     "fileTooLarge": "文件过大，请选择小于 50MB 的文件",
     "courseMaterialCountLimit": "最多可上传 5 个课程材料文件",
     "courseMaterialTotalSizeLimit": "课程材料总大小需小于 150MB",
-    "unsupportedCourseMaterial": "当前解析器不支持该格式，请切换解析器或选择其他文件"
+    "unsupportedCourseMaterial": "{{parser}} 不支持该文件类型，当前支持：{{formats}}",
+    "courseMaterialFormats": "支持 {{formats}}，单个最大 {{size}}MB",
+    "formatListSeparator": "、"
   },
   "generation": {
     "pdfLoadFailed": "无法加载 PDF 文件，请重试",
@@ -1138,7 +1173,8 @@
     "webSearchFailed": "网络搜索失败",
     "outlinesReadyCount": "{{ready}} / {{total}} 章节就绪",
     "jumpToBlankTitle": "跳到待补充标题的章节",
-    "analyzingMediaMaterial": "解析音视频内容"
+    "analyzingMediaMaterial": "解析音视频内容",
+    "modelSettingsUnavailable": "无法读取模型设置，已停止生成。请重试。"
   },
   "settings": {
     "title": "设置",
@@ -1243,14 +1279,16 @@
       "brave": "Brave Search",
       "baidu": "百度",
       "claude": "Claude",
-      "searxng": "SearXNG"
+      "searxng": "SearXNG",
+      "opencode": "OpenCode CLI"
     },
     "providerTypes": {
       "openai": "OpenAI 协议",
       "azure": "Azure OpenAI",
       "anthropic": "Claude 协议",
       "google": "Gemini 协议",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "个模型",
     "modelSingular": "个模型",
@@ -1294,7 +1332,8 @@
     "capabilities": {
       "vision": "视觉",
       "tools": "工具",
-      "streaming": "流式"
+      "streaming": "流式",
+      "thinking": "思考"
     },
     "contextWindow": "上下文",
     "contextShort": "上下文",
@@ -1774,13 +1813,13 @@
     "modelNotConfigured": "请选择一个模型以开始使用",
     "dangerZone": "危险区域",
     "clearCache": "清空本地缓存",
-    "clearCacheDescription": "删除所有本地存储的数据，包括课堂记录、对话历史、音频缓存和应用配置。此操作不可撤销。",
+    "clearCacheDescription": "删除此浏览器本地保存的数据：音频和媒体缓存、撤销历史、浏览器语音配置和应用设置。课堂和对话历史保存在服务器上，不受影响。",
     "clearCacheConfirmTitle": "确定要清空所有缓存吗？",
-    "clearCacheConfirmDescription": "此操作将永久删除以下所有数据，且无法恢复：",
-    "clearCacheConfirmItems": "课堂和场景数据、对话历史记录、音频和图片缓存、应用设置和偏好",
+    "clearCacheConfirmDescription": "此操作将从此浏览器中永久删除以下数据：",
+    "clearCacheConfirmItems": "音频和媒体缓存、撤销历史、浏览器语音配置、应用设置和偏好",
     "clearCacheConfirmInput": "请输入「确认删除」以继续",
     "clearCacheConfirmPhrase": "确认删除",
-    "clearCacheButton": "永久删除所有数据",
+    "clearCacheButton": "删除本地数据",
     "clearCacheSuccess": "缓存已清空，页面即将刷新",
     "clearCacheFailed": "清空缓存失败，请重试",
     "clearCacheBlockedByOtherTabs": "请关闭其他打开此应用的标签页，然后重试。",
@@ -1855,7 +1894,36 @@
       "updateKey": "更新密钥",
       "modelsCount": "{{n}} 个模型",
       "capabilities": "套餐提供的能力",
-      "offeredNote": "套餐提供的模型清单。请在生成界面选择需要使用的模型——是否可用取决于你的套餐档位，不支持的模型会在生成时报错。"
+      "offeredNote": "套餐提供的模型清单。请在生成界面选择需要使用的模型——是否可用取决于你的套餐档位，不支持的模型会在生成时报错。",
+      "statusConnected": "已连接",
+      "keyStorage": "密钥加密保存在服务器上，之后不再显示。连接后会将该套餐推荐的模型应用到课程环节；如果会替换你已选的模型，会先征求你的确认。",
+      "saveKey": "保存并启用",
+      "cancelKeyUpdate": "取消更新",
+      "manageAccount": "管理账号",
+      "disconnect": "解除连接",
+      "disconnectTitle": "解除套餐连接？",
+      "disconnectBody": "解除后不再使用此套餐发起新调用，不会取消你在服务商处的订阅。",
+      "statusNotConnected": "未连接",
+      "balanceManagement": "余额管理",
+      "modelPlan": "查看模型方案",
+      "planNoteEntitlement": "套餐能力与费用以服务商为准。",
+      "planUnavailable": "模型未披露",
+      "planNoteEditable": "此为默认配置，各节点对应模型可在「课程模型配置」中修改",
+      "capImage": "图像生成",
+      "capLlm": "文本生成",
+      "capTts": "语音合成",
+      "capVideo": "视频生成",
+      "capWebSearch": "联网搜索",
+      "saved": "连接设置已保存",
+      "stageInteractive": "互动页面",
+      "stageSlide": "课件页面",
+      "applyTitle": "使用该套餐的推荐配置？",
+      "applyBody": "{{name}} 为以下环节推荐了自己的模型，这些环节目前使用的是你选的模型：",
+      "applyKeep": "保留当前配置",
+      "applyRecommended": "使用套餐推荐配置",
+      "statusDisabled": "已连接（未启用）",
+      "enableThisPlan": "启用此套餐",
+      "enableThisPlanHint": "关闭后，此套餐不再出现在课程模型配置中"
     },
     "skills": {
       "nav": "技能",
@@ -1886,7 +1954,297 @@
     },
     "ttsBrowserNativeTimelineNotice": "浏览器内置 TTS 不支持编辑器时间轴的音频功能（试听、重新生成、全部配音）。切换到托管 TTS 提供方即可逐句生成和管理音频。",
     "alidocmindAccessKeyId": "AccessKey ID",
-    "alidocmindAccessKeySecret": "AccessKey Secret"
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "providerGoogleTTS": "Google Gemini TTS",
+    "qwenCloneUploadShort": "上传",
+    "ttsSpeedUnsupported": "此提供方不支持调节语速。",
+    "courseModels": {
+      "nav": "课程模型配置",
+      "mainModel": "主线语言模型",
+      "mainModelHint": "跟随主线的环节共用此模型，点击卡片可单独指定",
+      "mainModelTooltip": "所有「跟随主线」的环节使用此模型。点击流程卡片可单独指定模型（用户级 stage 路由，优先级低于服务端 MODEL_ROUTES），细分环节在卡片检查器中展开。",
+      "noProviderHint": "尚无可用的语言模型，请先在「模型服务」中配置",
+      "followMainline": "跟随主线",
+      "followParent": "跟随上级",
+      "restoreFollow": "恢复跟随主线",
+      "stopped": "已停用",
+      "loop": "循环",
+      "parallel": "并行",
+      "visionSupported": "支持视觉输入",
+      "modelSource": "模型来源",
+      "mainlineUnset": "未指定",
+      "pickModel": "选择模型",
+      "pickProvider": "选择服务",
+      "optionInvalid": "已失效",
+      "subStagesTitle": "细分环节",
+      "subStages": {
+        "title": "标题生成",
+        "slide": "幻灯页",
+        "quiz": "测验题",
+        "interactive": "互动脚本",
+        "pbl": "PBL 剧本"
+      },
+      "servicesAndModels": "服务与模型",
+      "searchService": "搜索服务",
+      "parseService": "解析服务",
+      "asrTranscribe": "语音转写",
+      "aiIllustration": "AI 配图",
+      "aiVideo": "AI 视频",
+      "stations": {
+        "docParse": "文档解析",
+        "webResearch": "联网调研",
+        "outline": "大纲规划",
+        "agents": "角色生成",
+        "sceneContent": "场景内容",
+        "sceneActions": "讲稿动作",
+        "tts": "语音合成",
+        "media": "媒体生成",
+        "interaction": "课堂互动",
+        "desc": {
+          "doc-parse": "上传的课程资料（文档/幻灯/音视频）解析为文本；音视频自动转写。",
+          "web-research": "按课程要求联网检索补充资料；搜索词由轻量 LLM 改写。",
+          "outline": "理解需求与资料，产出课程标题与分场景大纲（可人工审阅）。",
+          "agents": "生成课堂中的师生智能体档案（人设、头像、声音）。",
+          "scene-content": "逐场景生成幻灯/测验/互动/PBL 内容，是管线中最重的 LLM 环节。",
+          "scene-actions": "为场景内容补全讲解词与教学动作，供语音合成与课堂演绎。",
+          "tts": "把讲稿合成为师生语音（逐场景、串行）。",
+          "media": "兑现内容中的图片/视频占位符，与逐场景流程并行执行。",
+          "interaction": "课程生成后的课堂运行期：多智能体对话、PBL 运行时与测验批改。"
+        }
+      },
+      "mediaEnableNeedsSetup": "请先在「模型服务」配置 API Key，或启用 Token Plan 后再开启"
+    },
+    "modelServices": {
+      "configured": "已配置",
+      "configuredHint": "已配置，可供课程生成使用",
+      "desc": {
+        "asr": "配置语音识别服务与默认模型",
+        "image": "配置图像生成服务（API Key、工作流与模型目录）",
+        "pdf": "配置文档解析服务的凭证（内置服务无需配置）",
+        "providers": "配置语言模型服务的凭证、接口地址与模型目录",
+        "tts": "配置语音合成服务、音色与模型",
+        "video": "配置视频生成服务的凭证与模型目录",
+        "webSearch": "配置网络搜索服务与检索来源"
+      },
+      "nav": "模型服务",
+      "notConfigured": "未配置",
+      "notConfiguredHint": "未配置，填写凭证后即可使用",
+      "pending": "待配置",
+      "ready": "已就绪"
+    },
+    "more": "更多操作",
+    "providerLinks": {
+      "domestic": "国内",
+      "getApiKey": "获取 API Key",
+      "international": "海外"
+    },
+    "serverConfig": {
+      "loading": "正在加载模型设置…",
+      "loadFailed": "无法加载模型设置：{{message}}",
+      "retry": "重试",
+      "unavailableTitle": "模型由服务器统一管理",
+      "unavailableBody": "此服务器不保存工作区的模型设置，使用的是管理员配置的模型。",
+      "conflict": "设置已在别处被修改并已重新加载，请检查后重试。",
+      "lockedNow": "该项现由服务器设定，未做修改。",
+      "unconfirmed": "服务器的响应丢失，已重新加载设置，请确认修改是否生效。",
+      "serverOnly": "此服务只能通过服务器配置（openmaic.yml）设置，请联系服务器管理员。",
+      "serverOnlyPolicy": "此服务器不允许工作区添加自己的服务，请联系服务器管理员。",
+      "endpointServerOnly": "此服务使用其官方地址；只有服务器配置可以改为其他地址。",
+      "endpointChatOnly": "使用自定义地址时，此服务仅用于语言模型。",
+      "keyStored": "服务器上已保存密钥（{{mask}}）。",
+      "keyStoredPlaceholder": "已保存密钥 {{mask}}，输入新密钥即可替换",
+      "keyUnreadable": "已保存的密钥无法再读取，请重新输入。",
+      "removeKey": "删除密钥",
+      "showKey": "显示密钥",
+      "hideKey": "隐藏密钥",
+      "inUse": "使用中",
+      "modelFromCatalogue": "模型名称、能力与上下文窗口来自内置目录。",
+      "modelWhenInUse": "在「课程模型配置」中选用此服务后生效。",
+      "planServer": "由服务器配置",
+      "providerIdHint": "保存为「{{id}}」",
+      "openaiCompatible": "OpenAI 兼容",
+      "notNarration": "此服务不是当前工作区的旁白语音。",
+      "useForNarration": "用作旁白语音",
+      "fetchNotSaved": "已找到模型，但未能保存，请重试。",
+      "regionalEndpointHint": "Azure 语音服务只接受你的资源所在区域的官方地址：{{template}}。"
+    },
+    "modelSettings": {
+      "card": {
+        "edit": "{{name}}：{{value}}，点击更换",
+        "toggle": "开启或关闭{{name}}",
+        "providerDefault": "默认模型",
+        "off": "已关闭",
+        "unassigned": "未配置",
+        "invalid": "配置无效",
+        "locked": "由服务端设置",
+        "lockedHint": "由服务端配置设置，无法在此更改。",
+        "followers": "跟随它的环节：{{count}}",
+        "childrenFollow": "页型 · 全部跟随",
+        "childrenOwn": "页型 · {{count}} 个单独设置"
+      },
+      "legend": {
+        "label": "图例",
+        "follows": "跟随上级",
+        "own": "单独设置",
+        "locked": "由服务端设置"
+      },
+      "map": {
+        "label": "课程模型图。拖动或使用方向键平移，使用缩放按钮缩放。",
+        "outside": "流水线之外",
+        "standalone": "独立功能",
+        "perPage": "逐页生成",
+        "zoom": "缩放",
+        "zoomIn": "放大（+）",
+        "zoomOut": "缩小（-）",
+        "fit": "适应窗口（0）",
+        "reset": "重置为 100%",
+        "hint": "拖动平移 · ⌘/Ctrl + 滚轮缩放 · 双击空白处适应窗口"
+      },
+      "picker": {
+        "follow": "跟随{{name}}",
+        "providers": "Provider",
+        "providerDefault": "默认模型",
+        "modelId": "模型 ID",
+        "use": "使用",
+        "off": "关闭",
+        "offHint": "此环节不运行",
+        "noProviders": "还没有服务提供此能力，请在「模型服务」中配置。",
+        "fallback": "备用",
+        "noFallback": "无",
+        "manageProviders": "在模型服务中管理",
+        "conflict": "设置已在别处更改并已重新加载，请检查后重试。",
+        "lockedNow": "服务端现在设置了此项，因此未作更改。",
+        "clear": "清除单独设置",
+        "clearHint": "改用服务端的设置（如有）",
+        "unconfirmed": "服务端的响应丢失，设置已重新加载。请检查更改是否已生效。",
+        "thinking": "思考"
+      },
+      "slots": {
+        "llm": {
+          "name": "默认模型",
+          "desc": "未单独设置的环节都使用这个语言模型。"
+        },
+        "courseResearch": {
+          "name": "搜索词改写",
+          "desc": "把课程主题改写成搜索词。"
+        },
+        "courseOutline": {
+          "name": "大纲",
+          "desc": "规划课程的各个页面。"
+        },
+        "courseAgents": {
+          "name": "角色",
+          "desc": "生成课堂中的老师和同学。"
+        },
+        "courseContent": {
+          "name": "课件内容",
+          "desc": "编写每一页。未单独设置的页型跟随这里。"
+        },
+        "courseContentSlide": {
+          "name": "幻灯片",
+          "desc": "编写幻灯片页。"
+        },
+        "courseContentQuiz": {
+          "name": "测验",
+          "desc": "编写测验页。"
+        },
+        "courseContentInteractive": {
+          "name": "交互页",
+          "desc": "编写交互页。"
+        },
+        "courseContentPbl": {
+          "name": "项目",
+          "desc": "编写项目式学习页。"
+        },
+        "courseActions": {
+          "name": "讲解动作",
+          "desc": "编排老师在每一页上说什么、做什么。"
+        },
+        "classroom": {
+          "name": "课堂互动",
+          "desc": "学习过程中的讨论、测验批改和项目。"
+        },
+        "agent": {
+          "name": "智能体",
+          "desc": "与你一起创建和编辑课程。需要支持工具调用的模型。"
+        },
+        "tts": {
+          "name": "配音",
+          "desc": "朗读讲解内容。"
+        },
+        "asr": {
+          "name": "语音输入",
+          "desc": "课堂里用语音提问时，把语音转成文字。"
+        },
+        "image": {
+          "name": "配图",
+          "desc": "为页面生成图片。"
+        },
+        "video": {
+          "name": "视频",
+          "desc": "为页面生成视频片段。"
+        },
+        "webSearch": {
+          "name": "联网搜索",
+          "desc": "生成课程时搜索网络。"
+        },
+        "document": {
+          "name": "文档解析",
+          "desc": "读取上传的文档。"
+        }
+      },
+      "source": {
+        "inherited": "跟随{{name}}",
+        "deployment": "服务端",
+        "default": "服务端默认"
+      },
+      "stations": {
+        "research": "联网调研",
+        "media": "配图 / 视频",
+        "lines": {
+          "rewrite": "改写",
+          "search": "搜索",
+          "image": "图像",
+          "video": "视频"
+        }
+      },
+      "empty": {
+        "prompt": "还没有可用的语言模型。在「模型服务」中配置服务，或在「Token Plan」中接入套餐，其模型会填入尚未设置的环节。",
+        "open": "打开模型服务",
+        "askAdmin": "尚未配置语言模型，请联系服务器管理员。"
+      }
+    },
+    "unimported": {
+      "toast": "此浏览器中的部分模型设置未能迁移到服务器，已列在「设置 → 模型服务」中。",
+      "title": "此浏览器中的部分设置未能迁移到服务器",
+      "description": "它们连同密钥只保留在此浏览器中。请在这里（或服务器配置中）重新设置，然后丢弃。",
+      "modelChoice": "{{slot}} 的模型选择：{{assignment}}",
+      "copyKey": "复制密钥",
+      "copyKeyPair": "复制密钥对",
+      "keyCopied": "已复制",
+      "copyFailed": "复制失败",
+      "dismiss": "丢弃",
+      "dismissTitle": "丢弃这些设置？",
+      "dismissDescription": "它们的密钥将从此浏览器中删除，且无法恢复。",
+      "reason": {
+        "refused": "服务器未接受：{{detail}}",
+        "reserved": "服务器已用同一名称配置了服务。",
+        "customService": "自定义语音服务只能在服务器上配置（openmaic.yml）。",
+        "keyPair": "使用密钥对的服务只能在服务器上配置（openmaic.yml）。",
+        "unsupported": "此类自定义服务商无法迁移：请作为 OpenAI 兼容端点重新添加。",
+        "unconfirmed": "服务器未确认已导入。"
+      }
+    },
+    "providerHuggingFaceImage": "Hugging Face FLUX",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face LivePortrait",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. LivePortrait animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the LivePortrait Space",
+    "enableThisProvider": "启用此提供方",
+    "enableThisProviderHint": "关闭后，此提供方不再出现在课程模型配置中"
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

@@ -7,8 +7,8 @@ import {
  * Edge-compatible verifier for HMAC-signed access tokens.
  *
  * This lives outside `proxy.ts` so it can be unit tested without loading
- * the Next.js middleware entrypoint, and it deliberately uses only the Web
- * Crypto API (no `node:crypto`) so Edge middleware can import it.
+ * the Next.js proxy entrypoint, and it deliberately uses only the Web
+ * Crypto API (no `node:crypto`) so the Edge proxy can import it.
  */
 
 /** Convert string to Uint8Array */

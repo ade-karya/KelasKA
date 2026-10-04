@@ -62,8 +62,9 @@ import type {
 import { trimmedPBLText } from '@/lib/pbl/v2/readers';
 import type { PBLSSEEvent } from '@/lib/pbl/v2/api/sse';
 import { applyInstructorEvent } from './apply-instructor-event';
-import { getCurrentModelConfig } from '@/lib/utils/model-config';
-import { useSettingsStore } from '@/lib/store/settings';
+import { PROVIDERS } from '@/lib/ai/providers';
+import { useModelSettingsView } from '@/lib/model-settings/use-model-settings';
+import { effectiveTarget } from '@/lib/model-settings/capabilities';
 import { normalizeProjectRuntime } from '@/lib/pbl/v2/operations/kernel/progress';
 import {
   appendRuntimeEvent,
@@ -256,7 +257,9 @@ export function buildRevisionGuidanceMessage(args: {
   revisionAttempt?: number;
 }): PBLChatMessage | null {
   if (!args.instructorId) return null;
-  const zh = args.language === 'zh-CN' || args.language === 'zh-TW';
+  const lang = args.language ?? '';
+  const isZh = lang === 'zh-CN' || lang === 'zh-TW';
+  const isId = lang === 'id-ID' || lang.toLowerCase().startsWith('id');
   const attempt = Math.max(1, args.revisionAttempt ?? 1);
   const zhOpening =
     attempt <= 1
@@ -270,17 +273,29 @@ export function buildRevisionGuidanceMessage(args: {
       : attempt === 2
         ? 'This still needs one more revision pass.'
         : 'Please keep revising this before we move on.';
-  const content = zh
+  const idOpening =
+    attempt <= 1
+      ? 'Tahan dulu versi ini sebelum lanjut.'
+      : attempt === 2
+        ? 'Kali ini masih perlu satu putaran revisi.'
+        : 'Masih perlu diperbaiki lagi.';
+  const content = isZh
     ? [
         zhOpening,
         '',
         '先参照上面的任务点评，把最影响下一步的一两处改稳。改好后在右侧重新提交，我再帮你看。',
       ].join('\n')
-    : [
-        enOpening,
-        '',
-        "Use the task review above to tighten the one or two points that most affect the next step. Submit the revision on the right, and I'll review it again.",
-      ].join('\n');
+    : isId
+      ? [
+          idOpening,
+          '',
+          'Perkuat satu-dua hal yang paling memengaruhi langkah berikutnya berdasarkan ulasan tugas di atas. Setelah diperbaiki, kirim ulang di sisi kanan, saya akan periksa lagi.',
+        ].join('\n')
+      : [
+          enOpening,
+          '',
+          "Use the task review above to tighten the one or two points that most affect the next step. Submit the revision on the right, and I'll review it again.",
+        ].join('\n');
   return {
     id: 'msg_' + Date.now().toString(16) + Math.random().toString(16).slice(2, 6),
     agentId: args.instructorId,
@@ -437,7 +452,6 @@ export function PBLV2SubmissionPanel({
     });
     let workingProject = structuredClone(snapshot);
     try {
-      const modelConfig = getCurrentModelConfig();
       const runStream = async (
         endpoint: string,
         body: Record<string, unknown>,
@@ -450,13 +464,8 @@ export function PBLV2SubmissionPanel({
           streamStatus,
           draft,
         });
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-          'x-model': modelConfig.modelString || '',
-          'x-api-key': modelConfig.apiKey || '',
-        };
-        if (modelConfig.baseUrl) headers['x-base-url'] = modelConfig.baseUrl;
-        if (modelConfig.providerType) headers['x-provider-type'] = modelConfig.providerType;
+        // The server runs the workspace's classroom model.
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         try {
           const stored = localStorage.getItem('locale');
           if (stored) headers['x-user-locale'] = stored;
@@ -922,12 +931,17 @@ function SubmissionModal({
   onSubmit,
 }: SubmissionModalProps) {
   const { t } = useI18n();
-  // Whether the currently-selected model can read images. Reactive so that
+  // Whether the model the evaluation runs on (the workspace's classroom slot)
+  // can read images, as far as the model catalogue says. Reactive so that
   // switching models (in Settings) updates the image-caption gating live.
-  const hasVision = useSettingsStore((s) => {
-    const model = findModelById(s.providerId, s.providersConfig[s.providerId]?.models, s.modelId);
-    return !!model?.capabilities?.vision;
-  });
+  const classroomModel = effectiveTarget(useModelSettingsView(), 'classroom');
+  const hasVision =
+    !!classroomModel?.modelId &&
+    !!findModelById(
+      classroomModel.registryId,
+      PROVIDERS[classroomModel.registryId as keyof typeof PROVIDERS]?.models,
+      classroomModel.modelId,
+    )?.capabilities?.vision;
   const [mode, setMode] = useState<'paste' | 'file'>('paste');
   const [text, setText] = useState('');
   const [filename, setFilename] = useState('');

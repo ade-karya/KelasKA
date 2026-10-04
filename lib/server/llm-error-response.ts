@@ -21,6 +21,11 @@ function toHttpErrorStatus(value: unknown): number | undefined {
     : undefined;
 }
 
+/** The provider's HTTP error status carried by an AI SDK (or similar) error, if any. */
+export function upstreamHttpStatus(error: unknown): number | undefined {
+  return statusFromError(error);
+}
+
 function statusFromError(error: unknown, seen = new Set<unknown>()): number | undefined {
   if (!error || seen.has(error)) return undefined;
   seen.add(error);
@@ -54,6 +59,22 @@ function messageForStatus(status: number): string {
   if (status === 429) return 'Upstream rate limit reached. Please try again shortly.';
   if (status >= 500) return 'Upstream model provider is temporarily unavailable. Please try again.';
   return 'Upstream provider rejected the request.';
+}
+
+/**
+ * Short actionable message for a live-chat stream failure that still carries
+ * the SDK error object (e.g. `RetryError: Failed after N attempts...`).
+ * Returns undefined when the error carries no upstream HTTP status, so callers
+ * keep the original message.
+ */
+export function friendlyUpstreamChatMessage(error: unknown): string | undefined {
+  const status = statusFromError(error);
+  if (status === 429) return 'Upstream rate limit reached. Please try again shortly.';
+  if (status !== undefined && status >= 500)
+    return 'Upstream model provider is temporarily unavailable. Please try again.';
+  if (status === 401 || status === 403)
+    return 'Upstream authentication failed. Please check the model configuration.';
+  return undefined;
 }
 
 /**

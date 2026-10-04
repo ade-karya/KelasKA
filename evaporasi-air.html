@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulasi Evaporasi Air — Suhu, Angin, Luas & Kelembapan</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<style>
+  html,body{height:100%;}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:44px;background:transparent;width:100%;cursor:pointer;}
+  input[type=range]::-webkit-slider-runnable-track{height:10px;border-radius:9999px;background:linear-gradient(to right,#0ea5e9 var(--fill,50%),#e2e8f0 var(--fill,50%));}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:28px;height:28px;margin-top:-9px;border-radius:9999px;background:#fff;border:4px solid #0284c7;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+  input[type=range]::-moz-range-track{height:10px;border-radius:9999px;background:#e2e8f0;}
+  input[type=range]::-moz-range-progress{height:10px;border-radius:9999px;background:#0ea5e9;}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:9999px;background:#fff;border:4px solid #0284c7;}
+  .touch-btn{min-height:44px;min-width:44px;}
+  #simCanvas{touch-action:none;display:block;width:100%;height:100%;}
+  .badge-pulse{animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .fade-up{animation:fadeUp .35s ease both;}
+</style>
+<script type="application/json" id="widget-config">
+{
+  "title": "Evaporasi Air",
+  "subject": "IPA / Fisika",
+  "variables": [
+    {"key":"suhuUdara","label":"Suhu Udara","unit":"°C","min":10,"max":45,"step":0.5,"default":30},
+    {"key":"kecepatanAngin","label":"Kecepatan Angin","unit":"m/s","min":0,"max":15,"step":0.5,"default":3},
+    {"key":"luasPermukaanAir","label":"Luas Permukaan Air","unit":"cm²","min":50,"max":500,"step":10,"default":200},
+    {"key":"kelembapanUdara","label":"Kelembapan Udara","unit":"%","min":5,"max":100,"step":1,"default":60}
+  ],
+  "presets": [
+    {"name":"Pagi Sejuk","suhuUdara":22,"kecepatanAngin":1,"luasPermukaanAir":150,"kelembapanUdara":80},
+    {"name":"Siang Panas Berangin","suhuUdara":36,"kecepatanAngin":8,"luasPermukaanAir":300,"kelembapanUdara":30},
+    {"name":"Hujan Lembap","suhuUdara":24,"kecepatanAngin":0.5,"luasPermukaanAir":200,"kelembapanUdara":95},
+    {"name":"Gurun Ekstrem","suhuUdara":43,"kecepatanAngin":12,"luasPermukaanAir":450,"kelembapanUdara":12}
+  ],
+  "initialWaterML": 200,
+  "maxSimSeconds": 300
+}
+</script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+<div class="max-w-7xl mx-auto p-3 md:p-6">
+  <header class="mb-3 md:mb-5 flex flex-wrap items-center gap-3">
+    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-700 grid place-items-center text-2xl" aria-hidden="true">💧</div>
+    <div class="flex-1 min-w-[200px]">
+      <h1 class="text-xl md:text-3xl font-extrabold tracking-tight">Evaporasi Air <span class="text-sky-400">— Lab Virtual</span></h1>
+      <p class="text-xs md:text-sm text-slate-300">Ubah <b>suhu</b>, <b>angin</b>, <b>luas permukaan</b>, dan <b>kelembapan</b>. Lihat laju uap air terbentuk secara real-time.</p>
+    </div>
+    <div id="stateBadge" class="touch-btn px-4 py-2 rounded-full text-sm font-bold bg-slate-700 border border-slate-500 flex items-center gap-2">
+      <span id="stateDot" class="w-3 h-3 rounded-full bg-gray-300 inline-block"></span><span id="stateText">Siap</span>
+    </div>
+  </header>
+
+  <div class="flex flex-col md:flex-row gap-3 md:gap-5 md:items-stretch">
+    <!-- CONTROL PANEL -->
+    <aside class="w-full md:w-[360px] shrink-0 bg-slate-900/80 border border-slate-700 rounded-2xl p-4 flex flex-col gap-4 max-h-[40vh] md:max-h-screen overflow-y-auto md:overflow-visible md:sticky md:top-4" id="controlPanel">
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="font-bold text-sky-300 text-sm tracking-wide uppercase">Panel Kontrol</h2>
+          <span class="text-[11px] text-slate-400">Space = ▶/⏸ • R = Reset</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2" id="presetRow">
+          <button data-preset="0" class="touch-btn preset-btn px-2 py-2 rounded-xl bg-teal-700 hover:bg-teal-600 active:scale-95 text-xs font-bold border border-teal-400/40 transition">🌤️ Pagi Sejuk</button>
+          <button data-preset="1" class="touch-btn preset-btn px-2 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 active:scale-95 text-xs font-bold border border-orange-300/40 transition">🔥 Siang Panas</button>
+          <button data-preset="2" class="touch-btn preset-btn px-2 py-2 rounded-xl bg-slate-600 hover:bg-slate-500 active:scale-95 text-xs font-bold border border-slate-300/30 transition">🌧️ Hujan Lembap</button>
+          <button data-preset="3" class="touch-btn preset-btn px-2 py-2 rounded-xl bg-red-700 hover:bg-red-600 active:scale-95 text-xs font-bold border border-red-300/40 transition">🏜️ Gurun Ekstrem</button>
+        </div>
+      </div>
+
+      <div class="space-y-4" id="sliders">
+        <div class="bg-slate-800/70 rounded-xl p-3 border border-slate-700">
+          <div class="flex justify-between items-center"><label for="suhuUdara" class="font-bold text-sm">🌡️ Suhu Udara</label><span id="v-suhuUdara" class="text-sm font-mono bg-red-900/60 border border-red-400/40 px-2 py-1 rounded-lg">30.0 °C</span></div>
+          <input id="suhuUdara" type="range" min="10" max="45" step="0.5" value="30" aria-label="Suhu Udara">
+          <div class="flex justify-between text-[11px] text-slate-400"><span>10°C dingin</span><span>45°C sangat panas</span></div>
+        </div>
+        <div class="bg-slate-800/70 rounded-xl p-3 border border-slate-700">
+          <div class="flex justify-between items-center"><label for="kecepatanAngin" class="font-bold text-sm">💨 Kecepatan Angin</label><span id="v-kecepatanAngin" class="text-sm font-mono bg-teal-900/60 border border-teal-400/40 px-2 py-1 rounded-lg">3.0 m/s</span></div>
+          <input id="kecepatanAngin" type="range" min="0" max="15" step="0.5" value="3" aria-label="Kecepatan Angin">
+          <div class="flex justify-between text-[11px] text-slate-400"><span>0 tenang</span><span>15 kencang</span></div>
+        </div>
+        <div class="bg-slate-800/70 rounded-xl p-3 border border-slate-700">
+          <div class="flex justify-between items-center"><label for="luasPermukaanAir" class="font-bold text-sm">⬛ Luas Permukaan</label><span id="v-luasPermukaanAir" class="text-sm font-mono bg-blue-900/60 border border-blue-400/40 px-2 py-1 rounded-lg">200 cm²</span></div>
+          <input id="luasPermukaanAir" type="range" min="50" max="500" step="10" value="200" aria-label="Luas Permukaan Air">
+          <div class="flex justify-between text-[11px] text-slate-400"><span>50 sempit</span><span>500 lebar</span></div>
+        </div>
+        <div class="bg-slate-800/70 rounded-xl p-3 border border-slate-700">
+          <div class="flex justify-between items-center"><label for="kelembapanUdara" class="font-bold text-sm">💧 Kelembapan Udara</label><span id="v-kelembapanUdara" class="text-sm font-mono bg-cyan-900/60 border border-cyan-400/40 px-2 py-1 rounded-lg">60 %</span></div>
+          <input id="kelembapanUdara" type="range" min="5" max="100" step="1" value="60" aria-label="Kelembapan Udara">
+          <div class="flex justify-between text-[11px] text-slate-400"><span>5% kering</span><span>100% jenuh</span></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button id="mainBtn" class="touch-btn col-span-1 px-4 py-3 rounded-xl bg-green-600 hover:bg-green-500 font-extrabold text-base active:scale-95 transition shadow-lg shadow-green-900/40">▶ Mulai</button>
+        <button id="resetBtn" class="touch-btn px-4 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 font-bold active:scale-95 transition border border-slate-500">↺ Reset</button>
+      </div>
+      <div class="text-xs text-slate-300 bg-slate-800 rounded-xl p-3 border border-slate-700 leading-relaxed">
+        <b class="text-yellow-300">Konsep:</b> Laju evaporasi ∝ luas × (tekanan uap jenuh − tekanan aktual) × faktor angin. Suhu menaikkan tekanan jenuh (pers. Tetens), kelembapan tinggi menghambat, angin menyapu uap jenuh.<br>
+        <span class="text-slate-400">Tips sentuh: geser <b>kiri-kanan</b> di kanvas = angin, <b>atas-bawah</b> = suhu.</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 text-center">
+        <div class="bg-blue-950 border border-blue-700 rounded-xl p-2"><div class="text-[11px] text-blue-300 font-bold">SISA AIR</div><div id="statWater" class="font-mono font-extrabold text-lg">200.0 mL</div></div>
+        <div class="bg-sky-950 border border-sky-700 rounded-xl p-2"><div class="text-[11px] text-sky-300 font-bold">UAP TERBENTUK</div><div id="statVapor" class="font-mono font-extrabold text-lg">0.0 mL</div></div>
+        <div class="bg-orange-950 border border-orange-700 rounded-xl p-2"><div class="text-[11px] text-orange-300 font-bold">LAJU</div><div id="statRate" class="font-mono font-extrabold text-lg">0 mL/mnt</div></div>
+        <div class="bg-emerald-950 border border-emerald-700 rounded-xl p-2"><div class="text-[11px] text-emerald-300 font-bold">WAKTU</div><div id="statTime" class="font-mono font-extrabold text-lg">0.0 s</div></div>
+      </div>
+    </aside>
+
+    <!-- CANVAS -->
+    <main class="flex-1 flex flex-col gap-3 min-w-0">
+      <div class="relative bg-black rounded-2xl border-2 border-slate-700 overflow-hidden min-h-[300px] h-[52vh] md:h-[calc(100vh-220px)] md:min-h-[520px]" id="canvasWrap">
+        <canvas id="simCanvas"></canvas>
+        <div class="absolute top-2 left-2 flex flex-wrap gap-2 text-[11px] md:text-xs font-mono">
+          <span id="ovRate" class="px-2 py-1 rounded-lg bg-black/70 border border-white/20">Laju: –</span>
+          <span id="ovVPD" class="px-2 py-1 rounded-lg bg-black/70 border border-white/20 hidden sm:inline">VPD: –</span>
+        </div>
+        <div class="absolute top-2 right-2 text-[11px] md:text-xs font-mono px-2 py-1 rounded-lg bg-black/70 border border-white/20" id="ovTime">t = 0.0 s</div>
+        <div id="endBanner" class="absolute inset-x-4 top-1/3 hidden">
+          <div class="fade-up mx-auto max-w-md text-center bg-emerald-600/95 border-2 border-white/60 rounded-2xl p-4 shadow-2xl">
+            <div class="text-2xl">🎉 Air Habis Menguap!</div>
+            <div class="text-sm mt-1" id="endText">Semua air telah menjadi uap.</div>
+            <button id="againBtn" class="touch-btn mt-3 px-5 py-2 rounded-xl bg-white text-emerald-800 font-extrabold active:scale-95">↺ Ulangi Simulasi</button>
+          </div>
+        </div>
+        <div id="toast" class="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-2 rounded-xl bg-black/75 border border-white/20 text-xs font-bold opacity-0 transition-opacity pointer-events-none whitespace-nowrap">—</div>
+      </div>
+      <div class="bg-slate-900 border border-slate-700 rounded-2xl p-3 flex flex-wrap gap-x-5 gap-y-1 text-xs md:text-sm">
+        <span>🧪 <b>Rumus:</b> <span class="font-mono">es=6.112·e<sup>17.67T/(T+243.5)</sup> • VPD=es·(1−RH) • Laju=k·Luas·VPD·(1+0.35·angin)</span></span>
+        <span id="formulaLive" class="font-mono text-yellow-200">—</span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cfg = JSON.parse(document.getElementById('widget-config').textContent);
+  const $ = id => document.getElementById(id);
+  const canvas = $('simCanvas'), wrap = $('canvasWrap'), ctx = canvas.getContext('2d');
+  const sliders = { suhuUdara:$('suhuUdara'), kecepatanAngin:$('kecepatanAngin'), luasPermukaanAir:$('luasPermukaanAir'), kelembapanUdara:$('kelembapanUdara') };
+
+  const P = { suhuUdara:30, kecepatanAngin:3, luasPermukaanAir:200, kelembapanUdara:60 };
+  let sim = { running:false, paused:false, ended:false, water:cfg.initialWaterML, vapor:0, time:0 };
+  let particles=[], windOffset=0, waveT=0, lastTs=null, W=0,H=0,DPR=1;
+
+  function tetens(T){ return 6.112*Math.exp((17.67*T)/(T+243.5)); }
+  function calcRate(){
+    const es = tetens(P.suhuUdara);
+    const vpd = es*(1-P.kelembapanUdara/100);
+    const windF = 1+0.35*P.kecepatanAngin;
+    const k = 0.62/15; // calibrated
+    const rateMLs = k*(P.luasPermukaanAir/200)*(Math.max(0,vpd))*windF*2.2;
+    return {es, vpd, windF, rateMLs, rateMLmin: rateMLs*60};
+  }
+  function paintSlider(el){
+    const pc=(el.value-el.min)/(el.max-el.min)*100;
+    el.style.setProperty('--fill',pc+'%');
+  }
+  function syncLabels(){
+    $('v-suhuUdara').textContent = Number(P.suhuUdara).toFixed(1)+' °C';
+    $('v-kecepatanAngin').textContent = Number(P.kecepatanAngin).toFixed(1)+' m/s';
+    $('v-luasPermukaanAir').textContent = P.luasPermukaanAir+' cm²';
+    $('v-kelembapanUdara').textContent = P.kelembapanUdara+' %';
+    Object.values(sliders).forEach(paintSlider);
+  }
+  function readSliders(){ P.suhuUdara=+sliders.suhuUdara.value; P.kecepatanAngin=+sliders.kecepatanAngin.value; P.luasPermukaanAir=+sliders.luasPermukaanAir.value; P.kelembapanUdara=+sliders.kelembapanUdara.value; syncLabels(); }
+  Object.values(sliders).forEach(s=>s.addEventListener('input',readSliders));
+
+  function setStateBadge(){
+    const b=$('stateBadge'),d=$('stateDot'),t=$('stateText'),m=$('mainBtn');
+    b.classList.remove('badge-pulse');
+    if(sim.ended){ d.className='w-3 h-3 rounded-full bg-emerald-400 inline-block'; t.textContent='Selesai'; b.className=b.className.replace(/bg-\S+/,''); b.style.background='#065f46'; m.textContent='↺ Mulai Ulang'; m.className=m.className.replace(/bg-\S+/,''); m.classList.add('bg-blue-600','hover:bg-blue-500'); m.classList.remove('bg-green-600','bg-amber-600'); }
+    else if(sim.running && !sim.paused){ d.className='w-3 h-3 rounded-full bg-green-400 inline-block'; t.textContent='Berjalan'; b.style.background='#14532d'; b.classList.add('badge-pulse'); m.textContent='⏸ Jeda'; m.classList.remove('bg-green-600','bg-blue-600'); m.classList.add('bg-amber-600','hover:bg-amber-500'); }
+    else if(sim.paused){ d.className='w-3 h-3 rounded-full bg-amber-400 inline-block'; t.textContent='Jeda'; b.style.background='#78350f'; m.textContent='▶ Lanjut'; m.classList.remove('bg-amber-600','bg-blue-600'); m.classList.add('bg-green-600','hover:bg-green-500'); }
+    else { d.className='w-3 h-3 rounded-full bg-gray-300 inline-block'; t.textContent='Siap'; b.style.background=''; b.className+=' bg-slate-700'; m.textContent='▶ Mulai'; m.classList.remove('bg-amber-600','bg-blue-600'); m.classList.add('bg-green-600'); }
+  }
+  function resetSim(autoStart){
+    sim.running=false; sim.paused=false; sim.ended=false;
+    sim.water=cfg.initialWaterML; sim.vapor=0; sim.time=0;
+    particles=[]; lastTs=null; $('endBanner').classList.add('hidden');
+    if(autoStart){ sim.running=true; sim.paused=false; }
+    setStateBadge(); updateStats();
+  }
+  function toggleMain(){
+    if(sim.ended){ resetSim(true); toast('Simulasi dimulai ulang'); return; }
+    if(!sim.running){ sim.running=true; sim.paused=false; lastTs=null; }
+    else if(!sim.paused){ sim.paused=true; }
+    else { sim.paused=false; lastTs=null; }
+    setStateBadge();
+  }
+  $('mainBtn').addEventListener('click',toggleMain);
+  $('resetBtn').addEventListener('click',()=>{resetSim(false);toast('Direset ke awal');});
+  $('againBtn').addEventListener('click',()=>resetSim(true));
+  document.querySelectorAll('.preset-btn').forEach(b=>b.addEventListener('click',()=>{
+    const pr=cfg.presets[+b.dataset.preset];
+    sliders.suhuUdara.value=pr.suhuUdara; sliders.kecepatanAngin.value=pr.kecepatanAngin;
+    sliders.luasPermukaanAir.value=pr.luasPermukaanAir; sliders.kelembapanUdara.value=pr.kelembapanUdara;
+    readSliders(); resetSim(true); toast('Preset: '+pr.name);
+  }));
+  document.addEventListener('keydown',e=>{
+    if(e.code==='Space' && !/INPUT|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();toggleMain();}
+    if(e.key==='r'||e.key==='R'){resetSim(false);}
+  });
+  let toastTimer=null;
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.style.opacity=1; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.style.opacity=0,1600); }
+
+  // Touch gestures on canvas: horizontal=angin, vertical=suhu
+  let touchS=null;
+  canvas.addEventListener('touchstart',e=>{const t=e.touches[0];touchS={x:t.clientX,y:t.clientY,angin:P.kecepatanAngin,suhu:P.suhuUdara};},{passive:true});
+  canvas.addEventListener('touchmove',e=>{
+    if(!touchS)return; const t=e.touches[0];
+    const dx=(t.clientX-touchS.x), dy=(t.clientY-touchS.y);
+    let na=Math.min(15,Math.max(0,touchS.angin+dx/30));
+    let ns=Math.min(45,Math.max(10,touchS.suhu-dy/12));
+    sliders.kecepatanAngin.value=na; sliders.suhuUdara.value=Math.round(ns*2)/2;
+    readSliders(); e.preventDefault();
+  },{passive:false});
+  canvas.addEventListener('touchend',()=>{if(touchS)toast(`Angin ${P.kecepatanAngin.toFixed(1)} m/s • Suhu ${P.suhuUdara.toFixed(1)}°C`);touchS=null;});
+
+  function resize(){
+    DPR=Math.min(2,window.devicePixelRatio||1);
+    const r=wrap.getBoundingClientRect();
+    W=Math.max(280,r.width); H=Math.max(300,r.height);
+    canvas.width=W*DPR; canvas.height=H*DPR; canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize',resize);
+  if(window.ResizeObserver) new ResizeObserver(resize).observe(wrap);
+
+  function updateStats(){
+    const {rateMLmin,vpd}=calcRate();
+    $('statWater').textContent=sim.water.toFixed(1)+' mL';
+    $('statVapor').textContent=sim.vapor.toFixed(1)+' mL';
+    $('statRate').textContent=rateMLmin.toFixed(1)+' mL/mnt';
+    $('statTime').textContent=sim.time.toFixed(1)+' s';
+    $('ovRate').textContent=`Laju: ${rateMLmin.toFixed(1)} mL/mnt • Sisa ${sim.water.toFixed(0)} mL`;
+    $('ovVPD').textContent=`VPD: ${vpd.toFixed(1)} hPa • es: ${tetens(P.suhuUdara).toFixed(1)} hPa`;
+    $('ovTime').textContent=`t = ${sim.time.toFixed(1)} s`;
+    $('formulaLive').textContent=`T=${P.suhuUdara}°C RH=${P.kelembapanUdara}% angin=${P.kecepatanAngin}m/s luas=${P.luasPermukaanAir}cm²`;
+  }
+
+  function spawnParticles(dt,rate){
+    if(sim.ended||!sim.running||sim.paused) return;
+    const n = Math.min(12, rate*3*dt + Math.random()*rate*dt);
+    for(let i=0;i<n;i++){
+      const bw=beakerW();
+      particles.push({x:cx()-bw/2+Math.random()*bw, y:waterY()-6, r:2+Math.random()*5+rate*0.4, vy:-(30+Math.random()*50+rate*8), vx:(Math.random()-0.5)*10+P.kecepatanAngin*6, a:0.85, life:0});
+    }
+  }
+  function cx(){return W/2;} 
+  function beakerW(){ const s=Math.sqrt(P.luasPermukaanAir/200); return Math.min(W*0.72, 120+110*s); }
+  function beakerH(){return Math.min(H*0.42,260);}
+  function waterY(){
+    const bx=cx(),bw=beakerW(),bh=beakerH(),by=H-28;
+    const frac=sim.water/cfg.initialWaterML;
+    return by-bh*0.08-(bh*0.84)*frac;
+  }
+
+  function draw(ts){
+    const {rateMLs,rateMLmin,vpd,es}=calcRate();
+    // sky by temp
+    const tN=(P.suhuUdara-10)/35;
+    const top=`rgb(${Math.round(8+120*tN)},${Math.round(40+60*(1-tN))},${Math.round(90-50*tN)})`;
+    const bot=`rgb(${Math.round(15+60*tN)},${Math.round(25+30*(1-tN))},${Math.round(45-10*tN)})`;
+    const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,top); g.addColorStop(1,bot);
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // grid
+    ctx.strokeStyle='rgba(255,255,255,.08)'; ctx.lineWidth=1;
+    const step=Math.max(32,W/12);
+    ctx.beginPath();
+    for(let x=0;x<W;x+=step){ctx.moveTo(x,0);ctx.lineTo(x,H);}
+    for(let y=0;y<H;y+=step){ctx.moveTo(0,y);ctx.lineTo(W,y);}
+    ctx.stroke();
+    // humidity haze
+    ctx.fillStyle=`rgba(200,220,255,${(P.kelembapanUdara/100)*0.28})`; ctx.fillRect(0,0,W,H);
+    // sun
+    const sx=W-64,sy=64, sr=26+tN*22;
+    const sg=ctx.createRadialGradient(sx,sy,4,sx,sy,sr*2.2);
+    sg.addColorStop(0,'rgba(255,240,150,.95)'); sg.addColorStop(.4,'rgba(255,180,60,.55)'); sg.addColorStop(1,'rgba(255,150,0,0)');
+    ctx.fillStyle=sg; ctx.beginPath(); ctx.arc(sx,sy,sr*2.2,0,7); ctx.fill();
+    ctx.fillStyle='#fde68a'; ctx.beginPath(); ctx.arc(sx,sy,sr*0.7,0,7); ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.65)'; ctx.font='bold 12px system-ui'; ctx.textAlign='center';
+    ctx.fillStyle='#fff'; ctx.fillText(P.suhuUdara.toFixed(1)+'°C',sx,sy+sr+16);
+    // clouds by humidity
+    const cn=Math.round(P.kelembapanUdara/28);
+    ctx.fillStyle=`rgba(255,255,255,${0.35+P.kelembapanUdara/220})`;
+    for(let i=0;i<cn;i++){ const ccx=40+((i*173+windOffset*0.3)%(W-80)), ccy=40+i*28; cloud(ccx,ccy,26+P.kelembapanUdara*0.15); }
+    ctx.fillStyle='#fff'; ctx.font='bold 11px system-ui'; ctx.textAlign='left';
+    if(cn>0) ctx.fillText('RH '+P.kelembapanUdara+'%',12,22);
+    // wind arrows
+    const rows=Math.min(4,1+Math.floor(P.kecepatanAngin/3));
+    ctx.strokeStyle='rgba(153,246,228,.9)'; ctx.fillStyle='rgba(153,246,228,.9)'; ctx.lineWidth=3; ctx.lineCap='round';
+    for(let rI=0;rI<rows;rI++){
+      const y=H*0.22+rI*34;
+      for(let k=0;k<3;k++){
+        let x=((k*W/2.4+windOffset*(1+P.kecepatanAngin*0.35))%(W+160))-80;
+        arrow(x,y,44+P.kecepatanAngin*4);
+      }
+    }
+    ctx.fillStyle='#99f6e4'; ctx.font='bold 12px system-ui';
+    ctx.fillText('💨 '+P.kecepatanAngin.toFixed(1)+' m/s',12,H*0.22-12);
+    // beaker
+    const bw=beakerW(),bh=beakerH(),bx=cx()-bw/2,by=H-28;
+    ctx.fillStyle='rgba(0,0,0,.35)'; ctx.fillRect(bx-8,by+4,bw+16,10);
+    // glass
+    ctx.fillStyle='rgba(255,255,255,.14)'; roundRect(bx,by-bh,bw,bh,12); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=3; roundRect(bx,by-bh,bw,bh,12); ctx.stroke();
+    // water
+    const frac=Math.max(0,sim.water/cfg.initialWaterML);
+    const wy=by-bh*0.08-(bh*0.84)*frac;
+    if(frac>0){
+      const wg=ctx.createLinearGradient(0,wy,0,by); wg.addColorStop(0,'#38bdf8'); wg.addColorStop(1,'#0369a1');
+      ctx.fillStyle=wg; ctx.beginPath(); ctx.rect(bx+5,wy,bw-10,by-4-wy); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=2; ctx.beginPath();
+      for(let x=0;x<=bw-10;x+=6){ const yy=wy+Math.sin(x/14+waveT)*3; x===0?ctx.moveTo(bx+5+x,yy):ctx.lineTo(bx+5+x,yy); }
+      ctx.stroke();
+      // scale marks
+      ctx.fillStyle='rgba(255,255,255,.85)'; ctx.font='10px mono'; ctx.textAlign='left';
+      for(let f=0;f<=1.001;f+=0.25){ const yy=by-bh*0.08-(bh*0.84)*f; ctx.fillRect(bx-14,yy,8,2); ctx.fillText(Math.round(f*100)+'%',bx-42,yy+4); }
+    }
+    ctx.fillStyle='#fff'; ctx.font='bold 12px system-ui'; ctx.textAlign='center';
+    ctx.fillText(`Luas ${P.luasPermukaanAir} cm² • Air ${sim.water.toFixed(1)} mL`,cx(),by+22> H-2?H-4:by+22);
+    // particles (vapor)
+    for(const p of particles){
+      ctx.fillStyle=`rgba(220,240,255,${p.a.toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill();
+      ctx.fillStyle=`rgba(255,255,255,${(p.a*0.7).toFixed(3)})`;
+      ctx.beginPath(); ctx.arc(p.x-p.r*0.25,p.y-p.r*0.25,p.r*0.5,0,7); ctx.fill();
+    }
+    ctx.fillStyle='rgba(255,255,255,.95)'; ctx.font='bold 12px system-ui'; ctx.textAlign='left';
+    ctx.fillText(`☁ Uap: ${sim.vapor.toFixed(1)} mL  •  ${rateMLmin.toFixed(1)} mL/mnt`,12,H-46);
+  }
+  function cloud(x,y,s){ ctx.beginPath(); ctx.arc(x,y,s*0.6,0,7); ctx.arc(x+s*0.6,y-8,s*0.5,0,7); ctx.arc(x-s*0.6,y-6,s*0.45,0,7); ctx.fill(); }
+  function arrow(x,y,len){ ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+len,y); ctx.stroke(); const h=8; ctx.beginPath(); ctx.moveTo(x+len,y); ctx.lineTo(x+len-h,y-h); ctx.lineTo(x+len-h,y+h); ctx.closePath(); ctx.fill(); }
+  function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+  function loop(ts){
+    if(lastTs==null) lastTs=ts;
+    let dt=(ts-lastTs)/1000; lastTs=ts; dt=Math.min(dt,0.05);
+    const {rateMLs}=calcRate();
+    if(sim.running && !sim.paused && !sim.ended){
+      sim.time+=dt;
+      const ev=rateMLs*dt;
+      sim.water=Math.max(0,sim.water-ev); sim.vapor+=ev;
+      spawnParticles(dt,rateMLs);
+      if(sim.water<=0 || sim.time>=cfg.maxSimSeconds){
+        sim.ended=true; sim.running=false;
+        $('endText').textContent=`Total uap ${sim.vapor.toFixed(1)} mL dalam ${sim.time.toFixed(1)} detik. Coba ubah variabel dan ulangi!`;
+        $('endBanner').classList.remove('hidden');
+      }
+      setStateBadgeThrottled(); updateStatsThrottled();
+    }
+    // animate always
+    windOffset+=dt*(20+P.kecepatanAngin*22); waveT+=dt*(2+P.kecepatanAngin*0.4);
+    for(const p of particles){ p.life+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy-=6*dt; p.r+=dt*2.2; p.a=Math.max(0,0.85-p.life*0.45); }
+    particles=particles.filter(p=>p.a>0&&p.y>-40);
+    draw(ts);
+    requestAnimationFrame(loop);
+  }
+  let lastStat=0,lastBadge=0;
+  function updateStatsThrottled(){ const n=performance.now(); if(n-lastStat>150){lastStat=n;updateStats();} }
+  function setStateBadgeThrottled(){ const n=performance.now(); if(n-lastBadge>500){lastBadge=n;setStateBadge();} }
+
+  readSliders(); resize(); setStateBadge(); updateStats();
+  requestAnimationFrame(loop);
+  setTimeout(resize,100);
+})();
+</script>
+</body>
+</html>

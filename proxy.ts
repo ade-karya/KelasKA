@@ -2,15 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { isAgentRuntimeConfigured, isProWorkbenchEnabled } from '@/lib/config/feature-flags';
 import { verifyAccessTokenEdge } from '@/lib/server/access-token-edge';
+import {
+  anonymousOwnerForNavigation,
+  type NavigationIdentity,
+} from '@/lib/server/identity/navigation';
+
+/**
+ * Let the request through, carrying the anonymous owner a page request
+ * establishes: the cookie is set on the page response, and the forwarded
+ * request carries it too, so the page and every request it sends resolve one
+ * owner (see `lib/server/identity/navigation.ts`).
+ */
+function next(request: NextRequest, identity: NavigationIdentity | undefined): NextResponse {
+  if (!identity) return NextResponse.next();
+  const headers = new Headers(request.headers);
+  headers.set('cookie', identity.requestCookie);
+  const response = NextResponse.next({ request: { headers } });
+  response.headers.append('set-cookie', identity.setCookie);
+  return response;
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Return an actual server-side 404 when either half of the workbench is off.
-  // The proxy always runs on the Node.js runtime, so unlike the old Edge
-  // middleware it can reliably inspect server-only deployment variables and
-  // enforces the same gate as startup: the public flag plus the complete
-  // runtime/database check.
+  // Edge proxy cannot reliably inspect server-only deployment variables,
+  // so it enforces the public gate and leaves the complete runtime/database
+  // check to Node. A Node-hosted proxy uses the same gate as startup.
   const canInspectServerRuntime = process.env.NEXT_RUNTIME !== 'edge';
   const workbenchEnabled =
     isProWorkbenchEnabled() && (!canInspectServerRuntime || isAgentRuntimeConfigured());
@@ -18,20 +36,28 @@ export async function proxy(request: NextRequest) {
     return new NextResponse('Not found', { status: 404 });
   }
 
+  // One anonymous owner per browser, established on the page response before
+  // any API request can mint its own.
+  const identity = anonymousOwnerForNavigation({
+    method: request.method,
+    headers: request.headers,
+    pathname,
+  });
+
   const accessCode = process.env.ACCESS_CODE;
   if (!accessCode) {
-    return NextResponse.next();
+    return next(request, identity);
   }
 
   // Whitelist: access-code endpoints, health check
   if (pathname.startsWith('/api/access-code/') || pathname === '/api/health') {
-    return NextResponse.next();
+    return next(request, identity);
   }
 
   // Check cookie — validate HMAC signature, not just existence
   const cookie = request.cookies.get('openmaic_access');
   if (cookie?.value && (await verifyAccessTokenEdge(cookie.value, accessCode))) {
-    return NextResponse.next();
+    return next(request, identity);
   }
 
   // API requests without valid cookie → 401
@@ -43,9 +69,14 @@ export async function proxy(request: NextRequest) {
   }
 
   // Page requests → let through, frontend shows modal
-  return NextResponse.next();
+  return next(request, identity);
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|logos/).*)'],
+  // Keep `/api/*` covered (access-code 401 lives in proxy). Exclude Next
+  // internals, metadata files and public static assets so they don't pay
+  // for anonymous-owner + 200MB body buffering on every image/font/JSON hit.
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|favicon.png|apple-icon.png|sitemap.xml|robots.txt|logos|avatars|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$|.*\\.avif$|.*\\.ico$|.*\\.txt$|.*\\.xml$|.*\\.json$|.*\\.webmanifest$).*)',
+  ],
 };

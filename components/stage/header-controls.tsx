@@ -117,7 +117,7 @@ export function HeaderControls({
     return onToggleEditMode ? (
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-          {t('stage.proMode')}
+          {t('edit.proMode')}
         </span>
         <Switch
           checked={proChecked}

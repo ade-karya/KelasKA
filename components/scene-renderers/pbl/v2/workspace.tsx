@@ -442,11 +442,11 @@ function WorkspaceTopBar({
       <div className="relative flex min-w-0 flex-1 items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-violet-200/25 bg-violet-100/[0.08] shadow-[0_0_24px_rgba(157,140,255,0.18)]">
           <Image
-            src="/openmaic-mark.png"
+            src="/logo-kemendikdasmen.png"
             alt="Kelas KA"
             width={28}
             height={28}
-            className="h-6 w-6"
+            className="h-6 w-6 object-contain"
           />
         </div>
         <div className="min-w-0">

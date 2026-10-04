@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { getCurrentModelConfig } from '@/lib/utils/model-config';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('QuizView');
@@ -90,6 +89,13 @@ const QuizMathText = memo(function QuizMathText({
   );
 });
 
+/** Localized fallback when the grading service is unreachable. */
+function getGradingFallbackComment(language: string): string {
+  if (language === 'id-ID') return 'Layanan penilaian tidak tersedia. Nilai dasar diberikan.';
+  if (language.startsWith('zh')) return '评分服务暂时不可用，已给予基础分。';
+  return 'Grading service unavailable. Base score given.';
+}
+
 /** Call /api/quiz-grade for a single short-answer question. */
 async function gradeShortAnswerQuestion(
   q: QuizQuestion,
@@ -98,14 +104,8 @@ async function gradeShortAnswerQuestion(
 ): Promise<QuestionResult> {
   const pts = q.points ?? 1;
   try {
-    const modelConfig = getCurrentModelConfig();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'x-model': modelConfig.modelString,
-      'x-api-key': modelConfig.apiKey,
-    };
-    if (modelConfig.baseUrl) headers['x-base-url'] = modelConfig.baseUrl;
-    if (modelConfig.providerType) headers['x-provider-type'] = modelConfig.providerType;
+    // The server grades with the workspace's classroom model.
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
     const res = await fetch('/api/quiz-grade', {
       method: 'POST',
@@ -137,10 +137,7 @@ async function gradeShortAnswerQuestion(
       correct: null,
       status: 'incorrect',
       earned: Math.round(pts * 0.5),
-      aiComment:
-        language === 'zh-CN'
-          ? '评分服务暂时不可用，已给予基础分。'
-          : 'Grading service unavailable. Base score given.',
+      aiComment: getGradingFallbackComment(language),
     };
   }
 }

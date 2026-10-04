@@ -40,6 +40,7 @@ const TTS_ENV_PREFIXES = [
   'TTS_VOXCPM',
   'TTS_DOUBAO',
   'TTS_ELEVENLABS',
+  'TTS_GOOGLE',
   'TTS_MINIMAX',
   'TTS_LEMONADE',
   'TTS_BROWSER_NATIVE',
@@ -116,6 +117,17 @@ describe('POST /api/generate/tts missing-key contract (#665)', () => {
     );
   });
 
+  it("keeps the request's voice on the server's provider when it names no provider", async () => {
+    yamlOverride = 'tts:\n  openai-tts:\n    apiKey: sk-server\n';
+    const { POST } = await import('@/app/api/generate/tts/route');
+
+    expect((await POST(ttsRequest({ ttsVoice: 'nova' }))).status).toBe(200);
+    expect(mocks.generateTTS).toHaveBeenLastCalledWith(
+      expect.objectContaining({ providerId: 'openai-tts', voice: 'nova' }),
+      'Hello',
+    );
+  });
+
   it('accepts a client-supplied key for an unmanaged keyed provider', async () => {
     const { POST } = await import('@/app/api/generate/tts/handler');
     const res = await POST(
@@ -145,6 +157,34 @@ describe('POST /api/generate/tts missing-key contract (#665)', () => {
     expect(res.status).toBe(200);
     expect(mocks.generateTTS).toHaveBeenCalledWith(
       expect.objectContaining({ providerId: 'voxcpm-tts', publicOnly: false }),
+      'Hello',
+    );
+  });
+
+  it('marks a server-configured provider as managed, so its local endpoint needs no opt-in', async () => {
+    yamlOverride = 'tts:\n  voxcpm-tts:\n    baseUrl: http://127.0.0.1:8000/v1\n';
+    const { POST } = await import('@/app/api/generate/tts/route');
+    const res = await POST(ttsRequest({ ttsProviderId: 'voxcpm-tts', ttsVoice: 'auto' }));
+
+    expect(res.status).toBe(200);
+    expect(mocks.generateTTS).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerId: 'voxcpm-tts',
+        baseUrl: 'http://127.0.0.1:8000/v1',
+        managed: true,
+        publicOnly: false,
+      }),
+      'Hello',
+    );
+  });
+
+  it('does not mark an unmanaged provider on its catalog default endpoint as managed', async () => {
+    const { POST } = await import('@/app/api/generate/tts/route');
+    const res = await POST(ttsRequest({ ttsProviderId: 'voxcpm-tts', ttsVoice: 'auto' }));
+
+    expect(res.status).toBe(200);
+    expect(mocks.generateTTS).toHaveBeenCalledWith(
+      expect.objectContaining({ providerId: 'voxcpm-tts', managed: false, publicOnly: false }),
       'Hello',
     );
   });

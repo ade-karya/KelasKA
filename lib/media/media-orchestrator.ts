@@ -5,29 +5,29 @@
  * Runs entirely on the frontend — calls /api/generate/image and /api/generate/video,
  * fetches result blobs and updates the Zustand store.
  *
- * Where the bytes land, and what the document ends up pointing at, depends on
- * how durable the document is:
- *
- * - Browser-only: bytes go to the local `mediaFiles` table and the document
- *   keeps its `gen_img_*` / `gen_vid_*` placeholder. Document and media share
- *   one lifetime, so the placeholder is a complete address.
- * - Server-backed: the document outlives this browser, so the bytes go to the
- *   asset pool first and the id the pool allocated is written back into the
- *   document. Only then is the task done. The local table becomes a cache for
- *   this tab, never the source of truth, and "already generated?" is answered
- *   by the document instead of by that cache.
+ * The document outlives this browser, so the bytes go to the asset pool first
+ * and the id the pool allocated is written back into the document. Only then
+ * is the task done. The local `mediaFiles` table is a device cache (and the
+ * keeper of bytes a full store refused), never the source of truth, and
+ * "already generated?" is answered by the document instead of by that cache.
  */
 
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
-import { useSettingsStore } from '@/lib/store/settings';
+import { requireModelCapabilities } from '@/lib/model-settings/capabilities';
 import { useStageStore } from '@/lib/store/stage';
 import { mayGenerateForStage } from '@/lib/classroom/generation-permission';
-import { db, mediaFileKey, type MediaFileRecord } from '@/lib/utils/database';
+import { db, mediaFileKey, type MediaFileRecord } from '@/lib/device-storage/database';
 import type { SceneOutline } from '@/lib/types/generation';
 import type { MediaGenerationRequest } from '@/lib/media/types';
+import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
+import { isGeneratedMediaPlaceholder } from '@/lib/media/media-ref';
+import { mayNameAPoolAsset } from '@/lib/media/media-placeholder';
+import { isConcreteMediaAddress } from '@/lib/media/resolve-media-ref';
+import { withAssetUrl } from '@/lib/media/use-asset-url';
 import { commitToPool } from '@/lib/media/commit-to-pool';
 import {
   ASSET_QUOTA_EXCEEDED,
+  isZeroGpuQuotaMessage,
   isRetryableMediaFailure,
   isStorageFullFailure,
 } from '@/lib/media/media-failure';
@@ -50,7 +50,6 @@ import {
 } from '@/lib/media/pending-media-allocations';
 import { isAssetStorageFull, markAssetStorageFull } from '@/lib/media/asset-storage-full';
 import { fetchProxiedMediaUrl } from '@/lib/media/proxy-media-cache';
-import { isServerBackedMediaPersistence } from '@/lib/persistence/media-persistence';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('MediaOrchestrator');
@@ -176,16 +175,13 @@ export async function generateMediaForOutlines(
   stageId: string,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  if (!isServerBackedMediaPersistence()) {
-    return collectAndGenerate(outlines, stageId, abortSignal, false);
-  }
   // Serial per stage. The caller aborts the previous pass before starting this
   // one; waiting for that pass to actually settle is what makes the handoff
   // safe without tracking individual elements. A commit already under way is
   // uncancellable — `putAsset` and the write-back run to completion — so
   // waiting is also what stops the replacement from paying for it twice.
   const pass = awaitCurrentPass(stageId).then(() =>
-    collectAndGenerate(outlines, stageId, abortSignal, true),
+    collectAndGenerate(outlines, stageId, abortSignal),
   );
   passesByStage.set(stageId, pass);
   try {
@@ -199,7 +195,6 @@ async function collectAndGenerate(
   outlines: SceneOutline[],
   stageId: string,
   abortSignal: AbortSignal | undefined,
-  serverBacked: boolean,
 ): Promise<void> {
   // Everything below this point may be running long after the caller queued it:
   // a server-backed pass waits for its predecessor, and a predecessor's
@@ -219,30 +214,35 @@ async function collectAndGenerate(
   // on exactly the path where the table has just been cleared — so every
   // element the predecessor committed would be generated again. Not deciding is
   // the only safe answer, and a pass that cannot decide simply ends.
-  let documentIndex: GeneratedMediaDocumentIndex | undefined;
-  if (serverBacked) {
-    if (abortSignal?.aborted) return;
-    documentIndex = documentSkipIndex(stageId);
-    if (!documentIndex) {
-      log.info(`Media pass for ${stageId} stood down: the course is no longer open here.`);
-      return;
-    }
-    // Before deciding anything: hand every parked allocation to the slide that
-    // now wants it. A held allocation whose scene has since arrived must become
-    // a rewrite, not an answer to the skip test — otherwise the placeholder it
-    // was waiting to replace would be treated as handled and never replaced.
-    placePendingMediaAllocations(stageId);
-    // The drain may have resolved slides, so ask the document again.
-    documentIndex = documentSkipIndex(stageId);
-    if (!documentIndex) return;
+  //
+  // The workspace's image and video slots decide which media may be generated;
+  // read them before the checks, so nothing can change between those and the
+  // decisions below. Settings that cannot be read (even after another try)
+  // decide nothing: the pass stands down and a later one generates the media.
+  const capabilities = await requireModelCapabilities();
+  if (abortSignal?.aborted) return;
+  if (!capabilities) {
+    log.warn(`Media pass for ${stageId} stood down: the model settings could not be read.`);
+    return;
   }
+  let documentIndex: GeneratedMediaDocumentIndex | undefined = documentSkipIndex(stageId);
+  if (!documentIndex) {
+    log.info(`Media pass for ${stageId} stood down: the course is no longer open here.`);
+    return;
+  }
+  // Before deciding anything: hand every parked allocation to the slide that
+  // now wants it. A held allocation whose scene has since arrived must become
+  // a rewrite, not an answer to the skip test — otherwise the placeholder it
+  // was waiting to replace would be treated as handled and never replaced.
+  placePendingMediaAllocations(stageId);
+  // The drain may have resolved slides, so ask the document again.
+  documentIndex = documentSkipIndex(stageId);
+  if (!documentIndex) return;
 
-  const settings = useSettingsStore.getState();
   const store = useMediaGenerationStore.getState();
-  // Under server-backed persistence the document, not this browser's task
-  // table, decides what still needs generating: the table is per-browser, so
-  // reading it is exactly how every new browser re-ran (and re-billed) an
-  // already-generated course.
+  // The document, not this browser's task table, decides what still needs
+  // generating: the table is per-browser, so reading it is exactly how every
+  // new browser re-ran (and re-billed) an already-generated course.
 
   // Collect all media requests
   const allRequests: MediaGenerationRequest[] = [];
@@ -250,34 +250,29 @@ async function collectAndGenerate(
     if (!outline.mediaGenerations) continue;
     for (const mg of outline.mediaGenerations) {
       // Filter by enabled flags
-      if (mg.type === 'image' && !settings.imageGenerationEnabled) continue;
-      if (mg.type === 'video' && !settings.videoGenerationEnabled) continue;
+      if (mg.type === 'image' && !capabilities.image) continue;
+      if (mg.type === 'video' && !capabilities.video) continue;
       const existing = store.getTask(mg.elementId);
-      if (documentIndex) {
-        // The document is the authority. A permanently failed task (content
-        // policy, generation disabled) is still honoured: it is a refusal to
-        // call the provider again, never a claim that media exists.
-        if (isGeneratedMediaSatisfied(documentIndex, outline.order, mg.elementId)) continue;
-        // Stored, waiting for its slide to exist. The drain above already gave
-        // away every allocation whose slide has arrived, so what is left here
-        // genuinely has nowhere to go yet; asking the provider again would pay
-        // twice for bytes this session already holds.
-        if (pendingMediaAllocation(stageId, mg.elementId)) continue;
-        // A permanently failed task (content policy, generation disabled) is a
-        // refusal to call the provider again, never a claim that media exists.
-        if (existing?.status === 'failed') continue;
-        // `generating` is the one status that means "something is working on
-        // this right now". Passes are serial, so it can only be a single-element
-        // retry running alongside this pass; letting the pass take it too would
-        // pay for the element twice. `pending` is deliberately NOT skipped: it
-        // means a pass once intended to reach this element, and an abandoned
-        // pass leaves that intent behind with nobody acting on it — reading it
-        // as answered is what stranded elements in earlier designs.
-        if (existing?.status === 'generating') continue;
-      } else {
-        // Skip already completed or permanently failed (restored from DB)
-        if (existing?.status === 'done' || existing?.status === 'failed') continue;
-      }
+      // The document is the authority. A permanently failed task (content
+      // policy, generation disabled) is still honoured: it is a refusal to
+      // call the provider again, never a claim that media exists.
+      if (isGeneratedMediaSatisfied(documentIndex, outline.order, mg.elementId)) continue;
+      // Stored, waiting for its slide to exist. The drain above already gave
+      // away every allocation whose slide has arrived, so what is left here
+      // genuinely has nowhere to go yet; asking the provider again would pay
+      // twice for bytes this session already holds.
+      if (pendingMediaAllocation(stageId, mg.elementId)) continue;
+      // A permanently failed task (content policy, generation disabled) is a
+      // refusal to call the provider again, never a claim that media exists.
+      if (existing?.status === 'failed') continue;
+      // `generating` is the one status that means "something is working on
+      // this right now". Passes are serial, so it can only be a single-element
+      // retry running alongside this pass; letting the pass take it too would
+      // pay for the element twice. `pending` is deliberately NOT skipped: it
+      // means a pass once intended to reach this element, and an abandoned
+      // pass leaves that intent behind with nobody acting on it — reading it
+      // as answered is what stranded elements in earlier designs.
+      if (existing?.status === 'generating') continue;
       allRequests.push(mg);
     }
   }
@@ -293,7 +288,7 @@ async function collectAndGenerate(
   // be refused at exactly the same point. The elements are shown the condition
   // they are waiting on, each with its Retry; the first upload that succeeds
   // clears the marker and the next pass runs normally.
-  if (serverBacked && (await isAssetStorageFull(stageId))) {
+  if (await isAssetStorageFull(stageId)) {
     log.info(`Asset storage was full for ${stageId}; standing down without generating.`);
     markStorageFull(allRequests);
     return;
@@ -307,7 +302,28 @@ async function collectAndGenerate(
   for (const [index, req] of allRequests.entries()) {
     if (abortSignal?.aborted) break;
     const attempt = await generateSingleMedia(req, stageId, abortSignal, undefined, scan);
-    if (!attempt.storageFull) continue;
+    if (!attempt.storageFull) {
+      // Hugging Face free tier: failed queue joins also count against the
+      // ~3 ZeroGPU runs/day limit, so one quota refusal stops the deck. The
+      // elements never reached keep their placeholders and are marked with
+      // the same quota condition (in memory only, like the storage-full path
+      // below) instead of each paying a queue join to fail identically. One
+      // image-to-video clip costs 2 runs (source still + animation), so the
+      // free tier fits roughly 1 video/day; the survivors retry after the
+      // 24h reset via their Retry affordance.
+      if (!attempt.committed) {
+        const taskError =
+          useMediaGenerationStore.getState().getTask(req.elementId)?.error ?? '';
+        if (taskError && isZeroGpuQuotaMessage(taskError)) {
+          log.warn(
+            `Provider GPU quota exhausted; stopping the media pass for ${stageId} to preserve daily runs.`,
+          );
+          markQuotaExhausted(allRequests.slice(index + 1), taskError);
+          break;
+        }
+      }
+      continue;
+    }
     // The store checks each write against the headroom it has left, so a
     // refusal is evidence about one blob and only weak evidence about the next.
     // The pass stops the deck anyway, and that is a judgement about cost rather
@@ -349,12 +365,36 @@ function markStorageFull(requests: readonly MediaGenerationRequest[]): void {
 }
 
 /**
+ * Show unattempted elements the quota condition they are waiting on.
+ *
+ * In memory only, like `markStorageFull`: nothing was attempted for them, so a
+ * persisted record would claim a failure that never happened — and once the
+ * daily quota resets, an element with no record is one ordinary generation
+ * rather than a persisted failure. The code stays `UPSTREAM_ERROR` (retryable)
+ * so the Retry affordance survives; the message carries the reset guidance.
+ */
+function markQuotaExhausted(requests: readonly MediaGenerationRequest[], message: string): void {
+  const store = useMediaGenerationStore.getState();
+  for (const request of requests) {
+    store.markFailed(request.elementId, message, 'UPSTREAM_ERROR');
+  }
+}
+
+/**
  * Retry a single failed media task.
  */
 export async function retryMediaTask(
   elementId: string,
   _target?: { readonly elementId: string; readonly sceneId?: string; readonly slideId?: string },
 ): Promise<void> {
+  // Whether the workspace can still generate this kind of media (read first,
+  // so the task checked below is the one acted on). Settings that cannot be
+  // read leave the task as it is: that is no refusal.
+  const capabilities = await requireModelCapabilities();
+  if (!capabilities) {
+    log.warn(`Media retry for ${elementId} skipped: the model settings could not be read.`);
+    return;
+  }
   const store = useMediaGenerationStore.getState();
   const task = store.getTask(elementId);
   if (!task || task.status !== 'failed') return;
@@ -370,13 +410,11 @@ export async function retryMediaTask(
   // action precondition the same rule rather than two that can drift.
   if (!mayGenerateForStage(task.stageId)) return;
 
-  // Check if the corresponding generation type is still enabled in global settings
-  const settings = useSettingsStore.getState();
-  if (task.type === 'image' && !settings.imageGenerationEnabled) {
+  if (task.type === 'image' && !capabilities.image) {
     store.markFailed(elementId, 'Generation disabled', 'GENERATION_DISABLED');
     return;
   }
-  if (task.type === 'video' && !settings.videoGenerationEnabled) {
+  if (task.type === 'video' && !capabilities.video) {
     store.markFailed(elementId, 'Generation disabled', 'GENERATION_DISABLED');
     return;
   }
@@ -445,9 +483,7 @@ export async function retryMediaTask(
   // Read BEFORE anything is removed, and the row is NOT removed first: it is
   // the only copy until an upload succeeds.
   const dbKey = mediaFileKey(task.stageId, elementId);
-  const refused = isServerBackedMediaPersistence()
-    ? await refusedMediaBytes(task.stageId, elementId, task.type)
-    : undefined;
+  const refused = await refusedMediaBytes(task.stageId, elementId, task.type);
   if (!refused) {
     // Nothing to keep. Clearing the persisted failure is what lets a fresh
     // result be written under this key.
@@ -831,12 +867,12 @@ async function loadCachedMediaByPlaceholder(
  * Adopt bytes this browser already holds for a placeholder, without asking a
  * provider for them again.
  *
- * The local media table is keyed by `stageId:ref`, and a course from before
- * server-backed storage carries its generated bytes there under the very
- * placeholder its document still names. Committing them through the ordinary
- * path stores them in the pool and writes the allocated id back, so the course
- * converges on the author's next load at no cost — and a visitor, who has no
- * such table, simply sees the media once the author has been through.
+ * The local media table is keyed by `stageId:ref`, and bytes a full store
+ * refused are kept there under the very placeholder the document still names.
+ * Committing them through the ordinary path stores them in the pool and writes
+ * the allocated id back, so the course converges on the author's next load at
+ * no cost — and a visitor, who has no such table, simply sees the media once
+ * the author has been through.
  *
  * A row that records only a hosted URL (`ossKey`) and no bytes is treated as
  * absent: that URL is the provider's address, not something a document may
@@ -927,9 +963,7 @@ async function generateSingleMedia(
       style: req.style,
     });
 
-    const serverBacked = isServerBackedMediaPersistence();
-
-    if (serverBacked && refusedBytes) {
+    if (refusedBytes) {
       await commitPooledMedia({
         req,
         stageId,
@@ -942,135 +976,46 @@ async function generateSingleMedia(
       return ATTEMPT_COMMITTED;
     }
 
-    // A course generated before this application stored media server-side holds
-    // placeholders in its document and its bytes only in the author's local
-    // tables. Those bytes are already paid for, so the author's first
-    // server-backed load converts them instead of buying them again.
-    if (serverBacked && (await commitCachedMedia(req, stageId, paramsJson, abortSignal, scan))) {
+    // Bytes this browser already holds for the placeholder (a store that
+    // refused them earlier kept them) are already paid for, so they are
+    // committed instead of bought again.
+    if (await commitCachedMedia(req, stageId, paramsJson, abortSignal, scan)) {
       return ATTEMPT_COMMITTED;
     }
 
     if (req.type === 'image') {
       const result = await callImageApi(req, stageId, abortSignal);
-
-      if (serverBacked) {
-        // A hosted URL is the provider's address, not a durable reference the
-        // document may hold, so the bytes are fetched and put to the pool.
-        throwIfAborted(abortSignal);
-        const blob = await fetchAsBlob(result.ossUrl || result.url);
-        throwIfAborted(abortSignal);
-        await commitPooledMedia({
-          req,
-          stageId,
-          paramsJson,
-          blob,
-          mimeType: storedMediaType(blob, 'image/png'),
-        });
-        return ATTEMPT_COMMITTED;
-      }
-
-      // CDN path: server already uploaded to OSS
-      if (result.ossUrl) {
-        throwIfAborted(abortSignal);
-        await db.mediaFiles.put({
-          id: mediaFileKey(stageId, req.elementId),
-          stageId,
-          type: 'image',
-          blob: new Blob([]),
-          mimeType: 'image/png',
-          size: 0,
-          ossKey: result.ossUrl,
-          prompt: req.prompt,
-          params: paramsJson,
-          createdAt: Date.now(),
-        });
-        useMediaGenerationStore.getState().markDone(req.elementId, result.ossUrl);
-        return ATTEMPT_COMMITTED;
-      }
-
-      // Fallback: fetch blob via proxy-media
+      // A hosted URL is the provider's address, not a durable reference the
+      // document may hold, so the bytes are fetched and put to the pool.
       throwIfAborted(abortSignal);
-      const blob = await fetchAsBlob(result.url);
-      await db.mediaFiles.put({
-        id: mediaFileKey(stageId, req.elementId),
-        stageId,
-        type: 'image',
-        blob,
-        mimeType: 'image/png',
-        size: blob.size,
-        prompt: req.prompt,
-        params: paramsJson,
-        createdAt: Date.now(),
-      });
-      const objectUrl = URL.createObjectURL(blob);
-      useMediaGenerationStore.getState().markDone(req.elementId, objectUrl);
-    } else {
-      const result = await callVideoApi(req, abortSignal);
-
-      if (serverBacked) {
-        throwIfAborted(abortSignal);
-        const blob = await fetchAsBlob(result.ossUrl || result.url);
-        const posterSource = result.posterOssUrl || result.poster;
-        const posterBlob = posterSource
-          ? await fetchAsBlob(posterSource).catch(() => undefined)
-          : undefined;
-        throwIfAborted(abortSignal);
-        await commitPooledMedia({
-          req,
-          stageId,
-          paramsJson,
-          blob,
-          mimeType: storedMediaType(blob, 'video/mp4'),
-          posterBlob,
-          ...(posterBlob ? { posterMimeType: storedMediaType(posterBlob, 'image/jpeg') } : {}),
-        });
-        return ATTEMPT_COMMITTED;
-      }
-
-      // CDN path: server already uploaded to OSS
-      if (result.ossUrl) {
-        throwIfAborted(abortSignal);
-        await db.mediaFiles.put({
-          id: mediaFileKey(stageId, req.elementId),
-          stageId,
-          type: 'video',
-          blob: new Blob([]),
-          mimeType: 'video/mp4',
-          size: 0,
-          ossKey: result.ossUrl,
-          posterOssKey: result.posterOssUrl,
-          prompt: req.prompt,
-          params: paramsJson,
-          createdAt: Date.now(),
-        });
-        useMediaGenerationStore
-          .getState()
-          .markDone(req.elementId, result.ossUrl, result.posterOssUrl);
-        return ATTEMPT_COMMITTED;
-      }
-
-      // Fallback: fetch blob via proxy-media
+      const blob = await fetchAsBlob(result.ossUrl || result.url);
       throwIfAborted(abortSignal);
-      const blob = await fetchAsBlob(result.url);
-      const posterBlob = result.poster
-        ? await fetchAsBlob(result.poster).catch(() => undefined)
-        : undefined;
-      await db.mediaFiles.put({
-        id: mediaFileKey(stageId, req.elementId),
+      await commitPooledMedia({
+        req,
         stageId,
-        type: 'video',
+        paramsJson,
         blob,
-        mimeType: 'video/mp4',
-        size: blob.size,
-        poster: posterBlob,
-        prompt: req.prompt,
-        params: paramsJson,
-        createdAt: Date.now(),
+        mimeType: storedMediaType(blob, 'image/png'),
       });
-      const objectUrl = URL.createObjectURL(blob);
-      const posterObjectUrl = posterBlob ? URL.createObjectURL(posterBlob) : undefined;
-      useMediaGenerationStore.getState().markDone(req.elementId, objectUrl, posterObjectUrl);
+      return ATTEMPT_COMMITTED;
     }
+    const result = await callVideoApiForElement(req, stageId, abortSignal);
+    throwIfAborted(abortSignal);
+    const blob = await fetchAsBlob(result.ossUrl || result.url);
+    const posterSource = result.posterOssUrl || result.poster;
+    const posterBlob = posterSource
+      ? await fetchAsBlob(posterSource).catch(() => undefined)
+      : undefined;
+    throwIfAborted(abortSignal);
+    await commitPooledMedia({
+      req,
+      stageId,
+      paramsJson,
+      blob,
+      mimeType: storedMediaType(blob, 'video/mp4'),
+      posterBlob,
+      ...(posterBlob ? { posterMimeType: storedMediaType(posterBlob, 'image/jpeg') } : {}),
+    });
     return ATTEMPT_COMMITTED;
   } catch (err) {
     if (abortSignal?.aborted) {
@@ -1087,7 +1032,14 @@ async function generateSingleMedia(
     }
     const message = err instanceof Error ? err.message : String(err);
     const errorCode = mediaFailureCode(err);
-    log.error(`Failed ${req.elementId}:`, message);
+    // Quota/busy refusals are an expected free-tier condition, not a bug:
+    // keep them at warn so the console is not spammed with ERROR lines while
+    // the deck waits for the 24h reset.
+    if (isZeroGpuQuotaMessage(message)) {
+      log.warn(`Quota-exhausted ${req.elementId}:`, message);
+    } else {
+      log.error(`Failed ${req.elementId}:`, message);
+    }
     useMediaGenerationStore.getState().markFailed(req.elementId, message, errorCode);
 
     // Bytes a full store refused. They are kept, and the record below is
@@ -1134,18 +1086,12 @@ async function callImageApi(
   stageId: string,
   abortSignal?: AbortSignal,
 ): Promise<{ url: string; ossUrl?: string }> {
-  const settings = useSettingsStore.getState();
-  const providerConfig = settings.imageProvidersConfig?.[settings.imageProviderId];
-
+  // The image slot names the provider and model on the server.
+  // (FLUX `/infer` overrides lived in the old client store; the slot owns
+  // them now, so the request carries only the portable fields.)
   const response = await fetch('/api/generate/image', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-image-provider': settings.imageProviderId || '',
-      'x-image-model': settings.imageModelId || '',
-      'x-api-key': providerConfig?.apiKey || '',
-      'x-base-url': providerConfig?.baseUrl || '',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt: req.prompt,
       aspectRatio: req.aspectRatio,
@@ -1166,10 +1112,224 @@ async function callImageApi(
 
   // Result may have ossUrl (CDN direct), url, or base64
   const ossUrl = data.result?.ossUrl as string | undefined;
+  // A provider that answers with inline bytes reports what they are; a bare
+  // `base64` from a provider that does not keeps the PNG assumed here.
+  const inlineMime = (data.result?.mimeType as string | undefined) || 'image/png';
   const url =
-    data.result?.url || (data.result?.base64 ? `data:image/png;base64,${data.result.base64}` : '');
+    data.result?.url ||
+    (data.result?.base64 ? `data:${inlineMime};base64,${data.result.base64}` : '');
   if (!ossUrl && !url) throw new Error('No image URL in response');
   return { url, ossUrl };
+}
+
+/**
+ * Video generation for one element, with the image-to-video chain built in.
+ *
+ * Providers flagged `requiresSourceImage` (the Hugging Face image-to-video
+ * Spaces) animate a source still rather than dreaming motion from text. When
+ * the request carries no `sourceImageUrl` of its own, the still comes from a
+ * classroom image that is already committed — first on the same slide, then
+ * on any other slide — and only when the classroom holds no usable image is
+ * a fresh still generated from the same prompt. Text-to-video providers are
+ * untouched.
+ */
+async function callVideoApiForElement(
+  req: MediaGenerationRequest,
+  stageId: string,
+  abortSignal?: AbortSignal,
+): Promise<{
+  url: string;
+  poster?: string;
+  ossUrl?: string;
+  posterOssUrl?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+}> {
+  if (req.sourceImageUrl?.trim()) return callVideoApi(req, abortSignal);
+  // The video slot names the provider on the server. Image-to-video providers
+  // (flagged `requiresSourceImage`) animate a still; text-to-video providers
+  // go straight through. Unknown settings -> straight through (the server
+  // decides); only a known I2V provider takes the still chain below.
+  const caps = await requireModelCapabilities().catch(() => null);
+  const videoProviderId = caps?.video?.providerId ?? caps?.video?.registryId;
+  if (
+    !videoProviderId ||
+    !VIDEO_PROVIDERS[videoProviderId as keyof typeof VIDEO_PROVIDERS]?.requiresSourceImage
+  ) {
+    return callVideoApi(req, abortSignal);
+  }
+  const { stage, scenes } = useStageStore.getState();
+  if (stage?.id === stageId) {
+    // 1. Reuse a still already committed on the same slide (e.g. a class image
+    //    generated earlier) — no second image billing and no new failure mode.
+    for (const candidate of findSiblingImageSources(scenes, req.elementId)) {
+      throwIfAborted(abortSignal);
+      const reused = await materializeSiblingStill(candidate.src);
+      if (reused) {
+        log.info(`Animating slide image ${candidate.elementId} for ${req.elementId}`);
+        return callVideoApi({ ...req, sourceImageUrl: reused }, abortSignal);
+      }
+    }
+    // 2. Reuse a still committed on any other slide of the classroom. Same
+    //    reason — the bytes are already paid for — so a video placeholder on
+    //    a slide without its own image still animates a classroom image
+    //    instead of billing a fresh still. First committed image wins.
+    for (const candidate of findOtherSlideImageSources(scenes, req.elementId)) {
+      throwIfAborted(abortSignal);
+      const reused = await materializeSiblingStill(candidate.src);
+      if (reused) {
+        log.info(
+          `Animating classroom image ${candidate.elementId} from another slide for ${req.elementId}`,
+        );
+        return callVideoApi({ ...req, sourceImageUrl: reused }, abortSignal);
+      }
+    }
+  }
+  // 3. Otherwise generate the still from the same prompt.
+  let sourceImageUrl: string;
+  try {
+    const still = await callImageApi(req, stageId, abortSignal);
+    sourceImageUrl = still.ossUrl || still.url;
+    if (!sourceImageUrl) throw new Error('the image provider returned no image data');
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Source image generation failed (needed to animate this video): ${message}`);
+  }
+  throwIfAborted(abortSignal);
+  return callVideoApi({ ...req, sourceImageUrl }, abortSignal);
+}
+
+/** A committed slide image usable as an animation source. */
+export interface SiblingImageSource {
+  elementId: string;
+  src: string;
+}
+
+/** Canvas elements of one scene, read defensively (editor/playback shapes differ). */
+function sceneCanvasElements(scene: unknown): unknown[] {
+  const elements = (scene as { content?: { canvas?: { elements?: unknown[] } } })?.content?.canvas
+    ?.elements;
+  return Array.isArray(elements) ? elements : [];
+}
+
+/** Whether a canvas element is the video placeholder looking for a source. */
+function isVideoPlaceholderElement(el: unknown, videoElementId: string): boolean {
+  const e = el as { id?: unknown; src?: unknown; mediaRef?: unknown };
+  return (
+    e?.mediaRef === videoElementId || e?.src === videoElementId || e?.id === videoElementId
+  );
+}
+
+/** Committed images among canvas elements — placeholders and the video itself excluded. */
+function committedImageSources(
+  elements: unknown[],
+  videoElementId: string,
+): SiblingImageSource[] {
+  const sources: SiblingImageSource[] = [];
+  for (const el of elements) {
+    const e = el as { id?: unknown; type?: unknown; src?: unknown };
+    if (e?.type !== 'image' || typeof e.src !== 'string' || !e.src) continue;
+    if (e.id === videoElementId) continue;
+    if (isGeneratedMediaPlaceholder(e.src)) continue;
+    sources.push({ elementId: typeof e.id === 'string' ? e.id : '', src: e.src });
+  }
+  return sources;
+}
+
+/**
+ * Find committed image elements on the same slide as a video placeholder.
+ * Pure over plain scene data (unit-testable); scene/element shapes are read
+ * defensively because editor and playback variants differ. Placeholders and
+ * the video element itself are never candidates.
+ */
+export function findSiblingImageSources(
+  scenes: unknown,
+  videoElementId: string,
+): SiblingImageSource[] {
+  if (!Array.isArray(scenes)) return [];
+  for (const scene of scenes) {
+    const elements = sceneCanvasElements(scene);
+    if (!elements.some((el) => isVideoPlaceholderElement(el, videoElementId))) continue;
+    return committedImageSources(elements, videoElementId);
+  }
+  return [];
+}
+
+/**
+ * Find committed image elements on every slide EXCEPT the video's own.
+ *
+ * Fallback when the video's slide holds no usable image: the classroom's
+ * already-generated images are paid for, so animating one of them beats
+ * billing a fresh still — which on a free ZeroGPU tier can be the run that
+ * exhausts the daily quota. Scene order decides; the first committed image
+ * wins. Same purity and defensiveness contract as
+ * {@link findSiblingImageSources}.
+ */
+export function findOtherSlideImageSources(
+  scenes: unknown,
+  videoElementId: string,
+): SiblingImageSource[] {
+  if (!Array.isArray(scenes)) return [];
+  let ownsVideo = false;
+  const sources: SiblingImageSource[] = [];
+  for (const scene of scenes) {
+    const elements = sceneCanvasElements(scene);
+    if (elements.some((el) => isVideoPlaceholderElement(el, videoElementId))) {
+      ownsVideo = true;
+      continue;
+    }
+    sources.push(...committedImageSources(elements, videoElementId));
+  }
+  // No video placeholder anywhere (stale scenes): offer nothing, mirroring
+  // findSiblingImageSources — animating a classroom image for a video the
+  // document no longer names would bill a run nobody asked for.
+  return ownsVideo ? sources : [];
+}
+
+/** Stills above this are skipped (the data: URL would burst request limits). */
+const MAX_SIBLING_STILL_BYTES = 8 * 1024 * 1024;
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error('could not read image bytes'));
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Turn a sibling image src into a server-fetchable URL. Remote `https:` refs
+ * pass through so the server downloads them directly; everything local —
+ * opaque asset ids (resolved through the pool lease), `blob:`, same-origin
+ * `http:` — is read here and inlined as a `data:` URL. Returns undefined
+ * when the candidate is unusable so the caller tries the next sibling.
+ */
+export async function materializeSiblingStill(src: string): Promise<string | undefined> {
+  const trimmed = src.trim();
+  if (!trimmed) return undefined;
+  if (/^https:/i.test(trimmed)) return trimmed;
+  try {
+    let fetchable = trimmed;
+    if (!isConcreteMediaAddress(trimmed)) {
+      // A reference the pool never issued is not worth asking the pool
+      // about (see the placeholder-lease guard): placeholders never reach
+      // here, but this keeps the lease site safe if callers change.
+      if (!mayNameAPoolAsset(trimmed)) return undefined;
+      const leased = await withAssetUrl(trimmed, (url) => url);
+      if (!leased) return undefined;
+      fetchable = leased;
+    }
+    const response = await fetch(fetchable);
+    if (!response.ok) return undefined;
+    const blob = await response.blob();
+    if (blob.size === 0 || blob.size > MAX_SIBLING_STILL_BYTES) return undefined;
+    if (blob.type && !blob.type.startsWith('image/')) return undefined;
+    return await blobToDataUrl(blob);
+  } catch {
+    return undefined;
+  }
 }
 
 async function callVideoApi(
@@ -1184,21 +1344,16 @@ async function callVideoApi(
   height?: number;
   duration?: number;
 }> {
-  const settings = useSettingsStore.getState();
-  const providerConfig = settings.videoProvidersConfig?.[settings.videoProviderId];
-
+  // The video slot names the provider and model on the server.
   const response = await fetch('/api/generate/video', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-video-provider': settings.videoProviderId || '',
-      'x-video-model': settings.videoModelId || '',
-      'x-api-key': providerConfig?.apiKey || '',
-      'x-base-url': providerConfig?.baseUrl || '',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt: req.prompt,
       aspectRatio: req.aspectRatio,
+      // Image-to-video providers (e.g. Hugging Face LivePortrait) animate
+      // this source image when the request carries one.
+      ...(req.sourceImageUrl ? { sourceImageUrl: req.sourceImageUrl } : {}),
     }),
     signal: abortSignal,
   });

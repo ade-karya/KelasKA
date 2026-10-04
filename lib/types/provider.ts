@@ -24,6 +24,8 @@ export type BuiltInProviderId =
   | 'tencent-hunyuan'
   | 'xiaomi'
   | 'tokendance'
+  | 'opencode'
+  | 'opencode-go'
   | 'lemonade'
   | 'ollama';
 
@@ -36,7 +38,7 @@ export type ProviderId = BuiltInProviderId | `custom-${string}`;
 /**
  * Provider API types
  */
-export type ProviderType = 'openai' | 'azure' | 'anthropic' | 'bedrock' | 'google';
+export type ProviderType = 'openai' | 'azure' | 'anthropic' | 'bedrock' | 'google' | 'opencode';
 
 export type ThinkingControlType =
   | 'none'
@@ -65,7 +67,8 @@ export type ThinkingRequestAdapter =
   | 'openrouter'
   | 'hunyuan'
   | 'xiaomi'
-  | 'lemonade';
+  | 'lemonade'
+  | 'opencode';
 
 /**
  * Describes a model's thinking/reasoning API control capability.
@@ -192,9 +195,26 @@ export interface ModelConfig {
   proxy?: string; // Optional: HTTP proxy URL for this provider
   providerType?: ProviderType; // Optional: for custom providers on server-side
   /**
+   * Whether the call needs a key, when the caller's configuration says so
+   * (a self-hosted OpenAI-compatible server needs none, although the
+   * registry entry it rides on does). Omitted: the registry decides.
+   */
+  requiresApiKey?: boolean;
+  /**
    * Optional server-side fetch implementation used for the model's outbound
    * requests (e.g. a wrapper that re-validates redirect hops). When omitted the
    * global fetch is used. Never set by client-side consumers.
    */
   fetchImpl?: typeof fetch;
 }
+
+/**
+ * Provider internal (CLI) yang disembunyikan dari UI — pengaturan, pemilih
+ * model, toolbar. Backend tetap berfungsi (getModel / `opencode run`,
+ * DEFAULT_MODEL / MODEL_ROUTES server-side). Didefinisikan di sini (bukan di
+ * lib/ai/providers.ts) agar tidak ikut ke-mock pada test store.
+ *
+ * Semua varian opencode disembunyikan (`opencode`, `opencode-go`): keduanya
+ * auth-nya via CLI/TUI (`opencode auth login`), bukan via API key di UI.
+ */
+export const HIDDEN_PROVIDER_IDS: ReadonlySet<string> = new Set(['opencode', 'opencode-go']);

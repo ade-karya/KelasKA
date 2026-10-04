@@ -11,7 +11,10 @@
   },
   "home": {
     "slogan": "التعلّم التوليدي في فصل تفاعلي متعدد الوكلاء",
-    "greetingWithName": "مرحبًا، {{name}}"
+    "greetingWithName": "مرحبًا، {{name}}",
+    "vocationalTestBadge": "ميزة تجريبية",
+    "vocationalTestLabel": "مهمة التعليم المهني",
+    "vocationalTestTooltip": "إرسال اختبار تدريب عملي مهني من مربع الإدخال الحالي"
   },
   "toolbar": {
     "pdfParser": "محلل PDF",
@@ -47,7 +50,18 @@
     "ttsPreviewing": "جارٍ التشغيل...",
     "vocationalTestBadge": "ميزة تجريبية",
     "vocationalTask": "مهمة مهنية",
-    "vocationalTestHint": "إرسال اختبار تدريب عملي مهني من الإدخال الحالي"
+    "vocationalTestHint": "إرسال اختبار تدريب عملي مهني من الإدخال الحالي",
+    "modelChangeFailed": "تعذّر تغيير النموذج: {{message}}",
+    "modelLockedHint": "النموذج الذي تستخدمه المقررات، ويحدده هذا الخادم",
+    "pickModel": "اختر نموذجًا",
+    "defaultModel": "افتراضي",
+    "defaultModelNote": "يغيّر النموذج الافتراضي؛ تحتفظ المراحل المضبوطة بشكل منفصل بنماذجها.",
+    "stagesSetSeparately": "{{count}} مراحل مضبوطة بشكل منفصل",
+    "stagesSetSeparately_one": "{{count}} مرحلة مضبوطة بشكل منفصل",
+    "stagesSetSeparately_other": "{{count}} مراحل مضبوطة بشكل منفصل",
+    "stagesSetSeparatelyHint": "مراحل بنموذج خاص بها",
+    "perStageSetup": "ضبط حسب المرحلة",
+    "perStageSetupHint": "لكل مرحلة من مراحل الدورة نموذج خاص بها"
   },
   "export": {
     "pptx": "تصدير PPTX",
@@ -106,7 +120,10 @@
     "subtitlesFailed": "فشل تنزيل الترجمة",
     "noSlides": "لا توجد شرائح للتصدير",
     "noSlidesSkipped": "لا توجد شرائح في هذه الدورة — تم تخطي PPTX",
-    "nothingToExport": "لا يوجد محتوى للتصدير"
+    "nothingToExport": "لا يوجد محتوى للتصدير",
+    "videoQueueFull": "قائمة انتظار التصيير مشغولة. يُرجى المحاولة مجددًا بعد قليل.",
+    "videoRenderInProgress": "هناك عملية تصيير قيد التنفيذ بالفعل. يُرجى المحاولة مجددًا بعد قليل.",
+    "videoTooLarge": "يتجاوز حجم أرشيف التصدير الحد المسموح به في الخدمة."
   },
   "import": {
     "classroom": "استيراد فصل",
@@ -139,14 +156,16 @@
     "softClosing": "متابعة النقاش",
     "error": {
       "emptyAgentResponses": "أعاد الوكلاء استجابات فارغة; توقف النقاش. حاول مرة أخرى أو راجع إعدادات النموذج.",
-      "streamInterrupted": "انتهى تدفق البيانات بشكل غير متوقع; لم يكتمل النقاش. يرجى المحاولة مرة أخرى."
+      "streamInterrupted": "انتهى تدفق البيانات بشكل غير متوقع; لم يكتمل النقاش. يرجى المحاولة مرة أخرى.",
+      "rateLimited": "يتلقى النموذج عددًا كبيرًا من الطلبات حاليًا. يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.",
+      "providerUnavailable": "خدمة النموذج غير متاحة مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل."
     },
     "elementReference": {
-      "button": "الإشارة إلى المحتوى التعليمي",
-      "unavailable": "يمكن الإشارة فقط إلى شريحة PPT الحالية أو مكوّن تفاعلي مدعوم",
-      "instruction": "انقر على عنصر في المادة التعليمية · Esc للخروج",
-      "fallback": "عناصر أخرى في الشريحة ({{count}})",
-      "clear": "إزالة مرجع المحتوى التعليمي",
+      "button": "الإشارة إلى محتوى",
+      "unavailable": "لا يدعم المحتوى الحالي الإشارة إلى العناصر.",
+      "instruction": "انقر على عنصر · Esc للخروج",
+      "fallback": "عناصر أخرى ({{count}})",
+      "clear": "إزالة الإشارة",
       "summary": {
         "noText": "لا يوجد نص",
         "emptyContent": "لا يوجد محتوى",
@@ -155,7 +174,8 @@
         "imageMetadata": "صورة (بيانات وصفية فقط)",
         "videoMetadata": "فيديو (بيانات وصفية فقط)",
         "audioMetadata": "صوت (بيانات وصفية فقط)"
-      }
+      },
+      "whiteboardChanged": "تغيّر عنصر السبورة المشار إليه أو لم يعد متاحًا. اختره مجددًا أو أزل الإشارة قبل الإرسال."
     },
     "tabs": {
       "lecture": "الملاحظات",
@@ -173,6 +193,10 @@
       "qa": "أسئلة",
       "discussion": "نقاش",
       "lecture": "محاضرة"
+    },
+    "interactiveRuntimeError": {
+      "title": "تعذر تشغيل هذا التفاعل",
+      "dismiss": "إغلاق"
     }
   },
   "actions": {
@@ -409,7 +433,16 @@
       "sendBackward": "إرسال إلى الخلف",
       "alignTop": "محاذاة للأعلى",
       "alignMiddle": "محاذاة للوسط",
-      "alignBottom": "محاذاة للأسفل"
+      "alignBottom": "محاذاة للأسفل",
+      "alignCenterBoth": "توسيط على المحورين",
+      "setLink": "تعيين الرابط",
+      "ruler": "المسطرة",
+      "grid": "الشبكة",
+      "gridNone": "بلا",
+      "gridSmall": "صغيرة",
+      "gridMedium": "متوسطة",
+      "gridLarge": "كبيرة",
+      "resetPage": "إعادة تعيين الصفحة"
     },
     "background": {
       "label": "الخلفية",
@@ -1027,7 +1060,9 @@
     "fileTooLarge": "الملف كبير جدًا. يرجى اختيار ملف أصغر من 50 ميغابايت",
     "courseMaterialCountLimit": "يمكنك رفع ما يصل إلى 5 ملفات لمواد المقرر",
     "courseMaterialTotalSizeLimit": "يجب أن يكون الحجم الإجمالي لمواد المقرر أقل من 150 ميغابايت",
-    "unsupportedCourseMaterial": "المستخرج الحالي لا يدعم هذه الصيغة. غيّر المستخرج أو اختر ملفًا آخر."
+    "unsupportedCourseMaterial": "لا يدعم {{parser}} نوع الملف هذا. الصيغ المدعومة: {{formats}}",
+    "courseMaterialFormats": "الصيغ المدعومة: {{formats}} — حتى {{size}} ميغابايت لكل ملف",
+    "formatListSeparator": "، "
   },
   "generation": {
     "pdfLoadFailed": "فشل تحميل ملف PDF، يرجى المحاولة مرة أخرى",
@@ -1138,7 +1173,8 @@
     "webSearchFailed": "فشل البحث في الإنترنت",
     "outlinesReadyCount": "{{ready}} / {{total}} أقسام جاهزة",
     "jumpToBlankTitle": "الانتقال إلى قسم بحاجة إلى عنوان",
-    "analyzingMediaMaterial": "تحليل الصوت/الفيديو"
+    "analyzingMediaMaterial": "تحليل الصوت/الفيديو",
+    "modelSettingsUnavailable": "تعذّرت قراءة إعدادات النماذج، فتوقف التوليد. حاول مرة أخرى."
   },
   "settings": {
     "title": "الإعدادات",
@@ -1243,14 +1279,16 @@
       "brave": "Brave Search",
       "baidu": "Baidu",
       "claude": "Claude",
-      "searxng": "SearXNG"
+      "searxng": "SearXNG",
+      "opencode": "OpenCode CLI"
     },
     "providerTypes": {
       "openai": "بروتوكول OpenAI",
       "azure": "Azure OpenAI",
       "anthropic": "بروتوكول Claude",
       "google": "بروتوكول Gemini",
-      "bedrock": "Amazon Bedrock"
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
     },
     "modelCount": "نماذج",
     "modelSingular": "نموذج",
@@ -1294,7 +1332,8 @@
     "capabilities": {
       "vision": "الرؤية",
       "tools": "الأدوات",
-      "streaming": "التدفق"
+      "streaming": "التدفق",
+      "thinking": "التفكير"
     },
     "contextWindow": "السياق",
     "contextShort": "سياق",
@@ -1774,13 +1813,13 @@
     "modelNotConfigured": "يرجى اختيار نموذج للبدء",
     "dangerZone": "منطقة الخطر",
     "clearCache": "مسح الذاكرة المؤقتة المحلية",
-    "clearCacheDescription": "حذف جميع البيانات المخزنة محليًا، بما في ذلك سجلات الفصول وتاريخ المحادثات وذاكرة الصوت المؤقتة وإعدادات التطبيق. لا يمكن التراجع عن هذا الإجراء.",
+    "clearCacheDescription": "حذف البيانات التي يحتفظ بها هذا المتصفح محليًا: ذاكرة الصوت والوسائط المؤقتة، وسجل التراجع، وملفات الأصوات في المتصفح، وإعدادات التطبيق. الفصول وتاريخ المحادثات محفوظة على الخادم ولن تتأثر.",
     "clearCacheConfirmTitle": "هل أنت متأكد من مسح جميع الذاكرة المؤقتة؟",
-    "clearCacheConfirmDescription": "سيتم حذف جميع البيانات التالية نهائيًا ولا يمكن استردادها:",
-    "clearCacheConfirmItems": "الفصول والمشاهد، تاريخ المحادثات، ذاكرة الصوت والصور المؤقتة، إعدادات التطبيق والتفضيلات",
+    "clearCacheConfirmDescription": "سيتم حذف البيانات التالية نهائيًا من هذا المتصفح:",
+    "clearCacheConfirmItems": "ذاكرة الصوت والوسائط المؤقتة، سجل التراجع، ملفات الأصوات في المتصفح، إعدادات التطبيق والتفضيلات",
     "clearCacheConfirmInput": "اكتب \"DELETE\" للمتابعة",
     "clearCacheConfirmPhrase": "DELETE",
-    "clearCacheButton": "حذف جميع البيانات نهائيًا",
+    "clearCacheButton": "حذف البيانات المحلية",
     "clearCacheSuccess": "تم مسح الذاكرة المؤقتة، ستتم إعادة تحميل الصفحة قريبًا",
     "clearCacheFailed": "فشل مسح الذاكرة المؤقتة، يرجى المحاولة مرة أخرى",
     "clearCacheBlockedByOtherTabs": "أغلق علامات تبويب التطبيق الأخرى وأعد المحاولة.",
@@ -1855,7 +1894,36 @@
       "updateKey": "Update key",
       "modelsCount": "{{n}} models",
       "capabilities": "Capabilities offered",
-      "offeredNote": "Models offered by this plan. Pick the ones you want on the generation bar — availability depends on your plan tier, and unsupported models will error at generation time."
+      "offeredNote": "Models offered by this plan. Pick the ones you want on the generation bar — availability depends on your plan tier, and unsupported models will error at generation time.",
+      "statusConnected": "متصل",
+      "keyStorage": "يُحفظ المفتاح مشفّرًا على الخادم ولا يُعرض مرة أخرى. عند الاتصال تُطبَّق النماذج الموصى بها في هذه الخطة على مراحل الدورة؛ وإذا كان ذلك سيستبدل نماذج اخترتها، فسيُطلب منك التأكيد أولًا.",
+      "saveKey": "حفظ وتشغيل",
+      "cancelKeyUpdate": "إلغاء التحديث",
+      "manageAccount": "إدارة الحساب",
+      "disconnect": "إلغاء الربط",
+      "disconnectTitle": "إلغاء ربط هذه الباقة؟",
+      "disconnectBody": "بعد إلغاء الربط لن تُستخدم هذه الباقة في طلبات جديدة، ولن يُلغى اشتراكك لدى مزوّد الخدمة.",
+      "statusNotConnected": "غير متصل",
+      "balanceManagement": "إدارة الرصيد",
+      "modelPlan": "عرض خطة الطرز",
+      "planNoteEntitlement": "قدرات الباقة وأسعارها يحددها المزوّد.",
+      "planUnavailable": "الطراز غير مُفصح عنه",
+      "planNoteEditable": "هذا هو الإعداد الافتراضي؛ يمكن تغيير نموذج كل عقدة في «إعداد نماذج المقرر».",
+      "capImage": "توليد الصور",
+      "capLlm": "توليد النصوص",
+      "capTts": "تحويل النص إلى كلام",
+      "capVideo": "توليد الفيديو",
+      "capWebSearch": "البحث في الويب",
+      "saved": "تم حفظ إعدادات الربط",
+      "stageInteractive": "تفاعلي",
+      "stageSlide": "شرائح الدرس",
+      "applyTitle": "هل تريد استخدام الإعداد الموصى به لهذه الخطة؟",
+      "applyBody": "توصي {{name}} بنماذجها الخاصة لهذه المراحل، التي تستخدم حاليًا نماذج اخترتها:",
+      "applyKeep": "الإبقاء على إعدادي الحالي",
+      "applyRecommended": "استخدام الإعداد الموصى به للخطة",
+      "statusDisabled": "متصل (متوقف)",
+      "enableThisPlan": "تفعيل هذه الباقة",
+      "enableThisPlanHint": "عند الإيقاف لن تظهر هذه الباقة في إعداد نماذج المقرر."
     },
     "skills": {
       "nav": "المهارات",
@@ -1886,7 +1954,297 @@
     },
     "ttsBrowserNativeTimelineNotice": "لا يدعم تحويل النص إلى كلام المدمج في المتصفح ميزات الصوت في الخط الزمني للمحرر (المعاينة وإعادة التوليد والتعليق الصوتي الجماعي). بدّل إلى مزود TTS مُدار لتوليد صوت كل سطر وإدارته.",
     "alidocmindAccessKeyId": "AccessKey ID",
-    "alidocmindAccessKeySecret": "AccessKey Secret"
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "providerGoogleTTS": "Google Gemini TTS",
+    "qwenCloneUploadShort": "تحميل",
+    "ttsSpeedUnsupported": "This provider does not support speed adjustment.",
+    "courseModels": {
+      "nav": "إعداد نماذج المقرر",
+      "mainModel": "النموذج الرئيسي",
+      "mainModelHint": "المراحل التي تتبع النموذج الرئيسي تشارك هذا النموذج؛ اضغط على بطاقة لتخصيص مرحلة معينة",
+      "mainModelTooltip": "كل مرحلة مضبوطة لتتبع النموذج الرئيسي تستخدم هذا النموذج. اضغط على بطاقة في خط الأنابيب لتثبيت نموذج محدد لتلك المرحلة (مسار مرحلة على مستوى المستخدم، بأسبقية أدنى من MODEL_ROUTES لدى المشغّل). المراحل الفرعية الأدق تُضبط في فاحص البطاقة.",
+      "noProviderHint": "لم يتم إعداد نموذج لغوي بعد — أعدّه في «خدمات النماذج»",
+      "followMainline": "اتباع الرئيسي",
+      "followParent": "اتباع الأصل",
+      "restoreFollow": "استعادة اتباع الرئيسي",
+      "stopped": "معطّل",
+      "loop": "حلقة",
+      "parallel": "بالتوازي",
+      "visionSupported": "يدعم الرؤية",
+      "modelSource": "مصدر النموذج",
+      "mainlineUnset": "غير محدد",
+      "pickModel": "اختر نموذجًا",
+      "pickProvider": "اختر خدمة",
+      "optionInvalid": "غير متاح",
+      "subStagesTitle": "مراحل فرعية",
+      "subStages": {
+        "title": "إنشاء العنوان",
+        "slide": "الشرائح",
+        "quiz": "الاختبار",
+        "interactive": "سيناريو تفاعلي",
+        "pbl": "سيناريو التعلم بالمشاريع"
+      },
+      "servicesAndModels": "الخدمة والنموذج",
+      "searchService": "خدمة البحث",
+      "parseService": "خدمة التحليل",
+      "asrTranscribe": "تحويل الكلام إلى نص",
+      "aiIllustration": "رسوم توضيحية بالذكاء الاصطناعي",
+      "aiVideo": "فيديو بالذكاء الاصطناعي",
+      "stations": {
+        "docParse": "تحليل المستندات",
+        "webResearch": "البحث على الإنترنت",
+        "outline": "تخطيط المخطط",
+        "agents": "ملفات الوكلاء",
+        "sceneContent": "محتوى المشهد",
+        "sceneActions": "إجراءات المشهد",
+        "tts": "تحويل النص إلى كلام",
+        "media": "توليد الوسائط",
+        "interaction": "التفاعل في الفصل",
+        "desc": {
+          "doc-parse": "يتم تحليل مواد المقرر المرفوعة (المستندات والشرائح والصوت/الفيديو) إلى نص، مع نسخ الصوت والفيديو تلقائيًا.",
+          "web-research": "البحث في الويب عن مواد مكمّلة بناءً على متطلبات المقرر، مع إعادة صياغة استعلامات البحث بواسطة نموذج لغوي خفيف.",
+          "outline": "يفهم المتطلبات والمواد لإنتاج عنوان المقرر ومخططات كل مشهد (قابلة للمراجعة البشرية).",
+          "agents": "يولّد ملفات وكلاء المعلم والطالب (الشخصيات والصور الرمزية والأصوات).",
+          "scene-content": "يولّد محتوى الشرائح والاختبارات والتفاعلات وسيناريو PBL لكل مشهد، وهو أثقل مرحلة تعتمد على النموذج اللغوي في المسار.",
+          "scene-actions": "يكمل السرد والإجراءات التعليمية لكل مشهد لتغذية توليد الكلام وتشغيل الفصل.",
+          "tts": "يحوّل السرد إلى صوت المعلم/الطالب (لكل مشهد، بشكل متتابع).",
+          "media": "يعالج العناصر النائبة للصور/الفيديو في المحتوى المُنشأ بالتوازي مع دورة المشاهد.",
+          "interaction": "وقت تشغيل الفصل بعد التوليد: محادثة الوكلاء المتعددين، وتشغيل PBL، وتصحيح الاختبارات."
+        }
+      },
+      "mediaEnableNeedsSetup": "هيّئ مفتاح API في «خدمات النماذج» أو فعّل Token Plan أولاً."
+    },
+    "modelServices": {
+      "configured": "مهيّأ",
+      "configuredHint": "مهيّأ ومتاح لتوليد المقررات",
+      "desc": {
+        "asr": "هيّئ خدمات التعرف على الكلام والنموذج الافتراضي",
+        "image": "هيّئ خدمات توليد الصور (مفاتيح API وسير العمل وكتالوجات النماذج)",
+        "pdf": "هيّئ بيانات الاعتماد لخدمة تحليل المستندات (الخدمات المدمجة لا تحتاج إلى إعداد)",
+        "providers": "هيّئ بيانات الاعتماد والعناوين وكتالوجات النماذج لخدمات النماذج اللغوية",
+        "tts": "هيّئ خدمات تحويل النص إلى كلام والأصوات والنماذج",
+        "video": "هيّئ بيانات الاعتماد وكتالوجات النماذج لخدمات توليد الفيديو",
+        "webSearch": "هيّئ خدمات البحث في الويب ومصادر الاسترجاع"
+      },
+      "nav": "خدمات النماذج",
+      "notConfigured": "غير مهيّأ",
+      "notConfiguredHint": "غير مهيّأ بعد — أدخل بيانات الاعتماد لتمكينه",
+      "pending": "بحاجة إلى إعداد",
+      "ready": "جاهز"
+    },
+    "more": "إجراءات إضافية",
+    "providerLinks": {
+      "domestic": "الصين",
+      "getApiKey": "احصل على مفتاح API",
+      "international": "دولي"
+    },
+    "serverConfig": {
+      "loading": "جارٍ تحميل إعدادات النماذج…",
+      "loadFailed": "تعذّر تحميل إعدادات النماذج: {{message}}",
+      "retry": "إعادة المحاولة",
+      "unavailableTitle": "يدير الخادم النماذج",
+      "unavailableBody": "لا يحفظ هذا الخادم إعدادات النماذج لكل مساحة عمل، لذلك يستخدم النماذج التي هيّأها المسؤول.",
+      "conflict": "تغيّرت الإعدادات في مكان آخر وأُعيد تحميلها. راجعها ثم حاول مرة أخرى.",
+      "lockedNow": "أصبح الخادم يحدد هذا الإعداد، لذا لم يتغيّر.",
+      "unconfirmed": "فُقد رد الخادم، فأُعيد تحميل الإعدادات. تحقّق مما إذا كان التغيير قد طُبّق.",
+      "serverOnly": "لا يمكن إعداد هذه الخدمة إلا من إعدادات الخادم (openmaic.yml). تواصل مع مسؤول الخادم.",
+      "serverOnlyPolicy": "لا يسمح هذا الخادم لمساحات العمل بإضافة خدماتها الخاصة. تواصل مع مسؤول الخادم.",
+      "endpointServerOnly": "تُستخدم هذه الخدمة عبر عنوانها الرسمي؛ ولا يمكن تحديد عنوان آخر إلا من إعدادات الخادم.",
+      "endpointChatOnly": "عند استخدام عنوان خاص، تُستخدم هذه الخدمة لنماذج اللغة فقط.",
+      "keyStored": "يوجد مفتاح محفوظ على الخادم ({{mask}}).",
+      "keyStoredPlaceholder": "المفتاح المحفوظ {{mask}} — اكتب مفتاحًا جديدًا لاستبداله",
+      "keyUnreadable": "لم يعد بالإمكان قراءة المفتاح المحفوظ. أدخله مرة أخرى.",
+      "removeKey": "إزالة المفتاح",
+      "showKey": "إظهار المفتاح",
+      "hideKey": "إخفاء المفتاح",
+      "inUse": "قيد الاستخدام",
+      "modelFromCatalogue": "يأتي اسم النموذج وقدراته ونافذة السياق من الكتالوج المدمج.",
+      "modelWhenInUse": "يُستخدم عند اختيار هذه الخدمة في إعدادات نماذج الدورة.",
+      "planServer": "مهيأ من الخادم",
+      "providerIdHint": "يُحفظ باسم \"{{id}}\"",
+      "openaiCompatible": "متوافق مع OpenAI",
+      "notNarration": "هذه الخدمة ليست صوت السرد لمساحة العمل.",
+      "useForNarration": "استخدامها للسرد",
+      "fetchNotSaved": "عُثر على النماذج لكن تعذّر حفظها. حاول مرة أخرى.",
+      "regionalEndpointHint": "لا تقبل خدمة Azure Speech إلا نقطة النهاية الرسمية لمنطقة موردك: {{template}}."
+    },
+    "modelSettings": {
+      "card": {
+        "edit": "{{name}}: {{value}}. تغيير",
+        "toggle": "تشغيل {{name}} أو إيقافه",
+        "providerDefault": "النموذج الافتراضي",
+        "off": "متوقف",
+        "unassigned": "غير محدد",
+        "invalid": "إعداد غير صالح",
+        "locked": "يحدّده الخادم",
+        "lockedHint": "تحدّده إعدادات الخادم ولا يمكن تغييره هنا.",
+        "followers": "الخطوات التي تتبعه: {{count}}",
+        "childrenFollow": "أنواع الصفحات · كلها تتبع",
+        "childrenOwn": "أنواع الصفحات · {{count}} بإعداد خاص"
+      },
+      "legend": {
+        "label": "مفتاح الخريطة",
+        "follows": "يتبع الأعلى",
+        "own": "إعداد خاص",
+        "locked": "يحدّده الخادم"
+      },
+      "map": {
+        "label": "خريطة نماذج الدورة. اسحب أو استخدم مفاتيح الأسهم للتنقل، واستخدم أزرار التكبير والتصغير.",
+        "outside": "خارج خط الإنتاج",
+        "standalone": "ميزة مستقلة",
+        "perPage": "صفحة بصفحة",
+        "zoom": "التكبير",
+        "zoomIn": "تكبير (+)",
+        "zoomOut": "تصغير (-)",
+        "fit": "ملاءمة العرض (0)",
+        "reset": "إعادة إلى 100%",
+        "hint": "اسحب للتنقل · ⌘/Ctrl + التمرير للتكبير · انقر نقرًا مزدوجًا على مساحة فارغة للملاءمة"
+      },
+      "picker": {
+        "follow": "اتباع {{name}}",
+        "providers": "المزوّدون",
+        "providerDefault": "النموذج الافتراضي",
+        "modelId": "معرّف النموذج",
+        "use": "استخدام",
+        "off": "إيقاف",
+        "offHint": "لا تعمل هذه الخطوة",
+        "noProviders": "لا توجد خدمة تقدّم هذا بعد. أعدّ واحدة في خدمات النماذج.",
+        "fallback": "البديل",
+        "noFallback": "لا شيء",
+        "manageProviders": "الإدارة في خدمات النماذج",
+        "conflict": "تغيّرت الإعدادات في مكان آخر وأُعيد تحميلها. راجعها ثم حاول مرة أخرى.",
+        "lockedNow": "أصبح الخادم يحدّد هذا الإعداد، لذلك لم يتغيّر شيء.",
+        "clear": "مسح الإعداد الخاص",
+        "clearHint": "استخدام إعداد الخادم إن وُجد",
+        "unconfirmed": "فُقدت استجابة الخادم، لذا أُعيد تحميل الإعدادات. تحقّق مما إذا كان التغيير قد طُبّق.",
+        "thinking": "التفكير"
+      },
+      "slots": {
+        "llm": {
+          "name": "النموذج الافتراضي",
+          "desc": "النموذج اللغوي الذي تستخدمه كل خطوة ليس لها إعداد خاص."
+        },
+        "courseResearch": {
+          "name": "استعلامات البحث",
+          "desc": "يحوّل موضوع الدورة إلى استعلامات بحث على الويب."
+        },
+        "courseOutline": {
+          "name": "المخطط",
+          "desc": "يخطّط صفحات الدورة."
+        },
+        "courseAgents": {
+          "name": "الأدوار",
+          "desc": "ينشئ المعلّمين وزملاء الصف."
+        },
+        "courseContent": {
+          "name": "محتوى الصفحات",
+          "desc": "يكتب كل صفحة. أنواع الصفحات التي ليس لها إعداد خاص تتبعه."
+        },
+        "courseContentSlide": {
+          "name": "الشرائح",
+          "desc": "يكتب صفحات الشرائح."
+        },
+        "courseContentQuiz": {
+          "name": "الاختبارات",
+          "desc": "يكتب صفحات الاختبارات."
+        },
+        "courseContentInteractive": {
+          "name": "الصفحات التفاعلية",
+          "desc": "يكتب الصفحات التفاعلية."
+        },
+        "courseContentPbl": {
+          "name": "المشاريع",
+          "desc": "يكتب صفحات التعلّم القائم على المشاريع."
+        },
+        "courseActions": {
+          "name": "إجراءات الشرح",
+          "desc": "يحدّد ما يقوله المعلّمون ويفعلونه في كل صفحة."
+        },
+        "classroom": {
+          "name": "الصف",
+          "desc": "النقاش وتصحيح الاختبارات والمشاريع أثناء التعلّم."
+        },
+        "agent": {
+          "name": "الوكيل",
+          "desc": "ينشئ الدورات ويعدّلها معك. يحتاج إلى نموذج يدعم استدعاء الأدوات."
+        },
+        "tts": {
+          "name": "التعليق الصوتي",
+          "desc": "يقرأ المحاضرات بصوت عالٍ."
+        },
+        "asr": {
+          "name": "الإدخال الصوتي",
+          "desc": "يحوّل الأسئلة المنطوقة في الصف إلى نص."
+        },
+        "image": {
+          "name": "الصور",
+          "desc": "ينشئ صورًا للصفحات."
+        },
+        "video": {
+          "name": "الفيديو",
+          "desc": "ينشئ مقاطع فيديو للصفحات."
+        },
+        "webSearch": {
+          "name": "البحث على الويب",
+          "desc": "يبحث على الويب أثناء إنشاء الدورة."
+        },
+        "document": {
+          "name": "تحليل المستندات",
+          "desc": "يقرأ المستندات المرفوعة."
+        }
+      },
+      "source": {
+        "inherited": "يتبع {{name}}",
+        "deployment": "الخادم",
+        "default": "افتراضي الخادم"
+      },
+      "stations": {
+        "research": "البحث على الويب",
+        "media": "الصور / الفيديو",
+        "lines": {
+          "rewrite": "الاستعلام",
+          "search": "البحث",
+          "image": "صورة",
+          "video": "فيديو"
+        }
+      },
+      "empty": {
+        "prompt": "لا يوجد نموذج لغة بعد. أعدّ خدمة في خدمات النماذج أو اربط خطة في Token Plan؛ تملأ نماذجها الأجزاء غير المضبوطة.",
+        "open": "فتح خدمات النماذج",
+        "askAdmin": "لا يوجد نموذج لغة مُعد. اطلب من مسؤول الخادم إعداد واحد."
+      }
+    },
+    "unimported": {
+      "toast": "تعذّر نقل بعض إعدادات النماذج من هذا المتصفح إلى الخادم. تجدها في الإعدادات ← خدمات النماذج.",
+      "title": "تعذّر نقل بعض الإعدادات من هذا المتصفح إلى الخادم",
+      "description": "تبقى محفوظة مع مفاتيحها في هذا المتصفح فقط. أعد إعدادها هنا (أو في إعدادات الخادم)، ثم تجاهلها.",
+      "modelChoice": "اختيار النموذج لـ {{slot}}: {{assignment}}",
+      "copyKey": "نسخ المفتاح",
+      "copyKeyPair": "نسخ زوج المفاتيح",
+      "keyCopied": "تم النسخ",
+      "copyFailed": "تعذّر النسخ",
+      "dismiss": "تجاهل",
+      "dismissTitle": "تجاهل هذه الإعدادات؟",
+      "dismissDescription": "ستُحذف مفاتيحها من هذا المتصفح. لا يمكن التراجع عن ذلك.",
+      "reason": {
+        "refused": "لم يقبلها الخادم: {{detail}}",
+        "reserved": "يضبط الخادم بالفعل خدمة بهذا الاسم.",
+        "customService": "لا يمكن ضبط خدمة صوت مخصصة إلا على الخادم (openmaic.yml).",
+        "keyPair": "لا يمكن ضبط خدمة تستخدم زوج مفاتيح إلا على الخادم (openmaic.yml).",
+        "unsupported": "لا يمكن نقل هذا النوع من المزوّدين المخصصين: أضفه مجددًا كنقطة نهاية متوافقة مع OpenAI.",
+        "unconfirmed": "لم يؤكد الخادم أنه تم استيراده."
+      }
+    },
+    "providerHuggingFaceImage": "Hugging Face FLUX",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face LivePortrait",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. LivePortrait animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the LivePortrait Space",
+    "enableThisProvider": "تمكين هذا المزوّد",
+    "enableThisProviderHint": "عند الإيقاف لن يظهر هذا المزوّد في إعداد نماذج المقرر."
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

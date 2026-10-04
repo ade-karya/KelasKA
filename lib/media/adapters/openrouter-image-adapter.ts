@@ -23,6 +23,8 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from '../types';
+import { mediaFetchFor } from '../media-fetch';
+import { connectivityHttpFailure, connectivityTransportFailure } from '../probe-auth';
 import { requireModel } from '../require-model';
 
 export const OPENROUTER_DEFAULT_BASE_URL = 'https://openrouter.ai/api/v1';
@@ -82,17 +84,15 @@ export async function testOpenRouterImageConnectivity(
 
   let response: Response;
   try {
-    response = await fetch(`${baseUrl}/key`, {
+    response = await mediaFetchFor(config)(`${baseUrl}/key`, {
       method: 'GET',
       redirect: 'manual',
       headers: openRouterHeaders(config.apiKey),
     });
-  } catch {
-    return {
-      success: false,
-      message: `Network error: unable to reach ${baseUrl}. Check your Base URL and network connection.`,
-    };
+  } catch (err) {
+    return connectivityTransportFailure('OpenRouter', err);
   }
+  await response.body?.cancel().catch(() => undefined);
 
   if (response.ok) {
     return {
@@ -101,17 +101,13 @@ export async function testOpenRouterImageConnectivity(
     };
   }
 
-  const text = await response.text().catch(() => '');
   if (response.status === 401 || response.status === 403) {
     return {
       success: false,
       message: `Invalid API key or unauthorized (${response.status}). Check your OpenRouter key.`,
     };
   }
-  return {
-    success: false,
-    message: `OpenRouter image connectivity failed (${response.status}): ${text}`,
-  };
+  return connectivityHttpFailure('OpenRouter', response.status);
 }
 
 export async function generateWithOpenRouterImage(
@@ -121,18 +117,30 @@ export async function generateWithOpenRouterImage(
   const baseUrl = openRouterBaseUrl(config.baseUrl);
   const model = requireModel(config.model, 'OpenRouter Image');
 
-  const body: Record<string, unknown> = { model, prompt: options.prompt, n: 1 };
-  // `aspect_ratio` accepts our four ratios verbatim; omit it and the model decides.
-  if (options.aspectRatio) body.aspect_ratio = options.aspectRatio;
+  // Full request first (aspect ratio honored where the model supports it —
+  // the router clamps it to the model's subset). Some models declare no
+  // `aspect_ratio` knob at all and answer 400; the fallback below retries
+  // those with the minimal `{ model, prompt }` shape from the API example.
+  const fullBody: Record<string, unknown> = { model, prompt: options.prompt, n: 1 };
+  if (options.aspectRatio) fullBody.aspect_ratio = options.aspectRatio;
 
-  const response = await fetch(`${baseUrl}/images`, {
-    method: 'POST',
-    headers: openRouterHeaders(config.apiKey),
-    // Never let a redirect carry the Authorization header to another host.
-    redirect: 'manual',
-    body: JSON.stringify(body),
-    ...(options.signal ? { signal: options.signal } : {}),
-  });
+  const doPost = async (body: Record<string, unknown>): Promise<Response> =>
+    mediaFetchFor(config)(`${baseUrl}/images`, {
+      method: 'POST',
+      headers: openRouterHeaders(config.apiKey),
+      // Never let a redirect carry the Authorization header to another host.
+      redirect: 'manual',
+      body: JSON.stringify(body),
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
+
+  let response = await doPost(fullBody);
+  if (!response.ok && response.status === 400 && Object.keys(fullBody).length > 2) {
+    // Retry once without optional knobs — a model with a strict parameter
+    // allowlist (e.g. no `aspect_ratio`/`n`) gets the documented minimal shape.
+    await response.body?.cancel().catch(() => undefined);
+    response = await doPost({ model, prompt: options.prompt });
+  }
 
   if (!response.ok) {
     const text = await response.text();

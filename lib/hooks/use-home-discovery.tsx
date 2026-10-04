@@ -18,7 +18,7 @@
  *
  * The reference (live deployment) also renders the Discover/featured feed
  * through this hook and branches on `isLiveMode`. This workspace is
- * self-deploy and single-owner: `listStages` reads the local storage boundary,
+ * self-deploy and single-owner: `listStages` reads the owner's library,
  * every course is the user's own (`isOwner` is absent), and there is no
  * Discover feed to render — the workspace's discover-only mode therefore
  * leaves the feed slot empty, exactly as the reference does outside live mode.
@@ -35,9 +35,10 @@ import {
   listFolders,
   createFolder,
   setStageFolder,
+  isAccessCodeRequiredError,
   type StageListItem,
 } from '@/lib/utils/stage-storage';
-import type { FolderRecord } from '@/lib/utils/database';
+import type { FolderRecord } from '@/lib/types/folder';
 import { NewFolderDialog } from '@/components/discovery/folder-dialogs';
 import { useImportClassroom } from '@/lib/import/use-import-classroom';
 import { createCoalescedLatestLoader } from '@/lib/workbench/course-discovery-sync';
@@ -129,6 +130,16 @@ export function useHomeDiscovery({
           setState('ready');
         },
         fail: (err) => {
+          // Pre-auth (ACCESS_CODE gate, no cookie yet): expected state, not a
+          // failure. Stay on an empty library without error chrome or toast;
+          // the access-code modal covers auth and `auth-change` reloads us.
+          if (isAccessCodeRequiredError(err)) {
+            log.debug('Skipping classroom load: access code required (pre-auth).');
+            setClassrooms([]);
+            stateRef.current = 'ready';
+            setState('ready');
+            return;
+          }
           log.error('Failed to load classrooms:', err);
           // A background reconciliation must not replace an already-usable tree
           // with error chrome because of one transient read failure. Initial
@@ -149,7 +160,13 @@ export function useHomeDiscovery({
       folderLoaderRef.current = createCoalescedLatestLoader({
         load: listFolders,
         commit: setFolders,
-        fail: (err) => log.error('Failed to load folders:', err),
+        fail: (err) => {
+          if (isAccessCodeRequiredError(err)) {
+            log.debug('Skipping folder load: access code required (pre-auth).');
+            return;
+          }
+          log.error('Failed to load folders:', err);
+        },
       });
     }
     return folderLoaderRef.current();

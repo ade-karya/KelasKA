@@ -37,11 +37,12 @@
 import { type ReactNode, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { useBrand, useIsDesktop } from '@/lib/brand/brand-context';
 import { arrivedByProSwap } from '@/lib/workbench/pro-swap';
 import { cn } from '@/lib/utils/cn';
+import { BrandLogo } from '@/components/brand-logo';
 import { ProBadge } from '@/components/workbench/ProBadge';
 import { ProLaunchPanel } from '@/components/workbench/ProLaunchPanel';
+import { WorkbenchModelPicker } from './WorkbenchModelPicker';
 import type { CourseMentionSource } from '@/lib/workbench/course-mention';
 
 export function WorkspaceHome({
@@ -62,8 +63,6 @@ export function WorkspaceHome({
   readonly onExitPro: () => void;
 }) {
   const { t } = useI18n();
-  const brand = useBrand();
-  const isDesktop = useIsDesktop();
 
   // Someone who arrived through the Pro swap has just watched the surfaces
   // crossfade around a fixed lockup and the composer turn over into this face;
@@ -82,7 +81,7 @@ export function WorkspaceHome({
           plain button, not a second ProBadge: two elements answering to
           `pro-mode-exit` would be one testid too many. */}
       <div className="flex h-12 shrink-0 items-center justify-between px-4 md:hidden">
-        <img src={brand.logoSrc} alt={brand.productName} className="h-5 w-auto" />
+        <BrandLogo size="xs" />
         <button
           type="button"
           data-testid="pro-workspace-exit-compact"
@@ -110,9 +109,9 @@ export function WorkspaceHome({
           className="ws-home-first relative mx-auto w-full max-w-[760px]"
           data-testid="pro-workspace-first-screen"
         >
-          {/* Beat one: the lockup. Same structure as `app/page.tsx` — the badge
-              hangs off the wordmark's right edge absolutely, so it never
-              shifts the logo off the column's centre line.
+          {/* Beat one: the lockup. Sama seperti `app/page.tsx` — lockup Kelas KA
+              dengan badge Pro di bahu kanan wordmark, sehingga morph Pro-swap
+              antara `/` dan `/workspace` mulus (sama komponen, sama ukuran).
 
               `data-pro-morph` names it for the Pro swap: this box and `/`'s
               equivalent are the fixed anchor while the two surfaces fade.
@@ -124,31 +123,12 @@ export function WorkspaceHome({
               data-testid="pro-workspace-hero-lockup"
               data-pro-morph="lockup"
             >
-              {isDesktop && !brand.logoHasWordmark ? (
-                // A brand whose mark carries no wordmark gets the product name
-                // beside it, exactly as the classic hero does.
-                <div className="flex items-center gap-3">
-                  <img src={brand.markSrc} alt={brand.productName} className="size-11 md:size-14" />
-                  <span
-                    className="text-xl font-semibold tracking-tight md:text-2xl"
-                    style={{ color: brand.themeColor }}
-                  >
-                    {brand.productName}
-                  </span>
-                </div>
-              ) : (
-                <img
-                  src={brand.logoSrc}
-                  alt={brand.productName}
-                  data-testid="pro-workspace-hero-logo"
-                  className="ws-hero-logo"
-                />
-              )}
+              <BrandLogo size="lg" />
               {/* At the wordmark's cap height, where a trademark mark goes —
-                  offset from the image TOP, not centred on it, and scaled with
-                  the 46/56px lockup rather than the classic page's 48/64px. */}
+                  offset from the image TOP, not centred on it, sama seperti
+                  halaman utama (`ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]`). */}
               <div
-                className="absolute left-full top-0 ml-2 mt-[9px] md:mt-[12px]"
+                className="absolute left-full top-0 ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]"
                 data-pro-morph="badge"
                 data-pro-stamp
               >
@@ -167,6 +147,9 @@ export function WorkspaceHome({
               craft spent on it. It gets the larger gap of the two, because the
               gap is what says which of them the page is actually about. */}
           <div className={cn('mt-8', !swapped && 'ws-enter ws-d2')}>
+            <div className="mb-2 flex justify-end">
+              <WorkbenchModelPicker />
+            </div>
             <ProLaunchPanel
               autoFocus
               focusSignal={composerReset}
