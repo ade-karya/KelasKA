@@ -30,6 +30,15 @@ export type {
 
 export const MODEL_SETTINGS_ENDPOINT = '/api/model-config';
 
+/**
+ * Upper bound for one settings read. The server fails a stuck database read
+ * well inside the function budget (see getServerPersistenceProvider), but a
+ * response that never arrives for any other reason (lost connection, a proxy
+ * that hangs) would otherwise leave the settings UI on its loading spinner
+ * forever: the fetch is abandoned here so the panel shows its error + retry.
+ */
+export const MODEL_SETTINGS_TIMEOUT_MS = 45_000;
+
 export interface ModelSettingsState {
   /**
    * `unavailable`: the server keeps no workspace settings (no persistence), so
@@ -113,7 +122,10 @@ export function createModelSettingsClient(fetchImpl: Fetch) {
 
   async function fetchView(): Promise<ModelSettingsState> {
     try {
-      const response = await fetchImpl(MODEL_SETTINGS_ENDPOINT, { cache: 'no-store' });
+      const response = await fetchImpl(MODEL_SETTINGS_ENDPOINT, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(MODEL_SETTINGS_TIMEOUT_MS),
+      });
       if (response.status === 404) return { phase: 'unavailable', view: null };
       if (!response.ok) {
         const { message } = await errorBody(response);
@@ -121,11 +133,13 @@ export function createModelSettingsClient(fetchImpl: Fetch) {
       }
       return { phase: 'ready', view: (await response.json()) as ModelSettingsView };
     } catch (error) {
-      return {
-        phase: 'error',
-        view: state.view,
-        error: error instanceof Error ? error.message : String(error),
-      };
+      const message =
+        error instanceof Error && error.name === 'TimeoutError'
+          ? `Request timed out after ${MODEL_SETTINGS_TIMEOUT_MS / 1000}s`
+          : error instanceof Error
+            ? error.message
+            : String(error);
+      return { phase: 'error', view: state.view, error: message };
     }
   }
 

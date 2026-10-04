@@ -164,7 +164,15 @@ async function createServerPersistenceProvider(
  */
 export function getServerPersistenceProvider(
   connectionString: string,
-  poolFactory: PersistencePoolFactory = (value) => new Pool({ connectionString: value }),
+  // Timeouts are load-bearing on serverless: node-postgres waits forever by
+  // default (connectionTimeoutMillis 0, no statement timeout), so a stuck
+  // connect, a cross-region cold-start schema bootstrap, or a queued
+  // pg_advisory_lock hangs the request until the platform kills the function
+  // (Vercel Hobby: 60s FUNCTION_INVOCATION_TIMEOUT) instead of failing fast
+  // with a 500 the UI can show with a retry. 10s connect / 30s statement
+  // keeps the worst case inside the function budget with room to answer.
+  poolFactory: PersistencePoolFactory = (value) =>
+    new Pool({ connectionString: value, connectionTimeoutMillis: 10_000, statement_timeout: 30_000 }),
 ): Promise<ServerPersistenceProvider> {
   const key = connectionString.trim();
   if (providerState.providerPromise && providerState.connectionString === key) {
