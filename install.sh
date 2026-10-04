@@ -86,6 +86,9 @@
 #   --no-install        Lewati `pnpm install` (hanya siapkan sistem + env).
 #   --build             Jalankan `npm run build` di akhir sebagai pembuktian.
 #   --with-playwright   Instal browser Chromium untuk e2e Playwright.
+#   --full / --with-dev-tools
+#                       Bundle dev-penuh: setara `--build --with-playwright`
+#                       (build produksi + browser Chromium e2e).
 #   --with-pgadmin      Instal pgAdmin4 web (default sudah ON; flag ini
 #                       no-op, disediakan agar eksplisit).
 #   --no-pgadmin        Lewati instalasi & setup pgAdmin4 web.
@@ -183,6 +186,7 @@ tampilkan_help() {
 Contoh:
   sudo ./install.sh --yes
   sudo ./install.sh --yes --build --with-playwright
+  sudo ./install.sh --yes --full                  # bundle dev-penuh (= --build --with-playwright)
   sudo ./install.sh --yes --no-pgadmin              # tanpa pgAdmin4 web
   sudo ./install.sh --yes --no-ffmpeg              # tanpa ekstraksi media lokal
   sudo ./install.sh --yes --no-browser-tts         # tanpa TTS browser-native (butuh key TTS)
@@ -198,6 +202,7 @@ for arg in "$@"; do
     --no-install)      WITH_INSTALL=0 ;;
     --build)           WITH_BUILD=1 ;;
     --with-playwright) WITH_PLAYWRIGHT=1 ;;
+    --full|--with-dev-tools) WITH_BUILD=1; WITH_PLAYWRIGHT=1 ;;
     --with-pgadmin)    WITH_PGADMIN=1 ;;
     --no-pgadmin)      WITH_PGADMIN=0 ;;
     --pgadmin-email=*) PGADMIN_EMAIL="${arg#*=}"; [[ "$PGADMIN_EMAIL" == *"@"* ]] || fail "--pgadmin-email harus format email (contoh: --pgadmin-email=admin@openmaic.id)." ;;
@@ -387,6 +392,9 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   fi
   if [[ "$WITH_BUILD" -eq 1 ]]; then
     echo "  - jalankan npm run build sebagai pembuktian"
+  fi
+  if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then
+    echo "  - instal browser Chromium Playwright untuk e2e"
   fi
   if [[ "$WITH_UPSTREAM" -eq 1 ]]; then
     echo "  - pastikan git remote 'upstream' -> ${UPSTREAM_URL}"
@@ -2526,6 +2534,22 @@ if command -v ffmpeg >/dev/null 2>&1; then
   info "  ffmpeg: OK (ekstraksi media lokal aktif)"
 else
   info "  ffmpeg: tidak ada (dilewati via --no-ffmpeg) — pasang dengan: sudo ./install.sh --yes (tanpa --no-ffmpeg)"
+fi
+if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then
+  PW_CACHE_HOME="$(getent passwd "${SUDO_USER:-$(id -un)}" 2>/dev/null | cut -d: -f6 || true)"
+  [[ -n "$PW_CACHE_HOME" ]] || PW_CACHE_HOME="$HOME"
+  if [[ -d "$PW_CACHE_HOME/.cache/ms-playwright" ]]; then
+    info "  Playwright Chromium: OK (e2e siap: pnpm test:e2e)"
+  else
+    warn "Playwright Chromium tidak terdeteksi — pasang dengan: pnpm exec playwright install --with-deps chromium (atau sudo ./install.sh --yes --full)"
+  fi
+fi
+if [[ "$WITH_BUILD" -eq 1 ]]; then
+  if [[ -d .next ]]; then
+    info "  Build produksi: OK (.next ada; jalankan via npm run start)"
+  else
+    warn "Build produksi tidak menghasilkan .next — ulangi: npm run build"
+  fi
 fi
 if [[ "$WITH_BROWSER_TTS" -eq 1 ]]; then
   info "  TTS browser-native: ON tanpa API key (Web Speech API)"
