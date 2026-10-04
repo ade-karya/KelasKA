@@ -39,7 +39,7 @@ import {
   checkClientDocumentExtractorBaseUrl,
   checkClientMediaExtractorBaseUrl,
 } from '@/lib/server/client-extractor-endpoint';
-import { resolveExtractDocumentFileLimitBytes } from '@/lib/constants/generation';
+import { MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES } from '@/lib/constants/generation';
 
 // The asset-id path resolves bytes from the server asset store, which lives in
 // the PostgreSQL persistence backend; it needs the Node runtime, not the edge.
@@ -531,7 +531,6 @@ async function extract(req: NextRequest, ownerCookies: OwnerCookies): Promise<Re
   let isAssetIdForm = false;
   try {
     const contentType = req.headers.get('content-type') || '';
-    const uploadLimit = resolveExtractDocumentFileLimitBytes();
     let source: ExtractSource;
     let requestConfig: ExtractRequestConfig;
 
@@ -565,12 +564,12 @@ async function extract(req: NextRequest, ownerCookies: OwnerCookies): Promise<Re
           `Unsupported course material type for "${documentFile.name}"`,
         );
       }
-      if (documentFile.size > uploadLimit) {
+      if (documentFile.size > MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES) {
         return apiError(
           'INVALID_REQUEST',
           413,
-          `Course material file is too large. Maximum size is ${Math.round(
-            uploadLimit / 1024 / 1024,
+          `Course material file is too large. Maximum size is ${Math.floor(
+            MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES / 1024 / 1024,
           )}MB.`,
         );
       }
@@ -617,7 +616,11 @@ async function extract(req: NextRequest, ownerCookies: OwnerCookies): Promise<Re
 
       let resolution: ServerAssetResolution;
       try {
-        resolution = await resolveServerAsset(body.assetId, req, uploadLimit);
+        resolution = await resolveServerAsset(
+          body.assetId,
+          req,
+          MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES,
+        );
         ownerCookies.setCookies = resolution.setCookies;
       } catch (error) {
         // A failure from the server asset store (DB outage, registry failure)
@@ -657,8 +660,8 @@ async function extract(req: NextRequest, ownerCookies: OwnerCookies): Promise<Re
         return apiError(
           'INVALID_REQUEST',
           413,
-          `Course material file is too large. Maximum size is ${Math.round(
-            uploadLimit / 1024 / 1024,
+          `Course material file is too large. Maximum size is ${Math.floor(
+            MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES / 1024 / 1024,
           )}MB.`,
         );
       }
@@ -683,12 +686,12 @@ async function extract(req: NextRequest, ownerCookies: OwnerCookies): Promise<Re
       // `validateJsonPathProvider`); multipart keeps its behavior exactly.
       const providerValidationError = validateJsonPathProvider(body.providerId, mimeType);
       if (providerValidationError) return providerValidationError;
-      if (resolution.buffer.length > uploadLimit) {
+      if (resolution.buffer.length > MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES) {
         return apiError(
           'INVALID_REQUEST',
           413,
-          `Course material file is too large. Maximum size is ${Math.round(
-            uploadLimit / 1024 / 1024,
+          `Course material file is too large. Maximum size is ${Math.floor(
+            MAX_EXTRACT_DOCUMENT_FILE_SIZE_BYTES / 1024 / 1024,
           )}MB.`,
         );
       }

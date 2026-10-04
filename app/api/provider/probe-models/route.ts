@@ -3,7 +3,6 @@ import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateClientBaseUrl, validateUrlForSSRF } from '@/lib/server/ssrf-guard';
 import { fetchModels, isZeroCostPricing, ModelFetchError } from '@/lib/server/model-fetch';
-import { getCachedProbeModels, setCachedProbeModels } from '@/lib/server/model-probe-cache';
 import {
   savedChatEndpoint,
   savedProviderRef,
@@ -92,23 +91,10 @@ export async function POST(req: NextRequest) {
       if (ssrfError) return apiError('INVALID_REQUEST', 400, ssrfError);
     }
 
-    // Short-TTL Redis cache (successes only) for the provider-agnostic shape:
-    // the SSRF gate above always runs, but a warm cache skips the
-    // multi-candidate upstream discovery. Bypassed when `providerType` names
-    // a fetch contract (e.g. Gemini native auth), which the cache key of
-    // (baseUrl, modelsUrl, apiKey) does not capture.
-    const cached = !providerType
-      ? await getCachedProbeModels(baseUrl, modelsUrl, apiKey || '')
-      : undefined;
-    const models =
-      cached ??
-      (await fetchModels(baseUrl, apiKey || '', {
-        modelsUrlOverride: modelsUrl,
-        providerType,
-      }));
-    if (!providerType && !cached) {
-      await setCachedProbeModels(baseUrl, modelsUrl, apiKey || '', models);
-    }
+    const models = await fetchModels(baseUrl, apiKey || '', {
+      modelsUrlOverride: modelsUrl,
+      providerType,
+    });
     // Text-generation models only. The shared pattern applies to every
     // provider; the Gemini families apply to Gemini targets only.
     const isGemini =
