@@ -36,7 +36,6 @@ import * as azureVoices from '@/app/api/azure-voices/handler';
 import * as chat from '@/app/api/chat/handler';
 import * as chatPi from '@/app/api/chat/pi/handler';
 import * as chatPiWhiteboardVisibility from '@/app/api/chat/pi/whiteboard-visibility/handler';
-import * as classroom from '@/app/api/classroom/handler';
 import * as classroomMediaByClassroomIdByPath from '@/app/api/classroom-media/[classroomId]/[...path]/handler';
 import * as comfyuiWorkflows from '@/app/api/comfyui-workflows/handler';
 import * as exportVideoCapability from '@/app/api/export-video/capability/handler';
@@ -418,9 +417,6 @@ async function dispatch(req: NextRequest, method: string): Promise<Response> {
   }
   if (rest.length === 1 && rest[0] === 'chat') {
     return callHandler(req, method, chat as unknown as Record<string, unknown>, {});
-  }
-  if (rest.length === 1 && rest[0] === 'classroom') {
-    return callHandler(req, method, classroom as unknown as Record<string, unknown>, {});
   }
   if (rest.length === 1 && rest[0] === 'azure-voices') {
     return callHandler(req, method, azureVoices as unknown as Record<string, unknown>, {});
