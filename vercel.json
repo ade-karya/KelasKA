@@ -5,8 +5,8 @@
   "buildCommand": "pnpm build",
   "regions": ["sin1"],
   "functions": {
-    "app/api/[[...path]]/route.ts": {
-      "maxDuration": 60
+    "app/api/**/*.ts": {
+      "maxDuration": 300
     }
   }
 }
