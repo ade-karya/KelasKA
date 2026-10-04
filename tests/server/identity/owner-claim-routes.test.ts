@@ -131,7 +131,7 @@ describe('claiming anonymous work through the routes', () => {
   });
 
   async function claim(headers: Record<string, string>) {
-    const { POST } = await import('@/app/api/identity/claim/route');
+    const { POST } = await import('@/app/api/identity/claim/handler');
     return POST(
       new Request('http://localhost/api/identity/claim', {
         method: 'POST',

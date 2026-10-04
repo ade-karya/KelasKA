@@ -248,7 +248,7 @@ describe('owner identity seam through the routes', () => {
     await expect(before.json()).resolves.toEqual({ stages: [] });
     expect(before.headers.has('set-cookie')).toBe(false);
 
-    const { POST } = await import('@/app/api/identity/claim/route');
+    const { POST } = await import('@/app/api/identity/claim/handler');
     const claimed = await POST(
       new Request('http://localhost/api/identity/claim', {
         method: 'POST',

@@ -98,7 +98,7 @@ describe('the legacy import binding and its fence', () => {
   });
 
   async function bind(headers: Record<string, string>, browserId: unknown = BROWSER) {
-    const { POST } = await import('@/app/api/identity/legacy-import-binding/route');
+    const { POST } = await import('@/app/api/identity/legacy-import-binding/handler');
     return POST(
       new Request(`http://localhost${BINDING_ENDPOINT}`, {
         method: 'POST',
@@ -160,7 +160,7 @@ describe('the legacy import binding and its fence', () => {
     for (const id of ['', 'ABCDEF0123456789ABCDEF0123456789', '0123', 42, `${BROWSER}0`]) {
       expect((await bind(as('alice'), id)).status).toBe(400);
     }
-    const { POST } = await import('@/app/api/identity/legacy-import-binding/route');
+    const { POST } = await import('@/app/api/identity/legacy-import-binding/handler');
     const crossSite = await POST(
       new Request(`http://localhost${BINDING_ENDPOINT}`, {
         method: 'POST',
@@ -184,7 +184,7 @@ describe('the legacy import binding and its fence', () => {
     } as never);
     expect(await bound({ cookie: ANON_COOKIE })).toBe(true);
 
-    const { POST } = await import('@/app/api/identity/claim/route');
+    const { POST } = await import('@/app/api/identity/claim/handler');
     const claimed = await POST(
       new Request('http://localhost/api/identity/claim', {
         method: 'POST',
@@ -211,7 +211,7 @@ describe('the legacy import binding and its fence', () => {
       stage: { id: 'anon-course', name: 'x', createdAt: 1, updatedAt: 1 },
       scenes: [],
     } as never);
-    const { POST } = await import('@/app/api/identity/claim/route');
+    const { POST } = await import('@/app/api/identity/claim/handler');
     const claimed = await POST(
       new Request('http://localhost/api/identity/claim', {
         method: 'POST',
@@ -251,7 +251,7 @@ describe('the legacy import binding and its fence', () => {
         headers: { ...SAME_ORIGIN_JSON, cookie: ANON_COOKIE },
       });
 
-      const { POST: claim } = await import('@/app/api/identity/claim/route');
+      const { POST: claim } = await import('@/app/api/identity/claim/handler');
       const claimed = await claim(
         new Request('http://localhost/api/identity/claim', {
           method: 'POST',
@@ -356,7 +356,7 @@ describe('the legacy import binding and its fence', () => {
       'app/api/stages/route.ts': () => import('@/app/api/stages/route'),
       'app/api/folders/route.ts': () => import('@/app/api/folders/route'),
       'app/api/folders/members/route.ts': () => import('@/app/api/folders/members/route'),
-      'app/api/model-config/import/route.ts': () => import('@/app/api/model-config/import/route'),
+      'app/api/model-config/import/route.ts': () => import('@/app/api/model-config/import/handler'),
     };
     const load = modules[endpoint.route];
     if (!load) throw new Error(`No handler table entry for ${endpoint.route}`);

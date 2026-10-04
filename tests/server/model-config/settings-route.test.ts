@@ -93,7 +93,7 @@ describe('/api/model-config', () => {
   });
 
   async function get(user: string) {
-    const { GET } = await import('@/app/api/model-config/route');
+    const { GET } = await import('@/app/api/model-config/handler');
     return GET(
       new Request('http://localhost/api/model-config', {
         headers: { 'x-test-session': user },
@@ -102,7 +102,7 @@ describe('/api/model-config', () => {
   }
 
   async function put(user: string, revision: number | null, change: unknown) {
-    const { PUT } = await import('@/app/api/model-config/route');
+    const { PUT } = await import('@/app/api/model-config/handler');
     return PUT(
       new Request('http://localhost/api/model-config', {
         method: 'PUT',
@@ -233,7 +233,7 @@ describe('/api/model-config', () => {
   });
 
   it('imports browser settings once, keeping what the workspace already has', async () => {
-    const { POST } = await import('@/app/api/model-config/import/route');
+    const { POST } = await import('@/app/api/model-config/import/handler');
     const importFor = (user: string, body: unknown) =>
       POST(
         new Request('http://localhost/api/model-config/import', {
@@ -280,7 +280,7 @@ describe('/api/model-config', () => {
   });
 
   it('answers malformed changes with 400, never a server error', async () => {
-    const { PUT } = await import('@/app/api/model-config/route');
+    const { PUT } = await import('@/app/api/model-config/handler');
     const raw = (body: string) =>
       PUT(
         new Request('http://localhost/api/model-config', {
@@ -301,7 +301,7 @@ describe('/api/model-config', () => {
   });
 
   it('imports the valid items of a batch and skips the malformed ones', async () => {
-    const { POST } = await import('@/app/api/model-config/import/route');
+    const { POST } = await import('@/app/api/model-config/import/handler');
     const response = await POST(
       new Request('http://localhost/api/model-config/import', {
         method: 'POST',
@@ -330,7 +330,7 @@ describe('/api/model-config', () => {
   });
 
   it('lets the browser drop a provider only when the workspace stores the same key', async () => {
-    const { POST } = await import('@/app/api/model-config/import/route');
+    const { POST } = await import('@/app/api/model-config/import/handler');
     const importFor = (body: unknown) =>
       POST(
         new Request('http://localhost/api/model-config/import', {
@@ -404,7 +404,7 @@ describe('/api/model-config', () => {
   });
 
   it('keeps the browser settings, keys included, when the route refuses the proposal', async () => {
-    const { POST } = await import('@/app/api/model-config/import/route');
+    const { POST } = await import('@/app/api/model-config/import/handler');
     const { runModelSettingsImport } =
       await import('@/lib/legacy-browser-import/model-settings-import');
     const { MODEL_SETTINGS_IMPORT_ENDPOINT, MODEL_SETTINGS_IMPORT_KEY } =
@@ -458,7 +458,7 @@ describe('/api/model-config', () => {
 
   it('recomputes an import against a settings write that won the race', async () => {
     const persistence = await import('@/lib/persistence/workspace-model-config');
-    const { POST } = await import('@/app/api/model-config/import/route');
+    const { POST } = await import('@/app/api/model-config/import/handler');
     const importOnce = () =>
       POST(
         new Request('http://localhost/api/model-config/import', {

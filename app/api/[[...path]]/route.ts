@@ -23,6 +23,7 @@ export const maxDuration = 60;
 import * as accessCodeStatus from '@/app/api/access-code/status/handler';
 import * as accessCodeVerify from '@/app/api/access-code/verify/handler';
 import * as agentOwnerEvents from '@/app/api/agent/owner-events/handler';
+import * as agentModels from '@/app/api/agent/models/handler';
 import * as agentRuntime from '@/app/api/agent/runtime/handler';
 import * as agentSessionsByIdCancel from '@/app/api/agent/sessions/[id]/cancel/handler';
 import * as agentSessionsByIdEvents from '@/app/api/agent/sessions/[id]/events/handler';
@@ -55,10 +56,15 @@ import * as generateTts from '@/app/api/generate/tts/handler';
 import * as generateVideo from '@/app/api/generate/video/handler';
 import * as generateVoice from '@/app/api/generate/voice/handler';
 import * as generateClassroomByJobId from '@/app/api/generate-classroom/[jobId]/handler';
+import * as generateClassroomCapabilities from '@/app/api/generate-classroom/capabilities/handler';
 import * as generateClassroom from '@/app/api/generate-classroom/handler';
 import * as health from '@/app/api/health/handler';
+import * as identityClaim from '@/app/api/identity/claim/handler';
+import * as identityLegacyImportBinding from '@/app/api/identity/legacy-import-binding/handler';
 import * as materialsById from '@/app/api/materials/[id]/handler';
 import * as materials from '@/app/api/materials/handler';
+import * as modelConfigImport from '@/app/api/model-config/import/handler';
+import * as modelConfig from '@/app/api/model-config/handler';
 import * as parsePdf from '@/app/api/parse-pdf/handler';
 import * as pblV2Evaluate from '@/app/api/pbl/v2/evaluate/handler';
 import * as pblV2Instructor from '@/app/api/pbl/v2/instructor/handler';
@@ -67,6 +73,8 @@ import * as pblV2Simulator from '@/app/api/pbl/v2/simulator/handler';
 import * as pblV2TaskUpdate from '@/app/api/pbl/v2/task/update/handler';
 import * as persistenceByPath from '@/app/api/persistence/[...path]/handler';
 import * as providerProbeModels from '@/app/api/provider/probe-models/handler';
+import * as providerProbeImageModels from '@/app/api/provider/probe-image-models/handler';
+import * as providerProbeVideoModels from '@/app/api/provider/probe-video-models/handler';
 import * as proxyMedia from '@/app/api/proxy-media/handler';
 import * as quizGrade from '@/app/api/quiz-grade/handler';
 import * as serverProviders from '@/app/api/server-providers/handler';
@@ -301,6 +309,10 @@ async function dispatch(req: NextRequest, method: string): Promise<Response> {
   if (rest.length === 2 && rest[0] === 'access-code' && rest[1] === 'verify') {
     return callHandler(req, method, accessCodeVerify as unknown as Record<string, unknown>, {});
   }
+  // GET,POST /api/agent/models
+  if (rest.length === 2 && rest[0] === 'agent' && rest[1] === 'models') {
+    return callHandler(req, method, agentModels as unknown as Record<string, unknown>, {});
+  }
   // GET /api/agent/owner-events
   if (rest.length === 2 && rest[0] === 'agent' && rest[1] === 'owner-events') {
     return callHandler(req, method, agentOwnerEvents as unknown as Record<string, unknown>, {});
@@ -339,6 +351,19 @@ async function dispatch(req: NextRequest, method: string): Promise<Response> {
       id: rest[1],
     });
   }
+  // POST /api/identity/claim
+  if (rest.length === 2 && rest[0] === 'identity' && rest[1] === 'claim') {
+    return callHandler(req, method, identityClaim as unknown as Record<string, unknown>, {});
+  }
+  // POST /api/identity/legacy-import-binding
+  if (rest.length === 2 && rest[0] === 'identity' && rest[1] === 'legacy-import-binding') {
+    return callHandler(
+      req,
+      method,
+      identityLegacyImportBinding as unknown as Record<string, unknown>,
+      {},
+    );
+  }
   // POST /api/generate/agent-profiles
   if (rest.length === 2 && rest[0] === 'generate' && rest[1] === 'agent-profiles') {
     return callHandler(req, method, generateAgentProfiles as unknown as Record<string, unknown>, {});
@@ -376,11 +401,24 @@ async function dispatch(req: NextRequest, method: string): Promise<Response> {
   if (rest.length === 2 && rest[0] === 'generate' && rest[1] === 'voice') {
     return callHandler(req, method, generateVoice as unknown as Record<string, unknown>, {});
   }
+  // GET /api/generate-classroom/capabilities (static — must precede /api/generate-classroom/[jobId])
+  if (rest.length === 2 && rest[0] === 'generate-classroom' && rest[1] === 'capabilities') {
+    return callHandler(
+      req,
+      method,
+      generateClassroomCapabilities as unknown as Record<string, unknown>,
+      {},
+    );
+  }
   // GET /api/generate-classroom/[jobId]
   if (rest.length === 2 && rest[0] === 'generate-classroom') {
     return callHandler(req, method, generateClassroomByJobId as unknown as Record<string, unknown>, {
       jobId: rest[1],
     });
+  }
+  // POST /api/model-config/import (static — must precede generic branches)
+  if (rest.length === 2 && rest[0] === 'model-config' && rest[1] === 'import') {
+    return callHandler(req, method, modelConfigImport as unknown as Record<string, unknown>, {});
   }
   // GET /api/materials/[id]
   if (rest.length === 2 && rest[0] === 'materials') {
@@ -391,6 +429,24 @@ async function dispatch(req: NextRequest, method: string): Promise<Response> {
   // POST /api/provider/probe-models
   if (rest.length === 2 && rest[0] === 'provider' && rest[1] === 'probe-models') {
     return callHandler(req, method, providerProbeModels as unknown as Record<string, unknown>, {});
+  }
+  // POST /api/provider/probe-image-models
+  if (rest.length === 2 && rest[0] === 'provider' && rest[1] === 'probe-image-models') {
+    return callHandler(
+      req,
+      method,
+      providerProbeImageModels as unknown as Record<string, unknown>,
+      {},
+    );
+  }
+  // POST /api/provider/probe-video-models
+  if (rest.length === 2 && rest[0] === 'provider' && rest[1] === 'probe-video-models') {
+    return callHandler(
+      req,
+      method,
+      providerProbeVideoModels as unknown as Record<string, unknown>,
+      {},
+    );
   }
   // GET /api/skills/[id]
   if (rest.length === 2 && rest[0] === 'skills') {
@@ -435,6 +491,9 @@ async function dispatch(req: NextRequest, method: string): Promise<Response> {
   }
   if (rest.length === 1 && rest[0] === 'materials') {
     return callHandler(req, method, materials as unknown as Record<string, unknown>, {});
+  }
+  if (rest.length === 1 && rest[0] === 'model-config') {
+    return callHandler(req, method, modelConfig as unknown as Record<string, unknown>, {});
   }
   if (rest.length === 1 && rest[0] === 'parse-pdf') {
     return callHandler(req, method, parsePdf as unknown as Record<string, unknown>, {});

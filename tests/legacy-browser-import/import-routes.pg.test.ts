@@ -82,7 +82,7 @@ describe.skipIf(!contractUrl)('the legacy browser importer against the app route
       return route.POST(request as never);
     }
     if (path === '/api/identity/legacy-import-binding') {
-      const route = await import('@/app/api/identity/legacy-import-binding/route');
+      const route = await import('@/app/api/identity/legacy-import-binding/handler');
       return route.POST(request);
     }
     throw new Error(`No route for ${method} ${path}`);
