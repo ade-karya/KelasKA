@@ -15,6 +15,10 @@
  *   relation "agent_sessions" does not exist di database fresh).
  * - ensureUserSkillSchema: sama seperti createUserSkillStores di
  *   lib/server/agent-runtime/user-skill-store.ts.
+ * - ensureGenerationRunSchema: sama seperti provider() di
+ *   lib/server/generation/run/store.ts (4 tabel generation_runs/_steps/
+ *   _events/_commands; lazy di first scan, di sini eager agar boot pertama
+ *   bersih setelah merge server-first 1.2.0).
  *
  * CATATAN impor: script ini jalan di luar Next (tsx, package root
  * type=commonjs) sehingga modul `@/lib/*.ts` tiba sebagai CJS dan
@@ -45,6 +49,9 @@ const { getServerPersistenceProvider } = scriptRequire(
 const { withSchemaBootstrapLock } = scriptRequire(
   '@/lib/persistence/schema-bootstrap-lock',
 ) as typeof import('@/lib/persistence/schema-bootstrap-lock');
+const { ensureGenerationRunSchema } = scriptRequire(
+  '@/lib/persistence/generation-runs',
+) as typeof import('@/lib/persistence/generation-runs');
 
 async function main(): Promise<void> {
   const connectionString = process.env.DATABASE_URL;
@@ -57,10 +64,13 @@ async function main(): Promise<void> {
   await withSchemaBootstrapLock(queryable, ensureAgentSessionSchema);
   await withSchemaBootstrapLock(queryable, ensureAgentSessionMaterialSchema);
   await withSchemaBootstrapLock(queryable, ensureUserSkillSchema);
+  await withSchemaBootstrapLock(queryable, ensureGenerationRunSchema);
   const tables = await provider.pool.query<{ tablename: string }>(
     `SELECT tablename FROM pg_tables
      WHERE schemaname = 'public'
-       AND tablename IN ('agent_sessions', 'agent_session_materials', 'agent_user_skill')
+       AND tablename IN ('agent_sessions', 'agent_session_materials', 'agent_user_skill',
+                         'generation_runs', 'generation_run_steps',
+                         'generation_run_events', 'generation_run_commands')
      ORDER BY 1`,
   );
   await provider.pool.end().catch(() => undefined);

@@ -89,7 +89,8 @@
     },
     "./pg-migrations": {
       "types": "./dist/pg-migrations.d.ts",
-      "import": "./dist/pg-migrations.js"
+      "import": "./dist/pg-migrations.js",
+      "require": "./dist/pg-migrations.js"
     },
     "./pg-json": {
       "types": "./dist/pg-json.d.ts",

@@ -625,11 +625,29 @@ corepack install --global "pnpm@$PNPM_WANT" >/dev/null 2>&1 \
 hash -r 2>/dev/null || true
 command -v pnpm >/dev/null 2>&1 \
   || fail "pnpm tidak ditemukan setelah corepack. Pasang manual: npm i -g pnpm@$PNPM_WANT"
-# corepack hanya dicek keberadaannya saja tidak cukup: pnpm global lama (mis.
-# dari `npm i -g pnpm@9`) bisa membayangi shim corepack di PATH dan lolos cek
-# tapi gagal/lain perilaku saat `pnpm install`. Hanya peringatkan (tanpa fail)
-# agar lingkungan yang sengaja memakai pnpm lebih baru tidak rusak.
+# `command -v pnpm` saja tidak cukup: pnpm global lama (mis. dari
+# `npm i -g pnpm@9`) bisa membayangi shim corepack di PATH dan lolos cek tapi
+# gagal/lain perilaku saat `pnpm install`. Begitu pula cache corepack yang
+# terpotong (run terbunuh saat mengunduh) membuat shim menunjuk ke direktori
+# tanpa binary walau `corepack install` exit 0 — gejalanya `pnpm -v` gagal
+# (`?`) lalu `pnpm install` mati `Cannot find module .../bin/pnpm.cjs`.
+# Jadi verifikasi VERSI AKTIF, perbaiki otomatis bila rusak: buang cache lalu
+# unduh ulang sekali; bila tetap gagal, fallback `npm i -g` (bukan fail, agar
+# lingkungan yang sengaja memakai pnpm lebih baru tidak rusak).
 PNPM_HAVE="$(pnpm -v 2>/dev/null || echo '?')"
+if [[ "$PNPM_HAVE" != "$PNPM_WANT" ]]; then
+  info "pnpm ${PNPM_HAVE} terdeteksi (mau ${PNPM_WANT}) — coba perbaiki otomatis..."
+  for _cp_cache in "${HOME:-/root}/.cache/node/corepack" /root/.cache/node/corepack; do
+    [[ -d "$_cp_cache" ]] && run_as_root rm -rf "$_cp_cache"
+  done
+  unset _cp_cache
+  corepack install --global "pnpm@$PNPM_WANT" >/dev/null 2>&1 \
+    || corepack prepare "pnpm@$PNPM_WANT" --activate \
+    || run_as_root npm i -g "pnpm@$PNPM_WANT" \
+    || warn "perbaikan pnpm otomatis gagal; selaraskan manual: npm i -g pnpm@${PNPM_WANT}"
+  hash -r 2>/dev/null || true
+  PNPM_HAVE="$(pnpm -v 2>/dev/null || echo '?')"
+fi
 if [[ "$PNPM_HAVE" == "$PNPM_WANT" ]]; then
   info "pnpm ${PNPM_HAVE}."
 else
@@ -2145,6 +2163,14 @@ PGPYEOF
   # Tanpa systemd, `systemctl` pasti gagal ("Host is down") — jangan coba dulu,
   # langsung pakai service/apache2ctl agar tidak menambah noise error.
   LANGKAH="pgAdmin4: apache"
+  # Redam warning AH00558 (`Could not reliably determine the server's fully
+  # qualified domain name`) yang muncul di tiap `apache2ctl configtest` /
+  # `service apache2 start|reload`: tanpa ServerName global Apache menebak dari
+  # /etc/hosts. Idempoten: hanya tambah bila belum ada.
+  if [[ -f /etc/apache2/apache2.conf ]] \
+    && ! grep -qsE '^[[:space:]]*ServerName' /etc/apache2/apache2.conf; then
+    echo "ServerName localhost" | run_as_root tee -a /etc/apache2/apache2.conf >/dev/null
+  fi
   PGADMIN_NO_SYSTEMD=0
   if [[ ! -d /run/systemd/system ]]; then PGADMIN_NO_SYSTEMD=1; fi
   if pgrep -x apache2 >/dev/null 2>&1; then
@@ -2221,6 +2247,7 @@ if [[ "$WITH_INSTALL" -eq 1 ]]; then
   # log dev pertama penuh error 42P01 (relation "agent_sessions" does not
   # exist, dst.) sampai tiap store terinisialisasi. Idempoten (IF NOT EXISTS);
   # runtime tetap lazy-bootstrap sendiri bila langkah ini dilewati/gagal.
+  # Mencakup 4 tabel generation_runs*/generation_run_* (server-first 1.2.0).
   LANGKAH="bootstrap skema database"
   if [[ "$WITH_POSTGRES" -eq 1 && -f scripts/bootstrap-db-schema.mts ]]; then
     DB_URL_EFEKTIF="$(env_get .env.local DATABASE_URL)"
