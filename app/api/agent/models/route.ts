@@ -53,9 +53,7 @@ export async function GET() {
   let slotThinking: ThinkingConfig | undefined;
   let slotApi: string | undefined;
   try {
-    const lookup = await lookupSlot('agent', null);
-    const resolution =
-      lookup.configured.status === 'unassigned' ? lookup.defaults() : lookup.configured;
+    const resolution = await lookupSlot('agent', null);
     if (resolution.status === 'assigned') {
       slotModel =
         resolution.modelId && resolution.providerId
