@@ -49,8 +49,6 @@ import {
 
 const log = createLogger('Pi Chat API');
 
-export const maxDuration = 300;
-
 /**
  * Map an in-loop failure to the SSE `error` message the chat UI renders.
  *

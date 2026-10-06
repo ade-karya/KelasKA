@@ -39,23 +39,35 @@ import { SettingsDialog } from '@/components/settings';
 import { GenerationToolbar } from '@/components/generation/generation-toolbar';
 import { AgentBar } from '@/components/agent/agent-bar';
 import { useTheme } from '@/lib/hooks/use-theme';
-import { nanoid } from 'nanoid';
-import { deleteDocumentBlob, storeDocumentBlob } from '@/lib/utils/image-storage';
-import { normalizeDocumentMimeType } from '@/lib/document/mime';
-import {
-  courseMaterialFingerprint,
-  dedupeCourseMaterialFiles,
-} from '@/lib/document/course-materials';
-import type {
-  SelectedCourseMaterial,
-  SessionDocumentSource,
-  UserRequirements,
-} from '@/lib/types/generation';
 import {
   courseGenerationUsable,
   requireModelCapabilities,
 } from '@/lib/model-settings/capabilities';
-import { withResearchDecision } from '@/lib/generation/research-decision';
+import {
+  RunApiError,
+  discardGenerationRun,
+  runApiErrorText,
+} from '@/lib/generation-run-client/api';
+import {
+  RunStartRefusedError,
+  startClassicRun,
+  startDefinitelyRefused,
+} from '@/lib/generation-run-client/start';
+import {
+  useCourseMaterials,
+  type CourseMaterialMessage,
+} from '@/lib/generation-run-client/use-course-materials';
+import { useOwnerRuns } from '@/lib/generation-run-client/use-owner-runs';
+import {
+  courseRunHref,
+  courseRunStatus,
+  pendingCourseName,
+  pendingCourseRuns,
+  runsByCourse,
+  type CourseRunStatus,
+} from '@/lib/generation-run-client/course-card';
+import type { RunSnapshot } from '@/lib/generation-run-client/types';
+import { CourseRunStatusLabel } from '@/components/generation/course-run-status-label';
 import { useModelCapabilities } from '@/lib/model-settings/use-model-settings';
 import { useUserProfileStore, AVATAR_OPTIONS } from '@/lib/store/user-profile';
 import {
@@ -63,15 +75,12 @@ import {
   listStages,
   deleteStageData,
   renameStage,
-  getFirstSlideByStages,
-  revokeThumbnailSlideMediaUrls,
   listFolders,
   createFolder,
   renameFolder,
   deleteFolder,
   setStageFolder,
   FolderNameError,
-  isAccessCodeRequiredError,
   LIBRARY_CHANGED_EVENT,
   type DeleteFolderMode,
 } from '@/lib/utils/stage-storage';
@@ -80,12 +89,15 @@ import { displayNameWidth, FOLDER_NAME_MAX_WIDTH } from '@/lib/utils/folder-name
 import { FolderCard } from '@/components/discovery/folder-card';
 import { NewFolderDialog } from '@/components/discovery/folder-dialogs';
 import { MoveToFolderMenu } from '@/components/discovery/move-to-folder-menu';
+import { LibrarySkeleton } from '@/components/discovery/library-skeleton';
 import { SlideThumbnail } from '@/components/slide-renderer/SlideThumbnail';
 import type { Slide } from '@openmaic/dsl';
 import { useMediaGenerationStore } from '@/lib/store/media-generation';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useDraftCache } from '@/lib/hooks/use-draft-cache';
+import { useCourseThumbnails } from '@/lib/hooks/use-course-thumbnails';
+import { ThumbnailSkeleton } from '@/components/discovery/thumbnail-skeleton';
+import { useNearViewport } from '@/lib/hooks/use-near-viewport';
 import { SpeechButton } from '@/components/audio/speech-button';
 import { useImportClassroom } from '@/lib/import/use-import-classroom';
 import {
@@ -95,7 +107,6 @@ import {
 } from '@/lib/config/feature-flags';
 import { useImportPptx } from '@/lib/import/use-import-pptx';
 import { InteractiveModeButton } from '@/components/generation/interactive-mode-button';
-import { BrandLogo } from '@/components/brand-logo';
 import { ProBadge } from '@/components/workbench/ProBadge';
 import { arrivedByProSwap, startProSwap } from '@/lib/workbench/pro-swap';
 import {
@@ -117,14 +128,12 @@ const PPTX_IMPORT_ENABLED = isPptxImportEnabled();
 let workbenchRuntimeCache: boolean | null = null;
 
 interface FormState {
-  courseMaterials: SelectedCourseMaterial[];
   requirement: string;
   interactiveMode: boolean;
   vocationalTestMode: boolean;
 }
 
 const initialFormState: FormState = {
-  courseMaterials: [],
   requirement: '',
   interactiveMode: false,
   vocationalTestMode: false,
@@ -135,9 +144,14 @@ function HomePage() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   // Do not replay the classic hero's entrance after the route handoff already
-  // carried the lockup and composer into place.
+  // carried the lockup and composer into place. The entrance is CSS, not a
+  // JS-driven animation, so the server-rendered hero is painted (and fades in)
+  // before the page's scripts have loaded instead of staying invisible.
   const [swapped] = useState(arrivedByProSwap);
-  const heroEnter = (from: Record<string, number>) => (swapped ? false : from);
+  const heroEnter = (classes: string) =>
+    swapped
+      ? undefined
+      : `animate-in fill-mode-both ease-out motion-reduce:animate-none ${classes}`;
   const showVocationalTestUi = shouldShowVocationalTestUi();
   const workbenchBuildEnabled = isProWorkbenchEnabled();
   const [workbenchRuntimeEnabled, setWorkbenchRuntimeEnabled] = useState(
@@ -147,7 +161,11 @@ function HomePage() {
     if (!workbenchBuildEnabled || workbenchRuntimeCache !== null) return;
     let cancelled = false;
     fetch('/api/agent/runtime')
-      .then((response) => (response.ok ? response.json() : null))
+      .then((response) => {
+        // Not cached: a 401 before the access code is accepted is not an answer.
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
       .then((body) => {
         workbenchRuntimeCache = body?.enabled === true;
         if (!cancelled) setWorkbenchRuntimeEnabled(workbenchRuntimeCache);
@@ -172,10 +190,6 @@ function HomePage() {
   const [settingsSection, setSettingsSection] = useState<
     import('@/lib/types/settings').SettingsSection | undefined
   >(undefined);
-
-  // Draft cache for requirement text
-  const { cachedValue: cachedRequirement, updateCache: updateRequirementCache } =
-    useDraftCache<string>({ key: 'requirementDraft' });
 
   // Generation needs the course slots it resolves (outline, content, actions)
   // to name a model, whether or not the llm root does (the server's view;
@@ -209,28 +223,18 @@ function HomePage() {
     }
   }, []);
 
-  // Restore requirement draft from localStorage on mount. The previous derived-state
-  // pattern initialised `prev` from the cached value itself, so on the first client
-  // render the comparison was always equal and the restore never fired. Use an effect
-  // so the cache is hydrated into the form once we know the live requirement is empty.
-  const draftRestoredRef = useRef(false);
-  useEffect(() => {
-    if (draftRestoredRef.current) return;
-    if (!cachedRequirement) return;
-    draftRestoredRef.current = true;
-    setForm((prev) => (prev.requirement ? prev : { ...prev, requirement: cachedRequirement }));
-  }, [cachedRequirement]);
-
   const [themeOpen, setThemeOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // True while the Generate click drains upload-time ingests and builds the
-  // generation session. Doubles as the guard flag that freezes the course
-  // material set for the duration of prep and as the switch that disables the
-  // toolbar's add/remove affordances, so the session is always built from a
-  // set that cannot change under it.
+  // True while the Generate click starts the run. Doubles as the guard flag
+  // that freezes the course material set for the duration of the start and as
+  // the switch that disables the toolbar's add/remove/Retry affordances, so
+  // the run is always started from a set that cannot change under it.
   const [preparingGenerate, setPreparingGenerate] = useState(false);
   const [classrooms, setClassrooms] = useState<StageListItem[]>([]);
-  const [thumbnails, setThumbnails] = useState<Record<string, Slide>>({});
+  // First-slide thumbnails load lazily, per card near the viewport: the list
+  // renders as soon as /api/stages answers, never behind every course's
+  // document and media.
+  const { thumbnails, requestThumbnail, retainThumbnails } = useCourseThumbnails();
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -253,14 +257,6 @@ function HomePage() {
   const searchButtonRef = useRef<HTMLButtonElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const thumbnailsRef = useRef<Record<string, Slide>>({});
-
-  const replaceThumbnails = (slides: Record<string, Slide>) => {
-    const previous = thumbnailsRef.current;
-    thumbnailsRef.current = slides;
-    setThumbnails(slides);
-    window.setTimeout(() => revokeThumbnailSlideMediaUrls(previous), 0);
-  };
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -278,34 +274,23 @@ function HomePage() {
     try {
       const list = await listStages();
       setClassrooms(list);
-      // Load first slide thumbnails
-      if (list.length > 0) {
-        const slides = await getFirstSlideByStages(list.map((c) => c.id));
-        replaceThumbnails(slides);
-      } else {
-        replaceThumbnails({});
-      }
+      retainThumbnails(new Set(list.map((c) => c.id)));
     } catch (err) {
-      // Pre-auth (ACCESS_CODE gate): expected, not a persistence failure.
-      if (isAccessCodeRequiredError(err)) {
-        log.debug('Skipping classroom load: access code required (pre-auth).');
-        setClassrooms([]);
-        replaceThumbnails({});
-        return;
-      }
       log.error('Failed to load classrooms:', err);
       toast.error('Persistence is unavailable. Saved classrooms could not be loaded.');
     }
   };
 
+  // Courses being generated on the server: a card from the moment the run
+  // starts, live through the owner's run stream.
+  const { runs, forget: forgetRun } = useOwnerRuns({
+    onCourseChanged: () => void loadClassrooms(),
+  });
+
   const loadFolders = async () => {
     try {
       setFolders(await listFolders());
     } catch (err) {
-      if (isAccessCodeRequiredError(err)) {
-        log.debug('Skipping folder load: access code required (pre-auth).');
-        return;
-      }
       log.error('Failed to load folders:', err);
     }
   };
@@ -364,8 +349,6 @@ function HomePage() {
 
     return () => {
       window.removeEventListener(LIBRARY_CHANGED_EVENT, onLibraryChanged);
-      revokeThumbnailSlideMediaUrls(thumbnailsRef.current);
-      thumbnailsRef.current = {};
     };
   }, []);
 
@@ -377,6 +360,14 @@ function HomePage() {
   const confirmDelete = async (id: string) => {
     setPendingDeleteId(null);
     try {
+      // A card whose course does not exist yet is its run: discarding the run
+      // deletes it. Deleting a course ends its run.
+      const pendingRun = runs.find((run) => run.id === id);
+      if (pendingRun) {
+        await discardGenerationRun(id);
+        forgetRun(id);
+        return;
+      }
       await deleteStageData(id);
       await loadClassrooms();
     } catch (err) {
@@ -509,78 +500,60 @@ function HomePage() {
   }, [classrooms]);
   // Up to 3 member course covers (first-slide thumbnails) per folder, for the
   // folder tile's cover stack. Members are ordered by updatedAt desc so the
-  // frontmost cover is the most recently touched course.
-  const coverSlidesByFolder = useMemo(() => {
-    const byFolder = new Map<string, Slide[]>();
+  // frontmost cover is the most recently touched course. The members that
+  // fill (or, not loaded yet, may fill) those 3 slots are the tile's cover
+  // candidates: it loads their thumbnails while it is near the viewport, and a
+  // member without a slide gives its slot to the next one.
+  const folderCovers = useMemo(() => {
+    const byFolder = new Map<string, { slides: Slide[]; candidates: StageListItem[] }>();
     for (const c of [...classrooms].sort((a, b) => b.updatedAt - a.updatedAt)) {
       if (!c.folderId) continue;
+      const covers = byFolder.get(c.folderId) ?? { slides: [], candidates: [] };
+      byFolder.set(c.folderId, covers);
+      if (covers.candidates.length >= 3) continue;
       const slide = thumbnails[c.id];
-      if (!slide) continue;
-      const list = byFolder.get(c.folderId) ?? [];
-      if (list.length < 3) list.push(slide);
-      byFolder.set(c.folderId, list);
+      if (slide === null) continue;
+      covers.candidates.push(c);
+      if (slide) covers.slides.push(slide);
     }
     return byFolder;
   }, [classrooms, thumbnails]);
   const currentFolder = folders.find((f) => f.id === currentFolderId);
+
+  const listedStageIds = useMemo(() => new Set(classrooms.map((c) => c.id)), [classrooms]);
+  const runByStageId = useMemo(() => runsByCourse(runs), [runs]);
+  // Runs whose course is not in the library yet are cards of their own.
+  const pendingRuns = useMemo(
+    () => pendingCourseRuns(runs, listedStageIds),
+    [runs, listedStageIds],
+  );
+  const showPendingRuns = !isSearching && currentFolderId === undefined;
 
   const updateForm = <K extends keyof FormState>(field: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     try {
       if (field === 'interactiveMode')
         localStorage.setItem(INTERACTIVE_MODE_STORAGE_KEY, String(value));
-      if (field === 'requirement') updateRequirementCache(value as string);
     } catch {
       /* ignore */
     }
   };
 
-  const addCourseMaterials = (files: File[]) => {
-    // The set is frozen for the duration of generate-prep: adding is inert
-    // while `preparingGenerate` is set (the toolbar affordance is disabled
-    // via the same state), so nothing can slip into the set mid-prep.
-    if (preparingGenerate) return;
-    const dedupedFiles = dedupeCourseMaterialFiles(form.courseMaterials, files);
-    const startOrder = form.courseMaterials.length + 1;
-    const additions = dedupedFiles.map((file, index) => ({
-      id: nanoid(8),
-      file,
-      name: file.name,
-      size: file.size,
-      lastModified: file.lastModified,
-      type: file.type,
-      order: startOrder + index,
-    }));
+  // Attached materials upload and extract at once; Generate waits for them.
+  const courseMaterials = useCourseMaterials();
+  const materialMessage = (message: CourseMaterialMessage) =>
+    message.text ?? (message.key ? t(message.key, message.values) : '');
 
-    if (additions.length === 0) return;
-    setForm((prev) => {
-      // Pure updater: drop any addition the latest state already carries — by
-      // id (a replayed or superseded update) or by content fingerprint (two
-      // addCourseMaterials calls in one render batch both dedupe against the
-      // same stale closure list, so the same file could otherwise enter twice
-      // under two ids and ingest/extract twice) — then append the rest.
-      const missing = additions.filter((addition) => {
-        if (prev.courseMaterials.some((item) => item.id === addition.id)) return false;
-        return !prev.courseMaterials.some(
-          (item) => courseMaterialFingerprint(item) === courseMaterialFingerprint(addition),
-        );
-      });
-      if (missing.length === 0) return prev;
-      return { ...prev, courseMaterials: [...prev.courseMaterials, ...missing] };
-    });
+  const addCourseMaterials = async (files: File[]) => {
+    // The set is frozen while a run is being started.
+    if (preparingGenerate) return;
+    const refusal = await courseMaterials.add(files);
+    setError(refusal ? materialMessage(refusal) : null);
   };
 
   const removeCourseMaterial = (id: string) => {
-    // The set is frozen for the duration of generate-prep: removing is inert
-    // while `preparingGenerate` is set (the toolbar affordance is disabled
-    // via the same state), so nothing can slip out of the set mid-prep.
     if (preparingGenerate) return;
-    setForm((prev) => ({
-      ...prev,
-      courseMaterials: prev.courseMaterials
-        .filter((item) => item.id !== id)
-        .map((item, index) => ({ ...item, order: index + 1 })),
-    }));
+    courseMaterials.remove(id);
   };
 
   const handleGenerate = async () => {
@@ -596,82 +569,43 @@ function HomePage() {
 
     setError(null);
 
-    // The material list is frozen for the duration of prep: `preparingGenerate`
-    // makes add/remove inert, so it cannot change under the session build
-    // below. Capture it at click time and build the session from this
-    // snapshot, never from live form state. (The extractor is the workspace's
-    // document slot, resolved on the server.)
-    const frozenMaterials = [...form.courseMaterials].sort((a, b) => a.order - b.order);
-    // Flip the generating UI state before material bytes are copied locally.
+    // The set is frozen while the run starts (`preparingGenerate` makes add,
+    // remove and Retry inert), from the ready materials in their order.
     setPreparingGenerate(true);
+    // The run releases the materials it is started from once it is over.
+    // Handed off before anything is awaited: a navigation in between must not
+    // delete them under the run.
+    const materialIds = courseMaterials.handOff();
     try {
-      const userProfile = useUserProfileStore.getState();
-      const requirements: UserRequirements = {
-        requirement: form.requirement,
-        userNickname: userProfile.nickname || undefined,
-        userBio: userProfile.bio || undefined,
-        // Research follows the workspace's webSearch slot; decided below from
-        // a successful read (and again when generation starts).
-        interactiveMode: form.vocationalTestMode ? true : form.interactiveMode,
-        ...(form.vocationalTestMode ? { taskEngineMode: true } : {}),
-      };
-
-      // Nothing is saved from settings that could not be read.
+      // Nothing is started from settings that could not be read.
       const capabilities = await requireModelCapabilities();
       if (!capabilities) throw new Error(t('generation.modelSettingsUnavailable'));
-      Object.assign(
-        requirements,
-        withResearchDecision({ requirements }, capabilities).requirements,
-      );
-
-      let documentSources: SessionDocumentSource[] | undefined;
-
-      if (frozenMaterials.length > 0) {
-        const storedDocumentKeys: string[] = [];
-        try {
-          documentSources = [];
-          for (const [index, item] of frozenMaterials.entries()) {
-            const storageKey = await storeDocumentBlob(item.file);
-            storedDocumentKeys.push(storageKey);
-            documentSources.push({
-              id: item.id,
-              name: item.name,
-              size: item.size,
-              lastModified: item.lastModified,
-              mimeType: normalizeDocumentMimeType({
-                mimeType: item.file.type,
-                fileName: item.file.name,
-              }),
-              order: index + 1,
-              storageKey,
-            });
-          }
-        } catch (error) {
-          await Promise.allSettled(storedDocumentKeys.map((key) => deleteDocumentBlob(key)));
-          throw error;
-        }
+      // Nor from a material that went meanwhile: its chip shows it removed.
+      if (materialIds.length > 0 && !(await courseMaterials.verify())) {
+        throw new Error(t('toolbar.materialUnavailable'));
       }
-
-      const sessionState = {
-        sessionId: nanoid(),
-        requirements,
-        pdfText: '',
-        pdfImages: [],
-        imageStorageIds: [],
-        documentSources,
-        // Backward-compatible single-document fields for previously saved sessions.
-        pdfStorageKey: documentSources?.[0]?.storageKey,
-        pdfFileName: documentSources?.[0]?.name,
-        documentMimeType: documentSources?.[0]?.mimeType,
-        sceneOutlines: null,
-        currentStep: 'generating' as const,
-      };
-      sessionStorage.setItem('generationSession', JSON.stringify(sessionState));
-
-      router.push('/generation-preview');
+      const run = await startClassicRun({
+        requirement: form.requirement,
+        materialIds,
+        interactive: form.vocationalTestMode ? true : form.interactiveMode,
+        taskEngine: form.vocationalTestMode,
+        capabilities,
+      });
+      router.push(`/generation-preview?run=${encodeURIComponent(run.id)}`);
     } catch (err) {
-      log.error('Error preparing generation:', err);
-      setError(err instanceof Error ? err.message : t('upload.generateFailed'));
+      log.error('Error starting generation:', err);
+      // Only a definitive refusal says no run holds them: they stay attached.
+      // A lost answer may hide a run that releases them when it is over.
+      if (!(err instanceof RunApiError) || startDefinitelyRefused(err)) {
+        courseMaterials.takeBack(materialIds);
+      }
+      if (err instanceof RunStartRefusedError) {
+        setError(t(err.reason, err.values));
+      } else if (err instanceof RunApiError) {
+        setError(runApiErrorText(err, t));
+      } else {
+        setError(err instanceof Error ? err.message : t('upload.generateFailed'));
+      }
     } finally {
       // Unfreeze the set once prep settles (navigation unmounts this page, so
       // this is normally a no-op on the way out).
@@ -691,7 +625,8 @@ function HomePage() {
     return date.toLocaleDateString();
   };
 
-  const canGenerate = !!form.requirement.trim() && hasUsableProvider;
+  // Generate waits for every attached material to be uploaded and extracted.
+  const canGenerate = !!form.requirement.trim() && hasUsableProvider && courseMaterials.allReady;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
@@ -822,27 +757,22 @@ function HomePage() {
       </div>
 
       {/* ═══ Hero section: title + input (centered, wider) ═══ */}
-      <motion.div
-        initial={heroEnter({ opacity: 0, y: 20 })}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        className={cn('relative z-20 w-full max-w-[800px] flex flex-col items-center mt-6 sm:mt-[10vh] px-1 sm:px-0')}
+      <div
+        className={cn(
+          'relative z-20 w-full max-w-[800px] flex flex-col items-center mt-[10vh]',
+          heroEnter('fade-in slide-in-from-bottom-5 duration-600'),
+        )}
       >
-        {/* ── Logo: Kemendikdasmen + DPRD + Kelas KA ── */}
+        {/* ── Logo ── */}
         <div className="relative" data-pro-morph="lockup">
-          <motion.div
-            initial={heroEnter({ opacity: 0, scale: 0.9 })}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{
-              delay: 0.1,
-              type: 'spring',
-              stiffness: 200,
-              damping: 20,
-            }}
-            className="mb-2"
-          >
-            <BrandLogo size="lg" className="flex-wrap justify-center" />
-          </motion.div>
+          <img
+            src="/logo-horizontal.png"
+            alt="OpenMAIC"
+            className={cn(
+              'h-12 md:h-16 mb-2 -ml-2 md:-ml-3',
+              heroEnter('fade-in zoom-in-90 duration-500 delay-100'),
+            )}
+          />
           {workbenchEntryEnabled ? (
             <div
               className="absolute left-full top-0 ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]"
@@ -854,31 +784,24 @@ function HomePage() {
         </div>
 
         {/* ── Slogan ── */}
-        <motion.p
-          initial={heroEnter({ opacity: 0 })}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.25 }}
-          className="text-[13px] sm:text-sm text-muted-foreground/60 mb-6 sm:mb-8 text-center text-balance px-2"
+        <p
+          className={cn(
+            'text-sm text-muted-foreground/60 mb-8',
+            heroEnter('fade-in duration-300 delay-250'),
+          )}
         >
           {t('home.slogan')}
-        </motion.p>
+        </p>
 
         {/* ── Unified input area ── */}
-        <motion.div
-          initial={heroEnter({ opacity: 0, scale: 0.97 })}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.35 }}
-          className="w-full"
-        >
+        <div className={cn('w-full', heroEnter('fade-in zoom-in-97 duration-300 delay-350'))}>
           <div
             data-pro-morph="composer"
             className="w-full rounded-2xl border border-border/60 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-xl shadow-black/[0.03] dark:shadow-black/20 transition-shadow focus-within:shadow-2xl focus-within:shadow-violet-500/[0.06]"
           >
             {/* ── Greeting + Profile + Agents ── */}
-            <div className="relative z-20 flex min-w-0 items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <GreetingBar />
-              </div>
+            <div className="relative z-20 flex items-start justify-between">
+              <GreetingBar />
               <div className="pr-3 pt-3.5 shrink-0">
                 <AgentBar />
               </div>
@@ -888,7 +811,7 @@ function HomePage() {
             <textarea
               ref={textareaRef}
               placeholder={t('upload.requirementPlaceholder')}
-              className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none min-h-[110px] sm:min-h-[140px] max-h-[300px]"
+              className="w-full resize-none border-0 bg-transparent px-4 pt-1 pb-2 text-[13px] leading-relaxed placeholder:text-muted-foreground/40 focus:outline-none min-h-[140px] max-h-[300px]"
               value={form.requirement}
               onChange={(e) => updateForm('requirement', e.target.value)}
               onKeyDown={handleKeyDown}
@@ -896,12 +819,15 @@ function HomePage() {
             />
 
             {/* Toolbar row */}
-            <div className="px-3 pb-3 flex flex-wrap items-center gap-2">
-              <div className="flex-1 min-w-[180px] basis-48">
+            <div className="px-3 pb-3 flex items-end gap-2">
+              <div className="flex-1 min-w-0">
                 <GenerationToolbar
-                  courseMaterials={form.courseMaterials}
-                  onCourseMaterialsAdd={addCourseMaterials}
+                  courseMaterials={courseMaterials.materials}
+                  onCourseMaterialsAdd={(files) => void addCourseMaterials(files)}
                   onCourseMaterialRemove={removeCourseMaterial}
+                  onCourseMaterialRetry={(id) => {
+                    if (!preparingGenerate) courseMaterials.retry(id);
+                  }}
                   onPdfError={setError}
                   materialsLocked={preparingGenerate}
                   onSettingsOpen={(section) => {
@@ -911,66 +837,61 @@ function HomePage() {
                 />
               </div>
 
-              {/* Interactive mode toggle + voice + send */}
-              <div className="ms-auto flex w-full sm:w-auto items-center justify-end gap-2 flex-wrap">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <InteractiveModeButton
-                      pressed={form.interactiveMode}
-                      label={t('toolbar.interactiveModeLabel')}
-                      onPressedChange={(pressed) => updateForm('interactiveMode', pressed)}
-                      className="max-w-[160px] sm:max-w-none [&>span:last-child]:truncate"
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="text-xs">
-                    {t('toolbar.interactiveModeHint')}
-                  </TooltipContent>
-                </Tooltip>
+              {/* Interactive mode toggle */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <InteractiveModeButton
+                    pressed={form.interactiveMode}
+                    label={t('toolbar.interactiveModeLabel')}
+                    onPressedChange={(pressed) => updateForm('interactiveMode', pressed)}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  {t('toolbar.interactiveModeHint')}
+                </TooltipContent>
+              </Tooltip>
 
-                {/* Voice input */}
-                <SpeechButton
-                  size="md"
-                  onTranscription={(text) => {
-                    setForm((prev) => {
-                      const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
-                      updateRequirementCache(next);
-                      return { ...prev, requirement: next };
-                    });
-                  }}
-                />
+              {/* Voice input */}
+              <SpeechButton
+                size="md"
+                onTranscription={(text) => {
+                  setForm((prev) => {
+                    const next = prev.requirement + (prev.requirement ? ' ' : '') + text;
+                    return { ...prev, requirement: next };
+                  });
+                }}
+              />
 
-                {/* Send button */}
-                <button
-                  onClick={handleGenerate}
-                  disabled={!canGenerate || preparingGenerate}
-                  aria-label={preparingGenerate ? t('stage.generating') : t('toolbar.enterClassroom')}
-                  className={cn(
-                    'shrink-0 h-8 rounded-lg flex items-center justify-center gap-1.5 transition-all px-3',
-                    canGenerate && !preparingGenerate
-                      ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-sm cursor-pointer'
-                      : 'bg-muted text-muted-foreground/40 cursor-not-allowed',
-                  )}
-                >
-                  <span className="hidden min-[420px]:inline text-xs font-medium whitespace-nowrap">
-                    {preparingGenerate ? t('stage.generating') : t('toolbar.enterClassroom')}
-                  </span>
-                  {preparingGenerate ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <ArrowUp className="size-3.5" />
-                  )}
-                </button>
-              </div>
+              {/* Send button */}
+              <button
+                onClick={handleGenerate}
+                disabled={!canGenerate || preparingGenerate}
+                className={cn(
+                  'shrink-0 h-8 rounded-lg flex items-center justify-center gap-1.5 transition-all px-3',
+                  canGenerate && !preparingGenerate
+                    ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-sm cursor-pointer'
+                    : 'bg-muted text-muted-foreground/40 cursor-not-allowed',
+                )}
+              >
+                <span className="text-xs font-medium">
+                  {preparingGenerate ? t('stage.generating') : t('toolbar.enterClassroom')}
+                </span>
+                {preparingGenerate ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <ArrowUp className="size-3.5" />
+                )}
+              </button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {showVocationalTestUi && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="mt-2 flex w-full max-w-full flex-wrap justify-start px-1"
+            className="mt-2 flex w-full justify-start px-1"
           >
             <Tooltip>
               <TooltipTrigger asChild>
@@ -980,17 +901,17 @@ function HomePage() {
                   aria-checked={form.vocationalTestMode}
                   onClick={() => updateForm('vocationalTestMode', !form.vocationalTestMode)}
                   className={cn(
-                    'inline-flex max-w-full h-7 flex-wrap items-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
+                    'inline-flex h-7 items-center gap-2 rounded-full border px-2.5 text-[11px] font-medium transition-colors',
                     form.vocationalTestMode
                       ? 'border-cyan-400/70 bg-cyan-50 text-cyan-700 shadow-[0_0_10px_rgba(6,182,212,0.16)] dark:bg-cyan-950/40 dark:text-cyan-300'
                       : 'border-border/70 bg-background/70 text-muted-foreground hover:border-cyan-300/60 hover:text-cyan-700 dark:hover:text-cyan-300',
                   )}
                 >
                   <span className="rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal text-cyan-700 dark:bg-cyan-900/45 dark:text-cyan-300">
-                    {t('home.vocationalTestBadge')}
+                    测试功能
                   </span>
                   <Sparkles className="size-3.5" />
-                  <span>{t('home.vocationalTestLabel')}</span>
+                  <span>职教任务</span>
                   <span
                     className={cn(
                       'relative h-3.5 w-6 rounded-full transition-colors',
@@ -1007,7 +928,7 @@ function HomePage() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                {t('home.vocationalTestTooltip')}
+                从当前输入框提交职教实操训练测试
               </TooltipContent>
             </Tooltip>
           </motion.div>
@@ -1026,313 +947,357 @@ function HomePage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
 
       {/* ═══ Recent classrooms — collapsible ═══ */}
-      {/* The library action bar is always present after hydration: it carries
-          the New-folder / import / search actions, so a brand-new user with
-          zero courses and zero folders can still create the first folder or
-          import. One stable action surface across root, folder, and empty. */}
-      {hydrated && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="relative z-10 mt-10 w-full max-w-6xl flex flex-col items-center"
-        >
-          {/* Trigger — divider-line with centered text. Fixed height keeps the
+      {/* The library action bar is always present: it carries the New-folder /
+          import / search actions, so a brand-new user with zero courses and
+          zero folders can still create the first folder or import. One stable
+          action surface across root, folder, and empty. Until the library and
+          folder reads resolve, the section shows a skeleton of its own layout
+          (server-rendered, so it is on screen before the page's scripts run). */}
+      <div className="relative z-10 mt-10 w-full max-w-6xl flex flex-col items-center">
+        {/* Trigger — divider-line with centered text. Fixed height keeps the
               bar geometrically stable when the New-folder action or the folder
               path appears/disappears (entering vs leaving a folder). */}
-          <div className="group w-full flex items-center gap-4 h-9">
-            <div className="flex-1 h-px bg-border/40 group-hover:bg-border/70 transition-colors" />
-            <div className="shrink-0 flex items-center gap-3 text-[13px] text-muted-foreground/60 select-none">
-              <button
-                onClick={() => {
-                  if (currentFolderId) setCurrentFolderId(undefined);
-                  else persistRecentOpen(!recentOpen);
-                }}
-                className="flex items-center gap-2 hover:text-foreground/70 transition-colors cursor-pointer"
-              >
-                <Clock className="size-3.5" />
-                {t('classroom.recentClassrooms')}
-                {currentFolder && (
-                  <>
-                    <ChevronRight className="size-3 opacity-40" />
-                    <span className="text-foreground/80 truncate max-w-[160px]">
-                      {currentFolder.name}
-                    </span>
-                  </>
-                )}
+        <div className="group w-full flex items-center gap-4 h-9">
+          <div className="flex-1 h-px bg-border/40 group-hover:bg-border/70 transition-colors" />
+          <div className="shrink-0 flex items-center gap-3 text-[13px] text-muted-foreground/60 select-none">
+            <button
+              onClick={() => {
+                if (currentFolderId) setCurrentFolderId(undefined);
+                else persistRecentOpen(!recentOpen);
+              }}
+              className="flex items-center gap-2 hover:text-foreground/70 transition-colors cursor-pointer"
+            >
+              <Clock className="size-3.5" />
+              {t('classroom.recentClassrooms')}
+              {currentFolder && (
+                <>
+                  <ChevronRight className="size-3 opacity-40" />
+                  <span className="text-foreground/80 truncate max-w-[160px]">
+                    {currentFolder.name}
+                  </span>
+                </>
+              )}
+              {hydrated ? (
                 <span className="text-[11px] tabular-nums opacity-60">
                   {currentFolder ? currentFolderClassrooms.length : classrooms.length}
                 </span>
-                <motion.div
-                  animate={{ rotate: recentOpen ? 180 : 0 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                >
-                  <ChevronDown className="size-3.5" />
-                </motion.div>
-              </button>
-
-              {/* Search toggle — icon that expands into an input in place */}
-              <AnimatePresence initial={false}>
-                {!searchOpen ? (
-                  <motion.button
-                    key="search-icon"
-                    ref={searchButtonRef}
-                    type="button"
-                    aria-label={t('classroom.searchAriaLabel')}
-                    onClick={() => {
-                      setSearchOpen(true);
-                      if (!recentOpen) persistRecentOpen(true);
-                      requestAnimationFrame(() => searchInputRef.current?.focus());
-                    }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.12, ease: 'easeOut' }}
-                    className="flex items-center justify-center size-6 rounded-full text-muted-foreground/50 hover:text-foreground/70 hover:bg-muted/50 transition-colors cursor-pointer"
-                  >
-                    <Search className="size-3.5" />
-                  </motion.button>
-                ) : (
-                  <motion.div
-                    key="search-input"
-                    initial={{ opacity: 0, width: 0 }}
-                    animate={{ opacity: 1, width: 'min(200px, 44vw)' }}
-                    exit={{ opacity: 0, width: 0 }}
-                    transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="overflow-hidden"
-                  >
-                    <InputGroup
-                      className={cn(
-                        'h-7 text-[12px] rounded-full bg-muted/40 border-transparent shadow-none',
-                        'transition-colors',
-                        'hover:bg-muted/60',
-                        'has-[[data-slot=input-group-control]:focus-visible]:bg-muted/60',
-                        'has-[[data-slot=input-group-control]:focus-visible]:border-transparent',
-                        'has-[[data-slot=input-group-control]:focus-visible]:ring-0',
-                      )}
-                    >
-                      <InputGroupInput
-                        ref={searchInputRef}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Escape') {
-                            e.preventDefault();
-                            if (searchQuery) {
-                              setSearchQuery('');
-                            } else {
-                              setSearchOpen(false);
-                              requestAnimationFrame(() => searchButtonRef.current?.focus());
-                            }
-                          }
-                        }}
-                        onBlur={() => {
-                          if (!searchQuery) {
-                            setSearchOpen(false);
-                          }
-                        }}
-                        placeholder={t('classroom.searchPlaceholder')}
-                        aria-label={t('classroom.searchAriaLabel')}
-                        className="h-7 pl-3 placeholder:text-muted-foreground/50"
-                      />
-                      {searchQuery && (
-                        <InputGroupButton
-                          size="icon-xs"
-                          aria-label={t('classroom.clearSearch')}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setSearchQuery('');
-                            searchInputRef.current?.focus();
-                          }}
-                        >
-                          <X />
-                        </InputGroupButton>
-                      )}
-                    </InputGroup>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <button
-                onClick={triggerImport}
-                disabled={importing}
-                className="group/import grid grid-cols-[auto_0fr] hover:grid-cols-[auto_1fr] items-center gap-1 rounded-full px-1.5 py-0.5 text-[12px] text-muted-foreground/35 hover:text-muted-foreground/70 hover:bg-muted/50 transition-all duration-200 cursor-pointer"
+              ) : (
+                <span
+                  aria-hidden
+                  className="h-3 w-4 rounded-sm bg-slate-200/70 dark:bg-slate-700/50 animate-pulse"
+                />
+              )}
+              <motion.div
+                animate={{ rotate: recentOpen ? 180 : 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
               >
-                <Upload className="size-3" />
-                <span className="overflow-hidden opacity-0 group-hover/import:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                  {t('import.classroom')}
+                <ChevronDown className="size-3.5" />
+              </motion.div>
+            </button>
+
+            {/* Search toggle — icon that expands into an input in place */}
+            <AnimatePresence initial={false}>
+              {!searchOpen ? (
+                <motion.button
+                  key="search-icon"
+                  ref={searchButtonRef}
+                  type="button"
+                  aria-label={t('classroom.searchAriaLabel')}
+                  onClick={() => {
+                    setSearchOpen(true);
+                    if (!recentOpen) persistRecentOpen(true);
+                    requestAnimationFrame(() => searchInputRef.current?.focus());
+                  }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12, ease: 'easeOut' }}
+                  className="flex items-center justify-center size-6 rounded-full text-muted-foreground/50 hover:text-foreground/70 hover:bg-muted/50 transition-colors cursor-pointer"
+                >
+                  <Search className="size-3.5" />
+                </motion.button>
+              ) : (
+                <motion.div
+                  key="search-input"
+                  initial={{ opacity: 0, width: 0 }}
+                  animate={{ opacity: 1, width: 200 }}
+                  exit={{ opacity: 0, width: 0 }}
+                  transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="overflow-hidden"
+                >
+                  <InputGroup
+                    className={cn(
+                      'h-7 text-[12px] rounded-full bg-muted/40 border-transparent shadow-none',
+                      'transition-colors',
+                      'hover:bg-muted/60',
+                      'has-[[data-slot=input-group-control]:focus-visible]:bg-muted/60',
+                      'has-[[data-slot=input-group-control]:focus-visible]:border-transparent',
+                      'has-[[data-slot=input-group-control]:focus-visible]:ring-0',
+                    )}
+                  >
+                    <InputGroupInput
+                      ref={searchInputRef}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          if (searchQuery) {
+                            setSearchQuery('');
+                          } else {
+                            setSearchOpen(false);
+                            requestAnimationFrame(() => searchButtonRef.current?.focus());
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!searchQuery) {
+                          setSearchOpen(false);
+                        }
+                      }}
+                      placeholder={t('classroom.searchPlaceholder')}
+                      aria-label={t('classroom.searchAriaLabel')}
+                      className="h-7 pl-3 placeholder:text-muted-foreground/50"
+                    />
+                    {searchQuery && (
+                      <InputGroupButton
+                        size="icon-xs"
+                        aria-label={t('classroom.clearSearch')}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setSearchQuery('');
+                          searchInputRef.current?.focus();
+                        }}
+                      >
+                        <X />
+                      </InputGroupButton>
+                    )}
+                  </InputGroup>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <button
+              onClick={triggerImport}
+              disabled={importing}
+              className="group/import grid grid-cols-[auto_0fr] hover:grid-cols-[auto_1fr] items-center gap-1 rounded-full px-1.5 py-0.5 text-[12px] text-muted-foreground/35 hover:text-muted-foreground/70 hover:bg-muted/50 transition-all duration-200 cursor-pointer"
+            >
+              <Upload className="size-3" />
+              <span className="overflow-hidden opacity-0 group-hover/import:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                {t('import.classroom')}
+              </span>
+            </button>
+            {PPTX_IMPORT_ENABLED && (
+              <button
+                onClick={triggerPptxFileSelect}
+                disabled={pptxImporting}
+                className="group/import-pptx grid grid-cols-[auto_0fr] hover:grid-cols-[auto_1fr] items-center gap-1 rounded-full px-1.5 py-0.5 text-[12px] text-muted-foreground/35 hover:text-muted-foreground/70 hover:bg-muted/50 transition-all duration-200 cursor-pointer"
+              >
+                <Presentation className="size-3" />
+                <span className="overflow-hidden opacity-0 group-hover/import-pptx:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                  {t('import.pptx')}
                 </span>
               </button>
-              {PPTX_IMPORT_ENABLED && (
-                <button
-                  onClick={triggerPptxFileSelect}
-                  disabled={pptxImporting}
-                  className="group/import-pptx grid grid-cols-[auto_0fr] hover:grid-cols-[auto_1fr] items-center gap-1 rounded-full px-1.5 py-0.5 text-[12px] text-muted-foreground/35 hover:text-muted-foreground/70 hover:bg-muted/50 transition-all duration-200 cursor-pointer"
-                >
-                  <Presentation className="size-3" />
-                  <span className="overflow-hidden opacity-0 group-hover/import-pptx:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                    {t('import.pptx')}
-                  </span>
-                </button>
-              )}
-              {/* New folder — round icon button, matches the import/upload affordances. */}
-              {!currentFolderId && !isSearching && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!recentOpen) persistRecentOpen(true);
-                    setNewFolderOpen(true);
-                  }}
-                  aria-label={t('classroom.newFolderTitle')}
-                  title={t('classroom.newFolderTitle')}
-                  className="inline-flex items-center justify-center size-7 rounded-full bg-muted/40 text-muted-foreground ring-1 ring-border/50 hover:bg-muted hover:text-foreground hover:ring-border transition-[background-color,color,box-shadow] cursor-pointer"
-                >
-                  <FolderPlus className="size-3.5" />
-                </button>
-              )}
-            </div>
-            <div className="flex-1 h-px bg-border/40 group-hover:bg-border/70 transition-colors" />
-          </div>
-
-          {/* Expandable content */}
-          <AnimatePresence>
-            {recentOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                className="w-full overflow-hidden"
+            )}
+            {/* New folder — round icon button, matches the import/upload affordances. */}
+            {!currentFolderId && !isSearching && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!recentOpen) persistRecentOpen(true);
+                  setNewFolderOpen(true);
+                }}
+                aria-label={t('classroom.newFolderTitle')}
+                title={t('classroom.newFolderTitle')}
+                className="inline-flex items-center justify-center size-7 rounded-full bg-muted/40 text-muted-foreground ring-1 ring-border/50 hover:bg-muted hover:text-foreground hover:ring-border transition-[background-color,color,box-shadow] cursor-pointer"
               >
-                {folders.length === 0 && classrooms.length === 0 ? (
-                  <div className="pt-8 pb-2 text-center text-[13px] text-muted-foreground/60">
-                    {t('classroom.emptyLibraryHint')}
-                  </div>
-                ) : !isSearching && currentFolderId && currentFolderClassrooms.length === 0 ? (
-                  // Empty folder: hint directly below the centered path bar.
-                  <div className="pt-8 text-center">
-                    <p className="text-[14px] text-muted-foreground">
-                      {t('classroom.emptyFolderHint')}
-                    </p>
-                  </div>
-                ) : isSearching && filteredClassrooms.length === 0 ? (
-                  <div className="pt-8 pb-2 text-center text-[13px] text-muted-foreground/60">
-                    {t('classroom.searchEmpty')}
-                  </div>
-                ) : (
-                  <div className="pt-8">
-                    {/* Breadcrumb — shown only while searching (the folder path
+                <FolderPlus className="size-3.5" />
+              </button>
+            )}
+          </div>
+          <div className="flex-1 h-px bg-border/40 group-hover:bg-border/70 transition-colors" />
+        </div>
+
+        {/* Expandable content. Present from the first render, so it does not
+              play its expand animation then: the server-rendered skeleton must
+              be visible without the page's scripts. */}
+        <AnimatePresence initial={false}>
+          {recentOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+              className="w-full overflow-hidden"
+            >
+              {!hydrated ? (
+                <LibrarySkeleton />
+              ) : folders.length === 0 && classrooms.length === 0 && pendingRuns.length === 0 ? (
+                <div className="pt-8 pb-2 text-center text-[13px] text-muted-foreground/60">
+                  {t('classroom.emptyLibraryHint')}
+                </div>
+              ) : !isSearching && currentFolderId && currentFolderClassrooms.length === 0 ? (
+                // Empty folder: hint directly below the centered path bar.
+                <div className="pt-8 text-center">
+                  <p className="text-[14px] text-muted-foreground">
+                    {t('classroom.emptyFolderHint')}
+                  </p>
+                </div>
+              ) : isSearching && filteredClassrooms.length === 0 ? (
+                <div className="pt-8 pb-2 text-center text-[13px] text-muted-foreground/60">
+                  {t('classroom.searchEmpty')}
+                </div>
+              ) : (
+                <div className="pt-8">
+                  {/* Breadcrumb — shown only while searching (the folder path
                         already lives in the centered header above). */}
-                    {isSearching && (
-                      <div className="mb-4 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentFolderId(undefined);
-                            setSearchQuery('');
-                            setSearchOpen(false);
-                          }}
-                          className="hover:text-foreground transition-colors"
-                        >
-                          {t('classroom.recentClassrooms')}
-                        </button>
-                        <ChevronRight className="size-3.5" />
-                        <span className="text-foreground font-medium">
-                          {t('classroom.searchResults')}
-                        </span>
-                        <span className="ml-1.5 text-[12px] text-muted-foreground tabular-nums">
-                          ({filteredClassrooms.length})
-                        </span>
-                      </div>
-                    )}
-
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={
-                          isSearching
-                            ? 'search'
-                            : currentFolderId
-                              ? `folder-${currentFolderId}`
-                              : 'root'
-                        }
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        transition={{ duration: 0.2 }}
-                        className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8"
+                  {isSearching && (
+                    <div className="mb-4 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCurrentFolderId(undefined);
+                          setSearchQuery('');
+                          setSearchOpen(false);
+                        }}
+                        className="hover:text-foreground transition-colors"
                       >
-                        {/* Root + non-search: render folder tiles first. */}
-                        {!isSearching &&
-                          currentFolderId === undefined &&
-                          folders.map((folder, i) => (
-                            <motion.div
-                              key={folder.id}
-                              initial={{ opacity: 0, y: 16 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: i * 0.04, duration: 0.35, ease: 'easeOut' }}
-                            >
-                              <FolderCard
-                                folder={folder}
-                                courseCount={courseCountByFolder.get(folder.id) ?? 0}
-                                coverSlides={coverSlidesByFolder.get(folder.id) ?? []}
-                                onOpen={() => setCurrentFolderId(folder.id)}
-                                onRename={handleRenameFolder(folder)}
-                                onDelete={(mode) => confirmDeleteFolder(folder, mode)}
-                                onDropCourse={(stageId) => handleMoveCourse(stageId, folder.id)}
-                              />
-                            </motion.div>
-                          ))}
+                        {t('classroom.recentClassrooms')}
+                      </button>
+                      <ChevronRight className="size-3.5" />
+                      <span className="text-foreground font-medium">
+                        {t('classroom.searchResults')}
+                      </span>
+                      <span className="ml-1.5 text-[12px] text-muted-foreground tabular-nums">
+                        ({filteredClassrooms.length})
+                      </span>
+                    </div>
+                  )}
 
-                        {/* Course tiles for the active view. */}
-                        {visibleClassrooms.map((classroom, i) => (
+                  {/* No entrance when the grid first appears: it takes the
+                      skeleton's place, and fading or staggering it in would
+                      flash an empty section in between. Switching views (and
+                      cards added later) still animate. */}
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={
+                        isSearching
+                          ? 'search'
+                          : currentFolderId
+                            ? `folder-${currentFolderId}`
+                            : 'root'
+                      }
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.2 }}
+                      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8"
+                    >
+                      {/* Root + non-search: render folder tiles first. */}
+                      {!isSearching &&
+                        currentFolderId === undefined &&
+                        folders.map((folder, i) => (
                           <motion.div
-                            key={classroom.id}
+                            key={folder.id}
                             initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.04, duration: 0.35, ease: 'easeOut' }}
                           >
-                            <ClassroomCard
-                              classroom={classroom}
-                              slide={thumbnails[classroom.id]}
-                              formatDate={formatDate}
-                              onDelete={handleDelete}
-                              onRename={handleRename}
-                              confirmingDelete={pendingDeleteId === classroom.id}
-                              onConfirmDelete={() => confirmDelete(classroom.id)}
-                              onCancelDelete={() => setPendingDeleteId(null)}
-                              onClick={() => router.push(`/classroom/${classroom.id}`)}
-                              overlay={
-                                <>
-                                  <MoveToFolderMenu
-                                    folders={folders}
-                                    currentFolderId={classroom.folderId}
-                                    onMove={(folderId) => handleMoveCourse(classroom.id, folderId)}
-                                    onCreateAndMove={handleCreateAndMove(classroom.id)}
-                                  />
-                                  {/* Search view: show the owning folder as a badge. */}
-                                  {isSearching && classroom.folderId && (
-                                    <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-violet-500/80 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm pointer-events-none">
-                                      <Folder className="size-2.5" />
-                                      {folderNameById.get(classroom.folderId) ?? ''}
-                                    </span>
-                                  )}
-                                </>
-                              }
+                            <FolderCard
+                              folder={folder}
+                              courseCount={courseCountByFolder.get(folder.id) ?? 0}
+                              coverSlides={folderCovers.get(folder.id)?.slides ?? []}
+                              coverCandidates={folderCovers.get(folder.id)?.candidates ?? []}
+                              requestThumbnail={requestThumbnail}
+                              onOpen={() => setCurrentFolderId(folder.id)}
+                              onRename={handleRenameFolder(folder)}
+                              onDelete={(mode) => confirmDeleteFolder(folder, mode)}
+                              onDropCourse={(stageId) => handleMoveCourse(stageId, folder.id)}
                             />
                           </motion.div>
                         ))}
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
+
+                      {/* Courses still being generated, before their course exists. */}
+                      {showPendingRuns &&
+                        pendingRuns.map((run) => (
+                          <motion.div
+                            key={run.id}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, ease: 'easeOut' }}
+                          >
+                            <ClassroomCard
+                              classroom={pendingRunListItem(run)}
+                              formatDate={formatDate}
+                              runStatus={courseRunStatus(run)}
+                              pendingCourse
+                              onDelete={handleDelete}
+                              onRename={handleRename}
+                              confirmingDelete={pendingDeleteId === run.id}
+                              onConfirmDelete={() => confirmDelete(run.id)}
+                              onCancelDelete={() => setPendingDeleteId(null)}
+                              onClick={() => router.push(courseRunHref(run))}
+                            />
+                          </motion.div>
+                        ))}
+
+                      {/* Course tiles for the active view. */}
+                      {visibleClassrooms.map((classroom, i) => (
+                        <motion.div
+                          key={classroom.id}
+                          initial={{ opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.04, duration: 0.35, ease: 'easeOut' }}
+                        >
+                          <ClassroomCard
+                            classroom={classroom}
+                            slide={thumbnails[classroom.id]}
+                            requestThumbnail={requestThumbnail}
+                            formatDate={formatDate}
+                            runStatus={(() => {
+                              const run = runByStageId.get(classroom.id);
+                              return run ? courseRunStatus(run) : null;
+                            })()}
+                            onDelete={handleDelete}
+                            onRename={handleRename}
+                            confirmingDelete={pendingDeleteId === classroom.id}
+                            onConfirmDelete={() => confirmDelete(classroom.id)}
+                            onCancelDelete={() => setPendingDeleteId(null)}
+                            onClick={() => {
+                              const run = runByStageId.get(classroom.id);
+                              router.push(run ? courseRunHref(run) : `/classroom/${classroom.id}`);
+                            }}
+                            overlay={
+                              <>
+                                <MoveToFolderMenu
+                                  folders={folders}
+                                  currentFolderId={classroom.folderId}
+                                  onMove={(folderId) => handleMoveCourse(classroom.id, folderId)}
+                                  onCreateAndMove={handleCreateAndMove(classroom.id)}
+                                />
+                                {/* Search view: show the owning folder as a badge. */}
+                                {isSearching && classroom.folderId && (
+                                  <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-violet-500/80 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm pointer-events-none">
+                                    <Folder className="size-2.5" />
+                                    {folderNameById.get(classroom.folderId) ?? ''}
+                                  </span>
+                                )}
+                              </>
+                            }
+                          />
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Folder dialogs — mounted at the top level so they are reachable even
           while the Recent section is collapsed or the course list is empty. */}
@@ -1348,7 +1313,7 @@ function HomePage() {
 
       {/* Footer — flows with content, at the very end */}
       <div className="mt-auto pt-12 pb-4 text-center text-xs text-muted-foreground/40">
-        Kelas Kecerdasan Artifisial
+        OpenMAIC Open Source Project
       </div>
     </div>
   );
@@ -1437,7 +1402,7 @@ function GreetingBar() {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full min-w-0 max-w-full pl-4 pr-2 pt-3.5 pb-1">
+    <div ref={containerRef} className="relative pl-4 pr-2 pt-3.5 pb-1 w-auto">
       <input
         ref={avatarInputRef}
         type="file"
@@ -1449,7 +1414,7 @@ function GreetingBar() {
       {/* ── Collapsed pill (always in flow) ── */}
       {!open && (
         <div
-          className="flex min-w-0 max-w-full items-center gap-2.5 cursor-pointer transition-all duration-200 group rounded-full px-2.5 py-1.5 border border-border/50 text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 active:scale-[0.97]"
+          className="flex items-center gap-2.5 cursor-pointer transition-all duration-200 group rounded-full px-2.5 py-1.5 border border-border/50 text-muted-foreground/70 hover:text-foreground hover:bg-muted/60 active:scale-[0.97]"
           onClick={() => setOpen(true)}
         >
           <div className="shrink-0 relative">
@@ -1463,8 +1428,8 @@ function GreetingBar() {
           <div className="flex-1 min-w-0">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="leading-none select-none flex min-w-0 items-center gap-1">
-                  <span className="truncate text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
+                <span className="leading-none select-none flex items-center gap-1">
+                  <span className="text-[13px] font-semibold text-foreground/85 group-hover:text-foreground transition-colors">
                     {t('home.greetingWithName', { name: displayName })}
                   </span>
                   <ChevronDown className="size-3 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors shrink-0" />
@@ -1640,10 +1605,26 @@ function GreetingBar() {
 }
 
 // ─── Classroom Card — clean, minimal style ──────────────────────
+/** A card for a run whose course does not exist yet. */
+function pendingRunListItem(run: RunSnapshot): StageListItem {
+  return {
+    id: run.id,
+    name: pendingCourseName(run),
+    sceneCount: run.progress.scenesCompleted,
+    createdAt: Date.parse(run.createdAt),
+    updatedAt: Date.parse(run.updatedAt),
+    interactiveMode: run.input.interactive,
+    taskEngineMode: run.input.taskEngine,
+  };
+}
+
 function ClassroomCard({
   classroom,
   slide,
+  requestThumbnail,
   formatDate,
+  runStatus = null,
+  pendingCourse = false,
   overlay,
   onDelete,
   onRename,
@@ -1653,8 +1634,15 @@ function ClassroomCard({
   onClick,
 }: {
   classroom: StageListItem;
-  slide?: Slide;
+  /** The first slide; null when the course has none, undefined until loaded. */
+  slide?: Slide | null;
+  /** Loads the thumbnail while the card is near the viewport (absent: nothing to load). */
+  requestThumbnail?: (stageId: string, version: number) => () => void;
   formatDate: (ts: number) => string;
+  /** The state of the run generating this course, while it runs. */
+  runStatus?: CourseRunStatus | null;
+  /** The card is a run whose course does not exist yet: it can only be opened or deleted. */
+  pendingCourse?: boolean;
   /** Extra absolutely-positioned layers over the thumbnail (move menu, badges). */
   overlay?: React.ReactNode;
   onDelete: (id: string, e: React.MouseEvent) => void;
@@ -1670,6 +1658,12 @@ function ClassroomCard({
   const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const nearViewport = useNearViewport(thumbRef);
+
+  useEffect(() => {
+    if (!nearViewport || !requestThumbnail) return;
+    return requestThumbnail(classroom.id, classroom.updatedAt);
+  }, [nearViewport, requestThumbnail, classroom.id, classroom.updatedAt]);
 
   useEffect(() => {
     const el = thumbRef.current;
@@ -1688,9 +1682,7 @@ function ClassroomCard({
   const isTaskEngineMode = classroom.taskEngineMode === true;
   const showModeBadge = classroom.interactiveMode || isTaskEngineMode;
   const ModeBadgeIcon = isTaskEngineMode ? Sparkles : Atom;
-  const modeBadgeLabel = isTaskEngineMode
-    ? t('home.vocationalTestLabel')
-    : t('toolbar.interactiveModeLabel');
+  const modeBadgeLabel = isTaskEngineMode ? 'Vocational Mode' : t('toolbar.interactiveModeLabel');
 
   const startRename = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1711,7 +1703,7 @@ function ClassroomCard({
     <div
       className="group cursor-pointer"
       onClick={confirmingDelete ? undefined : onClick}
-      draggable={!confirmingDelete && !editing}
+      draggable={!confirmingDelete && !editing && !pendingCourse}
       onDragStart={(e) => {
         e.dataTransfer.setData('text/stage-id', classroom.id);
         e.dataTransfer.effectAllowed = 'move';
@@ -1734,6 +1726,9 @@ function ClassroomCard({
             viewportSize={slide.viewportSize ?? 1000}
             viewportRatio={slide.viewportRatio ?? 0.5625}
           />
+        ) : slide || (slide === undefined && requestThumbnail) ? (
+          // Still loading, or loaded and waiting for the card's width.
+          <ThumbnailSkeleton />
         ) : !slide ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="size-12 rounded-2xl bg-gradient-to-br from-violet-100 to-blue-100 dark:from-violet-900/30 dark:to-blue-900/30 flex items-center justify-center">
@@ -1792,14 +1787,16 @@ function ClassroomCard({
               >
                 <Trash2 className="size-3.5" />
               </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="absolute top-2 right-11 size-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 hover:bg-black/50 text-white hover:text-white backdrop-blur-sm rounded-full"
-                onClick={startRename}
-              >
-                <Pencil className="size-3.5" />
-              </Button>
+              {!pendingCourse && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="absolute top-2 right-11 size-7 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 hover:bg-black/50 text-white hover:text-white backdrop-blur-sm rounded-full"
+                  onClick={startRename}
+                >
+                  <Pencil className="size-3.5" />
+                </Button>
+              )}
               {overlay}
             </motion.div>
           )}
@@ -1840,9 +1837,13 @@ function ClassroomCard({
 
       {/* Info — outside the thumbnail */}
       <div className="mt-2.5 px-1 flex items-center gap-2">
-        <span className="shrink-0 inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[11px] font-medium text-violet-600 dark:text-violet-400">
-          {classroom.sceneCount} {t('classroom.slides')} · {formatDate(classroom.updatedAt)}
-        </span>
+        {runStatus ? (
+          <CourseRunStatusLabel status={runStatus} />
+        ) : (
+          <span className="shrink-0 inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/30 px-2 py-0.5 text-[11px] font-medium text-violet-600 dark:text-violet-400">
+            {classroom.sceneCount} {t('classroom.slides')} · {formatDate(classroom.updatedAt)}
+          </span>
+        )}
         {editing ? (
           <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
             <input
@@ -1864,7 +1865,7 @@ function ClassroomCard({
             <TooltipTrigger asChild>
               <p
                 className="font-medium text-[15px] truncate text-foreground/90 min-w-0 cursor-text"
-                onDoubleClick={startRename}
+                onDoubleClick={pendingCourse ? undefined : startRename}
               >
                 {classroom.name}
               </p>

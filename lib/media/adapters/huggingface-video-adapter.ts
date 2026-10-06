@@ -45,6 +45,7 @@ import type {
   VideoGenerationOptions,
   VideoGenerationResult,
 } from '../types';
+import type { PolledTaskControl } from '../polled-task';
 import { mediaFetchFor } from '../media-fetch';
 import { assertNotRedirected } from '../redirect-guard';
 import { requireModel } from '../require-model';
@@ -517,6 +518,7 @@ function livePortraitRequest(
 export async function generateWithHuggingFaceVideo(
   config: VideoGenerationConfig,
   options: VideoGenerationOptions,
+  _control?: PolledTaskControl,
 ): Promise<VideoGenerationResult> {
   const model = requireModel(config.model, 'Hugging Face LivePortrait');
   const spaceUrl = resolveSpaceUrl(

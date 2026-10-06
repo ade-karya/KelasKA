@@ -9,7 +9,12 @@ import type {
   VideoGenerationResult,
   VideoProviderConfig,
 } from './types';
-import { generateWithSeedance, testSeedanceConnectivity } from './adapters/seedance-adapter';
+import type { PolledTaskControl } from './polled-task';
+import {
+  generateWithSeedance,
+  seedanceApiRoot,
+  testSeedanceConnectivity,
+} from './adapters/seedance-adapter';
 import { generateWithKling, testKlingConnectivity } from './adapters/kling-adapter';
 import { generateWithVeo, testVeoConnectivity } from './adapters/veo-adapter';
 import {
@@ -30,7 +35,10 @@ import {
   generateWithOpenRouterVideo,
   testOpenRouterVideoConnectivity,
 } from './adapters/openrouter-video-adapter';
-import { OPENROUTER_DEFAULT_BASE_URL } from './adapters/openrouter-image-adapter';
+import {
+  OPENROUTER_DEFAULT_BASE_URL,
+  openRouterBaseUrl,
+} from './adapters/openrouter-image-adapter';
 
 export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
   seedance: {
@@ -256,32 +264,54 @@ export function normalizeVideoOptions(
   return normalized;
 }
 
+/**
+ * The endpoint a provider's video tasks live on, as its adapter reaches it
+ * from a configured base URL: the provider's default when none is set, with
+ * the adapter's own normalization and without trailing slashes. Two base
+ * URLs with the same endpoint reach the same tasks.
+ */
+export function videoTaskEndpoint(providerId: VideoProviderId, baseUrl?: string): string {
+  const root =
+    providerId === 'seedance'
+      ? seedanceApiRoot(baseUrl)
+      : providerId === 'openrouter-video'
+        ? openRouterBaseUrl(baseUrl)
+        : baseUrl || VIDEO_PROVIDERS[providerId]?.defaultBaseUrl || '';
+  return root.replace(/\/+$/, '');
+}
+
+/**
+ * Generate a video: submit the provider task and wait for it. `control`
+ * learns the provider's task id before the wait, or resumes the wait on a
+ * task submitted earlier.
+ */
 export async function generateVideo(
   config: VideoGenerationConfig,
   options: VideoGenerationOptions,
+  control?: PolledTaskControl,
 ): Promise<VideoGenerationResult> {
   switch (config.providerId) {
     case 'seedance':
-      return generateWithSeedance(config, options);
+      return generateWithSeedance(config, options, control);
     case 'kling':
-      return generateWithKling(config, options);
+      return generateWithKling(config, options, control);
     case 'veo':
-      return generateWithVeo(config, options);
+      return generateWithVeo(config, options, control);
     case 'minimax-video':
-      return generateWithMiniMaxVideo(config, options);
+      return generateWithMiniMaxVideo(config, options, control);
     case 'grok-video':
-      return generateWithGrokVideo(config, options);
+      return generateWithGrokVideo(config, options, control);
     case 'happyhorse':
-      return generateWithHappyHorse(config, options);
+      return generateWithHappyHorse(config, options, control);
     case 'openrouter-video':
-      return generateWithOpenRouterVideo(config, options);
+      return generateWithOpenRouterVideo(config, options, control);
     case 'huggingface-video':
       // Two Spaces behind one provider id: the Wan 2.2 I2V Space speaks a
       // different Gradio protocol (sse_v3 `/generate_video`) than the
       // LivePortrait Space (Gradio 4 queue), so dispatch on the model.
       return config.model === HUGGINGFACE_WAN_MODEL
-        ? generateWithHuggingFaceWanVideo(config, options)
-        : generateWithHuggingFaceVideo(config, options);
+        ? generateWithHuggingFaceWanVideo(config, options, control)
+        : generateWithHuggingFaceVideo(config, options, control);
     default:
       throw new Error(`Unsupported video provider: ${config.providerId}`);
   }
