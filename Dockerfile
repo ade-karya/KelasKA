@@ -19,7 +19,7 @@ RUN npm_registry="$NPM_REGISTRY"; \
       export COREPACK_NPM_REGISTRY="$npm_registry"; \
     fi && \
     corepack enable && \
-    corepack prepare pnpm@12.6.0 --activate
+    corepack prepare pnpm@12.9.1 --activate
 
 WORKDIR /app
 

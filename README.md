@@ -87,9 +87,9 @@ https://github.com/user-attachments/assets/8f3f1e5f-1468-4e93-8054-afeeea683a61
 
 ### Prerequisites
 
-- **Node.js** >= 22.19
-- **pnpm** >= 10
-- **PostgreSQL** 16 — courses are stored on the server. For local development
+- **Node.js** >= 24.21 (pinned by `engines` in `package.json`)
+- **pnpm** >= 12.9 (pinned by `packageManager` in `package.json`)
+- **PostgreSQL** 18 — courses are stored on the server. For local development
   `pnpm db:up` starts one in Docker for you.
 
 ### 1. Clone & Install
@@ -240,7 +240,9 @@ pnpm build && DATABASE_URL=postgres://... pnpm start
 
 Keep the server running as a long-running process (a process manager or a
 container): course generation runs inside it and continues after the browser
-leaves the page. See the
+leaves the page. Without Docker, run the standalone build under PM2:
+`pm2 startOrReload ecosystem.config.cjs && pm2 save` (see
+[Server install](#server-install-installsh)). See the
 [Deployment guide](packages/docs/content/docs/deployment.mdx) for the required
 configuration and for upgrading from 1.1.x.
 
@@ -307,6 +309,64 @@ same BuildKit builder across builds, subject to normal cache garbage collection;
 the cache only improves performance and is not required for a correct build.
 
 </details>
+
+### Server Install (install.sh)
+
+On Ubuntu/Debian, `install.sh` provisions a full server stack from scratch:
+Node.js 24 (LTS), pnpm, PostgreSQL 18, `.env.local` (with a random
+`ACCESS_CODE`), plus optional pgAdmin4, OpenCode CLI, and PM2:
+
+```bash
+sudo ./install.sh --yes            # base stack
+sudo ./install.sh --yes --with-pm2 # + production build, served via PM2
+sudo ./install.sh --colab          # Colab preset (= --yes --with-pm2 --no-pgadmin)
+```
+
+The installer is idempotent — re-running it after filling in API keys is safe
+(it auto-selects the model tier from the keys it finds). Other useful flags:
+`--build` (prove the production build), `--with-playwright` (e2e browser),
+`--no-pgadmin`, `--no-postgres`, `--pg-major=N`, `--pg-password=...`. See
+`./install.sh --help` for all options.
+
+Manage the production process with PM2:
+
+```bash
+pm2 startOrReload ecosystem.config.cjs  # start, or zero-downtime reload
+pm2 save                                # persist the process list
+pm2 logs kelaska                         # follow logs
+pm2 reload kelaska                       # re-read .env.local (runtime vars)
+pm2 stop kelaska                         # stop
+```
+
+`PORT` in `.env.local` only needs a reload, but `NEXT_PUBLIC_*` values are
+baked in at build time: rebuild (`npm run build`), re-sync the standalone
+assets (see `ecosystem.config.cjs`), then `pm2 reload kelaska`.
+
+#### Google Colab
+
+The `--colab` preset is tuned for Colab's root, systemd-less, non-interactive
+runtimes (verified on 2 vCPU / 12 GB RAM): it runs non-interactively, builds
+production, and serves via PM2, while skipping pgAdmin4 web (pass
+`--with-pgadmin` after `--colab` to keep it). One cell runs the whole install:
+
+```bash
+%%bash
+cd /content/KelasKA
+./install.sh --colab
+```
+
+Then expose the app to your browser from a Python cell:
+
+```python
+from google.colab import output
+output.serve_kernel_port_as_window(3000)
+```
+
+Notes: a Colab runtime is ephemeral — `data/` and the database disappear when
+it is recycled, so back up `.env.local` and `data/` before closing. Keep the
+tab open during the install (system packages plus the production build can
+take 20–40 minutes on a small runtime). The model tier follows the API keys
+in `.env.local`: fill one in and re-run `./install.sh --colab` to pick it up.
 
 ### Vercel Deployment (up to 1.1.x)
 

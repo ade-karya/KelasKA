@@ -7,6 +7,9 @@
 #   npm run build   (build produksi)
 #   npm run start   (jalankan hasil build)
 # (Perintah padanannya via pnpm — `pnpm dev / pnpm build / pnpm start` — juga bisa.)
+# Dengan --with-pm2, installer juga menginstal PM2, memastikan build produksi
+# ada, lalu menjalankan aplikasi via PM2 (ecosystem.config.cjs -> server
+# standalone Next.js, auto-restart + hidup lagi setelah reboot).
 #
 # Yang diinstal / disiapkan:
 #   1. Paket sistem (apt): hanya yang dipakai installer, Node, dan build native
@@ -15,7 +18,7 @@
 #      resmi PGDG (apt.postgresql.org) — bukan paket bawaan distro yang
 #      tertinggal (Ubuntu 24.04 = PG 16); ganti mayor dengan --pg-major=N.
 #   2. Node.js 24 (>= 24.21, sesuai `engines` di package.json) via NodeSource.
-#   3. pnpm 12.6.0 via corepack (sesuai `packageManager` di package.json).
+#   3. pnpm 12.9.1 via corepack (sesuai `packageManager` di package.json).
 #   4. PostgreSQL 18: database + user `openmaic` + password acak.
 #   5. OpenCode CLI v2 via https://opencode.ai/v2/install (default terinstal;
 #      dilewati bila sudah versi terbaru; bisa dilewati total dengan
@@ -56,6 +59,11 @@
 #      (atau via --pgadmin-email/--pgadmin-password) dan disimpan di
 #      .env.local (PGADMIN_EMAIL/PGADMIN_PASSWORD). Langsung bisa dibuka di
 #      http://localhost/pgadmin4 tanpa langkah manual.
+#  11. PM2 (hanya dengan --with-pm2): PM2 global via npm + build produksi
+#      bila belum ada + sinkron aset standalone (.next/static + public) +
+#      start/reload proses `kelaska` via ecosystem.config.cjs sebagai user
+#      pemilik sesi (bukan root) + `pm2 save` dan unit systemd agar hidup
+#      lagi setelah reboot.
 #
 # Yang SENGAJA tidak dipasang (agar server tetap ringan):
 #   - postgresql-contrib: tidak ada `CREATE EXTENSION` di seluruh repo, jadi
@@ -85,6 +93,13 @@
 #                       https://github.com/THU-MAIC/OpenMAIC.git).
 #   --no-install        Lewati `pnpm install` (hanya siapkan sistem + env).
 #   --build             Jalankan `npm run build` di akhir sebagai pembuktian.
+#   --with-pm2          Instal PM2 + pastikan build produksi + jalankan
+#                       aplikasi via PM2 (ecosystem.config.cjs, server
+#                       standalone; implisit build bila .next belum ada).
+#   --colab             Preset Google Colab / runtime ephemerial (root tanpa
+#                       systemd): setara --yes --with-pm2 --no-pgadmin.
+#                       Tulis --colab paling dulu bila digabung flag lain agar
+#                       masih bisa di-override (mis. --colab --with-pgadmin).
 #   --with-playwright   Instal browser Chromium untuk e2e Playwright.
 #   --full / --with-dev-tools
 #                       Bundle dev-penuh: setara `--build --with-playwright`
@@ -161,6 +176,8 @@ WITH_POSTGRES=1
 WITH_INSTALL=1
 WITH_BUILD=0
 WITH_PLAYWRIGHT=0
+WITH_PM2=0
+WITH_COLAB=0
 WITH_PGADMIN=1
 WITH_FFMPEG=1
 WITH_OPENCODE=1
@@ -186,6 +203,8 @@ tampilkan_help() {
 Contoh:
   sudo ./install.sh --yes
   sudo ./install.sh --yes --build --with-playwright
+  sudo ./install.sh --yes --with-pm2                  # produksi via PM2 (build + daemon auto-restart)
+  sudo ./install.sh --colab                       # Colab/ephemerial (= --yes --with-pm2 --no-pgadmin)
   sudo ./install.sh --yes --full                  # bundle dev-penuh (= --build --with-playwright)
   sudo ./install.sh --yes --no-pgadmin              # tanpa pgAdmin4 web
   sudo ./install.sh --yes --no-ffmpeg              # tanpa ekstraksi media lokal
@@ -202,6 +221,8 @@ for arg in "$@"; do
     --no-install)      WITH_INSTALL=0 ;;
     --build)           WITH_BUILD=1 ;;
     --with-playwright) WITH_PLAYWRIGHT=1 ;;
+    --with-pm2) WITH_PM2=1 ;;
+    --colab) WITH_COLAB=1; ASSUME_YES=1; WITH_PM2=1; WITH_PGADMIN=0 ;;
     --full|--with-dev-tools) WITH_BUILD=1; WITH_PLAYWRIGHT=1 ;;
     --with-pgadmin)    WITH_PGADMIN=1 ;;
     --no-pgadmin)      WITH_PGADMIN=0 ;;
@@ -359,7 +380,7 @@ node_version_gte() {
 
 # ------------------------------------------------------- deteksi distro (apt)
 if ! command -v apt-get >/dev/null 2>&1; then
-  fail "Script ini untuk Ubuntu/Debian (butuh apt-get). Di distro lain, samakan manual: Node 24 + pnpm 12.6 + Postgres + paket build di Dockerfile."
+  fail "Script ini untuk Ubuntu/Debian (butuh apt-get). Di distro lain, samakan manual: Node 24 + pnpm 12.9 + Postgres + paket build di Dockerfile."
 fi
 
 # ---------------------------------------------------------------- konfirmasi
@@ -381,7 +402,7 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   else
     echo "  - tanpa pgAdmin4 web (--no-pgadmin)"
   fi
-  echo "  - instal Node.js 24 (bila belum memenuhi syarat) + pnpm 12.6.0"
+  echo "  - instal Node.js 24 (bila belum memenuhi syarat) + pnpm 12.9.1"
   if [[ "$WITH_OPENCODE" -eq 1 ]]; then
     echo "  - instal OpenCode CLI v2"
   fi
@@ -396,6 +417,12 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then
     echo "  - instal browser Chromium Playwright untuk e2e"
   fi
+  if [[ "$WITH_PM2" -eq 1 ]]; then
+    echo "  - instal PM2 + build produksi + jalankan via PM2 (ecosystem.config.cjs)"
+  fi
+  if [[ "$WITH_COLAB" -eq 1 ]]; then
+    echo "  - preset Colab: non-interaktif + PM2, tanpa pgAdmin4 web"
+  fi
   if [[ "$WITH_UPSTREAM" -eq 1 ]]; then
     echo "  - pastikan git remote 'upstream' -> ${UPSTREAM_URL}"
   else
@@ -407,6 +434,20 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   [[ -t 0 ]] || fail "Tidak ada TTY untuk konfirmasi. Jalankan ulang dengan --yes (non-interaktif)."
   read -rp "Lanjut? [y/N] " jawab
   [[ "$jawab" =~ ^[yY]$ ]] || { info "Dibatalkan."; exit 0; }
+fi
+
+# Preset Colab: catat spesifikasi runtime (CPU/RAM/disk) agar mudah
+# didiagnosis bila langkah berat gagal (OOM/kehabisan disk di runtime kecil).
+# Best-effort: tidak pernah menggagalkan installer.
+if [[ "$WITH_COLAB" -eq 1 ]]; then
+  LANGKAH="colab: cek spesifikasi"
+  COLAB_CPU="$(nproc 2>/dev/null || echo '?')"
+  COLAB_RAM_MB="$(awk '/^MemTotal:/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || echo '')"
+  COLAB_DISK="$(df -h "$ROOT_DIR" 2>/dev/null | awk 'NR==2 {print $4}' || echo '')"
+  info "Spesifikasi runtime: CPU=${COLAB_CPU}, RAM=${COLAB_RAM_MB:-?}MB, disk tersedia=${COLAB_DISK:-?}."
+  if [[ "$COLAB_RAM_MB" =~ ^[0-9]+$ && "$COLAB_RAM_MB" -lt 4096 ]]; then
+    warn "RAM di bawah 4GB — build produksi + PostgreSQL bisa OOM; pakai runtime yang lebih besar bila gagal."
+  fi
 fi
 
 # ==================================================== 0. Git remote upstream
@@ -597,6 +638,11 @@ if [[ "$NEED_NODE" -eq 1 ]]; then
   # NodeSource setup (resmi): menambah repo nodesource untuk major 24.
   curl -fsSL https://deb.nodesource.com/setup_24.x | run_pipe_as_root
   run_as_root apt-get install -y -o Acquire::Retries=3 nodejs
+  # Buang cache path bash: bila node lama (nvm//tools) dipakai sebelum
+  # instalasi, hash-nya masih menunjuk binary lama walau /usr/bin/node yang
+  # baru sudah lebih dulu di PATH — tanpa ini verifikasi di bawah membaca
+  # versi basi dan installer gagal keliru (khas runtime Colab).
+  hash -r 2>/dev/null || true
   # `command -v node` bisa masih menunjuk node lama di PATH user (mis. nvm),
   # jadi verifikasi ulang versi efektif — `command -v node` saja tak cukup.
   node -v >/dev/null 2>&1 || fail "Instalasi Node.js gagal: 'node' tidak ada di PATH."
@@ -607,12 +653,12 @@ fi
 NPM_V="$(npm -v 2>/dev/null || echo '?')"
 info "Node $(node -v), npm $NPM_V."
 
-# ============================================================ 3. pnpm 12.6.0
+# ============================================================ 3. pnpm 12.9.1
 # Versi dikunci mengikuti kolom `packageManager` di package.json (Dockerfile
 # memakai cara yang sama lewat corepack).
 LANGKAH="pnpm via corepack"
 PNPM_WANT="$(node -p "require('./package.json').packageManager || ''" | sed 's/.*pnpm@//; s/+.*//')"
-[[ -n "$PNPM_WANT" ]] || PNPM_WANT="12.6.0"
+[[ -n "$PNPM_WANT" ]] || PNPM_WANT="12.9.1"
 info "Menyiapkan pnpm@$PNPM_WANT via corepack..."
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 run_as_root corepack enable >/dev/null 2>&1 || corepack enable >/dev/null 2>&1 \
@@ -2593,6 +2639,112 @@ if [[ -n "$OWNER_USER" && "$OWNER_USER" != "root" ]] && id -u "$OWNER_USER" >/de
   fi
 fi
 
+# ============================================================ 12. PM2 (opsional)
+# Produksi via PM2 (ecosystem.config.cjs -> server standalone Next.js):
+# instal PM2 global, pastikan build produksi ada, sinkronkan aset standalone,
+# lalu start/reload sebagai user pemilik sesi + save + unit systemd agar hidup
+# setelah reboot. Idempoten: run ulang me-reload tanpa downtime (startOrReload).
+# Ditempatkan SETELAH seksi 11 (kepemilikan) supaya artefak yang dibaca daemon
+# PM2 (milik user, bukan root) sudah benar ownernya; build dadakan di seksi
+# ini yang lahir sebagai root di-chown ulang ke pemilik sebelum start.
+if [[ "$WITH_PM2" -eq 1 ]]; then
+  if [[ "$WITH_INSTALL" -ne 1 ]]; then
+    fail "--with-pm2 butuh dependensi terinstal; ulangi tanpa --no-install."
+  fi
+  # User pemilik sesi (bukan /root saat sudo): daemon PM2 + ~/.pm2 harus milik
+  # user ini agar `pm2 logs/list` sebagai user biasa tetap bisa. Pola yang sama
+  # dipakai Playwright (seksi 9) dan OpenCode CLI (seksi 8).
+  PM2_USER="${SUDO_USER:-$(id -un)}"
+  if ! id -u "$PM2_USER" >/dev/null 2>&1; then PM2_USER="$(id -un)"; fi
+  pm2_sebagai_pemilik() {
+    if [[ "$(id -un)" == "$PM2_USER" ]]; then
+      "$@"
+    else
+      run_as_root -H -u "$PM2_USER" "$@"
+    fi
+  }
+  LANGKAH="pm2: instalasi"
+  if command -v pm2 >/dev/null 2>&1; then
+    info "PM2 sudah terinstal ($(pm2 --version 2>/dev/null || echo '?'))."
+  else
+    info "Menginstal PM2 global via npm..."
+    run_as_root npm install -g pm2 \
+      || warn "Instalasi PM2 gagal; pasang manual: npm install -g pm2"
+    hash -r 2>/dev/null || true
+  fi
+  if ! command -v pm2 >/dev/null 2>&1; then
+    warn "PM2 tidak ditemukan setelah instalasi — lewati orkestrasi PM2. Pasang manual lalu: pm2 startOrReload ecosystem.config.cjs && pm2 save"
+  else
+    # PM2 butuh server standalone (.next/standalone/server.js). Build bila
+    # belum ada; bila --build sudah jalan di seksi 10, pakai hasilnya.
+    LANGKAH="pm2: build produksi"
+    if [[ ! -f .next/standalone/server.js ]]; then
+      info "Build produksi belum ada — menjalankan npm run build untuk PM2..."
+      npm run build
+    elif [[ "$WITH_BUILD" -eq 1 ]]; then
+      info "Build produksi sudah dibuat di seksi --build; dipakai untuk PM2."
+    else
+      info "Memakai build produksi yang ada (.next/standalone/server.js)."
+      warn "Bila NEXT_PUBLIC_* di .env.local berubah, build ulang agar ikut: npm run build"
+    fi
+    # Sinkronkan aset ke dalam standalone (lihat komentar ecosystem.config.cjs):
+    # server.js standalone hanya membaca di dalam .next/standalone/.
+    LANGKAH="pm2: sinkron aset standalone"
+    if [[ -f .next/standalone/server.js ]]; then
+      mkdir -p .next/standalone/.next
+      cp -r .next/static .next/standalone/.next/static
+      cp -r public .next/standalone/public
+      # openmaic.yml dibaca server via process.cwd() (= .next/standalone setelah
+      # server.js chdir). Tanpa salinan ini + OPENMAIC_CONFIG di ecosystem,
+      # deployment layer jatuh ke legacy dan slot agent/classroom diabaikan
+      # (diskusi classroom tetap pakai workspace llm=google -> 400/429).
+      # OPENMAIC_CONFIG absolut (ecosystem) sudah cukup, salinan ini cadangan
+      # bila env hilang.
+      if [[ -f openmaic.yml ]]; then
+        cp -f openmaic.yml .next/standalone/openmaic.yml
+      fi
+      info "Aset standalone disinkronkan (.next/static + public + openmaic.yml)."
+      # Build/sync di atas lahir sebagai root bila via sudo (seksi 11 sudah
+      # lewat) — kembalikan ke pemilik sebelum daemon PM2 membacanya.
+      if [[ -n "${SUDO_USER:-}" && "$PM2_USER" != "root" ]]; then
+        chown -R "$PM2_USER" .next 2>/dev/null \
+          || warn "Gagal chown .next ke ${PM2_USER}; jalankan manual: sudo chown -R ${PM2_USER} .next"
+      fi
+    else
+      warn "server.js standalone tidak ada — lewati sinkron aset dan start PM2."
+    fi
+    LANGKAH="pm2: start/reload"
+    if [[ -f .next/standalone/server.js ]]; then
+      # -H agar HOME milik target (daemon + dump file di ~/.pm2 user, bukan
+      # /root). cd ke root repo agar path relatif ecosystem.config.cjs benar.
+      if [[ "$(id -un)" == "$PM2_USER" ]]; then
+        (cd "$ROOT_DIR" && pm2 startOrReload ecosystem.config.cjs)
+      else
+        run_as_root -H -u "$PM2_USER" bash -c "cd $(printf '%q' "$ROOT_DIR") && pm2 startOrReload ecosystem.config.cjs"
+      fi
+      pm2_sebagai_pemilik pm2 save \
+        || warn "pm2 save gagal; daftar proses tidak tersimpan — jalankan manual: pm2 save"
+      info "Aplikasi berjalan via PM2 (nama proses: kelaska)."
+      # Hidup setelah reboot via unit systemd (hanya bila systemd ada; tanpa
+      # systemd — container/WSL — cukup cetak instruksi manual).
+      LANGKAH="pm2: startup systemd"
+      if [[ -d /run/systemd/system ]]; then
+        PM2_HOME_OWNER="$(getent passwd "$PM2_USER" 2>/dev/null | cut -d: -f6 || true)"
+        [[ -n "$PM2_HOME_OWNER" ]] || PM2_HOME_OWNER="/home/$PM2_USER"
+        if run_as_root pm2 startup systemd -u "$PM2_USER" --hp "$PM2_HOME_OWNER" >/dev/null 2>&1; then
+          info "Unit systemd PM2 terpasang — aplikasi hidup lagi setelah reboot."
+        else
+          warn "Unit systemd PM2 gagal dipasang otomatis; pasang manual: pm2 startup (lalu jalankan perintah sudo yang dicetak) && pm2 save"
+        fi
+      else
+        info "Tanpa systemd — lewati unit startup (setelah reboot jalankan manual sebagai ${PM2_USER}: pm2 resurrect)."
+      fi
+    fi
+  fi
+else
+  info "Lewati PM2 (pakai --with-pm2 untuk produksi via PM2)."
+fi
+
 # ============================================================ Selesai
 LANGKAH="ringkasan"
 echo ""
@@ -2628,11 +2780,25 @@ if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then
     warn "Playwright Chromium tidak terdeteksi — pasang dengan: pnpm exec playwright install --with-deps chromium (atau sudo ./install.sh --yes --full)"
   fi
 fi
-if [[ "$WITH_BUILD" -eq 1 ]]; then
+if [[ "$WITH_BUILD" -eq 1 || "$WITH_PM2" -eq 1 ]]; then
   if [[ -d .next ]]; then
     info "  Build produksi: OK (.next ada; jalankan via npm run start)"
   else
     warn "Build produksi tidak menghasilkan .next — ulangi: npm run build"
+  fi
+fi
+if [[ "$WITH_PM2" -eq 1 ]]; then
+  # Daemon PM2 milik pemilik sesi, bukan root saat sudo — tanya ke user itu.
+  PM2_SUM_USER="${SUDO_USER:-$(id -un)}"
+  if [[ "$(id -un)" == "$PM2_SUM_USER" ]]; then
+    PM2_LIST="$(pm2 list 2>/dev/null || true)"
+  else
+    PM2_LIST="$(run_as_root -H -u "$PM2_SUM_USER" pm2 list 2>/dev/null || true)"
+  fi
+  if printf '%s' "$PM2_LIST" | grep -q 'kelaska'; then
+    info "  PM2: OK (proses kelaska; kelola: pm2 logs kelaska | pm2 reload kelaska | pm2 stop kelaska)"
+  else
+    warn "PM2 tidak menjalankan kelaska — cek sebagai ${PM2_SUM_USER}: pm2 list && pm2 logs kelaska"
   fi
 fi
 if [[ "$WITH_BROWSER_TTS" -eq 1 ]]; then
@@ -2682,6 +2848,24 @@ echo "  cd $ROOT_DIR"
 echo "  npm run dev     # pengembangan  -> http://localhost:3000"
 echo "  npm run build   # build produksi"
 echo "  npm run start   # jalankan hasil build -> http://localhost:3000"
+if [[ "$WITH_PM2" -eq 1 ]]; then
+  echo ""
+  echo "PM2 (produksi, sudah jalan sebagai ${SUDO_USER:-$(id -un)}):"
+  echo "  pm2 logs kelaska    # lihat log"
+  echo "  pm2 reload kelaska  # restart tanpa downtime (baca ulang .env.local)"
+  echo "  pm2 stop kelaska    # hentikan"
+  echo "  Ubah PORT di .env.local -> pm2 reload kelaska (runtime, tanpa build)."
+  echo "  Ubah NEXT_PUBLIC_* -> npm run build -> sinkron aset standalone"
+  echo "  (lihat ecosystem.config.cjs) -> pm2 reload kelaska."
+fi
+if [[ "$WITH_COLAB" -eq 1 ]]; then
+  echo ""
+  echo "Colab: ekspos port 3000 ke browser dengan sel Python:"
+  echo "  from google.colab import output"
+  echo "  output.serve_kernel_port_as_window(3000)"
+  echo "  Runtime Colab itu ephemerial: data/ dan database hilang saat runtime"
+  echo "  didaur ulang — unduh .env.local dan backup data/ sebelum menutup."
+fi
 echo ""
 echo "Login akses (wajib bila ACCESS_CODE di atas ada):"
 echo "  1. Buka http://localhost:3000, masukkan ACCESS_CODE di atas saat modal muncul."

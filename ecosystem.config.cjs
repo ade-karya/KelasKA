@@ -4,7 +4,11 @@
 // server.js standalone chdir ke .next/standalone dan tidak membaca file .env
 // di root. Setelah setiap `npm run build`, sinkronkan ulang dengan:
 //   cp -r .next/static .next/standalone/.next/static
-// (data/ dan openmaic.yml sudah berupa symlink ke root repo.)
+//   cp -r public .next/standalone/public
+// (`install.sh --with-pm2` melakukannya otomatis.)
+// openmaic.yml dibaca via OPENMAIC_CONFIG absolut di bawah (server standalone
+// chdir ke .next/standalone); install.sh juga menyalinnya ke
+// .next/standalone/openmaic.yml sebagai cadangan.
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -41,6 +45,17 @@ const env = {
   HOSTNAME: '0.0.0.0',
   ...loadEnvFile(path.join(root, '.env.local')),
 };
+// openmaic.yml dibaca server via process.cwd() — dan server standalone
+// chdir ke .next/standalone (lihat server.js: process.chdir(__dirname)),
+// sehingga tanpa ini file di root repo TIDAK terbaca dan slot resolution
+// jatuh ke legacy config (lihat log "[ModelConfig] comes from the legacy...").
+// OPENMAIC_CONFIG absolut membuat deployment layer selalu ketemu.
+// (Sebelumnya komentar di sini mengklaim symlink, tapi file tidak ada di
+// .next/standalone/ — itulah kenapa slot `agent` dari install.sh tidak aktif
+// di PM2 dan diskusi tetap pakai workspace llm=google.)
+if (!env.OPENMAIC_CONFIG) {
+  env.OPENMAIC_CONFIG = path.join(root, 'openmaic.yml');
+}
 // Health endpoint reads npm_package_version (normally set by npm run start).
 if (pkgVersion && !env.npm_package_version) env.npm_package_version = pkgVersion;
 
