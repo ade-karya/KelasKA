@@ -26,7 +26,8 @@ import { toAssetId } from '@openmaic/storage';
 
 import { rewriteSceneMediaReference } from '@/lib/media/generated-media-references';
 import { ASSET_QUOTA_EXCEEDED } from '@/lib/media/media-failure';
-import type { MediaGenerationRequest } from '@/lib/media/types';
+import type { MediaGenerationRequest, VideoProviderId } from '@/lib/media/types';
+import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
 import { createLogger } from '@/lib/logger';
 import { assetPrincipalForOwner } from '@/lib/persistence/owner-assets';
 import { getServerPersistenceProvider } from '@/lib/persistence/server-provider';
@@ -360,11 +361,73 @@ async function generateItem(
     } else {
       const resume = task;
       if (resume) log.info(`run ${ctx.runId}: resuming the wait on video task ${resume.taskId}`);
+      // Image-to-video providers (Hugging Face Video Gen) animate a source
+      // still instead of dreaming motion from text: when the outline's
+      // request carries no sourceImageUrl, generate the still from the video
+      // prompt through the image slot first (the "video based on the
+      // generated image" flow the provider catalogue documents) and hand it
+      // to the video step as a data URL. A resumed wait already submitted
+      // with a source, so it skips this.
+      let videoRequest = request;
+      if (!resume) {
+        const provider = VIDEO_PROVIDERS[connection.providerId as VideoProviderId];
+        if (provider?.requiresSourceImage && !request.sourceImageUrl) {
+          const imageSlot = connections.image;
+          if (imageSlot.status !== 'ready') {
+            const message =
+              imageSlot.status === 'off'
+                ? 'The video provider needs a source image, but image generation is turned off'
+                : `The video provider needs a source image: ${imageSlot.message}`;
+            await record({
+              mediaType,
+              status: 'failed',
+              message,
+              ...(imageSlot.status === 'refused' ? { errorCode: imageSlot.errorCode } : {}),
+            });
+            return {};
+          }
+          log.info(`run ${ctx.runId}: generating the source still for video ${elementId}`);
+          let still: { bytes: Uint8Array; mimeType: string };
+          try {
+            still = await withDeadline(stepId, MEDIA_DEADLINE_MS, ctx.signal, (signal) =>
+              ctx.services.generateImage(
+                owner,
+                {
+                  request: {
+                    type: 'image',
+                    prompt: request.prompt,
+                    elementId: `${elementId}-still`,
+                    ...(request.aspectRatio ? { aspectRatio: request.aspectRatio } : {}),
+                  },
+                  stageId: ctx.stageId,
+                  connection: imageSlot.connection,
+                },
+                { log, signal },
+              ),
+            );
+          } catch (error) {
+            if (endsLane(error, ctx.signal)) throw error;
+            log.warn(`run ${ctx.runId}: the source still of ${elementId} failed:`, error);
+            const failure = mediaFailure(error, 'image');
+            await record({
+              mediaType,
+              status: 'failed',
+              message: `The video's source image could not be generated: ${failure.message}`,
+              ...(failure.errorCode ? { errorCode: failure.errorCode } : {}),
+            });
+            return {};
+          }
+          videoRequest = {
+            ...request,
+            sourceImageUrl: `data:${still.mimeType};base64,${Buffer.from(still.bytes).toString('base64')}`,
+          };
+        }
+      }
       const video = await withDeadline(stepId, MEDIA_DEADLINE_MS, ctx.signal, (signal) =>
         ctx.services.generateVideo(
           owner,
           {
-            request,
+            request: videoRequest,
             connection,
             ...(resume ? { resume } : {}),
             // Recorded before the wait, so a takeover waits on this

@@ -616,6 +616,9 @@ export const defaultRunStepServices: RunStepServices = {
         options: {
           prompt: input.request.prompt,
           ...(input.request.aspectRatio ? { aspectRatio: input.request.aspectRatio } : {}),
+          ...(input.request.sourceImageUrl
+            ? { sourceImageUrl: input.request.sourceImageUrl }
+            : {}),
           ...(ctx.signal ? { signal: ctx.signal } : {}),
         },
         connection: input.connection,
