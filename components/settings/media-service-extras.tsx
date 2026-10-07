@@ -42,7 +42,7 @@ export function HuggingFaceHint({ kind }: { kind: 'image' | 'video' }) {
           <a
             href={
               isVideo
-                ? 'https://huggingface.co/spaces/KlingTeam/LivePortrait'
+                ? 'https://huggingface.co/spaces/zerogpu-aoti/wan2-2-fp8da-aoti-faster'
                 : 'https://huggingface.co/black-forest-labs/FLUX.1-dev'
             }
             target="_blank"

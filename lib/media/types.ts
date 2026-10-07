@@ -326,22 +326,6 @@ export interface VideoGenerationOptions {
    */
   sourceImageUrl?: string;
   /**
-   * Optional driving-motion video override (image-to-video providers): an
-   * `https:` URL or `data:` URL. When omitted the provider's default motion
-   * applies.
-   */
-  drivingVideoUrl?: string;
-  /**
-   * LivePortrait `/gpu_wrapped_execute_video` flags (API docs defaults: all
-   * `true`). `relativeMotion` keeps the driving motion relative to the source
-   * pose, `doCrop` crops the source face before animation, `pasteBack`
-   * pastes the animated face back onto the original frame. Omitted flags
-   * default to `true`, mirroring the Space.
-   */
-  relativeMotion?: boolean;
-  doCrop?: boolean;
-  pasteBack?: boolean;
-  /**
    * Wan 2.2 `/generate_video` parameters (Hugging Face Wan provider only;
    * every other provider ignores them). Defaults mirror the Space's
    * `/gradio_api/info`: steps 6, the Space's default negative prompt, 3.5s

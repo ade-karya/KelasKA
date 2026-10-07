@@ -33,7 +33,7 @@ export const ASSET_QUOTA_EXCEEDED = 'ASSET_QUOTA_EXCEEDED';
  * Hugging Face ZeroGPU daily free quota exhausted (or the Space is busy).
  *
  * Free tier (2026): ~5 GPU-min/day AND ~3 ZeroGPU runs/day, reset 24h after
- * the first GPU usage. One LivePortrait video costs 2 runs (FLUX source still
+ * the first GPU usage. One Wan video costs 2 runs (FLUX source still
  * + animation), so the free tier fits roughly 1 video/day. Failed queue joins
  * also count against the run limit, so callers must fail fast instead of
  * retrying every element in the deck.

@@ -947,6 +947,10 @@ ${tts_browser_line}
 
 # --- Persistence / Agent runtime (PostgreSQL) -----------------------------------
 DATABASE_URL=${db_url}
+# Untuk Supabase: pakai jalur non-pooling (port 5432) karena app memakai
+# LISTEN/NOTIFY yang tidak jalan di pgbouncer transaction-mode (port 6543),
+# dan sslmode=no-verify (enkripsi on, verifikasi rantai sertifikat pooler off):
+# DATABASE_URL=postgres://postgres.<ref>:<password>@aws-1-<region>.pooler.supabase.com:5432/postgres?sslmode=no-verify
 PERSISTENCE_DEV_TOKEN=${dev_token}
 NEXT_PUBLIC_PERSISTENCE=1
 NEXT_PUBLIC_PERSISTENCE_TOKEN=${dev_token}
@@ -962,6 +966,35 @@ COOKIE_SECURE=0
 # (gejala: 429) atau naikkan s.d. 10 di server besar. Dibaca saat runtime
 # (restart cukup, tanpa rebuild).
 PARALLEL_SCENE_CONCURRENCY=5
+
+# --- Supabase (opsional; isi bila DATABASE_URL = Supabase) ------------------------
+# SUPABASE_URL=https://<ref>.supabase.co
+# NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
+# SUPABASE_ANON_KEY=
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=
+# SUPABASE_PUBLISHABLE_KEY=
+# NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+# SUPABASE_SERVICE_ROLE_KEY=
+# SUPABASE_SECRET_KEY=
+# SUPABASE_JWT_SECRET=
+# POSTGRES_DATABASE=postgres
+# POSTGRES_HOST=db.<ref>.supabase.co
+# POSTGRES_USER=postgres
+# POSTGRES_PASSWORD=
+# POSTGRES_PRISMA_URL=
+# POSTGRES_URL=
+# POSTGRES_URL_NON_POOLING=
+
+# --- Hugging Face S3 untuk penyimpanan aset (opsional) -------------------------
+# Aktifkan dengan mengisi HF_S3_BUCKET + HF_S3_ENDPOINT + kredensial di bawah
+# (LALU restart server). Bucket HF dibuat dulu via \`hf buckets create <ns>/<bucket>\`.
+# JANGAN set ASSET_S3_BUCKET bersamaan (store HF dipakai, bukan store bawaan).
+# HF_S3_BUCKET=kelaska
+# HF_S3_ENDPOINT=https://s3.hf.co/akj2025
+# HF_S3_REGION=us-east-1
+# HF_S3_ACCESS_KEY_ID=
+# HF_S3_SECRET_ACCESS_KEY=
+# HF_TOKEN=
 
 # --- Access control --------------------------------------------------------------
 # Password bersama pelindung deployment. Tanpa ini API fail-open (warning saat boot).
@@ -1782,6 +1815,30 @@ else
   pastikan_komentar_env .env.local SEARXNG_BASE_URL ""
   # Performa native: generate scene paralel (restart cukup, tanpa rebuild).
   pastikan_var_env .env.local PARALLEL_SCENE_CONCURRENCY "5"
+  # Placeholder Hugging Face S3 (tetap nonaktif sampai user mengisi).
+  pastikan_komentar_env .env.local HF_S3_BUCKET "kelaska"
+  pastikan_komentar_env .env.local HF_S3_ENDPOINT "https://s3.hf.co/akj2025"
+  pastikan_komentar_env .env.local HF_S3_REGION "us-east-1"
+  pastikan_komentar_env .env.local HF_S3_ACCESS_KEY_ID ""
+  pastikan_komentar_env .env.local HF_S3_SECRET_ACCESS_KEY ""
+  pastikan_komentar_env .env.local HF_TOKEN ""
+  # Placeholder Supabase (tetap nonaktif; aktifkan saat memakai DATABASE_URL Supabase).
+  pastikan_komentar_env .env.local SUPABASE_URL "https://<ref>.supabase.co"
+  pastikan_komentar_env .env.local NEXT_PUBLIC_SUPABASE_URL "https://<ref>.supabase.co"
+  pastikan_komentar_env .env.local SUPABASE_ANON_KEY ""
+  pastikan_komentar_env .env.local NEXT_PUBLIC_SUPABASE_ANON_KEY ""
+  pastikan_komentar_env .env.local SUPABASE_PUBLISHABLE_KEY ""
+  pastikan_komentar_env .env.local NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ""
+  pastikan_komentar_env .env.local SUPABASE_SERVICE_ROLE_KEY ""
+  pastikan_komentar_env .env.local SUPABASE_SECRET_KEY ""
+  pastikan_komentar_env .env.local SUPABASE_JWT_SECRET ""
+  pastikan_komentar_env .env.local POSTGRES_DATABASE "postgres"
+  pastikan_komentar_env .env.local POSTGRES_HOST "db.<ref>.supabase.co"
+  pastikan_komentar_env .env.local POSTGRES_USER "postgres"
+  pastikan_komentar_env .env.local POSTGRES_PASSWORD ""
+  pastikan_komentar_env .env.local POSTGRES_PRISMA_URL ""
+  pastikan_komentar_env .env.local POSTGRES_URL ""
+  pastikan_komentar_env .env.local POSTGRES_URL_NON_POOLING ""
   pastikan_var_env .env.local ACCESS_CODE "$ACCESS_CODE_NEW"
   if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     if [[ "$PG_PASSWORD_FORCED" -eq 1 && -n "$DATABASE_URL_VALUE" ]]; then

@@ -45,9 +45,9 @@ vi.mock('@/lib/media/adapters/openrouter-video-adapter', () => ({
   generateWithOpenRouterVideo: adapterMocks['openrouter-video'].generate,
   testOpenRouterVideoConnectivity: adapterMocks['openrouter-video'].test,
 }));
-vi.mock('@/lib/media/adapters/huggingface-video-adapter', () => ({
-  generateWithHuggingFaceVideo: adapterMocks['huggingface-video'].generate,
-  testHuggingFaceVideoConnectivity: adapterMocks['huggingface-video'].test,
+vi.mock('@/lib/media/adapters/huggingface-wan-video-adapter', () => ({
+  generateWithHuggingFaceWanVideo: adapterMocks['huggingface-video'].generate,
+  testHuggingFaceWanVideoConnectivity: adapterMocks['huggingface-video'].test,
 }));
 
 /** Every catalog id must dispatch to its own adapter in both switches. */

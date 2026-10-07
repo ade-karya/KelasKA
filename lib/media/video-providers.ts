@@ -24,12 +24,8 @@ import {
 import { generateWithGrokVideo, testGrokVideoConnectivity } from './adapters/grok-video-adapter';
 import { generateWithHappyHorse, testHappyHorseConnectivity } from './adapters/happyhorse-adapter';
 import {
-  generateWithHuggingFaceVideo,
-  testHuggingFaceVideoConnectivity,
-} from './adapters/huggingface-video-adapter';
-import {
   generateWithHuggingFaceWanVideo,
-  HUGGINGFACE_WAN_MODEL,
+  testHuggingFaceWanVideoConnectivity,
 } from './adapters/huggingface-wan-video-adapter';
 import {
   generateWithOpenRouterVideo,
@@ -164,23 +160,16 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
     id: 'huggingface-video',
     name: 'Hugging Face Video Gen',
     requiresApiKey: true,
-    defaultBaseUrl: 'https://klingteam-liveportrait.hf.space',
+    defaultBaseUrl: 'https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space',
     icon: '/logos/huggingface-c167703f.svg',
-    // Image-to-video portrait animation (KlingTeam/LivePortrait Space): the
-    // source portrait comes from `options.sourceImageUrl` — typically a just
-    // generated image — and motion from the Space's bundled driving clip
-    // unless `options.drivingVideoUrl` overrides it. Generation needs a user
-    // access token (hf_...) — the Settings panel's "Login with Hugging Face"
-    // entry point walks the user through that.
-    //
-    // Second model: Wan 2.2 14B I2V (zerogpu-aoti/wan2-2-fp8da-aoti-faster
-    // Space, FP8 + Lightning LoRA, 4-8 steps) — same image-to-video shape but
-    // text-driven: the animation follows `options.prompt`, with
-    // duration/steps/guidance tunable via the generation options. Dispatch is
-    // by model id (see generateVideo below); connectivity is a shared login
-    // probe, so both models test the same way.
+    // Image-to-video animation (Wan 2.2 14B I2V, zerogpu-aoti/wan2-2-fp8da-aoti-faster
+    // Space, FP8 + Lightning LoRA, 4-8 steps): the source image comes from
+    // `options.sourceImageUrl` — typically a just-generated image — and the
+    // animation follows `options.prompt`, with duration/steps/guidance tunable
+    // via the generation options. Generation needs a user access token
+    // (hf_...) — the Settings panel's "Login with Hugging Face" entry point
+    // walks the user through that.
     models: [
-      { id: 'KlingTeam/LivePortrait', name: 'LivePortrait' },
       {
         id: 'zerogpu-aoti/wan2-2-fp8da-aoti-faster',
         name: 'Wan 2.2 14B I2V FP8 (Lightning LoRA)',
@@ -213,7 +202,7 @@ export async function testVideoConnectivity(
     case 'openrouter-video':
       return testOpenRouterVideoConnectivity(config);
     case 'huggingface-video':
-      return testHuggingFaceVideoConnectivity(config);
+      return testHuggingFaceWanVideoConnectivity(config);
     default:
       return {
         success: false,
@@ -306,12 +295,7 @@ export async function generateVideo(
     case 'openrouter-video':
       return generateWithOpenRouterVideo(config, options, control);
     case 'huggingface-video':
-      // Two Spaces behind one provider id: the Wan 2.2 I2V Space speaks a
-      // different Gradio protocol (sse_v3 `/generate_video`) than the
-      // LivePortrait Space (Gradio 4 queue), so dispatch on the model.
-      return config.model === HUGGINGFACE_WAN_MODEL
-        ? generateWithHuggingFaceWanVideo(config, options, control)
-        : generateWithHuggingFaceVideo(config, options, control);
+      return generateWithHuggingFaceWanVideo(config, options, control);
     default:
       throw new Error(`Unsupported video provider: ${config.providerId}`);
   }

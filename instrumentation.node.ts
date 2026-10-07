@@ -210,6 +210,13 @@ async function validateBootConfiguration(): Promise<void> {
   // to load is reported as a startup failure, with its stack.
   const { runConfigurationCheck } = await import('@/lib/server/boot-configuration-error');
 
+  // Hugging Face S3 asset byte store (HF_S3_BUCKET set): register before any
+  // byte store can be built, and before validatePersistenceHooksConfiguration.
+  const { configureHuggingFaceS3AssetStoreFromEnv } = await import(
+    '@/lib/server/persistence-hooks/huggingface-s3-asset-store'
+  );
+  await configureHuggingFaceS3AssetStoreFromEnv();
+
   // The database, before anything else: every course, chat and asset lives in
   // it and there is no browser-storage fallback, so a server without one would
   // boot, pass its health check and then fail every persistence request. The

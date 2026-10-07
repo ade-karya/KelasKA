@@ -1,12 +1,10 @@
 /**
  * Shared Hugging Face helpers for the Gradio-Space media adapters.
  *
- * Both the image adapter (`black-forest-labs/FLUX.1-dev`, Gradio 5-style
- * `/infer` call routes) and the video adapter (`KlingTeam/LivePortrait`,
- * Gradio 4 queue protocol) authenticate with the caller's Hugging Face
- * access token (`hf_...`) and resolve `owner/repo` model ids to their
- * `*.hf.space` host. The login probe is shared so "Test Connection" behaves
- * identically for both.
+ * The Hugging Face Gradio Space adapters (FLUX image, Wan 2.2 video)
+ * authenticate with the caller's Hugging Face access token (`hf_...`) and
+ * resolve `owner/repo` model ids to their `*.hf.space` host. The login
+ * probe is shared so "Test Connection" behaves identically for all of them.
  */
 
 import type { ImageGenerationConfig } from '../types';
@@ -62,9 +60,8 @@ interface GradioFileRef {
  * Normalize a Gradio file payload into an absolute file URL, if any. Accepts
  * a bare URL string or a FileData object (`{url?, path?, mime_type?}`); a
  * relative `url` resolves against the Space, a bare `path` against its file
- * route — `gradio_api/file=` on Gradio 5 Spaces (e.g. FLUX.1-dev), `file=`
- * on Gradio 4 Spaces (e.g. LivePortrait, whose live payloads always carry an
- * absolute `url` so this is only a fallback).
+ * route — `gradio_api/file=` on Gradio 5 Spaces. Relative payloads are
+ * resolved against the Space; path-only refs fall back to the file route.
  */
 export function resolveGradioFileUrl(
   spaceUrl: string,

@@ -89,12 +89,6 @@ export const GenerateVideoParams = Type.Object({
         'Optional source image to animate (image-to-video providers such as Hugging Face Video Gen): an https: or data: URL of a previously generated image. Omit for text-to-video providers.',
     }),
   ),
-  drivingVideoUrl: Type.Optional(
-    Type.String({
-      description:
-        'Optional driving-motion video override for image-to-video providers: an https: or data: URL. Omit to use the provider default motion.',
-    }),
-  ),
 });
 
 type GenerateConfiguredVideo = (
@@ -773,7 +767,6 @@ export function buildGenerateVideoTool(
         ...(params.durationSec ? { duration: params.durationSec } : {}),
         ...(params.resolution ? { resolution: params.resolution } : {}),
         ...(params.sourceImageUrl ? { sourceImageUrl: params.sourceImageUrl } : {}),
-        ...(params.drivingVideoUrl ? { drivingVideoUrl: params.drivingVideoUrl } : {}),
         stageId,
       });
 

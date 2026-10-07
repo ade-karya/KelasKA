@@ -27,11 +27,11 @@
  *           `output.error` (e.g. the ZeroGPU quota refusal)
  *
  * The model is Wan 2.2 14B image-to-video (FP8 quantized, Lightning LoRA for
- * fast 4–8 step generation). Like LivePortrait it animates a source still, so
- * the source image (`options.sourceImageUrl`, an `https:` or `data:` URL of a
- * generated image) is REQUIRED — this provider cannot dream motion from text
- * alone. Unlike LivePortrait it also takes the text prompt, so the animation
- * follows the scene description instead of a fixed driving clip.
+ * fast 4–8 step generation). Like the other image-to-video adapters it
+ * animates a source still, so the source image (`options.sourceImageUrl`, an
+ * `https:` or `data:` URL of a generated image) is REQUIRED — this provider
+ * cannot dream motion from text alone. Unlike those it also takes the text
+ * prompt, so the animation follows the scene description.
  *
  * Authentication: Authorization: Bearer <hf token>
  */
