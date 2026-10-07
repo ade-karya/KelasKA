@@ -35,7 +35,13 @@ import {
   type WhiteboardRuntimePayloadV1,
 } from '@/lib/whiteboard/runtime/types';
 import { queryWhiteboardVisibility } from '../whiteboard-visibility';
+import { buildWhiteboardConflicts } from '@/lib/orchestration/summarizers/whiteboard-conflicts';
 import type { SendEvent } from '../types';
+
+const WHITEBOARD_CANVAS_WIDTH = 1000;
+const WHITEBOARD_CANVAS_HEIGHT = 563;
+const WHITEBOARD_SAFE_AREA = { xMin: 40, xMax: 960, yMin: 40, yMax: 523 };
+const WHITEBOARD_MIN_GAP = 24;
 
 const EmptyParams = Type.Object({}, { additionalProperties: false });
 const ExpectedLastSeq = Type.Unsafe<number | null>({
@@ -450,6 +456,97 @@ function durableReadResult(state: Awaited<ReturnType<WhiteboardRuntimeService['r
   };
 }
 
+type WhiteboardOccupiedBox = {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+function toOccupiedBoxes(elements: readonly PPTElement[]): WhiteboardOccupiedBox[] {
+  const boxes: WhiteboardOccupiedBox[] = [];
+  for (const el of elements) {
+    if (!el || typeof el !== 'object') continue;
+    const candidate = el as PPTElement & {
+      left?: unknown;
+      top?: unknown;
+      width?: unknown;
+      height?: unknown;
+      start?: unknown;
+      end?: unknown;
+    };
+    if (candidate.type === 'line') {
+      const left = typeof candidate.left === 'number' ? candidate.left : 0;
+      const top = typeof candidate.top === 'number' ? candidate.top : 0;
+      const start = Array.isArray(candidate.start) ? candidate.start : [0, 0];
+      const end = Array.isArray(candidate.end) ? candidate.end : [0, 0];
+      const x1 = left + (typeof start[0] === 'number' ? start[0] : 0);
+      const y1 = top + (typeof start[1] === 'number' ? start[1] : 0);
+      const x2 = left + (typeof end[0] === 'number' ? end[0] : 0);
+      const y2 = top + (typeof end[1] === 'number' ? end[1] : 0);
+      boxes.push({
+        id: candidate.id,
+        type: 'line',
+        x: Math.round(Math.min(x1, x2)),
+        y: Math.round(Math.min(y1, y2)),
+        w: Math.round(Math.abs(x2 - x1)),
+        h: Math.round(Math.abs(y2 - y1)),
+      });
+      continue;
+    }
+    if (
+      typeof candidate.left !== 'number' ||
+      typeof candidate.top !== 'number' ||
+      typeof candidate.width !== 'number' ||
+      typeof candidate.height !== 'number'
+    ) {
+      continue;
+    }
+    boxes.push({
+      id: candidate.id,
+      type: candidate.type,
+      x: Math.round(candidate.left),
+      y: Math.round(candidate.top),
+      w: Math.round(candidate.width),
+      h: Math.round(candidate.height),
+    });
+  }
+  return boxes;
+}
+
+function buildNativeLayoutHint(elements: readonly PPTElement[]) {
+  const occupied = toOccupiedBoxes(elements);
+  const safeW = WHITEBOARD_SAFE_AREA.xMax - WHITEBOARD_SAFE_AREA.xMin;
+  const safeH = WHITEBOARD_SAFE_AREA.yMax - WHITEBOARD_SAFE_AREA.yMin;
+  const safeArea = occupied.reduce((area, box) => {
+    const x1 = Math.max(box.x, WHITEBOARD_SAFE_AREA.xMin);
+    const y1 = Math.max(box.y, WHITEBOARD_SAFE_AREA.yMin);
+    const x2 = Math.min(box.x + box.w, WHITEBOARD_SAFE_AREA.xMax);
+    const y2 = Math.min(box.y + box.h, WHITEBOARD_SAFE_AREA.yMax);
+    if (x2 <= x1 || y2 <= y1) return area;
+    return area + (x2 - x1) * (y2 - y1);
+  }, 0);
+  const coverage = safeW > 0 && safeH > 0 ? safeArea / (safeW * safeH) : 0;
+  let conflicts = '';
+  try {
+    conflicts = buildWhiteboardConflicts(elements as never[]);
+  } catch {
+    conflicts = '';
+  }
+  return {
+    canvas: { width: WHITEBOARD_CANVAS_WIDTH, height: WHITEBOARD_CANVAS_HEIGHT },
+    safeArea: { ...WHITEBOARD_SAFE_AREA, minGap: WHITEBOARD_MIN_GAP },
+    occupied,
+    coverage: Math.round(coverage * 100) / 100,
+    crowded: coverage >= 0.7 || occupied.length >= 8,
+    conflicts: conflicts || null,
+    placementInstruction:
+      'Treat occupied as already taken. Place every new box inside safeArea with >=24px gap and zero overlap. If crowded/no free space, or conflicts is non-null: tidy first with wb_delete (overlapping/outdated element) or wb_clear (unrelated topic), then draw neatly. Never draw over existing content.',
+  };
+}
+
 type NativeWhiteboardToolOptions = {
   agent: AgentConfig;
   messageId: string;
@@ -634,7 +731,7 @@ function elementMutationTool<TParams extends ElementMutationParams>(
   return {
     name: config.name,
     label: config.label,
-    description: `${config.description} For a user-visible drawing request, call wb_open before this tool even if Browser visibility is unknown. Drawing remains allowed when visibility is closed, and this mutation tool never changes visibility itself.`,
+    description: `${config.description} For a user-visible drawing request, call wb_open before this tool even if Browser visibility is unknown, then call wb_read and place the new box in free space from layout.occupied with >=24px gap and zero overlap. Drawing remains allowed when visibility is closed, and this mutation tool never changes visibility itself.`,
     parameters: config.parameters,
     executionMode: 'sequential',
     prepareArguments: config.prepare,
@@ -684,7 +781,7 @@ export function buildNativeWhiteboardTools(opts: NativeWhiteboardToolOptions): A
       name: 'wb_read',
       label: 'Read whiteboard',
       description:
-        'Read the authoritative learner whiteboard and current best-effort Browser visibility. Copy nextMutation.expectedLastSeq exactly into the next mutation. Closed visibility never blocks durable drawing and does not require wb_open first.',
+        'Read the authoritative learner whiteboard and current best-effort Browser visibility. Copy nextMutation.expectedLastSeq exactly into the next mutation. Always call before the first wb_draw_*/wb_delete/wb_clear/wb_edit_code and use layout.occupied to avoid overlap. Closed visibility never blocks durable drawing and does not require wb_open first.',
       parameters: EmptyParams,
       executionMode: 'sequential',
       prepareArguments: (args) => strictArguments<EmptyParams>(EmptyParams, args, new Set()),
@@ -702,6 +799,8 @@ export function buildNativeWhiteboardTools(opts: NativeWhiteboardToolOptions): A
                 data: { kind: 'visibility_query', queryId, stageId: opts.stageId },
               }),
           });
+          const durable = durableReadResult(state);
+          const layout = buildNativeLayoutHint(durable.elements);
           const result = {
             nextMutation: {
               expectedLastSeq: state.lastSeq,
@@ -711,7 +810,8 @@ export function buildNativeWhiteboardTools(opts: NativeWhiteboardToolOptions): A
                   : `Set expectedLastSeq to the JSON number ${state.lastSeq} exactly; do not use null.`,
               drawingAllowedWhenVisibilityClosed: true,
             },
-            durable: durableReadResult(state),
+            durable,
+            layout,
             presentation: { visibility },
           };
           return textResult(JSON.stringify(result), result);

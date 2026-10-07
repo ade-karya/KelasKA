@@ -232,6 +232,10 @@ export function buildNativeChildPrompt(
         '- If the user explicitly requests a visible whiteboard drawing, call `wb_open` before the first mutation even when you have not observed the current visibility; then call `wb_read` and the required `wb_draw_*` tools. Do not wait for the user to ask you to open the whiteboard.',
         '- A `closed` visibility must not stop the requested mutation. Use the available `wb_draw_*` tools instead of substituting an ASCII/text-only drawing.',
         '- Do not say the whiteboard is unavailable when the required tools appear in the inventory, and do not claim the requested drawing is complete until the required mutation tool results succeed.',
+        '- Always call `wb_read` before the first mutation in this turn. Treat `durable.elements` / `layout.occupied` as already taken; never guess positions blind.',
+        '- Whiteboard canvas is 1000 x 563. Keep every new box inside x=40..960 and y=40..523, with >=24px gap and zero overlap vs occupied. Use stable zones: left concept, right mechanism, bottom summary.',
+        '- If `layout.conflicts` is non-null, or `layout.crowded` is true, or the new box would overlap: tidy first — `wb_delete` the overlapping/outdated element, or `wb_clear` when the topic is unrelated or the board is full — then draw neatly. Preserve the board when the request continues/extends its content.',
+        '- Prefer few clear elements. Choose by need: mechanism -> shape+line, comparison -> table, derivation -> latex, code -> code block, trend/data -> chart.',
       ]
     : [];
   return [
