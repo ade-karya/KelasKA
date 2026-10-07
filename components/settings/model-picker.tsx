@@ -59,6 +59,13 @@ export function logoScaleClass(icon?: string | null): string {
   return icon?.includes('deepseek') ? 'scale-[1.35]' : '';
 }
 
+/** Logos too pale for light-theme chips (Hugging Face's yellow face washes
+ * out on pale surfaces). They are deepened outside dark mode; the official
+ * fill is untouched wherever `dark` applies. */
+export function logoLightDimClass(icon?: string | null): string {
+  return icon?.includes('huggingface') ? 'brightness-[0.85] dark:brightness-100' : '';
+}
+
 /** A group's logo: its image, the generic service icon, or nothing. */
 export function ProviderLogo({
   group,
@@ -80,6 +87,7 @@ export function ProviderLogo({
         'shrink-0 rounded-sm object-contain',
         group.invertIcon && 'dark:invert',
         logoScaleClass(group.icon),
+        logoLightDimClass(group.icon),
         className,
       )}
       onError={(e) => {

@@ -162,10 +162,10 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
   },
   'huggingface-video': {
     id: 'huggingface-video',
-    name: 'Hugging Face LivePortrait',
+    name: 'Hugging Face Video Gen',
     requiresApiKey: true,
     defaultBaseUrl: 'https://klingteam-liveportrait.hf.space',
-    icon: '/logos/huggingface.svg',
+    icon: '/logos/huggingface-c167703f.svg',
     // Image-to-video portrait animation (KlingTeam/LivePortrait Space): the
     // source portrait comes from `options.sourceImageUrl` — typically a just
     // generated image — and motion from the Space's bundled driving clip

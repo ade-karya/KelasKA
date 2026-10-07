@@ -185,10 +185,10 @@ export const IMAGE_PROVIDERS: Record<ImageProviderId, ImageProviderConfig> = {
   },
   'huggingface-image': {
     id: 'huggingface-image',
-    name: 'Hugging Face FLUX',
+    name: 'Hugging Face Image Gen',
     requiresApiKey: true,
     defaultBaseUrl: 'https://black-forest-labs-flux-1-dev.hf.space',
-    icon: '/logos/huggingface.svg',
+    icon: '/logos/huggingface-c167703f.svg',
     // The model id is the Hugging Face Space repo served through its Gradio
     // `/infer` endpoint (black-forest-labs/FLUX.1-dev). Generation needs a
     // user access token (hf_...) whose account accepted the gated model

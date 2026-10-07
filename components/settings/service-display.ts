@@ -32,6 +32,7 @@ const IMAGE_PROVIDER_ICONS: Record<string, string> = {
   'comfyui-image': '/logos/comfyui.svg',
   'openrouter-image': '/logos/openrouter.svg',
   lemonade: '/logos/lemonade.svg',
+  'huggingface-image': '/logos/huggingface-c167703f.svg',
 };
 
 const VIDEO_PROVIDER_ICONS: Record<string, string> = {
@@ -42,6 +43,7 @@ const VIDEO_PROVIDER_ICONS: Record<string, string> = {
   'grok-video': '/logos/grok.svg',
   'openrouter-video': '/logos/openrouter.svg',
   happyhorse: '/logos/qwen.svg',
+  'huggingface-video': '/logos/huggingface-c167703f.svg',
 };
 
 interface RegistryInfo {

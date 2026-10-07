@@ -1,5 +1,5 @@
 /**
- * Hugging Face LivePortrait Video Generation Adapter
+ * Hugging Face Video Gen Adapter
  *
  * Animates a previously generated image through the `KlingTeam/LivePortrait`
  * Gradio Space (Gradio 4.37, verified against the live Space's `/config` and
@@ -77,7 +77,7 @@ const DEFAULT_DRIVING_DURATION_S = 3;
 /** Refuse to buffer more than this per upload (source + driving are small). */
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
-const PROVIDER_LABEL = 'Hugging Face LivePortrait';
+const PROVIDER_LABEL = 'Hugging Face Video Gen';
 
 /** Dimension defaults per aspect ratio, mirroring the other video adapters. */
 function getDimensions(aspectRatio?: string): { width: number; height: number } {
@@ -501,7 +501,7 @@ function livePortraitRequest(
   headers: Record<string, string>;
   signal?: AbortSignal;
 } {
-  const model = requireModel(config.model, 'Hugging Face LivePortrait');
+  const model = requireModel(config.model, 'Hugging Face Video Gen');
   const spaceUrl = resolveSpaceUrl(
     config.baseUrl,
     model,
@@ -520,7 +520,7 @@ export async function generateWithHuggingFaceVideo(
   options: VideoGenerationOptions,
   _control?: PolledTaskControl,
 ): Promise<VideoGenerationResult> {
-  const model = requireModel(config.model, 'Hugging Face LivePortrait');
+  const model = requireModel(config.model, 'Hugging Face Video Gen');
   const spaceUrl = resolveSpaceUrl(
     config.baseUrl,
     model,

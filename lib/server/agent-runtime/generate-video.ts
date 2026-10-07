@@ -86,7 +86,7 @@ export const GenerateVideoParams = Type.Object({
   sourceImageUrl: Type.Optional(
     Type.String({
       description:
-        'Optional source image to animate (image-to-video providers such as Hugging Face LivePortrait): an https: or data: URL of a previously generated image. Omit for text-to-video providers.',
+        'Optional source image to animate (image-to-video providers such as Hugging Face Video Gen): an https: or data: URL of a previously generated image. Omit for text-to-video providers.',
     }),
   ),
   drivingVideoUrl: Type.Optional(
@@ -710,7 +710,7 @@ export function buildGenerateVideoTool(
     name: GENERATE_VIDEO_TOOL_NAME,
     label: 'Generate video',
     description:
-      'Start creating a new video from a prompt for the explicitly targeted course. Returns IMMEDIATELY with a placeholder ref (gen_vid_...): the video generates in the background (this can take minutes) and the page updates itself when it is ready. Right after this call, put the returned ref on a video element — patch_stage set mediaRef (or src) of an existing element, or add a new video element carrying it. Video elements also support autoplay and poster. Do not wait for the video and do not retry while a ref is pending. This tool never edits a page itself. Image-to-video providers (Hugging Face LivePortrait) animate sourceImageUrl — a previously generated image — instead of dreaming motion from the prompt alone.',
+      'Start creating a new video from a prompt for the explicitly targeted course. Returns IMMEDIATELY with a placeholder ref (gen_vid_...): the video generates in the background (this can take minutes) and the page updates itself when it is ready. Right after this call, put the returned ref on a video element — patch_stage set mediaRef (or src) of an existing element, or add a new video element carrying it. Video elements also support autoplay and poster. Do not wait for the video and do not retry while a ref is pending. This tool never edits a page itself. Image-to-video providers (Hugging Face Video Gen) animate sourceImageUrl — a previously generated image — instead of dreaming motion from the prompt alone.',
     parameters: GenerateVideoParams,
     async execute(toolCallId, params: Static<typeof GenerateVideoParams>, signal) {
       const callerSignal = signal ?? deps.abortSignal;

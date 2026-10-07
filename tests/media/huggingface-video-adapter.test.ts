@@ -1,5 +1,5 @@
 /**
- * Hugging Face LivePortrait video adapter contract tests.
+ * Hugging Face Video Gen video adapter contract tests.
  *
  * Pins the Gradio 4 queue flow (config → upload → join → SSE), the
  * `/gpu_wrapped_execute_video` data layout, and the source-image requirement.

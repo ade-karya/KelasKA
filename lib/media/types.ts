@@ -256,7 +256,7 @@ export interface VideoProviderConfig {
   requiresApiKey: boolean;
   /**
    * Whether the provider animates a source still instead of dreaming motion
-   * from text (image-to-video, e.g. Hugging Face LivePortrait). Callers
+   * from text (image-to-video, e.g. Hugging Face Video Gen). Callers
    * without a `sourceImageUrl` generate the still first — the "video based
    * on the generated image" flow — rather than failing.
    */
@@ -321,7 +321,7 @@ export interface VideoGenerationOptions {
   resolution?: '480p' | '720p' | '1080p';
   /**
    * Source image to animate (image-to-video providers such as Hugging Face
-   * LivePortrait): an `https:` URL or `data:` URL of a previously generated
+   * Video Gen): an `https:` URL or `data:` URL of a previously generated
    * image. Text-to-video providers ignore it.
    */
   sourceImageUrl?: string;

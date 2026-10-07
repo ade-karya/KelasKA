@@ -983,7 +983,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     type: 'openai',
     defaultBaseUrl: 'https://api.deepseek.com/v1',
     requiresApiKey: true,
-    icon: '/logos/deepseek.svg',
+    icon: '/logos/deepseek-4187943a.svg',
     models: [
       {
         id: 'deepseek-v4-pro',

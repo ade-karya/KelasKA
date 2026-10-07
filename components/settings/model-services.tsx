@@ -50,6 +50,7 @@ import type { SettingsSection } from '@/lib/types/settings';
 import { AddProviderDialog } from './add-provider-dialog';
 import { ASRSettings } from './asr-settings';
 import { ImageSettings } from './image-settings';
+import { logoLightDimClass } from './model-picker';
 import { PDFSettings } from './pdf-settings';
 import { ProviderConfigPanel } from './provider-config-panel';
 import { PINNED_PROVIDER_ID } from './provider-links';
@@ -173,6 +174,7 @@ export function ModelServicesPanel({
                 className={cn(
                   'size-5 object-contain',
                   MONO_LOGO_PROVIDERS.has(entry.serviceId ?? entry.registryId) && 'dark:invert',
+                  logoLightDimClass(icon),
                 )}
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';

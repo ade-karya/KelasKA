@@ -81,6 +81,7 @@ import {
   deleteFolder,
   setStageFolder,
   FolderNameError,
+  isAccessCodeRequiredError,
   LIBRARY_CHANGED_EVENT,
   type DeleteFolderMode,
 } from '@/lib/utils/stage-storage';
@@ -277,6 +278,14 @@ function HomePage() {
       setClassrooms(list);
       retainThumbnails(new Set(list.map((c) => c.id)));
     } catch (err) {
+      // Pre-auth (ACCESS_CODE gate, no cookie yet): expected state, not a
+      // failure. Stay on an empty library without error chrome or toast;
+      // the access-code modal covers auth and remount/`auth-change` reloads us.
+      if (isAccessCodeRequiredError(err)) {
+        log.debug('Skipping classroom load: access code required (pre-auth).');
+        setClassrooms([]);
+        return;
+      }
       log.error('Failed to load classrooms:', err);
       toast.error('Persistence is unavailable. Saved classrooms could not be loaded.');
     }
@@ -292,6 +301,11 @@ function HomePage() {
     try {
       setFolders(await listFolders());
     } catch (err) {
+      if (isAccessCodeRequiredError(err)) {
+        log.debug('Skipping folder load: access code required (pre-auth).');
+        setFolders([]);
+        return;
+      }
       log.error('Failed to load folders:', err);
     }
   };
@@ -348,8 +362,17 @@ function HomePage() {
     };
     window.addEventListener(LIBRARY_CHANGED_EVENT, onLibraryChanged);
 
+    // Pre-auth loads were skipped silently (401 without cookie); retry now
+    // that the access-code modal was accepted. The guard also remounts us,
+    // but listening here covers shells that stay mounted across the grant.
+    const onAuthChange = () => {
+      void Promise.all([loadClassrooms(), loadFolders()]);
+    };
+    window.addEventListener('auth-change', onAuthChange);
+
     return () => {
       window.removeEventListener(LIBRARY_CHANGED_EVENT, onLibraryChanged);
+      window.removeEventListener('auth-change', onAuthChange);
     };
   }, []);
 
