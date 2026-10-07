@@ -15,11 +15,13 @@
 #   1. Paket sistem (apt): hanya yang dipakai installer, Node, dan build native
 #      `canvas` (opsi jsdom) — rincian + alasannya di blok APT_PKGS. ffmpeg
 #      dipasang default native (lihat --no-ffmpeg). PostgreSQL 18 dari repo
-#      resmi PGDG (apt.postgresql.org) — bukan paket bawaan distro yang
-#      tertinggal (Ubuntu 24.04 = PG 16); ganti mayor dengan --pg-major=N.
+#      resmi PGDG (hanya dengan --with-postgres; apt.postgresql.org) — bukan
+#      paket bawaan distro yang tertinggal (Ubuntu 24.04 = PG 16); ganti mayor
+#      dengan --pg-major=N.
 #   2. Node.js 24 (>= 24.21, sesuai `engines` di package.json) via NodeSource.
 #   3. pnpm 12.9.1 via corepack (sesuai `packageManager` di package.json).
-#   4. PostgreSQL 18: database + user `openmaic` + password acak.
+#   4. PostgreSQL 18 (hanya dengan --with-postgres; default dilewati):
+#      database + user `openmaic` + password acak.
 #   5. OpenCode CLI v2 via https://opencode.ai/v2/install (default terinstal;
 #      dilewati bila sudah versi terbaru; bisa dilewati total dengan
 #      --no-opencode). Ollama TIDAK diinstal lagi.
@@ -53,8 +55,8 @@
 #   9. Verifikasi: vendor bundle PPTX + kontrak Node engine + bootstrap skema
 #      database eager (28 tabel persistence + agent runtime via tsx, agar boot
 #      pertama bersih tanpa error 42P01; idempoten, gagal = warning saja).
-#  10. pgAdmin4 web (default ON; lewati dengan --no-pgadmin): repo resmi
-#      pgadmin.org + paket `pgadmin4-web` + setup-web.sh non-interaktif
+#  10. pgAdmin4 web (hanya dengan --with-pgadmin; default dilewati):
+#      repo resmi pgadmin.org + paket `pgadmin4-web` + setup-web.sh non-interaktif
 #      (--yes + PGADMIN_SETUP_EMAIL/PASSWORD). Kredensial awal dibuat acak
 #      (atau via --pgadmin-email/--pgadmin-password) dan disimpan di
 #      .env.local (PGADMIN_EMAIL/PGADMIN_PASSWORD). Langsung bisa dibuka di
@@ -79,8 +81,11 @@
 #
 # Opsi:
 #   --yes               Non-interaktif (tanpa konfirmasi).
-#   --no-postgres       Lewati instalasi & setup PostgreSQL
-#                       (agent runtime + persistence tetap nonaktif).
+#   --with-postgres     Instal & setup PostgreSQL 18 dari repo PGDG
+#                       (database + user `openmaic`; default dilewati,
+#                       agent runtime + persistence tetap nonaktif).
+#   --no-postgres       Lewati instalasi & setup PostgreSQL (default sudah
+#                       OFF; flag ini no-op, disediakan agar eksplisit).
 #   --no-opencode       Lewati instalasi OpenCode CLI v2.
 #   --with-opencode     Instal OpenCode CLI v2 (default sudah ON; flag ini
 #                       no-op, disediakan agar eksplisit).
@@ -97,16 +102,20 @@
 #                       aplikasi via PM2 (ecosystem.config.cjs, server
 #                       standalone; implisit build bila .next belum ada).
 #   --colab             Preset Google Colab / runtime ephemerial (root tanpa
-#                       systemd): setara --yes --with-pm2 --no-pgadmin.
+#                       systemd): setara --yes --with-pm2 (postgres + pgadmin
+#                       tetap OFF kecuali diminta --with-postgres /
+#                       --with-pgadmin).
 #                       Tulis --colab paling dulu bila digabung flag lain agar
-#                       masih bisa di-override (mis. --colab --with-pgadmin).
+#                       masih bisa di-override (mis. --colab --with-pgadmin
+#                       --with-postgres).
 #   --with-playwright   Instal browser Chromium untuk e2e Playwright.
 #   --full / --with-dev-tools
 #                       Bundle dev-penuh: setara `--build --with-playwright`
 #                       (build produksi + browser Chromium e2e).
-#   --with-pgadmin      Instal pgAdmin4 web (default sudah ON; flag ini
-#                       no-op, disediakan agar eksplisit).
-#   --no-pgadmin        Lewati instalasi & setup pgAdmin4 web.
+#   --with-pgadmin      Instal pgAdmin4 web (default dilewati; pasang dengan
+#                       flag ini).
+#   --no-pgadmin        Lewati instalasi & setup pgAdmin4 web (default sudah
+#                       OFF; flag ini no-op, disediakan agar eksplisit).
 #   --pgadmin-email=E   Email login awal pgAdmin (default:
 #                       admin@openmaic.id; dipakai saat setup pertama,
 #                       atau disinkronkan bila dipaksa).
@@ -172,13 +181,13 @@ cd "$ROOT_DIR"
 
 # ------------------------------------------------------------------ opsi CLI
 ASSUME_YES=0
-WITH_POSTGRES=1
+WITH_POSTGRES=0
 WITH_INSTALL=1
 WITH_BUILD=0
 WITH_PLAYWRIGHT=0
 WITH_PM2=0
 WITH_COLAB=0
-WITH_PGADMIN=1
+WITH_PGADMIN=0
 WITH_FFMPEG=1
 WITH_OPENCODE=1
 WITH_BROWSER_TTS=1
@@ -204,12 +213,12 @@ Contoh:
   sudo ./install.sh --yes
   sudo ./install.sh --yes --build --with-playwright
   sudo ./install.sh --yes --with-pm2                  # produksi via PM2 (build + daemon auto-restart)
-  sudo ./install.sh --colab                       # Colab/ephemerial (= --yes --with-pm2 --no-pgadmin)
+  sudo ./install.sh --yes --with-postgres --with-pgadmin  # + Postgres + pgAdmin4 web
+  sudo ./install.sh --colab                       # Colab/ephemerial (= --yes --with-pm2, tanpa postgres/pgadmin)
+  sudo ./install.sh --colab --with-postgres --with-pgadmin  # Colab + Postgres + pgAdmin
   sudo ./install.sh --yes --full                  # bundle dev-penuh (= --build --with-playwright)
-  sudo ./install.sh --yes --no-pgadmin              # tanpa pgAdmin4 web
   sudo ./install.sh --yes --no-ffmpeg              # tanpa ekstraksi media lokal
   sudo ./install.sh --yes --no-browser-tts         # tanpa TTS browser-native (butuh key TTS)
-  sudo ./install.sh --yes --no-postgres          # tanpa Postgres (agent/persistence mati)
   sudo ./install.sh --yes --no-opencode          # tanpa OpenCode CLI
 EOF
 }
@@ -217,6 +226,7 @@ EOF
 for arg in "$@"; do
   case "$arg" in
     --yes)             ASSUME_YES=1 ;;
+    --with-postgres)   WITH_POSTGRES=1 ;;
     --no-postgres)     WITH_POSTGRES=0 ;;
     --no-install)      WITH_INSTALL=0 ;;
     --build)           WITH_BUILD=1 ;;
@@ -395,12 +405,12 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     echo "  - setup database Postgres 'openmaic' di PG ${PG_MAJOR} (repo PGDG)"
   else
-    echo "  - tanpa PostgreSQL (--no-postgres): agent runtime + persistence mati"
+    echo "  - tanpa PostgreSQL (default; pasang dengan --with-postgres): agent runtime + persistence mati"
   fi
   if [[ "$WITH_PGADMIN" -eq 1 ]]; then
     echo "  - instal pgAdmin4 web siap pakai (repo pgadmin.org + setup otomatis -> http://localhost/pgadmin4)"
   else
-    echo "  - tanpa pgAdmin4 web (--no-pgadmin)"
+    echo "  - tanpa pgAdmin4 web (default; pasang dengan --with-pgadmin)"
   fi
   echo "  - instal Node.js 24 (bila belum memenuhi syarat) + pnpm 12.9.1"
   if [[ "$WITH_OPENCODE" -eq 1 ]]; then
@@ -421,7 +431,7 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
     echo "  - instal PM2 + build produksi + jalankan via PM2 (ecosystem.config.cjs)"
   fi
   if [[ "$WITH_COLAB" -eq 1 ]]; then
-    echo "  - preset Colab: non-interaktif + PM2, tanpa pgAdmin4 web"
+    echo "  - preset Colab: non-interaktif + PM2 (postgres/pgadmin tetap OFF kecuali --with-postgres/--with-pgadmin)"
   fi
   if [[ "$WITH_UPSTREAM" -eq 1 ]]; then
     echo "  - pastikan git remote 'upstream' -> ${UPSTREAM_URL}"
@@ -446,7 +456,7 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   COLAB_DISK="$(df -h "$ROOT_DIR" 2>/dev/null | awk 'NR==2 {print $4}' || echo '')"
   info "Spesifikasi runtime: CPU=${COLAB_CPU}, RAM=${COLAB_RAM_MB:-?}MB, disk tersedia=${COLAB_DISK:-?}."
   if [[ "$COLAB_RAM_MB" =~ ^[0-9]+$ && "$COLAB_RAM_MB" -lt 4096 ]]; then
-    warn "RAM di bawah 4GB — build produksi + PostgreSQL bisa OOM; pakai runtime yang lebih besar bila gagal."
+    warn "RAM di bawah 4GB — build produksi (+ PostgreSQL bila --with-postgres) bisa OOM; pakai runtime yang lebih besar bila gagal."
   fi
 fi
 
@@ -815,7 +825,7 @@ if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     unset _DB_URL_AKTIF _DB_PORT_AKTIF
   fi
 else
-  info "Lewati PostgreSQL (--no-postgres): agent runtime + persistence tetap nonaktif."
+  info "Lewati PostgreSQL (default; pasang dengan --with-postgres): agent runtime + persistence tetap nonaktif."
 fi
 
 # ============================================================ 5. .env.local
@@ -1065,7 +1075,7 @@ sed_escape_replacement() {
 
 # Lengkapi satu variabel bila belum ada di file (tanpa menimpa nilai user).
 # Bila yang ada hanya versi BERKOMENTARI (`# KEY=...`, jejak template
-# --no-postgres), baris itu diaktifkan ulang dengan nilai di sini — bukan
+# tanpa postgres), baris itu diaktifkan ulang dengan nilai di sini — bukan
 # ditumpuk sebagai duplikat yang saling bertabrakan saat .env.local dibaca.
 # Bila baris aktif ada tapi nilainya KOSONG (mis. DATABASE_URL= dari run saat
 # Postgres belum siap, atau sisa run gagal), isi dengan nilai baru agar run
@@ -1935,11 +1945,11 @@ else
       warn "OPENMAIC_AGENT_RUNTIME_ENABLED=false (${ALASAN_RT})."
     fi
   else
-    # --no-postgres: flag aktif tanpa DATABASE_URL = warning [config] tiap boot
+    # Tanpa --with-postgres: flag aktif tanpa DATABASE_URL = warning [config] tiap boot
     # (lib/server/config-validation.ts), jadi turunkan. Nilai lain dibiarkan.
     DB_URL_ISI="$(env_get .env.local DATABASE_URL)"
     if [[ -z "$DB_URL_ISI" ]]; then
-      set_agent_runtime_flag false "Postgres dilewati (--no-postgres)"
+      set_agent_runtime_flag false "Postgres dilewati (tanpa --with-postgres)"
       pastikan_var_env .env.local OPENMAIC_AGENT_RUNTIME_ENABLED "false"
     fi
     warn "Postgres dilewati: agent runtime/persistence tidak disiapkan (nilai .env.local Anda tidak diubah)."
@@ -1947,7 +1957,7 @@ else
 fi
 
 # ============================================================ 5b. pgAdmin4 web
-# Default ON (lewati dengan --no-pgadmin). Server headless -> varian
+# Default OFF (pasang dengan --with-pgadmin). Server headless -> varian
 # pgadmin4-web saja (tanpa desktop). Sumber resmi:
 # https://www.pgadmin.org/download/pgadmin-4-apt/
 # Siap pakai: setup-web.sh dijalankan non-interaktif (--yes +
@@ -2323,7 +2333,7 @@ PGPYEOF
     fi
   fi
 else
-  info "Lewati pgAdmin4 web (--no-pgadmin)."
+  info "Lewati pgAdmin4 web (default; pasang dengan --with-pgadmin)."
 fi
 
 # ============================================================ 6. Direktori data
@@ -2365,7 +2375,7 @@ if [[ "$WITH_INSTALL" -eq 1 ]]; then
       info "Lewati bootstrap skema database (DATABASE_URL kosong di .env.local)."
     fi
   else
-    info "Lewati bootstrap skema database (--no-postgres/--no-install: butuh Postgres + node_modules)."
+    info "Lewati bootstrap skema database (tanpa postgres/--no-install: butuh --with-postgres + node_modules)."
   fi
 else
   info "Lewati pnpm install (--no-install). Jalankan manual nanti: pnpm install"
@@ -2912,7 +2922,7 @@ echo "    Driver agen (slot agent openmaic.yml): tier ber-key via HTTP"
 echo "    (openai-completions/responses); tier-3 gratis via driver khusus CLI"
 echo "    (opencode-cli, tanpa key, envelope tool_calls). Slot agent tanpa"
 echo "    model membuat agent runtime menolak start dengan pesan yang jelas."
-echo "  - Agent runtime + workbench butuh Postgres ${PG_MAJOR} (semua tier, termasuk tier-3 CLI)."
+echo "  - Agent runtime + workbench butuh Postgres ${PG_MAJOR} (--with-postgres; semua tier, termasuk tier-3 CLI)."
 echo "  - Performa: PARALLEL_SCENE_CONCURRENCY=5 (scene paralel, maks kode 10;"
 echo "    turunkan bila kena 429, naikkan s.d. 10 di server besar) + ffmpeg apt"
 echo "    default terinstal (lewati via --no-ffmpeg). TTS tanpa pacing"
@@ -2922,7 +2932,7 @@ echo "    (TTS_BROWSER_NATIVE_ENABLED=true di .env.local + default client ON,"
 echo "    fresh install langsung bersuara; matikan via --no-browser-tts bila"
 echo "    ingin mewajibkan provider TTS ber-key seperti OpenAI/MiniMax)."
 echo "  - Ekstraksi material audio/video lokal: ffmpeg (default ON)."
-echo "  - pgAdmin4 web (default ON, --no-pgadmin untuk lewati): http://localhost/pgadmin4"
+echo "  - pgAdmin4 web (hanya dengan --with-pgadmin): http://localhost/pgadmin4"
 echo "    login awal = PGADMIN_EMAIL/PGADMIN_PASSWORD di .env.local (ambil:"
 echo "    grep '^PGADMIN_' .env.local). Tambah server: Host localhost,"
 echo "    Port <lihat DATABASE_URL>, user openmaic + password Postgres Anda."
