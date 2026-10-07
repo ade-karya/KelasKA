@@ -1,6 +1,9 @@
+'use client';
+
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useKeyboardStore } from '@/lib/store/keyboard';
 import { useCanvasStore, useSceneSelector } from '@/lib/store';
+import { useI18n } from '@/lib/hooks/use-i18n';
 import type { CreateCustomShapeData } from '@/lib/types/edit';
 import type { SlideContent } from '@/lib/types/stage';
 import type { SlideTheme } from '@openmaic/dsl';
@@ -11,6 +14,7 @@ interface ShapeCreateCanvasProps {
 }
 
 export function ShapeCreateCanvas({ onCreated }: ShapeCreateCanvasProps) {
+  const { t } = useI18n();
   const ctrlOrShiftKeyActive = useKeyboardStore((state) => state.ctrlOrShiftKeyActive());
   const setCreatingCustomShapeState = useCanvasStore.use.setCreatingCustomShapeState();
   const theme = useSceneSelector<SlideContent, SlideTheme>((content) => content.canvas.theme);
@@ -80,9 +84,7 @@ export function ShapeCreateCanvas({ onCreated }: ShapeCreateCanvasProps) {
     setOffset({ x, y });
 
     // Show instruction toast
-    toast.info(
-      'Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early',
-    );
+    toast.info(t('edit.shapeCreate.hint'));
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toUpperCase();
@@ -95,7 +97,7 @@ export function ShapeCreateCanvas({ onCreated }: ShapeCreateCanvasProps) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [close, create]);
+  }, [close, create, t]);
 
   const getPoint = (e: React.MouseEvent | MouseEvent, custom = false) => {
     let pageX = e.pageX - offset.x;

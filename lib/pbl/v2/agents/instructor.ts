@@ -610,6 +610,8 @@ function syntheticPlatformOpener(phase: 'greeting' | 'setup', language: string):
         '【平台】学习者刚刚进入项目。请用你（导师人设）的口吻欢迎他们，并自然引入第一个微任务。',
       'zh-TW':
         '【平台】學習者剛剛進入專案。請以你（導師人設）的口吻歡迎他們，並自然引入第一個微任務。',
+      'id-ID':
+        '[Platform] Pelajar baru saja membuka proyek. Sapa mereka sebagai mentor dan antar mereka ke microtask pertama secara natural.',
       'ja-JP':
         '【プラットフォーム】学習者がプロジェクトに入りました。あなた（講師）として歓迎し、最初のマイクロタスクへ自然に案内してください。',
       'ru-RU':
@@ -625,6 +627,8 @@ function syntheticPlatformOpener(phase: 'greeting' | 'setup', language: string):
       '【平台】学习者刚刚激活了这个微任务。请只开启当前这个新微任务：如果这是新阶段的第一个任务，先用一两句话介绍整个新阶段的目标和意义；不要再总结上一个任务；然后明确说明现在要做的具体动作。',
     'zh-TW':
       '【平台】學習者剛剛啟動了這個微任務。請只開啟目前這個新微任務：如果這是新階段的第一個任務，先用一兩句話介紹整個新階段的目標和意義；不要再總結上一個任務；然後明確說明現在要做的具體動作。',
+    'id-ID':
+      '[Platform] Pelajar baru saja mengaktifkan microtask ini. Buka hanya microtask baru yang aktif ini: jika ini tugas pertama dari milestone baru, perkenalkan dulu tujuan dan makna keseluruhan milestone baru dalam 1-2 kalimat singkat; jangan merangkum ulang tugas sebelumnya, lalu sampaikan langkah konkret yang harus dilakukan sekarang.',
     'ja-JP':
       '【プラットフォーム】学習者がこのマイクロタスクをアクティブにしました。現在の新しいマイクロタスクだけを開いてください。これが新しいマイルストーンの最初のタスクなら、まず新しい段階全体の目標と意味を1〜2文で紹介してください。前のタスクを再評価せず、その後で今やる具体的な行動を伝えてください。',
     'ru-RU':
@@ -663,6 +667,42 @@ function buildStageSynthesisBlock(milestone: PBLMilestone): string {
   ].join('\n');
 }
 
+/** Locale-aware separators/labels for the scenario cast line in the
+ *  Instructor system prompt. Chinese keeps the original CJK punctuation
+ *  (byte-identical for zh projects); every other locale uses neutral
+ *  separators so the prompt doesn't bias the model toward Chinese
+ *  punctuation or leak a Chinese label into the learner-visible briefing. */
+function scenarioCastLocale(language: string | undefined): {
+  situationLabel: string;
+  partSeparator: string;
+  nameSeparator: string;
+  quoteTitle: (title: string) => string;
+} {
+  const lang = language || 'en-US';
+  if (lang.startsWith('zh')) {
+    return {
+      situationLabel: '当下处境：',
+      partSeparator: '；',
+      nameSeparator: '、',
+      quoteTitle: (title) => `「${title}」`,
+    };
+  }
+  if (lang === 'id-ID' || lang.toLowerCase().startsWith('id')) {
+    return {
+      situationLabel: 'Situasi saat ini: ',
+      partSeparator: '; ',
+      nameSeparator: ', ',
+      quoteTitle: (title) => `"${title}"`,
+    };
+  }
+  return {
+    situationLabel: 'Current situation: ',
+    partSeparator: '; ',
+    nameSeparator: ', ',
+    quoteTitle: (title) => `"${title}"`,
+  };
+}
+
 /** SCENARIO ONLY. Awareness block injected into the Instructor system
  *  prompt when the project is a role-play scenario (`project.scenario`
  *  present with a cast AND at least one roleplay stage). Returns '' for
@@ -691,6 +731,7 @@ export function buildScenarioAwarenessBlock(args: {
   if (characters.length === 0) return '';
   const roleplayMilestones = args.project.milestones.filter((m) => m.scenarioStage === 'roleplay');
   if (roleplayMilestones.length === 0) return '';
+  const castLocale = scenarioCastLocale(args.project.language);
 
   const cast = characters
     .map((c) => {
@@ -698,14 +739,16 @@ export function buildScenarioAwarenessBlock(args: {
       const situation = trimmedPBLText(c.situation);
       const personaShort = persona.length > 140 ? persona.slice(0, 140) + '…' : persona;
       const situationShort = situation.length > 160 ? situation.slice(0, 160) + '…' : situation;
-      const parts = [personaShort, situationShort ? `当下处境：${situationShort}` : '']
+      const parts = [personaShort, situationShort ? `${castLocale.situationLabel}${situationShort}` : '']
         .filter(Boolean)
-        .join('；');
+        .join(castLocale.partSeparator);
       return `**${c.name}**${parts ? ` — ${parts}` : ''}`;
     })
     .join('\n  · ');
-  const names = characters.map((c) => c.name).join('、');
-  const roleplayTitles = roleplayMilestones.map((m) => `「${m.title}」`).join('、');
+  const names = characters.map((c) => c.name).join(castLocale.nameSeparator);
+  const roleplayTitles = roleplayMilestones
+    .map((m) => castLocale.quoteTitle(m.title))
+    .join(castLocale.nameSeparator);
   const stage = args.milestone.scenarioStage;
 
   const lines: string[] = [
@@ -1250,6 +1293,22 @@ export function stripPrematureNextTaskSetup(
 }
 
 /**
+ * Trilingual empty-output retry hint, following the quiz-grade
+ * isZh / isId / en pattern. Shown when a turn produced nothing the
+ * learner can perceive. Falls back to English for locales we haven't
+ * translated yet (same fallback as the platform openers below).
+ */
+function emptyLlmOutputMessage(language: string | undefined): string {
+  const lang = language || 'en-US';
+  const isZh = lang === 'zh-CN' || lang === 'zh-TW' || lang.startsWith('zh');
+  const isId = lang === 'id-ID' || lang.toLowerCase().startsWith('id');
+  if (isZh) return '导师本轮没有产生新的内容。请稍后再试，或者把你的问题再说得具体一些。';
+  if (isId)
+    return 'Mentor tidak menghasilkan konten baru pada putaran ini. Silakan coba lagi nanti, atau jelaskan pertanyaanmu dengan lebih spesifik.';
+  return 'The mentor did not produce new content this turn. Please try again later, or describe your question in more detail.';
+}
+
+/**
  * Neutral, TIER-AGNOSTIC acknowledgment committed when the learner asked to
  * change difficulty (the model called `adjust_difficulty`) but wrote no text of
  * its own. The proficiency tier itself is underlying by design and is NEVER
@@ -1262,6 +1321,8 @@ function difficultyAdjustAck(language: string | undefined): string {
       return '好的，我来调整一下讲解的方式。';
     case 'zh-TW':
       return '好的，我來調整一下講解的方式。';
+    case 'id-ID':
+      return 'Baik, saya sesuaikan cara menjelaskannya.';
     case 'ja-JP':
       return 'わかりました。説明の仕方を調整しますね。';
     case 'ru-RU':
@@ -1661,7 +1722,7 @@ export async function* runInstructorTurn(
     yield {
       type: 'error',
       code: 'EMPTY_LLM_OUTPUT',
-      message: '导师本轮没有产生新的内容。请稍后再试，或者把你的问题再说得具体一些。',
+      message: emptyLlmOutputMessage(project.language),
     };
   }
 

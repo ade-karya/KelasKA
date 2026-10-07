@@ -576,6 +576,7 @@ async function transcribeAzureASR(
   const localeMap: Record<string, string> = {
     en: 'en-US',
     zh: 'zh-CN',
+    id: 'id-ID',
     ja: 'ja-JP',
     ko: 'ko-KR',
     de: 'de-DE',

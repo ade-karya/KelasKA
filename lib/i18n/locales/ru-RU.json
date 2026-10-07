@@ -7,7 +7,9 @@
     "errorPrefix": "Ошибка: ",
     "loadingClassroom": "Загрузка класса...",
     "retry": "Повторить",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
@@ -241,6 +243,7 @@
     "names": {
       "spotlight": "В центре внимания",
       "laser": "Указка",
+      "play_video": "Play",
       "wb_open": "Открыть доску",
       "wb_draw_text": "Текст на доске",
       "wb_draw_shape": "Фигура на доске",
@@ -248,6 +251,8 @@
       "wb_draw_latex": "Формула на доске",
       "wb_draw_table": "Таблица на доске",
       "wb_draw_line": "Линия на доске",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Очистить доску",
       "wb_delete": "Удалить элемент",
       "wb_close": "Закрыть доску",
@@ -263,6 +268,17 @@
       "result": "Завершено",
       "error": "Ошибка"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Готовы учиться вместе?",
@@ -566,6 +582,12 @@
         "boundary": "For fine-grained edits use the editor; add / delete / reorder slides from the left nav.",
         "comingSoon": "More capabilities coming soon."
       },
+      "interactive": {
+        "emptyTitle": "Что нужно исправить на этой странице?",
+        "lead": "Опишите ошибку на этой интерактивной странице — например, кнопку, которая не реагирует, — и я исправлю только её, сохранив всё остальное.",
+        "placeholder": "Опишите ошибку на этой интерактивной странице…",
+        "boundary": "Я вношу точечные исправления на странице и не пересоздаю её целиком. Переключайте сцены через навигацию слева."
+      },
       "cap": {
         "content": {
           "label": "Regenerate the slide",
@@ -576,8 +598,8 @@
           "examples": "“Make it more conversational”, “Align with my canvas edits”"
         },
         "fixHtml": {
-          "examples": "«Кнопка запуска не работает», «Панели накладываются на мобильном»",
-          "label": "Исправить ошибку на странице"
+          "label": "Исправить ошибку на странице",
+          "examples": "«Кнопка запуска не работает», «Панели накладываются на мобильном»"
         },
         "elements": {
           "label": "Подправить элементы",
@@ -589,15 +611,9 @@
       "sessionUntitled": "Без названия",
       "sessionDelete": "Удалить",
       "sessionEmpty": "Нет истории",
+      "thinking": "Думаю…",
       "reasoning": "Рассуждение",
       "thought": "Думал",
-      "interactive": {
-        "boundary": "Я вношу точечные исправления на странице и не пересоздаю её целиком. Переключайте сцены через навигацию слева.",
-        "emptyTitle": "Что нужно исправить на этой странице?",
-        "lead": "Опишите ошибку на этой интерактивной странице — например, кнопку, которая не реагирует, — и я исправлю только её, сохранив всё остальное.",
-        "placeholder": "Опишите ошибку на этой интерактивной странице…"
-      },
-      "thinking": "Думаю…",
       "title": "Редактировать с ИИ"
     },
     "timeline": {
@@ -676,18 +692,18 @@
       "restored": "Восстановлено",
       "resume": "Вернуть"
     },
+    "fixHtml": {
+      "title": "Исправить интерактивную страницу",
+      "fixing": "Исправляю",
+      "fixed": "Исправлено",
+      "notFixed": "Не исправлено",
+      "editsCount": "Правок: {{count}}"
+    },
     "readCard": {
       "title": "Read slide content",
       "reading": "Reading",
       "done": "Read",
       "failed": "Not read"
-    },
-    "fixHtml": {
-      "editsCount": "Правок: {{count}}",
-      "fixed": "Исправлено",
-      "fixing": "Исправляю",
-      "notFixed": "Не исправлено",
-      "title": "Исправить интерактивную страницу"
     },
     "editElements": {
       "title": "Правка элементов",
@@ -722,6 +738,12 @@
     "dock": {
       "elementRefHint": "Ссылки на элементы — выберите элементы для следующего сообщения",
       "globalTools": "Общие инструменты"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -794,10 +816,10 @@
     "noSpeechDetected": "Речь не обнаружена, попробуйте ещё раз",
     "discussionEnded": "Обсуждение завершено",
     "qaEnded": "Вопросы и ответы завершены",
-    "softClosing": "Продолжить обсуждение",
     "thinking": "Размышляет",
     "yourTurn": "Ваша очередь",
     "stopDiscussion": "Завершить обсуждение",
+    "softClosing": "Продолжить обсуждение",
     "autoPlay": "Автовоспр.",
     "autoPlayOff": "Остановить",
     "speed": "Скорость",
@@ -907,7 +929,9 @@
       "taskEvalCard": {
         "title": "Отзыв на отправленное",
         "strengths": "Что получилось хорошо",
-        "improvements": "Над чем поработать"
+        "improvements": "Над чем поработать",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "Вводная из этапа подготовки — здесь её можно открыть в любой момент сцены.",
@@ -989,7 +1013,6 @@
         "submissionsInStage": "Отправлено работ: {{count}}",
         "coreConceptGrasp": "Ключевая концепция «{{concept}}» — {{quality}}",
         "stageNoData": "Нет записанных результатов в этом этапе.",
-        "highlightsTitle": "Ваши достижения",
         "scenario": {
           "summary": "Вы прошли все {{acts}} акта этого сценария. Вот как прошла ролевая игра.",
           "whatYouDidWell": "Что вы сделали хорошо",
@@ -1013,6 +1036,7 @@
           "decisionScore": "Очки за решения: {{score}}",
           "castLabel": "Вы общались с: {{names}}"
         },
+        "highlightsTitle": "Ваши достижения",
         "highlight": {
           "independence": "Вы самостоятельно показали {{unlocks}}/{{total}} концепций — без подсказок. Отличное понимание.",
           "resilience": "На этапе «{{title}}» вы преодолели {{errors}} ошибок — настоящая стойкость.",
@@ -1077,6 +1101,8 @@
     "folderRenameFailed": "Не удалось переименовать папку",
     "folderDeleteFailed": "Не удалось удалить папку",
     "moveFailed": "Не удалось переместить курс",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "Эта папка пуста",
     "emptyLibraryHint": "Курсов пока нет — создайте выше или импортируйте курс.",
     "folderNameEmpty": "Название папки не может быть пустым",
@@ -1088,6 +1114,8 @@
     "notFoundDesc": "Этот курс не существует или был удалён.",
     "loadUnavailable": "Не удалось загрузить курс",
     "loadUnavailableDesc": "Не удалось получить курс. Проверьте доступ или попробуйте ещё раз.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "На главную",
     "runOutlining": "Составление плана…",
     "runAwaitingConfirmation": "Ожидает подтверждения",
@@ -1403,6 +1431,8 @@
     "voxcpmAutoVoiceDescription": "Использовать persona агента как голосовую подсказку",
     "voxcpmUnavailable": "Недоступно",
     "voxcpmClone": "Клон",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "Текущий бэкенд не поддерживает клонирование",
     "voxcpmNoCustomVoices": "Пользовательских голосов пока нет",
     "voxcpmCloneSaveOnly": "Для этого бэкенда доступно только сохранение",
@@ -1939,6 +1969,7 @@
     "deleteModel": "Удалить",
     "deleteProvider": "Удалить провайдера",
     "deleteProviderConfirm": "Вы уверены, что хотите удалить этого провайдера?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Обработка документов",
     "doubaoAccessKey": "Access Key",
     "doubaoAppId": "App ID",
@@ -2395,7 +2426,19 @@
     "courseTabsAria": "Открытые курсы",
     "courseTabClose": "Закрыть вкладку: {{name}}",
     "courseTabRunning": "Генерируется",
-    "foldersUnavailable": "Папки недоступны в этой сборке"
+    "foldersUnavailable": "Папки недоступны в этой сборке",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Профиль",
@@ -2423,11 +2466,6 @@
     "language": "Язык",
     "model": "Модель"
   },
-  "accessCode": {
-    "title": "Введите код доступа",
-    "placeholder": "Код доступа",
-    "error": "Неверный код доступа. Попробуйте ещё раз."
-  },
   "proMode": {
     "attach": "Прикрепить материал",
     "mentionCourse": "引用课堂",
@@ -2445,6 +2483,11 @@
     "badgeExit": "Вернуться в обычный режим",
     "launchPlaceholder": "Опишите учебный опыт, который хотите создать",
     "launchSend": "Начать сборку"
+  },
+  "accessCode": {
+    "title": "Введите код доступа",
+    "placeholder": "Код доступа",
+    "error": "Неверный код доступа. Попробуйте ещё раз."
   },
   "workbench": {
     "tool": {

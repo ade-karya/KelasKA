@@ -10,6 +10,94 @@ const log = createLogger('AudioRecorder');
 export const ASR_NOT_CONFIGURED_MESSAGE = 'Speech recognition is not set up';
 
 /**
+ * Best-effort UI locale for recorder toasts, which fire from event callbacks
+ * with no i18n hook in scope: stored locale, else browser language, else the
+ * default locale (id-ID). Mirrors the resolution in `lib/hooks/use-i18n.tsx`.
+ */
+function recorderLocale(): string {
+  try {
+    const stored = localStorage.getItem('locale');
+    if (stored) return stored;
+    if (typeof navigator !== 'undefined' && navigator.language) return navigator.language;
+  } catch {
+    // Storage unavailable — fall through to the default.
+  }
+  return 'id-ID';
+}
+
+type RecorderMessageKey =
+  | 'notConfigured'
+  | 'transcriptionFailed'
+  | 'unsupported'
+  | 'failed'
+  | 'errorDetail'
+  | 'noSpeech'
+  | 'noMic'
+  | 'denied'
+  | 'network'
+  | 'micAccess';
+
+const RECORDER_MESSAGES: Record<RecorderMessageKey, { en: string; zh: string; id: string }> = {
+  notConfigured: {
+    en: ASR_NOT_CONFIGURED_MESSAGE,
+    zh: '语音识别尚未设置',
+    id: 'Pengenalan suara belum disiapkan',
+  },
+  transcriptionFailed: {
+    en: 'Transcription failed',
+    zh: '语音识别失败，请重试',
+    id: 'Pengenalan suara gagal, silakan coba lagi',
+  },
+  unsupported: {
+    en: 'Your browser does not support speech recognition',
+    zh: '您的浏览器不支持语音识别功能',
+    id: 'Browser Anda tidak mendukung fitur pengenalan suara',
+  },
+  failed: {
+    en: 'Speech recognition failed',
+    zh: '语音识别失败',
+    id: 'Pengenalan suara gagal',
+  },
+  errorDetail: {
+    en: 'Speech recognition error',
+    zh: '语音识别错误',
+    id: 'Kesalahan pengenalan suara',
+  },
+  noSpeech: {
+    en: 'No speech input detected',
+    zh: '未检测到语音输入',
+    id: 'Tidak terdeteksi masukan suara',
+  },
+  noMic: {
+    en: 'Cannot access microphone',
+    zh: '无法访问麦克风',
+    id: 'Tidak dapat mengakses mikrofon',
+  },
+  denied: {
+    en: 'Microphone permission denied',
+    zh: '麦克风权限被拒绝',
+    id: 'Izin mikrofon ditolak',
+  },
+  network: {
+    en: 'Network error',
+    zh: '网络错误',
+    id: 'Kesalahan jaringan',
+  },
+  micAccess: {
+    en: 'Cannot access microphone, please check permission settings',
+    zh: '无法访问麦克风，请检查权限设置',
+    id: 'Tidak dapat mengakses mikrofon, periksa pengaturan izin',
+  },
+};
+
+function recorderMessage(key: RecorderMessageKey, detail?: string): string {
+  const locale = recorderLocale().toLowerCase();
+  const entry = RECORDER_MESSAGES[key];
+  const base = locale.startsWith('zh') ? entry.zh : locale.startsWith('id') ? entry.id : entry.en;
+  return detail === undefined ? base : `${base}: ${detail}`;
+}
+
+/**
  * The provider the workspace's asr slot resolves to (its registry id), and the
  * user's language for it. The provider, model and key are the server's.
  */
@@ -84,7 +172,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         onTranscription?.(result.text);
       } catch (error) {
         log.error('Transcription error:', error);
-        onError?.(error instanceof Error ? error.message : '语音识别失败，请重试');
+        onError?.(error instanceof Error ? error.message : recorderMessage('transcriptionFailed'));
       } finally {
         setIsProcessing(false);
         setRecordingTime(0);
@@ -106,7 +194,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         if (!setup) {
           // Release the lock: a later click (once speech input is set up) must work.
           busyRef.current = false;
-          onError?.(ASR_NOT_CONFIGURED_MESSAGE);
+          onError?.(recorderMessage('notConfigured'));
           return;
         }
         const asrLanguage = setup.language;
@@ -116,7 +204,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           // Check if Speech Recognition is supported
           if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
             busyRef.current = false;
-            onError?.('您的浏览器不支持语音识别功能');
+            onError?.(recorderMessage('unsupported'));
             return;
           }
 
@@ -125,7 +213,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Web Speech API instance shape isn't in lib.dom
           const recognition: any = new SpeechRecognitionCtor();
 
-          recognition.lang = asrLanguage || 'zh-CN';
+          recognition.lang = asrLanguage || 'id-ID';
           recognition.continuous = continuous;
           recognition.interimResults = false;
 
@@ -171,7 +259,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
             } else {
               log.error('Speech recognition error:', event.error);
             }
-            let errorMessage = '语音识别失败';
+            let errorMessage = recorderMessage('failed');
 
             switch (event.error) {
               case 'aborted':
@@ -185,19 +273,19 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
                 }
                 return;
               case 'no-speech':
-                errorMessage = '未检测到语音输入';
+                errorMessage = recorderMessage('noSpeech');
                 break;
               case 'audio-capture':
-                errorMessage = '无法访问麦克风';
+                errorMessage = recorderMessage('noMic');
                 break;
               case 'not-allowed':
-                errorMessage = '麦克风权限被拒绝';
+                errorMessage = recorderMessage('denied');
                 break;
               case 'network':
-                errorMessage = '网络错误';
+                errorMessage = recorderMessage('network');
                 break;
               default:
-                errorMessage = `语音识别错误: ${event.error}`;
+                errorMessage = recorderMessage('errorDetail', event.error);
             }
 
             onError?.(errorMessage);
@@ -270,7 +358,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     } catch (error) {
       busyRef.current = false;
       log.error('Failed to start recording:', error);
-      onError?.('无法访问麦克风，请检查权限设置');
+      onError?.(recorderMessage('micAccess'));
     }
   }, [onTranscription, onError, transcribeAudio, continuous]);
 

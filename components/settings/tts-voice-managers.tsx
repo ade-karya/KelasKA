@@ -329,7 +329,7 @@ export function VoxCPMVoiceManager() {
                           ? t('settings.voxcpmUnavailable')
                           : profile.kind === 'clone'
                             ? t('settings.voxcpmClone')
-                            : 'Prompt'
+                            : t('settings.voxcpmPromptBadge')
                       }
                       badgeTone={
                         profile.kind === 'clone' && !supportsReferenceAudio ? 'warning' : 'neutral'
@@ -338,7 +338,7 @@ export function VoxCPMVoiceManager() {
                         profile.kind === 'clone' && !supportsReferenceAudio
                           ? t('settings.voxcpmCloneUnsupportedDetail')
                           : profile.kind === 'clone'
-                            ? profile.referenceAudioName || 'reference audio'
+                            ? profile.referenceAudioName || t('settings.voxcpmReferenceAudioFallback')
                             : profile.voicePrompt || ''
                       }
                       kind={profile.kind === 'clone' ? 'clone' : 'prompt'}

@@ -447,7 +447,7 @@ function PooledIframe({
         }}
         src={entry.srcDoc ? undefined : entry.src}
         style={iframeStyle}
-        title={`Interactive Scene ${sceneId}`}
+        title={`${t('export.htmlPlayer.interactiveTitle')} ${sceneId}`}
         sandbox="allow-scripts allow-forms allow-popups"
       />
       {showRuntimeError && latestRuntimeError ? (

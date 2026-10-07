@@ -7,7 +7,9 @@
     "errorPrefix": "エラー：",
     "loadingClassroom": "教室を読み込み中...",
     "retry": "再試行",
-    "close": "閉じる"
+    "close": "閉じる",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "マルチエージェント対話型教室で生成的に学ぶ",
@@ -241,6 +243,7 @@
     "names": {
       "spotlight": "スポットライト",
       "laser": "レーザーポインター",
+      "play_video": "Play",
       "wb_open": "ホワイトボードを開く",
       "wb_draw_text": "テキスト描画",
       "wb_draw_shape": "図形描画",
@@ -248,6 +251,8 @@
       "wb_draw_latex": "数式描画",
       "wb_draw_table": "表描画",
       "wb_draw_line": "線描画",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "ホワイトボードをクリア",
       "wb_delete": "要素を削除",
       "wb_close": "ホワイトボードを閉じる",
@@ -263,6 +268,17 @@
       "result": "完了",
       "error": "エラー"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "一緒に学ぶ準備はできましたか？",
@@ -566,6 +582,12 @@
         "boundary": "細かい編集はエディタで、スライドの追加・削除・並べ替えは左のナビから。",
         "comingSoon": "今後さらに機能を追加予定です。"
       },
+      "interactive": {
+        "emptyTitle": "このページの何を修正しますか？",
+        "lead": "このインタラクティブページの不具合（例：押しても反応しないボタン）を教えてください。その箇所だけを修正し、ほかはそのまま残します。",
+        "placeholder": "このインタラクティブページの不具合を入力…",
+        "boundary": "ページの不具合をピンポイントで修正します。ページ全体の作り直しはしません。シーンの切り替えは左のナビからどうぞ。"
+      },
       "cap": {
         "content": {
           "label": "スライドを再生成",
@@ -576,8 +598,8 @@
           "examples": "「もっと口語的に」「編集内容に合わせて」"
         },
         "fixHtml": {
-          "examples": "「スタートボタンを押しても何も起きない」「スマホでパネルが重なる」",
-          "label": "ページの不具合を修正"
+          "label": "ページの不具合を修正",
+          "examples": "「スタートボタンを押しても何も起きない」「スマホでパネルが重なる」"
         },
         "elements": {
           "label": "要素を微調整",
@@ -589,15 +611,9 @@
       "sessionUntitled": "無題の会話",
       "sessionDelete": "削除",
       "sessionEmpty": "履歴はありません",
+      "thinking": "考え中…",
       "reasoning": "思考プロセス",
       "thought": "思考時間",
-      "interactive": {
-        "boundary": "ページの不具合をピンポイントで修正します。ページ全体の作り直しはしません。シーンの切り替えは左のナビからどうぞ。",
-        "emptyTitle": "このページの何を修正しますか？",
-        "lead": "このインタラクティブページの不具合（例：押しても反応しないボタン）を教えてください。その箇所だけを修正し、ほかはそのまま残します。",
-        "placeholder": "このインタラクティブページの不具合を入力…"
-      },
-      "thinking": "考え中…",
       "title": "AIで編集"
     },
     "timeline": {
@@ -676,18 +692,18 @@
       "restored": "復元しました",
       "resume": "再適用"
     },
+    "fixHtml": {
+      "title": "インタラクティブページを修正",
+      "fixing": "修正中",
+      "fixed": "修正済み",
+      "notFixed": "未修正",
+      "editsCount": "{{count}} 件の修正"
+    },
     "readCard": {
       "title": "ページ内容を読み取り",
       "reading": "読み取り中",
       "done": "読み取り済み",
       "failed": "未読み取り"
-    },
-    "fixHtml": {
-      "editsCount": "{{count}} 件の修正",
-      "fixed": "修正済み",
-      "fixing": "修正中",
-      "notFixed": "未修正",
-      "title": "インタラクティブページを修正"
     },
     "editElements": {
       "title": "要素を編集",
@@ -722,6 +738,12 @@
     "dock": {
       "elementRefHint": "要素参照 — 次のメッセージと一緒に送る要素を選ぶ",
       "globalTools": "全体ツール"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -794,10 +816,10 @@
     "noSpeechDetected": "音声が検出されませんでした。もう一度お試しください",
     "discussionEnded": "ディスカッションが終了しました",
     "qaEnded": "Q&Aが終了しました",
-    "softClosing": "話し合いを続ける",
     "thinking": "思考中",
     "yourTurn": "あなたの番です",
     "stopDiscussion": "ディスカッションを終了",
+    "softClosing": "話し合いを続ける",
     "autoPlay": "自動再生",
     "autoPlayOff": "自動再生を停止",
     "speed": "速度",
@@ -907,7 +929,9 @@
       "taskEvalCard": {
         "title": "今回の提出物へのフィードバック",
         "strengths": "良かった点",
-        "improvements": "次に改善できる点"
+        "improvements": "次に改善できる点",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "準備段階で説明された設定を、シーン中いつでも見返せるようにここにまとめています。",
@@ -989,7 +1013,6 @@
         "submissionsInStage": "{{count}}件の作品を提出",
         "coreConceptGrasp": "コア概念「{{concept}}」——{{quality}}",
         "stageNoData": "このステージには記録された成果がありません。",
-        "highlightsTitle": "あなたのハイライト",
         "scenario": {
           "summary": "このシナリオの全 {{acts}} 幕を完了しました。今回のロールプレイの振り返りです。",
           "whatYouDidWell": "うまくできた点",
@@ -1013,6 +1036,7 @@
           "decisionScore": "判断スコア {{score}}",
           "castLabel": "やり取りした相手：{{names}}"
         },
+        "highlightsTitle": "あなたのハイライト",
         "highlight": {
           "independence": "{{unlocks}}/{{total}}の概念を自ら示しました——問われる前に、自分から表現できています。",
           "resilience": "「{{title}}」ステージで{{errors}}回のエラーを克服——粘り強いです。",
@@ -1077,17 +1101,21 @@
     "folderRenameFailed": "フォルダの名前変更に失敗しました",
     "folderDeleteFailed": "フォルダの削除に失敗しました",
     "moveFailed": "コースの移動に失敗しました",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "このフォルダは空です",
     "emptyLibraryHint": "まだコースがありません。上で作成するか、コースをインポートしてください。",
     "folderNameEmpty": "フォルダ名は空にできません",
     "deleteFolderOnly": "フォルダのみ削除",
     "deleteFolderAndCourses": "フォルダと {{count}} 件のコースを削除",
-    "deleteFolderConfirmRemove": "フォルダとコース（チャット履歴を含む）が削除されます。",
     "deleteFolderAndCourses_other": "フォルダと {{count}} 件のコースを削除",
+    "deleteFolderConfirmRemove": "フォルダとコース（チャット履歴を含む）が削除されます。",
     "notFound": "コースが見つかりません",
     "notFoundDesc": "このコースは存在しないか、すでに削除されています。",
     "loadUnavailable": "コースを読み込めませんでした",
     "loadUnavailableDesc": "コースを取得できませんでした。アクセス権を確認するか、もう一度お試しください。",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "ホームに戻る",
     "runOutlining": "アウトライン作成中…",
     "runAwaitingConfirmation": "確認待ち",
@@ -1403,6 +1431,8 @@
     "voxcpmAutoVoiceDescription": "Agent の persona を音色プロンプトとして使用",
     "voxcpmUnavailable": "利用不可",
     "voxcpmClone": "クローン",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "現在のバックエンドはクローンに対応していません",
     "voxcpmNoCustomVoices": "カスタム音色はまだありません",
     "voxcpmCloneSaveOnly": "このバックエンドでは保存のみ可能です",
@@ -1939,6 +1969,7 @@
     "deleteModel": "削除",
     "deleteProvider": "プロバイダーを削除",
     "deleteProviderConfirm": "このプロバイダーを削除してもよろしいですか？",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "ドキュメント解析",
     "doubaoAccessKey": "アクセスキー",
     "doubaoAppId": "App ID",
@@ -2395,7 +2426,19 @@
     "courseTabsAria": "開いているコース",
     "courseTabClose": "タブを閉じる：{{name}}",
     "courseTabRunning": "生成中",
-    "foldersUnavailable": "このビルドではフォルダーは利用できません"
+    "foldersUnavailable": "このビルドではフォルダーは利用できません",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "プロフィール",
@@ -2423,11 +2466,6 @@
     "language": "言語",
     "model": "モデル"
   },
-  "accessCode": {
-    "title": "アクセスコードを入力",
-    "placeholder": "アクセスコード",
-    "error": "アクセスコードが正しくありません。もう一度お試しください。"
-  },
   "proMode": {
     "attach": "教材を添付",
     "mentionCourse": "引用课堂",
@@ -2445,6 +2483,11 @@
     "badgeExit": "通常モードに戻る",
     "launchPlaceholder": "作りたい学習体験を描いてください",
     "launchSend": "構築を開始"
+  },
+  "accessCode": {
+    "title": "アクセスコードを入力",
+    "placeholder": "アクセスコード",
+    "error": "アクセスコードが正しくありません。もう一度お試しください。"
   },
   "workbench": {
     "tool": {

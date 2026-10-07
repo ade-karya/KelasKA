@@ -7,7 +7,9 @@
     "errorPrefix": "Fehler: ",
     "loadingClassroom": "Klassenzimmer wird geladen ...",
     "retry": "Erneut versuchen",
-    "close": "Schließen"
+    "close": "Schließen",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "Generatives Lernen im interaktiven Lernraum mit mehreren KI-Agenten",
@@ -241,6 +243,7 @@
     "names": {
       "spotlight": "Spotlight",
       "laser": "Laser",
+      "play_video": "Play",
       "wb_open": "Whiteboard öffnen",
       "wb_draw_text": "Whiteboard-Text",
       "wb_draw_shape": "Whiteboard-Form",
@@ -248,6 +251,8 @@
       "wb_draw_latex": "Whiteboard-Formel",
       "wb_draw_table": "Whiteboard-Tabelle",
       "wb_draw_line": "Whiteboard-Linie",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Whiteboard leeren",
       "wb_delete": "Element löschen",
       "wb_close": "Whiteboard schließen",
@@ -263,6 +268,17 @@
       "result": "Abgeschlossen",
       "error": "Fehler"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Bereit, gemeinsam zu lernen?",
@@ -722,6 +738,12 @@
     "dock": {
       "elementRefHint": "Elementverweise – Elemente für die nächste Nachricht auswählen",
       "globalTools": "Globale Werkzeuge"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -907,7 +929,9 @@
       "taskEvalCard": {
         "title": "Feedback zur Einreichung",
         "strengths": "Das lief gut",
-        "improvements": "Nächste Schritte"
+        "improvements": "Nächste Schritte",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "Die in der Vorbereitung vorgestellte Ausgangslage — hier gespeichert, damit du sie in der Szene jederzeit nachlesen kannst.",
@@ -1077,6 +1101,8 @@
     "folderRenameFailed": "Ordner konnte nicht umbenannt werden",
     "folderDeleteFailed": "Ordner konnte nicht gelöscht werden",
     "moveFailed": "Kurs konnte nicht verschoben werden",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "Dieser Ordner ist leer",
     "emptyLibraryHint": "Noch keine Kurse — erstelle oben einen oder importiere einen Kurs.",
     "folderNameEmpty": "Der Ordnername darf nicht leer sein",
@@ -1088,6 +1114,8 @@
     "notFoundDesc": "Dieser Kurs existiert nicht oder wurde gelöscht.",
     "loadUnavailable": "Kurs konnte nicht geladen werden",
     "loadUnavailableDesc": "Der Kurs konnte nicht abgerufen werden. Prüfen Sie Ihren Zugriff oder versuchen Sie es erneut.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Zurück zur Startseite",
     "runOutlining": "Gliederung wird erstellt…",
     "runAwaitingConfirmation": "Wartet auf Bestätigung",
@@ -1403,6 +1431,8 @@
     "voxcpmAutoVoiceDescription": "Agentenpersona als Stimmen-Prompt verwenden",
     "voxcpmUnavailable": "Nicht verfügbar",
     "voxcpmClone": "Klonen",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "Das aktuelle Backend unterstützt das Klonen nicht",
     "voxcpmNoCustomVoices": "Noch keine benutzerdefinierten Stimmen",
     "voxcpmCloneSaveOnly": "Nur für dieses Backend gespeichert",
@@ -1939,6 +1969,7 @@
     "deleteModel": "Löschen",
     "deleteProvider": "Anbieter löschen",
     "deleteProviderConfirm": "Möchtest du diesen Anbieter wirklich löschen?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Dokument-Parsing",
     "doubaoAccessKey": "Zugriffsschlüssel",
     "doubaoAppId": "App-ID",
@@ -2395,7 +2426,19 @@
     "courseTabsAria": "Open courses",
     "courseTabClose": "Close tab: {{name}}",
     "courseTabRunning": "Generating",
-    "foldersUnavailable": "Ordner sind in dieser Version nicht verfügbar"
+    "foldersUnavailable": "Ordner sind in dieser Version nicht verfügbar",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Profil",
@@ -2423,11 +2466,6 @@
     "language": "Sprache",
     "model": "Modell"
   },
-  "accessCode": {
-    "title": "Zugangscode eingeben",
-    "placeholder": "Zugangscode",
-    "error": "Ungültiger Zugangscode. Bitte versuche es erneut."
-  },
   "proMode": {
     "attach": "Attach material",
     "mentionCourse": "引用课堂",
@@ -2445,6 +2483,11 @@
     "badgeExit": "Back to classic",
     "launchPlaceholder": "Describe the learning experience you want to create",
     "launchSend": "Start build"
+  },
+  "accessCode": {
+    "title": "Zugangscode eingeben",
+    "placeholder": "Zugangscode",
+    "error": "Ungültiger Zugangscode. Bitte versuche es erneut."
   },
   "workbench": {
     "tool": {

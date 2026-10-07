@@ -231,7 +231,7 @@ export const useSettingsStore = create<SettingsState>()(
       ttsVoice: 'default',
       ttsVoiceProviderId: '',
       ttsSpeed: 1.0,
-      asrLanguage: 'zh-CN',
+      asrLanguage: 'id-ID',
       reviewOutlineEnabled: false,
 
       // Playback controls

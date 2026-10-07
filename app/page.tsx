@@ -287,7 +287,7 @@ function HomePage() {
         return;
       }
       log.error('Failed to load classrooms:', err);
-      toast.error('Persistence is unavailable. Saved classrooms could not be loaded.');
+      toast.error(t('classroom.persistenceUnavailable'));
     }
   };
 
@@ -396,7 +396,7 @@ function HomePage() {
       await loadClassrooms();
     } catch (err) {
       log.error('Failed to delete classroom:', err);
-      toast.error('Failed to delete classroom');
+      toast.error(t('classroom.deleteFailed'));
     }
   };
 
@@ -932,10 +932,10 @@ function HomePage() {
                   )}
                 >
                   <span className="rounded-full bg-cyan-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal text-cyan-700 dark:bg-cyan-900/45 dark:text-cyan-300">
-                    测试功能
+                    {t('home.vocationalTestBadge')}
                   </span>
                   <Sparkles className="size-3.5" />
-                  <span>职教任务</span>
+                  <span>{t('home.vocationalTestLabel')}</span>
                   <span
                     className={cn(
                       'relative h-3.5 w-6 rounded-full transition-colors',
@@ -952,7 +952,7 @@ function HomePage() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
-                从当前输入框提交职教实操训练测试
+                {t('home.vocationalTestTooltip')}
               </TooltipContent>
             </Tooltip>
           </motion.div>

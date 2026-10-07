@@ -241,7 +241,7 @@ When showing code the learner reads, use fenced blocks with a language tag. For 
 
 ## Language
 
-Match the learner's language. If the project metadata is in Chinese, reply in Chinese; if English, reply in English. Don't code-switch unless clarifying a term.
+Match the learner's language. Follow the content-language policy stated in the `## Project` block (`project.languageDirective`, fallback BCP-47 `project.language`) — that is the authoritative signal. The language of the project metadata text itself (title / description / task wording) is content data, never a reason to switch your reply language. Don't code-switch unless clarifying a term.
 
 ## Boundaries
 

@@ -7,7 +7,9 @@
     "errorPrefix": "خطأ: ",
     "loadingClassroom": "جارٍ تحميل الفصل...",
     "retry": "إعادة المحاولة",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "التعلّم التوليدي في فصل تفاعلي متعدد الوكلاء",
@@ -33,8 +35,6 @@
     "selectProvider": "اختر المزوّد",
     "configureProvider": "إعداد المزوّد",
     "configureProviderHint": "قم بتكوين مزوّد نماذج واحد على الأقل لتوليد المقررات",
-    "interactiveModeHint": "تفعيل وضع التفاعل_first للمحتوى العملي",
-    "interactiveModeLabel": "وضع التفاعل",
     "enterClassroom": "دخول الفصل",
     "advancedSettings": "إعدادات متقدمة",
     "thinking": "التفكير",
@@ -48,6 +48,8 @@
     "ttsHint": "اختر صوتًا للمعلم الذكي",
     "ttsPreview": "معاينة",
     "ttsPreviewing": "جارٍ التشغيل...",
+    "interactiveModeHint": "تفعيل وضع التفاعل_first للمحتوى العملي",
+    "interactiveModeLabel": "وضع التفاعل",
     "modelChangeFailed": "تعذّر تغيير النموذج: {{message}}",
     "pickModel": "اختر نموذجًا",
     "defaultModelNote": "يغيّر النموذج الافتراضي؛ تحتفظ المراحل المضبوطة بشكل منفصل بنماذجها.",
@@ -64,6 +66,9 @@
     "pptx": "تصدير PPTX",
     "resourcePack": "تصدير حزمة الموارد",
     "resourcePackDesc": "PPTX + صفحات تفاعلية",
+    "exporting": "جارٍ التصدير...",
+    "exportSuccess": "تم التصدير بنجاح",
+    "exportFailed": "فشل التصدير",
     "classroomZip": "تصدير ملف الفصل ZIP",
     "classroomZipDesc": "هيكل المقرر + ملفات الوسائط",
     "html": "تصدير بتنسيق HTML",
@@ -106,9 +111,6 @@
     "slideFallback": "الشريحة {{order}}",
     "textOnly": "تصدير النص",
     "mediaPending": "في انتظار انتهاء إنشاء الوسائط",
-    "exporting": "جارٍ التصدير...",
-    "exportSuccess": "تم التصدير بنجاح",
-    "exportFailed": "فشل التصدير",
     "inlinePartial": "تعذّر تضمين {{count}} من الموارد الخارجية؛ قد لا يتم عرض الدورة بشكل صحيح دون اتصال بالإنترنت.",
     "video": "تصدير الفيديو",
     "videoDesc": "مشروع Hyperframes مكتفٍ ذاتيًا (يمكن تحويله إلى MP4)",
@@ -169,8 +171,8 @@
     "parsing": "جارٍ تحليل ملف ZIP...",
     "parsingPptx": "جارٍ تحليل ملف PPTX...",
     "validating": "جارٍ التحقق من البيانات...",
-    "writingCourse": "جارٍ كتابة بيانات المقرر...",
     "writingMedia": "جارٍ كتابة ملفات الوسائط...",
+    "writingCourse": "جارٍ كتابة بيانات المقرر...",
     "success": "تم استيراد الفصل بنجاح",
     "pptxSuccess": "تم تحليل PPTX بنجاح ({{count}} شرائح، تم طباعة الإخراج في وحدة التحكم)",
     "error": {
@@ -241,6 +243,7 @@
     "names": {
       "spotlight": "تسليط الضوء",
       "laser": "مؤشر ليزر",
+      "play_video": "Play",
       "wb_open": "فتح السبورة",
       "wb_draw_text": "نص على السبورة",
       "wb_draw_shape": "شكل على السبورة",
@@ -248,6 +251,8 @@
       "wb_draw_latex": "معادلة على السبورة",
       "wb_draw_table": "جدول على السبورة",
       "wb_draw_line": "خط على السبورة",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "مسح السبورة",
       "wb_delete": "حذف العنصر",
       "wb_close": "إغلاق السبورة",
@@ -263,6 +268,17 @@
       "result": "مكتمل",
       "error": "خطأ"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "هل أنت مستعد للتعلّم معنا؟",
@@ -566,6 +582,12 @@
         "boundary": "For fine-grained edits use the editor; add / delete / reorder slides from the left nav.",
         "comingSoon": "More capabilities coming soon."
       },
+      "interactive": {
+        "emptyTitle": "ما الذي يحتاج إلى إصلاح في هذه الصفحة؟",
+        "lead": "صِف خطأً في هذه الصفحة التفاعلية — مثل زر لا يفعل شيئًا — وسأُصلح ذلك فقط مع الإبقاء على كل شيء آخر.",
+        "placeholder": "صِف الخطأ في هذه الصفحة التفاعلية…",
+        "boundary": "أُجري إصلاحات محدّدة على الصفحة، ولا أعيد بناء الصفحة بالكامل. بدّل المشاهد من شريط التنقّل على اليسار."
+      },
       "cap": {
         "content": {
           "label": "Regenerate the slide",
@@ -576,8 +598,8 @@
           "examples": "“Make it more conversational”, “Align with my canvas edits”"
         },
         "fixHtml": {
-          "examples": "«زر البدء لا يفعل شيئًا»، «تتداخل اللوحات على الجوال»",
-          "label": "إصلاح خطأ في الصفحة"
+          "label": "إصلاح خطأ في الصفحة",
+          "examples": "«زر البدء لا يفعل شيئًا»، «تتداخل اللوحات على الجوال»"
         },
         "elements": {
           "label": "تعديل العناصر",
@@ -589,15 +611,9 @@
       "sessionUntitled": "محادثة بلا عنوان",
       "sessionDelete": "حذف",
       "sessionEmpty": "لا توجد محادثات",
+      "thinking": "جارٍ التفكير…",
       "reasoning": "الاستدلال",
       "thought": "فكّر لمدة",
-      "interactive": {
-        "boundary": "أُجري إصلاحات محدّدة على الصفحة، ولا أعيد بناء الصفحة بالكامل. بدّل المشاهد من شريط التنقّل على اليسار.",
-        "emptyTitle": "ما الذي يحتاج إلى إصلاح في هذه الصفحة؟",
-        "lead": "صِف خطأً في هذه الصفحة التفاعلية — مثل زر لا يفعل شيئًا — وسأُصلح ذلك فقط مع الإبقاء على كل شيء آخر.",
-        "placeholder": "صِف الخطأ في هذه الصفحة التفاعلية…"
-      },
-      "thinking": "جارٍ التفكير…",
       "title": "التحرير باستخدام الذكاء الاصطناعي"
     },
     "timeline": {
@@ -676,18 +692,18 @@
       "restored": "تمت الاستعادة",
       "resume": "إعادة"
     },
+    "fixHtml": {
+      "title": "إصلاح الصفحة التفاعلية",
+      "fixing": "جارٍ الإصلاح",
+      "fixed": "تم الإصلاح",
+      "notFixed": "لم يُصلَح",
+      "editsCount": "{{count}} تعديل"
+    },
     "readCard": {
       "title": "Read slide content",
       "reading": "Reading",
       "done": "Read",
       "failed": "Not read"
-    },
-    "fixHtml": {
-      "editsCount": "{{count}} تعديل",
-      "fixed": "تم الإصلاح",
-      "fixing": "جارٍ الإصلاح",
-      "notFixed": "لم يُصلَح",
-      "title": "إصلاح الصفحة التفاعلية"
     },
     "editElements": {
       "title": "تحرير العناصر",
@@ -722,6 +738,12 @@
     "dock": {
       "elementRefHint": "مراجع العناصر — اختر عناصر لإرسالها مع رسالتك التالية",
       "globalTools": "أدوات عامة"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -794,10 +816,10 @@
     "noSpeechDetected": "لم يتم اكتشاف كلام، يرجى المحاولة مرة أخرى",
     "discussionEnded": "انتهى النقاش",
     "qaEnded": "انتهت الأسئلة والأجوبة",
-    "softClosing": "متابعة النقاش",
     "thinking": "يفكر",
     "yourTurn": "دورك",
     "stopDiscussion": "إيقاف النقاش",
+    "softClosing": "متابعة النقاش",
     "autoPlay": "تشغيل تلقائي",
     "autoPlayOff": "إيقاف التشغيل التلقائي",
     "speed": "السرعة",
@@ -907,7 +929,9 @@
       "taskEvalCard": {
         "title": "ملاحظات على ما قدمته",
         "strengths": "نقاط القوة",
-        "improvements": "مجالات التحسين"
+        "improvements": "مجالات التحسين",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "الخلفية التي قُدّمت في مرحلة التحضير محفوظة هنا لمراجعتها في أي وقت أثناء المشهد.",
@@ -989,7 +1013,6 @@
         "submissionsInStage": "تم تقديم {{count}} عمل",
         "coreConceptGrasp": "المفهوم الأساسي «{{concept}}» — {{quality}}",
         "stageNoData": "لا توجد مخرجات مسجلة في هذه المرحلة.",
-        "highlightsTitle": "أبرز نقاطك",
         "scenario": {
           "summary": "أتممت كل فصول هذا السيناريو البالغة {{acts}}. إليك كيف سار تمثيل الأدوار.",
           "whatYouDidWell": "ما أحسنت فعله",
@@ -1013,6 +1036,7 @@
           "decisionScore": "نقاط القرار {{score}}",
           "castLabel": "تفاعلت مع: {{names}}"
         },
+        "highlightsTitle": "أبرز نقاطك",
         "highlight": {
           "independence": "أظهرت {{unlocks}}/{{total}} مفهومًا بنفسك — دون الحاجة للتوجيه. فهم متين.",
           "resilience": "في مرحلة «{{title}}» تغلبت على {{errors}} خطأ — إصرار حقيقي.",
@@ -1077,17 +1101,21 @@
     "folderRenameFailed": "فشلت إعادة تسمية المجلد",
     "folderDeleteFailed": "فشل حذف المجلد",
     "moveFailed": "فشل نقل الدورة",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "هذا المجلد فارغ",
     "emptyLibraryHint": "لا توجد دورات بعد — أنشئ واحدة بالأعلى أو استورد دورة.",
     "folderNameEmpty": "لا يمكن أن يكون اسم المجلد فارغًا",
     "deleteFolderOnly": "حذف المجلد فقط",
     "deleteFolderAndCourses": "حذف المجلد و {{count}} دورة",
-    "deleteFolderConfirmRemove": "سيؤدي هذا إلى حذف المجلد ودوراته، بما في ذلك سجل الدردشة.",
     "deleteFolderAndCourses_other": "حذف المجلد و {{count}} دورة",
+    "deleteFolderConfirmRemove": "سيؤدي هذا إلى حذف المجلد ودوراته، بما في ذلك سجل الدردشة.",
     "notFound": "لم يتم العثور على الدورة",
     "notFoundDesc": "هذه الدورة غير موجودة أو تم حذفها.",
     "loadUnavailable": "تعذر تحميل هذه الدورة",
     "loadUnavailableDesc": "تعذر استرداد الدورة. تحقق من صلاحية الوصول أو حاول مرة أخرى.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "العودة إلى الصفحة الرئيسية",
     "runOutlining": "جارٍ إعداد المخطط…",
     "runAwaitingConfirmation": "بانتظار التأكيد",
@@ -1403,6 +1431,8 @@
     "voxcpmAutoVoiceDescription": "استخدام persona الخاصة بالـ Agent كموجّه للصوت",
     "voxcpmUnavailable": "غير متاح",
     "voxcpmClone": "استنساخ",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "الخلفية الحالية لا تدعم الاستنساخ",
     "voxcpmNoCustomVoices": "لا توجد أصوات مخصصة بعد",
     "voxcpmCloneSaveOnly": "متاح للحفظ فقط مع هذه الخلفية",
@@ -1939,6 +1969,7 @@
     "deleteModel": "حذف",
     "deleteProvider": "حذف المزوّد",
     "deleteProviderConfirm": "هل أنت متأكد من حذف هذا المزوّد؟",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "تحليل المستندات",
     "doubaoAccessKey": "مفتاح الوصول",
     "doubaoAppId": "معرّف التطبيق",
@@ -2395,7 +2426,19 @@
     "courseTabsAria": "الدورات المفتوحة",
     "courseTabClose": "إغلاق التبويب: {{name}}",
     "courseTabRunning": "قيد التوليد",
-    "foldersUnavailable": "المجلدات غير متوفرة في هذا الإصدار"
+    "foldersUnavailable": "المجلدات غير متوفرة في هذا الإصدار",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "الملف الشخصي",
@@ -2423,11 +2466,6 @@
     "language": "اللغة",
     "model": "النموذج"
   },
-  "accessCode": {
-    "title": "أدخل رمز الوصول",
-    "placeholder": "رمز الوصول",
-    "error": "رمز الوصول غير صالح. يرجى المحاولة مرة أخرى."
-  },
   "proMode": {
     "attach": "إرفاق مواد",
     "mentionCourse": "引用课堂",
@@ -2445,6 +2483,11 @@
     "badgeExit": "العودة إلى الوضع العادي",
     "launchPlaceholder": "صِف تجربة التعلم التي تريد إنشاءها",
     "launchSend": "بدء الإنشاء"
+  },
+  "accessCode": {
+    "title": "أدخل رمز الوصول",
+    "placeholder": "رمز الوصول",
+    "error": "رمز الوصول غير صالح. يرجى المحاولة مرة أخرى."
   },
   "workbench": {
     "tool": {

@@ -152,13 +152,15 @@ export function ClassroomSurface({
         log.error('Failed to load classroom:', error);
         if (isCurrent()) {
           setLoadUnavailable(false);
-          setError(error instanceof Error ? error.message : 'Failed to load classroom');
+          // Store the raw detail only; the error view wraps it in a
+          // localized message so raw provider/fetch text never renders bare.
+          setError(error instanceof Error && error.message ? error.message : t('classroom.loadFailed'));
           setLoading(false);
         }
         return isCurrent() ? 'failed' : 'cancelled';
       }
     },
-    [classroomId, loadFromStorage, variant],
+    [classroomId, loadFromStorage, t, variant],
   );
 
   const retryClassroom = useCallback(() => {
@@ -340,10 +342,7 @@ export function ClassroomSurface({
                   {loadUnavailable ? (
                     t('classroom.loadUnavailable')
                   ) : (
-                    <>
-                      {t('common.errorPrefix')}
-                      {error}
-                    </>
+                    <>{t('classroom.loadFailedWithDetail', { detail: error })}</>
                   )}
                 </p>
                 {loadUnavailable ? (

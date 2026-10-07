@@ -7,7 +7,9 @@
     "errorPrefix": "Lỗi: ",
     "loadingClassroom": "Đang tải lớp học...",
     "retry": "Thử lại",
-    "close": "Đóng"
+    "close": "Đóng",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "Học tập sinh tạo trong lớp học tương tác đa tác nhân",
@@ -241,6 +243,7 @@
     "names": {
       "spotlight": "Đèn rọi",
       "laser": "Bút laser",
+      "play_video": "Play",
       "wb_open": "Mở bảng",
       "wb_draw_text": "Viết chữ lên bảng",
       "wb_draw_shape": "Vẽ hình lên bảng",
@@ -248,6 +251,8 @@
       "wb_draw_latex": "Viết công thức lên bảng",
       "wb_draw_table": "Vẽ bảng biểu",
       "wb_draw_line": "Vẽ đường thẳng",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Xóa bảng",
       "wb_delete": "Xóa phần tử",
       "wb_close": "Đóng bảng",
@@ -263,6 +268,17 @@
       "result": "Đã xong",
       "error": "Lỗi"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Cùng học nhé?",
@@ -722,6 +738,12 @@
     "dock": {
       "elementRefHint": "Tham chiếu phần tử — chọn phần tử để gửi kèm tin nhắn tiếp theo",
       "globalTools": "Công cụ chung"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -907,7 +929,9 @@
       "taskEvalCard": {
         "title": "Nhận xét bài nộp",
         "strengths": "Điểm làm tốt",
-        "improvements": "Việc nên làm tiếp"
+        "improvements": "Việc nên làm tiếp",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "Bối cảnh đã giới thiệu ở phần chuẩn bị — giữ lại đây để bạn xem lại bất cứ lúc nào trong tình huống.",
@@ -1077,6 +1101,8 @@
     "folderRenameFailed": "Không đổi được tên thư mục",
     "folderDeleteFailed": "Không xóa được thư mục",
     "moveFailed": "Không chuyển được bài học",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "Thư mục này đang trống",
     "emptyLibraryHint": "Chưa có bài học nào — tạo mới ở trên hoặc nhập một bài học vào.",
     "folderNameEmpty": "Tên thư mục không được để trống",
@@ -1088,6 +1114,8 @@
     "notFoundDesc": "Khóa học này không tồn tại hoặc đã bị xóa.",
     "loadUnavailable": "Không tải được khóa học này",
     "loadUnavailableDesc": "Không thể truy xuất khóa học. Hãy kiểm tra quyền truy cập hoặc thử lại.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Về trang chủ",
     "runOutlining": "Đang lập dàn ý…",
     "runAwaitingConfirmation": "Đang chờ xác nhận",
@@ -1403,6 +1431,8 @@
     "voxcpmAutoVoiceDescription": "Dùng mô tả nhân vật làm gợi ý cho giọng đọc",
     "voxcpmUnavailable": "Không khả dụng",
     "voxcpmClone": "Nhân bản",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "Máy chủ hiện tại không hỗ trợ nhân bản giọng",
     "voxcpmNoCustomVoices": "Chưa có giọng tùy chỉnh nào",
     "voxcpmCloneSaveOnly": "Chỉ lưu cho máy chủ này",
@@ -1939,6 +1969,7 @@
     "deleteModel": "Xóa",
     "deleteProvider": "Xóa nhà cung cấp",
     "deleteProviderConfirm": "Bạn có chắc muốn xóa nhà cung cấp này?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Bóc tách tài liệu",
     "doubaoAccessKey": "Khóa truy cập",
     "doubaoAppId": "Mã ứng dụng",
@@ -2395,7 +2426,19 @@
     "courseTabsAria": "Open courses",
     "courseTabClose": "Close tab: {{name}}",
     "courseTabRunning": "Generating",
-    "foldersUnavailable": "Thư mục không khả dụng trong bản này"
+    "foldersUnavailable": "Thư mục không khả dụng trong bản này",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Trang cá nhân",
@@ -2423,11 +2466,6 @@
     "language": "Ngôn ngữ",
     "model": "Mô hình"
   },
-  "accessCode": {
-    "title": "Nhập mã truy cập",
-    "placeholder": "Mã truy cập",
-    "error": "Mã truy cập không đúng. Vui lòng thử lại."
-  },
   "proMode": {
     "attach": "Đính kèm tài liệu",
     "mentionCourse": "引用课堂",
@@ -2445,6 +2483,11 @@
     "badgeExit": "Quay lại chế độ cổ điển",
     "launchPlaceholder": "Mô tả trải nghiệm học tập bạn muốn tạo",
     "launchSend": "Bắt đầu tạo"
+  },
+  "accessCode": {
+    "title": "Nhập mã truy cập",
+    "placeholder": "Mã truy cập",
+    "error": "Mã truy cập không đúng. Vui lòng thử lại."
   },
   "workbench": {
     "tool": {

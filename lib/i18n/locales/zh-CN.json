@@ -7,7 +7,9 @@
     "errorPrefix": "错误：",
     "loadingClassroom": "正在加载课堂...",
     "retry": "重试",
-    "close": "关闭"
+    "close": "关闭",
+    "decrease": "减少",
+    "increase": "增加"
   },
   "home": {
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
@@ -241,6 +243,7 @@
     "names": {
       "spotlight": "聚光灯",
       "laser": "激光笔",
+      "play_video": "播放",
       "wb_open": "打开白板",
       "wb_draw_text": "白板文本",
       "wb_draw_shape": "白板形状",
@@ -248,6 +251,8 @@
       "wb_draw_latex": "白板公式",
       "wb_draw_table": "白板表格",
       "wb_draw_line": "白板线条",
+      "wb_draw_code": "代码",
+      "wb_edit_code": "编辑代码",
       "wb_clear": "清空白板",
       "wb_delete": "删除元素",
       "wb_close": "关闭白板",
@@ -263,6 +268,17 @@
       "result": "已完成",
       "error": "错误"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "切换导航栏",
+    "mute": "静音",
+    "unmute": "取消静音",
+    "playbackSpeed": "播放速度",
+    "prevScene": "上一个场景",
+    "nextScene": "下一个场景",
+    "pause": "暂停",
+    "play": "播放",
+    "toggleChat": "切换对话"
   },
   "agentBar": {
     "readyToLearn": "准备好一起学习了吗？",
@@ -722,6 +738,12 @@
     "dock": {
       "elementRefHint": "元素引用 —— 选中元素随下一条消息发给 Agent",
       "globalTools": "全局工具"
+    },
+    "color": {
+      "sampleFromScreen": "从屏幕上取色"
+    },
+    "shapeCreate": {
+      "hint": "点击绘制任意形状，闭合路径完成绘制，按 ESC 或右键取消，按回车提前完成"
     }
   },
   "classroomComplete": {
@@ -907,7 +929,9 @@
       "taskEvalCard": {
         "title": "本次提交点评",
         "strengths": "做得好的",
-        "improvements": "下次可以"
+        "improvements": "下次可以",
+        "scoreLabel": "得分 {{score}} / 100",
+        "ratingLabel": "评分 {{value}} / 5"
       },
       "briefing": {
         "intro": "进入情景后，准备阶段介绍的背景在这里随时可查。",
@@ -1077,6 +1101,8 @@
     "folderRenameFailed": "重命名文件夹失败",
     "folderDeleteFailed": "删除文件夹失败",
     "moveFailed": "移动课程失败",
+    "deleteFailed": "删除课程失败",
+    "persistenceUnavailable": "持久化不可用，已保存的课程无法加载。",
     "emptyFolderHint": "这个文件夹还是空的",
     "emptyLibraryHint": "还没有课程——在上方创建，或导入一个课程。",
     "folderNameEmpty": "文件夹名不能为空",
@@ -1088,6 +1114,8 @@
     "notFoundDesc": "课程不存在，或已被删除。",
     "loadUnavailable": "暂时无法加载这门课程",
     "loadUnavailableDesc": "无法获取课程，请检查访问权限或重试。",
+    "loadFailed": "课程加载失败",
+    "loadFailedWithDetail": "课程加载失败：{{detail}}",
     "backToHome": "返回首页",
     "runOutlining": "正在生成大纲…",
     "runAwaitingConfirmation": "等待确认",
@@ -1403,6 +1431,8 @@
     "voxcpmAutoVoiceDescription": "使用 Agent 人设作为音色 prompt",
     "voxcpmUnavailable": "不可用",
     "voxcpmClone": "克隆",
+    "voxcpmPromptBadge": "提示词",
+    "voxcpmReferenceAudioFallback": "参考音频",
     "voxcpmCloneUnsupportedDetail": "当前后端不支持克隆",
     "voxcpmNoCustomVoices": "暂无自定义音色",
     "voxcpmCloneSaveOnly": "当前后端仅保存",
@@ -1938,6 +1968,7 @@
     "defaultModel": "默认模型",
     "deleteModel": "删除",
     "deleteProvider": "删除提供方",
+    "removeModel": "移除 {{id}}",
     "deleteProviderConfirm": "确定要删除此提供方吗？",
     "documentParsingSettings": "文档解析",
     "doubaoAccessKey": "Access Key",
@@ -2395,7 +2426,19 @@
     "courseTabsAria": "右栏标签页",
     "courseTabClose": "关闭标签页《{{name}}》",
     "courseTabRunning": "生成中",
-    "foldersUnavailable": "此版本不支持文件夹"
+    "foldersUnavailable": "此版本不支持文件夹",
+    "modelPicker": {
+      "empty": "模型列表为空。",
+      "loadFailed": "模型列表加载失败。",
+      "selectFailed": "选择模型失败（{{status}}）",
+      "activeToast": "当前模型：{{name}}（对下一次运行生效）",
+      "selectFailedFallback": "选择模型失败",
+      "thinkingSaveFailed": "思考配置保存失败",
+      "loading": "加载中...",
+      "loadError": "模型加载失败",
+      "choose": "选择模型",
+      "ariaLabel": "选择 Pro Workbench 模型"
+    }
   },
   "profile": {
     "title": "个人资料",

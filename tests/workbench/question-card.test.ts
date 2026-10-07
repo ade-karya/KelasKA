@@ -102,7 +102,7 @@ describe('questionHint', () => {
     expect(questionHint(question({ questionOptions: options }))).toBeNull();
     expect(
       questionHint(question({ questionOptions: options, questionMultiSelect: true })),
-    ).toContain('多选');
+    ).toContain(defaultWorkbenchTranslator('workbench.question.multiHint'));
     expect(questionHint(question({ questionAnswered: true }))).toBeNull();
     expect(
       questionHint(

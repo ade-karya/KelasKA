@@ -7,7 +7,9 @@
     "errorPrefix": "Erreur : ",
     "loadingClassroom": "Chargement de la classe…",
     "retry": "Réessayer",
-    "close": "Fermer"
+    "close": "Fermer",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "L’apprentissage génératif en classe interactive multi-agents",
@@ -241,6 +243,7 @@
     "names": {
       "spotlight": "Mise en lumière",
       "laser": "Laser",
+      "play_video": "Play",
       "wb_open": "Ouvrir le tableau blanc",
       "wb_draw_text": "Texte au tableau",
       "wb_draw_shape": "Forme au tableau",
@@ -248,6 +251,8 @@
       "wb_draw_latex": "Formule au tableau",
       "wb_draw_table": "Tableau de données",
       "wb_draw_line": "Trait au tableau",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Effacer le tableau blanc",
       "wb_delete": "Supprimer l’élément",
       "wb_close": "Fermer le tableau blanc",
@@ -263,6 +268,17 @@
       "result": "Terminé",
       "error": "Erreur"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Sommes-nous prêts à apprendre ensemble ?",
@@ -722,6 +738,12 @@
     "dock": {
       "elementRefHint": "Références d’éléments — choisissez les éléments à joindre au prochain message",
       "globalTools": "Outils globaux"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -907,7 +929,9 @@
       "taskEvalCard": {
         "title": "Retour sur le rendu",
         "strengths": "Ce qui a bien marché",
-        "improvements": "Pistes d’amélioration"
+        "improvements": "Pistes d’amélioration",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "Le contexte présenté pendant la préparation, conservé ici pour que vous puissiez le relire à tout moment pendant la scène.",
@@ -1054,40 +1078,44 @@
     "searchAriaLabel": "Rechercher un cours",
     "clearSearch": "Effacer",
     "searchEmpty": "Aucun cours ne correspond à votre recherche",
+    "newFolderTitle": "Nouveau dossier",
+    "newFolderDesc": "Organisez les cours par sujet pour un accès plus facile.",
+    "newFolderInline": "Nouveau dossier",
+    "folderNameLabel": "Nom du dossier",
+    "folderNamePlaceholder": "Ex : Mathématiques, Anglais, Cours principaux",
+    "folderNameHint": "Caractères larges et étroits acceptés ; les espaces comptent.",
+    "folderNameExists": "Un dossier avec ce nom existe déjà.",
+    "folderCountLimit": "Limite de dossiers atteinte.",
+    "folderWidth": "Largeur {{width}}/{{max}}",
+    "folderCreate": "Créer",
+    "folderBadge": "Dossier",
+    "folderCourseCountUnit": "cours",
+    "deleteFolderTitle": "Supprimer le dossier « {{name}} »",
+    "deleteFolderEmptyDesc": "Ce dossier est vide. La suppression est irréversible.",
     "deleteFolderUngroupDesc": "Les cours restent dans « Mes cours », simplement non classés.",
+    "moveToFolder": "Déplacer vers un dossier",
+    "moveToFolderLabel": "Déplacer vers un dossier",
+    "ungrouped": "Non classés",
+    "searchResults": "Résultats de recherche",
+    "folderCreateFailed": "Échec de la création du dossier",
+    "folderRenameFailed": "Échec du renommage du dossier",
+    "folderDeleteFailed": "Échec de la suppression du dossier",
+    "moveFailed": "Échec du déplacement du cours",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
+    "emptyFolderHint": "Ce dossier est vide",
+    "emptyLibraryHint": "Aucun cours pour le moment — créez-en un ci-dessus, ou importez un cours.",
+    "folderNameEmpty": "Le nom du dossier ne peut pas être vide",
+    "deleteFolderOnly": "Supprimer le dossier uniquement",
     "deleteFolderAndCourses": "Supprimer le dossier et {{count}} cours",
     "deleteFolderAndCourses_other": "Supprimer le dossier et {{count}} cours",
     "deleteFolderConfirmRemove": "Cela supprime le dossier et ses cours, y compris l'historique des discussions.",
-    "deleteFolderEmptyDesc": "Ce dossier est vide. La suppression est irréversible.",
-    "deleteFolderOnly": "Supprimer le dossier uniquement",
-    "deleteFolderTitle": "Supprimer le dossier « {{name}} »",
-    "emptyFolderHint": "Ce dossier est vide",
-    "emptyLibraryHint": "Aucun cours pour le moment — créez-en un ci-dessus, ou importez un cours.",
-    "folderBadge": "Dossier",
-    "folderCountLimit": "Limite de dossiers atteinte.",
-    "folderCourseCountUnit": "cours",
-    "folderCreate": "Créer",
-    "folderCreateFailed": "Échec de la création du dossier",
-    "folderDeleteFailed": "Échec de la suppression du dossier",
-    "folderNameEmpty": "Le nom du dossier ne peut pas être vide",
-    "folderNameExists": "Un dossier avec ce nom existe déjà.",
-    "folderNameHint": "Caractères larges et étroits acceptés ; les espaces comptent.",
-    "folderNameLabel": "Nom du dossier",
-    "folderNamePlaceholder": "Ex : Mathématiques, Anglais, Cours principaux",
-    "folderRenameFailed": "Échec du renommage du dossier",
-    "folderWidth": "Largeur {{width}}/{{max}}",
-    "moveFailed": "Échec du déplacement du cours",
-    "moveToFolder": "Déplacer vers un dossier",
-    "moveToFolderLabel": "Déplacer vers un dossier",
-    "newFolderDesc": "Organisez les cours par sujet pour un accès plus facile.",
-    "newFolderInline": "Nouveau dossier",
-    "newFolderTitle": "Nouveau dossier",
-    "searchResults": "Résultats de recherche",
-    "ungrouped": "Non classés",
     "notFound": "Cours introuvable",
     "notFoundDesc": "Ce cours n’existe pas ou a été supprimé.",
     "loadUnavailable": "Impossible de charger ce cours",
     "loadUnavailableDesc": "Le cours n'a pas pu être récupéré. Vérifiez votre accès ou réessayez.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Retour à l’accueil",
     "runOutlining": "Création du plan…",
     "runAwaitingConfirmation": "En attente de confirmation",
@@ -1403,6 +1431,8 @@
     "voxcpmAutoVoiceDescription": "Utiliser la personnalité de l’agent comme consigne de voix",
     "voxcpmUnavailable": "Indisponible",
     "voxcpmClone": "Cloner",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "Le moteur actuel ne prend pas en charge le clonage",
     "voxcpmNoCustomVoices": "Aucune voix personnalisée pour l’instant",
     "voxcpmCloneSaveOnly": "Enregistrée uniquement pour ce moteur",
@@ -1939,6 +1969,7 @@
     "deleteModel": "Supprimer",
     "deleteProvider": "Supprimer le fournisseur",
     "deleteProviderConfirm": "Voulez-vous vraiment supprimer ce fournisseur ?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Analyse des documents",
     "doubaoAccessKey": "Clé d’accès",
     "doubaoAppId": "Identifiant d’application",
@@ -2395,7 +2426,19 @@
     "courseTabsAria": "Open courses",
     "courseTabClose": "Close tab: {{name}}",
     "courseTabRunning": "Generating",
-    "foldersUnavailable": "Les dossiers ne sont pas disponibles dans cette version"
+    "foldersUnavailable": "Les dossiers ne sont pas disponibles dans cette version",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Profil",
@@ -2423,11 +2466,6 @@
     "language": "Langue",
     "model": "Modèle"
   },
-  "accessCode": {
-    "title": "Saisissez le code d’accès",
-    "placeholder": "Code d’accès",
-    "error": "Code d’accès invalide. Veuillez réessayer."
-  },
   "proMode": {
     "attach": "Joindre un support",
     "mentionCourse": "引用课堂",
@@ -2445,6 +2483,11 @@
     "badgeExit": "Revenir au mode classique",
     "launchPlaceholder": "Décrivez l'expérience d'apprentissage que vous souhaitez créer",
     "launchSend": "Lancer la création"
+  },
+  "accessCode": {
+    "title": "Saisissez le code d’accès",
+    "placeholder": "Code d’accès",
+    "error": "Code d’accès invalide. Veuillez réessayer."
   },
   "workbench": {
     "tool": {

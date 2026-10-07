@@ -1,27 +1,31 @@
 'use client';
 
+import { useI18n } from '@/lib/hooks/use-i18n';
 import { LINE_LIST, type LinePoolItem } from '@/configs/lines';
 
 interface LinePresetPickerProps {
   readonly onPick: (preset: LinePoolItem) => void;
 }
 
-function getPresetLabel(preset: LinePoolItem) {
-  if (preset.isCubic) return '三次曲线';
-  if (preset.isCurve) return '曲线';
-  if (preset.isBroken2) return '双折线';
-  if (preset.isBroken) return '折线';
-  if (preset.points[1] === 'arrow') return '箭头直线';
-  if (preset.points[1] === 'dot') return '圆点直线';
-  return preset.style === 'dashed' ? '虚线' : '直线';
+function getPresetLabel(t: (key: string) => string, preset: LinePoolItem) {
+  if (preset.isCubic) return t('edit.insert.linePresets.cubic');
+  if (preset.isCurve) return t('edit.insert.linePresets.curve');
+  if (preset.isBroken2) return t('edit.insert.linePresets.doubleBroken');
+  if (preset.isBroken) return t('edit.insert.linePresets.broken');
+  if (preset.points[1] === 'arrow') return t('edit.insert.linePresets.arrow');
+  if (preset.points[1] === 'dot') return t('edit.insert.linePresets.dottedEnd');
+  return preset.style === 'dashed'
+    ? t('edit.insert.linePresets.dashed')
+    : t('edit.insert.linePresets.straight');
 }
 
 /** Renderer-editor insert palette for the existing DSL line presets. */
 export function LinePresetPicker({ onPick }: LinePresetPickerProps) {
+  const { t } = useI18n();
   return (
-    <div className="grid grid-cols-5 gap-2" role="group" aria-label="线条预设">
+    <div className="grid grid-cols-5 gap-2" role="group" aria-label={t('edit.insert.line')}>
       {LINE_LIST.flatMap((group) => group.children).map((preset, index) => {
-        const label = getPresetLabel(preset);
+        const label = getPresetLabel(t, preset);
         return (
           <button
             key={`${preset.path}-${index}`}

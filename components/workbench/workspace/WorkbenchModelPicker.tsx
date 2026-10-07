@@ -103,9 +103,9 @@ export function WorkbenchModelPicker() {
           /* abaikan */
         }
       }
-      if (list.length === 0) setLoadError('Daftar model kosong.');
+      if (list.length === 0) setLoadError(t('workspace.modelPicker.empty'));
     } catch {
-      setLoadError('Gagal memuat daftar model.');
+      setLoadError(t('workspace.modelPicker.loadFailed'));
       try {
         const cached = localStorage.getItem(STORAGE_KEY);
         if (cached) setActive(cached);
@@ -117,7 +117,7 @@ export function WorkbenchModelPicker() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     // Label instan dari cache agar header tidak berkedip, lalu sinkronkan.
@@ -149,7 +149,11 @@ export function WorkbenchModelPicker() {
           message?: string;
         };
         if (!res.ok) {
-          throw new Error(body.message ?? body.error ?? `Gagal memilih model (${res.status})`);
+          throw new Error(
+            body.message ??
+              body.error ??
+              t('workspace.modelPicker.selectFailed', { status: res.status }),
+          );
         }
         const next = typeof body.active === 'string' ? body.active : modelString;
         setActive(next);
@@ -178,7 +182,7 @@ export function WorkbenchModelPicker() {
         setSaving(false);
       }
     },
-    [],
+    [t],
   );
 
   const choose = useCallback(
@@ -190,13 +194,17 @@ export function WorkbenchModelPicker() {
         const next = await save(modelString, thinking);
         const picked = models.find((m) => m.modelString === next);
         toast.success(
-          `Model aktif: ${picked ? displayNameOf(picked) : next} (berlaku untuk run berikutnya)`,
+          t('workspace.modelPicker.activeToast', {
+            name: picked ? displayNameOf(picked) : next,
+          }),
         );
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Gagal memilih model');
+        toast.error(
+          err instanceof Error ? err.message : t('workspace.modelPicker.selectFailedFallback'),
+        );
       }
     },
-    [active, saving, models, thinking, save],
+    [active, saving, models, thinking, save, t],
   );
 
   const changeThinking = useCallback(
@@ -205,10 +213,12 @@ export function WorkbenchModelPicker() {
       try {
         await save(active, config);
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Gagal menyimpan varian thinking');
+        toast.error(
+          err instanceof Error ? err.message : t('workspace.modelPicker.thinkingSaveFailed'),
+        );
       }
     },
-    [active, saving, save],
+    [active, saving, save, t],
   );
 
   const activeSplit = active ? splitModelString(active) : null;
@@ -230,11 +240,17 @@ export function WorkbenchModelPicker() {
       // lalu lintas-grup bila id sama di dua provider).
       value={activeSplit}
       onSelect={(providerId, modelId) => void choose(`${providerId}:${modelId}`)}
-      placeholder={loading ? 'Memuat…' : loadError ? 'Gagal memuat model' : 'Pilih model'}
+      placeholder={
+        loading
+          ? t('workspace.modelPicker.loading')
+          : loadError
+            ? t('workspace.modelPicker.loadError')
+            : t('workspace.modelPicker.choose')
+      }
       disabled={loading || saving}
       thinkingConfig={thinking}
       onThinkingChange={(config) => void changeThinking(config)}
-      ariaLabel="Pilih model Pro Workbench"
+      ariaLabel={t('workspace.modelPicker.ariaLabel')}
       className="w-auto min-w-0 max-w-full shrink-0"
       t={t}
     />

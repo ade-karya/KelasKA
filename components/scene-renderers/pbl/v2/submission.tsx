@@ -177,7 +177,7 @@ function newClientMessageId(): string {
 }
 
 function submissionReceiptText(submission: PBLSubmission, language?: string): string {
-  const lng = language || 'zh-CN';
+  const lng = language || 'id-ID';
   const label =
     submission.kind === 'file' && submission.filename
       ? i18n.t('pbl.v2.submission.receiptFile', { lng, filename: submission.filename })

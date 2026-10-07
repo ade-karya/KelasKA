@@ -43,7 +43,9 @@
     "removeFailed": "Gagal menghapus unggahan",
     "uploadFailed": "Tidak dapat mengunggah {{name}}. Coba lagi.",
     "fileTooLarge": "Berkas terlalu besar. Kompres atau bagi berkas lalu coba lagi.",
-    "fileTooLargeWithLimit": "Berkas terlalu besar. Pilih berkas maksimal {{limit}} MB."
+    "fileTooLargeWithLimit": "Berkas terlalu besar. Pilih berkas maksimal {{limit}} MB.",
+    "unsupportedType": "Jenis berkas tidak didukung. Pilih berkas yang didukung.",
+    "quotaExceeded": "Batas unggah materi tercapai."
   },
   "skill": {
     "listFailed": "Gagal memuat daftar Skill",
@@ -56,7 +58,7 @@
       "uploadZip": "Unggah arsip zip",
       "uploadFolder": "Unggah folder",
       "officialDownload": "Skill resmi OpenMAIC",
-      "officialDownloadDesc": "SOP terpandu agent: impor Skill ini ke ruang kerja agent lain untuk mendapatkan pembuatan kelas Live Demo, deployment lokal, konfigurasi kunci, pembuatan kelas, dan pengembangan lanjutan.",
+      "officialDownloadDesc": "SOP terpandu Agen: impor Skill ini ke ruang kerja Agen lain untuk mendapatkan pembuatan kelas Live Demo, deployment lokal, konfigurasi kunci, pembuatan kelas, dan pengembangan lanjutan.",
       "errNotZip": "Hanya arsip zip yang dapat diunggah",
       "errNoSkillMdZip": "SKILL.md tidak ditemukan dalam arsip",
       "errNoSkillMdFolder": "SKILL.md tidak ditemukan dalam folder",
@@ -67,7 +69,7 @@
       "retry": "Coba lagi",
       "mySkills": "Skill saya",
       "builtinSkills": "Skill bawaan",
-      "emptyMySkills": "Belum ada Skill milikmu — unggah zip, atau minta agent di chat untuk membuatnya dari riwayat.",
+      "emptyMySkills": "Belum ada Skill milikmu — unggah zip, atau minta Agen di chat untuk membuatnya dari riwayat.",
       "newUpload": "baru",
       "refsNote": "· {{count}} dokumen referensi",
       "downloadLabel": "Unduh",
@@ -117,7 +119,7 @@
     "runFailed": "Pembuatan ini gagal",
     "retryHint": "Kirim pesan lain untuk mencoba lagi",
     "stopped": "Pembuatan ini dihentikan",
-    "workerInterrupted": "Terhenti karena worker dimulai ulang. Panggilan ini tidak menghasilkan apa pun; agent akan mengulanginya jika perlu.",
+    "workerInterrupted": "Terhenti karena worker dimulai ulang. Panggilan ini tidak menghasilkan apa pun; Agen akan mengulanginya jika perlu.",
     "userStopped": "Terhenti oleh penghentian. Panggilan ini tidak menghasilkan apa pun."
   },
   "tool": {
@@ -132,7 +134,7 @@
       "done": "Selesai"
     },
     "section": {
-      "input": "Input",
+      "input": "Masukan",
       "error": "Kesalahan",
       "result": "Hasil mentah",
       "outline": "Kerangka",

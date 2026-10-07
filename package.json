@@ -17,6 +17,7 @@
     "dev": "node scripts/build-standalone-player.mjs && next dev",
     "build": "node scripts/assert-vendor-maic-importer.mjs && node scripts/build-standalone-player.mjs && next build",
     "start": "next start",
+    "start:standalone": "node .next/standalone/server.js",
     "db:up": "docker compose -p openmaic-dev-db -f docker-compose.db.yml up -d --wait postgres",
     "db:down": "docker compose -p openmaic-dev-db -f docker-compose.db.yml stop postgres",
     "lint": "eslint",

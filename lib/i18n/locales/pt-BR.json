@@ -7,7 +7,9 @@
     "errorPrefix": "Erro: ",
     "loadingClassroom": "Carregando sala de aula...",
     "retry": "Tentar novamente",
-    "close": "Fechar"
+    "close": "Fechar",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "Aprendizagem Generativa em Sala de Aula Interativa Multi-Agente",
@@ -241,6 +243,7 @@
     "names": {
       "spotlight": "Destaque",
       "laser": "Laser",
+      "play_video": "Play",
       "wb_open": "Abrir Quadro",
       "wb_draw_text": "Texto no Quadro",
       "wb_draw_shape": "Forma no Quadro",
@@ -248,6 +251,8 @@
       "wb_draw_latex": "Fórmula no Quadro",
       "wb_draw_table": "Tabela no Quadro",
       "wb_draw_line": "Linha no Quadro",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Limpar Quadro",
       "wb_delete": "Excluir Elemento",
       "wb_close": "Fechar Quadro",
@@ -263,6 +268,17 @@
       "result": "Concluído",
       "error": "Erro"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Vamos aprender juntos?",
@@ -285,6 +301,22 @@
   "voice": {
     "startListening": "Entrada por voz",
     "stopListening": "Parar gravação"
+  },
+  "stage": {
+    "currentScene": "Cena Atual",
+    "generating": "Gerando...",
+    "paused": "Pausado",
+    "generationFailed": "Falha na geração",
+    "generationInterrupted": "A geração foi interrompida",
+    "confirmSwitchTitle": "Trocar de Cena",
+    "confirmSwitchMessage": "Há um tópico em andamento. Trocar de cena vai encerrá-lo. Tem certeza?",
+    "generatingNextPage": "A cena está sendo gerada, aguarde...",
+    "courseComplete": "Curso concluído",
+    "fullscreen": "Tela cheia",
+    "exitFullscreen": "Sair da tela cheia",
+    "editCourse": "Editar curso",
+    "doneEditing": "Concluir edição",
+    "proModeDisabledHint": "A edição não está disponível nesta página — abra um slide do curso para editar no modo Pro."
   },
   "edit": {
     "proMode": "Pro",
@@ -550,6 +582,12 @@
         "boundary": "For fine-grained edits use the editor; add / delete / reorder slides from the left nav.",
         "comingSoon": "More capabilities coming soon."
       },
+      "interactive": {
+        "emptyTitle": "O que precisa ser corrigido nesta página?",
+        "lead": "Descreva um bug nesta página interativa — por exemplo, um botão que não faz nada — e eu corrijo apenas isso, mantendo o resto.",
+        "placeholder": "Descreva o bug desta página interativa…",
+        "boundary": "Faço correções pontuais na página; não recrio a página inteira. Troque de cena pela navegação à esquerda."
+      },
       "cap": {
         "content": {
           "label": "Regenerate the slide",
@@ -560,8 +598,8 @@
           "examples": "“Make it more conversational”, “Align with my canvas edits”"
         },
         "fixHtml": {
-          "examples": "\"O botão de iniciar não faz nada\", \"Os painéis se sobrepõem no celular\"",
-          "label": "Corrigir um bug na página"
+          "label": "Corrigir um bug na página",
+          "examples": "\"O botão de iniciar não faz nada\", \"Os painéis se sobrepõem no celular\""
         },
         "elements": {
           "label": "Ajustar elementos",
@@ -573,15 +611,9 @@
       "sessionUntitled": "Conversa sem título",
       "sessionDelete": "Excluir",
       "sessionEmpty": "Nenhuma conversa",
+      "thinking": "Pensando…",
       "reasoning": "Raciocínio",
       "thought": "Pensou por",
-      "interactive": {
-        "boundary": "Faço correções pontuais na página; não recrio a página inteira. Troque de cena pela navegação à esquerda.",
-        "emptyTitle": "O que precisa ser corrigido nesta página?",
-        "lead": "Descreva um bug nesta página interativa — por exemplo, um botão que não faz nada — e eu corrijo apenas isso, mantendo o resto.",
-        "placeholder": "Descreva o bug desta página interativa…"
-      },
-      "thinking": "Pensando…",
       "title": "Editar com IA"
     },
     "timeline": {
@@ -660,18 +692,18 @@
       "restored": "Restaurado",
       "resume": "Refazer"
     },
+    "fixHtml": {
+      "title": "Corrigir página interativa",
+      "fixing": "Corrigindo",
+      "fixed": "Corrigido",
+      "notFixed": "Não corrigido",
+      "editsCount": "{{count}} edição(ões)"
+    },
     "readCard": {
       "title": "Read slide content",
       "reading": "Reading",
       "done": "Read",
       "failed": "Not read"
-    },
-    "fixHtml": {
-      "editsCount": "{{count}} edição(ões)",
-      "fixed": "Corrigido",
-      "fixing": "Corrigindo",
-      "notFixed": "Não corrigido",
-      "title": "Corrigir página interativa"
     },
     "editElements": {
       "title": "Editar elementos",
@@ -706,23 +738,13 @@
     "dock": {
       "elementRefHint": "Referências de elementos — escolha elementos para enviar na próxima mensagem",
       "globalTools": "Ferramentas globais"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
-  },
-  "stage": {
-    "currentScene": "Cena Atual",
-    "generating": "Gerando...",
-    "paused": "Pausado",
-    "generationFailed": "Falha na geração",
-    "generationInterrupted": "A geração foi interrompida",
-    "confirmSwitchTitle": "Trocar de Cena",
-    "confirmSwitchMessage": "Há um tópico em andamento. Trocar de cena vai encerrá-lo. Tem certeza?",
-    "generatingNextPage": "A cena está sendo gerada, aguarde...",
-    "courseComplete": "Curso concluído",
-    "fullscreen": "Tela cheia",
-    "exitFullscreen": "Sair da tela cheia",
-    "editCourse": "Editar curso",
-    "doneEditing": "Concluir edição",
-    "proModeDisabledHint": "A edição não está disponível nesta página — abra um slide do curso para editar no modo Pro."
   },
   "classroomComplete": {
     "title": "Curso concluído",
@@ -794,10 +816,10 @@
     "noSpeechDetected": "Nenhuma fala detectada, tente novamente",
     "discussionEnded": "Discussão encerrada",
     "qaEnded": "Perguntas e respostas encerradas",
-    "softClosing": "Continuar discussão",
     "thinking": "Pensando",
     "yourTurn": "Sua vez",
     "stopDiscussion": "Encerrar Discussão",
+    "softClosing": "Continuar discussão",
     "autoPlay": "Reprodução automática",
     "autoPlayOff": "Parar reprodução automática",
     "speed": "Velocidade",
@@ -907,7 +929,9 @@
       "taskEvalCard": {
         "title": "Submission Feedback",
         "strengths": "What went well",
-        "improvements": "Next steps"
+        "improvements": "Next steps",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "A premissa apresentada na preparação fica aqui para você revisitar a qualquer momento na cena.",
@@ -989,7 +1013,6 @@
         "submissionsInStage": "Submitted {{count}} piece(s) of work",
         "coreConceptGrasp": "Core concept \"{{concept}}\" — {{quality}}",
         "stageNoData": "No recorded output in this stage.",
-        "highlightsTitle": "Highlights",
         "scenario": {
           "summary": "Você concluiu todos os {{acts}} atos deste cenário. Veja como foi o role-play.",
           "whatYouDidWell": "O que você fez bem",
@@ -1013,6 +1036,7 @@
           "decisionScore": "Pontuação de decisão {{score}}",
           "castLabel": "Você interagiu com: {{names}}"
         },
+        "highlightsTitle": "Highlights",
         "highlight": {
           "independence": "You demonstrated {{unlocks}}/{{total}} concepts on your own — no prompting needed. Solid understanding.",
           "resilience": "In \"{{title}}\" you overcame {{errors}} errors, tackling each one — real grit.",
@@ -1077,6 +1101,8 @@
     "folderRenameFailed": "Falha ao renomear a pasta",
     "folderDeleteFailed": "Falha ao excluir a pasta",
     "moveFailed": "Falha ao mover o curso",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "Esta pasta está vazia",
     "emptyLibraryHint": "Nenhum curso ainda — crie um acima ou importe um curso.",
     "folderNameEmpty": "O nome da pasta não pode estar vazio",
@@ -1088,6 +1114,8 @@
     "notFoundDesc": "Este curso não existe ou foi excluído.",
     "loadUnavailable": "Não foi possível carregar este curso",
     "loadUnavailableDesc": "Não foi possível obter o curso. Verifique seu acesso ou tente novamente.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Voltar ao início",
     "runOutlining": "Criando o roteiro…",
     "runAwaitingConfirmation": "Aguardando confirmação",
@@ -1403,6 +1431,8 @@
     "voxcpmAutoVoiceDescription": "Usa a persona do agente como prompt de voz",
     "voxcpmUnavailable": "Indisponível",
     "voxcpmClone": "Clonar",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "O backend atual não suporta clonagem",
     "voxcpmNoCustomVoices": "Ainda não há vozes personalizadas",
     "voxcpmCloneSaveOnly": "Salva somente para este backend",
@@ -1939,6 +1969,7 @@
     "deleteModel": "Excluir",
     "deleteProvider": "Excluir Provedor",
     "deleteProviderConfirm": "Tem certeza que deseja excluir este provedor?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Análise de Documentos",
     "doubaoAccessKey": "Access Key",
     "doubaoAppId": "App ID",
@@ -2395,7 +2426,19 @@
     "courseTabsAria": "Cursos abertos",
     "courseTabClose": "Fechar aba: {{name}}",
     "courseTabRunning": "Gerando",
-    "foldersUnavailable": "As pastas não estão disponíveis nesta versão"
+    "foldersUnavailable": "As pastas não estão disponíveis nesta versão",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Perfil",
@@ -2423,11 +2466,6 @@
     "language": "Idioma",
     "model": "Modelo"
   },
-  "accessCode": {
-    "title": "Digite o Código de Acesso",
-    "placeholder": "Código de acesso",
-    "error": "Código inválido. Tente novamente."
-  },
   "proMode": {
     "attach": "Anexar material",
     "mentionCourse": "引用课堂",
@@ -2445,6 +2483,11 @@
     "badgeExit": "Voltar ao modo clássico",
     "launchPlaceholder": "Descreva a experiência de aprendizagem que você quer criar",
     "launchSend": "Iniciar construção"
+  },
+  "accessCode": {
+    "title": "Digite o Código de Acesso",
+    "placeholder": "Código de acesso",
+    "error": "Código inválido. Tente novamente."
   },
   "workbench": {
     "tool": {

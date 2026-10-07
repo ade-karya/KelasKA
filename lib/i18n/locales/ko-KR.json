@@ -7,7 +7,9 @@
     "errorPrefix": "오류: ",
     "loadingClassroom": "강의실 불러오는 중...",
     "retry": "다시 시도",
-    "close": "닫기"
+    "close": "닫기",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "멀티 에이전트 인터랙티브 교실에서 펼치는 생성형 학습",
@@ -241,6 +243,7 @@
     "names": {
       "spotlight": "스포트라이트",
       "laser": "레이저",
+      "play_video": "Play",
       "wb_open": "화이트보드 열기",
       "wb_draw_text": "화이트보드 텍스트",
       "wb_draw_shape": "화이트보드 도형",
@@ -248,6 +251,8 @@
       "wb_draw_latex": "화이트보드 수식",
       "wb_draw_table": "화이트보드 표",
       "wb_draw_line": "화이트보드 선",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "화이트보드 지우기",
       "wb_delete": "요소 삭제",
       "wb_close": "화이트보드 닫기",
@@ -263,6 +268,17 @@
       "result": "완료",
       "error": "오류"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "함께 학습할 준비가 되셨나요?",
@@ -446,6 +462,88 @@
       "nextPage": "다음 페이지",
       "prevPage": "이전 페이지"
     },
+    "zorder": {
+      "toFront": "맨 앞으로 가져오기",
+      "toBack": "맨 뒤로 보내기"
+    },
+    "image": {
+      "toolbar": "이미지 도구 모음",
+      "replace": "이미지 교체",
+      "flipH": "좌우 반전",
+      "flipV": "상하 반전",
+      "crop": "이미지 자르기"
+    },
+    "contextMenu": {
+      "horizontalAlignment": "가로 정렬",
+      "verticalAlignment": "세로 정렬",
+      "selectAll": "모두 선택",
+      "copy": "복사",
+      "cut": "잘라내기",
+      "paste": "붙여넣기",
+      "unlock": "잠금 해제",
+      "lock": "잠금",
+      "group": "그룹화",
+      "ungroup": "그룹 해제",
+      "bringForward": "앞으로 가져오기",
+      "sendBackward": "뒤로 보내기",
+      "alignTop": "위쪽 정렬",
+      "alignMiddle": "세로 가운데 정렬",
+      "alignBottom": "아래쪽 정렬",
+      "alignCenterBoth": "가로·세로 중앙",
+      "setLink": "링크 설정",
+      "ruler": "눈금자",
+      "grid": "격자",
+      "gridNone": "없음",
+      "gridSmall": "작게",
+      "gridMedium": "중간",
+      "gridLarge": "크게",
+      "resetPage": "페이지 초기화"
+    },
+    "background": {
+      "label": "배경",
+      "solid": "단색",
+      "image": "이미지",
+      "color": "색상"
+    },
+    "common": {
+      "cancel": "취소",
+      "confirm": "확인"
+    },
+    "quiz": {
+      "addQuestion": "문항 추가",
+      "reorder": "끌어서 순서 변경",
+      "deleteQuestion": "문항 삭제",
+      "untitledQuestion": "제목 없는 문항",
+      "questionLabel": "문항",
+      "questionPlaceholder": "문항을 입력하세요…",
+      "typeLabel": "유형",
+      "pointsLabel": "배점",
+      "optionsLabel": "선택지",
+      "optionPlaceholder": "선택지 내용",
+      "addOption": "선택지 추가",
+      "deleteOption": "선택지 삭제",
+      "markCorrect": "정답으로 표시",
+      "moveUp": "위로 이동",
+      "moveDown": "아래로 이동",
+      "analysisLabel": "해설",
+      "analysisPlaceholder": "문항이 채점된 후 표시됩니다…",
+      "commentPromptLabel": "채점 기준",
+      "commentPromptPlaceholder": "이 주관식 답안을 어떻게 채점해야 하나요?",
+      "empty": "아직 문항이 없습니다",
+      "emptyHint": "“문항 추가” 버튼으로 첫 문항을 만드세요.",
+      "type": {
+        "single": "단일 선택",
+        "multiple": "복수 선택",
+        "short_answer": "주관식"
+      },
+      "shortAnswerGradingNote": "주관식은 아래 기준에 따라 항상 AI가 채점합니다.",
+      "hint": {
+        "emptyText": "문항 {{n}}: 문항 내용을 입력하세요",
+        "fewOptions": "문항 {{n}}: 선택지를 두 개 이상 추가하세요",
+        "emptyOption": "문항 {{n}}: 선택지 내용이 비어 있습니다",
+        "noCorrect": "문항 {{n}}: 정답을 표시하세요"
+      }
+    },
     "cue": {
       "speech": "내레이션",
       "spotlight": "스포트라이트",
@@ -484,6 +582,12 @@
         "boundary": "세부 편집은 에디터에서, 슬라이드 추가 / 삭제 / 정렬은 왼쪽 내비에서.",
         "comingSoon": "더 많은 기능이 곧 추가됩니다."
       },
+      "interactive": {
+        "emptyTitle": "이 페이지에서 무엇을 수정할까요?",
+        "lead": "이 인터랙티브 페이지의 버그(예: 눌러도 반응 없는 버튼)를 설명해 주세요. 해당 부분만 수정하고 나머지는 그대로 둡니다.",
+        "placeholder": "이 인터랙티브 페이지의 버그를 설명하세요…",
+        "boundary": "페이지를 부분적으로만 수정하며, 페이지 전체를 다시 만들지 않습니다. 장면 전환은 왼쪽 내비게이션을 사용하세요."
+      },
       "cap": {
         "content": {
           "label": "슬라이드 다시 생성",
@@ -494,8 +598,8 @@
           "examples": "“좀 더 구어체로” “편집한 내용에 맞춰”"
         },
         "fixHtml": {
-          "examples": "\"시작 버튼을 눌러도 반응이 없음\", \"모바일에서 패널이 겹침\"",
-          "label": "페이지 버그 수정"
+          "label": "페이지 버그 수정",
+          "examples": "\"시작 버튼을 눌러도 반응이 없음\", \"모바일에서 패널이 겹침\""
         },
         "elements": {
           "label": "요소 미세 조정",
@@ -507,15 +611,9 @@
       "sessionUntitled": "제목 없는 대화",
       "sessionDelete": "삭제",
       "sessionEmpty": "대화 기록 없음",
+      "thinking": "생각 중…",
       "reasoning": "추론 과정",
       "thought": "생각한 시간",
-      "interactive": {
-        "boundary": "페이지를 부분적으로만 수정하며, 페이지 전체를 다시 만들지 않습니다. 장면 전환은 왼쪽 내비게이션을 사용하세요.",
-        "emptyTitle": "이 페이지에서 무엇을 수정할까요?",
-        "lead": "이 인터랙티브 페이지의 버그(예: 눌러도 반응 없는 버튼)를 설명해 주세요. 해당 부분만 수정하고 나머지는 그대로 둡니다.",
-        "placeholder": "이 인터랙티브 페이지의 버그를 설명하세요…"
-      },
-      "thinking": "생각 중…",
       "title": "AI로 편집"
     },
     "timeline": {
@@ -594,100 +692,18 @@
       "restored": "복원됨",
       "resume": "다시 적용"
     },
-    "contextMenu": {
-      "horizontalAlignment": "가로 정렬",
-      "verticalAlignment": "세로 정렬",
-      "selectAll": "모두 선택",
-      "copy": "복사",
-      "cut": "잘라내기",
-      "paste": "붙여넣기",
-      "unlock": "잠금 해제",
-      "lock": "잠금",
-      "group": "그룹화",
-      "ungroup": "그룹 해제",
-      "bringForward": "앞으로 가져오기",
-      "sendBackward": "뒤로 보내기",
-      "alignTop": "위쪽 정렬",
-      "alignMiddle": "세로 가운데 정렬",
-      "alignBottom": "아래쪽 정렬",
-      "alignCenterBoth": "가로·세로 중앙",
-      "setLink": "링크 설정",
-      "ruler": "눈금자",
-      "grid": "격자",
-      "gridNone": "없음",
-      "gridSmall": "작게",
-      "gridMedium": "중간",
-      "gridLarge": "크게",
-      "resetPage": "페이지 초기화"
-    },
-    "background": {
-      "image": "이미지",
-      "label": "배경",
-      "solid": "단색",
-      "color": "색상"
-    },
-    "image": {
-      "toolbar": "이미지 도구 모음",
-      "flipH": "좌우 반전",
-      "flipV": "상하 반전",
-      "replace": "이미지 교체",
-      "crop": "이미지 자르기"
-    },
-    "common": {
-      "cancel": "취소",
-      "confirm": "확인"
-    },
-    "quiz": {
-      "addOption": "선택지 추가",
-      "addQuestion": "문항 추가",
-      "analysisLabel": "해설",
-      "analysisPlaceholder": "문항이 채점된 후 표시됩니다…",
-      "commentPromptLabel": "채점 기준",
-      "commentPromptPlaceholder": "이 주관식 답안을 어떻게 채점해야 하나요?",
-      "deleteOption": "선택지 삭제",
-      "deleteQuestion": "문항 삭제",
-      "empty": "아직 문항이 없습니다",
-      "emptyHint": "“문항 추가” 버튼으로 첫 문항을 만드세요.",
-      "markCorrect": "정답으로 표시",
-      "moveDown": "아래로 이동",
-      "moveUp": "위로 이동",
-      "optionPlaceholder": "선택지 내용",
-      "optionsLabel": "선택지",
-      "pointsLabel": "배점",
-      "questionLabel": "문항",
-      "questionPlaceholder": "문항을 입력하세요…",
-      "reorder": "끌어서 순서 변경",
-      "shortAnswerGradingNote": "주관식은 아래 기준에 따라 항상 AI가 채점합니다.",
-      "typeLabel": "유형",
-      "untitledQuestion": "제목 없는 문항",
-      "hint": {
-        "emptyOption": "문항 {{n}}: 선택지 내용이 비어 있습니다",
-        "emptyText": "문항 {{n}}: 문항 내용을 입력하세요",
-        "fewOptions": "문항 {{n}}: 선택지를 두 개 이상 추가하세요",
-        "noCorrect": "문항 {{n}}: 정답을 표시하세요"
-      },
-      "type": {
-        "multiple": "복수 선택",
-        "short_answer": "주관식",
-        "single": "단일 선택"
-      }
-    },
-    "zorder": {
-      "toFront": "맨 앞으로 가져오기",
-      "toBack": "맨 뒤로 보내기"
+    "fixHtml": {
+      "title": "인터랙티브 페이지 수정",
+      "fixing": "수정 중",
+      "fixed": "수정됨",
+      "notFixed": "수정 안 됨",
+      "editsCount": "수정 {{count}}건"
     },
     "readCard": {
       "title": "페이지 내용 읽기",
       "reading": "읽는 중",
       "done": "읽음",
       "failed": "읽지 못함"
-    },
-    "fixHtml": {
-      "editsCount": "수정 {{count}}건",
-      "fixed": "수정됨",
-      "fixing": "수정 중",
-      "notFixed": "수정 안 됨",
-      "title": "인터랙티브 페이지 수정"
     },
     "editElements": {
       "title": "요소 편집",
@@ -722,6 +738,12 @@
     "dock": {
       "elementRefHint": "요소 참조 — 다음 메시지와 함께 보낼 요소 선택",
       "globalTools": "전역 도구"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -794,10 +816,10 @@
     "noSpeechDetected": "음성이 감지되지 않았습니다. 다시 시도해주세요",
     "discussionEnded": "토론이 종료되었습니다",
     "qaEnded": "Q&A가 종료되었습니다",
-    "softClosing": "토론 계속하기",
     "thinking": "생각 중",
     "yourTurn": "내 차례",
     "stopDiscussion": "토론 중단",
+    "softClosing": "토론 계속하기",
     "autoPlay": "자동 재생",
     "autoPlayOff": "자동 재생 끄기",
     "speed": "속도",
@@ -907,7 +929,9 @@
       "taskEvalCard": {
         "title": "Submission Feedback",
         "strengths": "What went well",
-        "improvements": "Next steps"
+        "improvements": "Next steps",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "The premise introduced during prep — kept here so you can revisit it anytime in the scene.",
@@ -1077,17 +1101,21 @@
     "folderRenameFailed": "폴더 이름 변경에 실패했습니다",
     "folderDeleteFailed": "폴더 삭제에 실패했습니다",
     "moveFailed": "강의 이동에 실패했습니다",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "이 폴더가 비어 있습니다",
     "emptyLibraryHint": "아직 강의가 없습니다. 위에서 만들거나 강의를 가져오세요.",
     "folderNameEmpty": "폴더 이름은 비워둘 수 없습니다",
     "deleteFolderOnly": "폴더만 삭제",
     "deleteFolderAndCourses": "폴더와 강의 {{count}}개 삭제",
-    "deleteFolderConfirmRemove": "폴더와 강의(채팅 기록 포함)가 삭제됩니다.",
     "deleteFolderAndCourses_other": "폴더와 강의 {{count}}개 삭제",
+    "deleteFolderConfirmRemove": "폴더와 강의(채팅 기록 포함)가 삭제됩니다.",
     "notFound": "강의를 찾을 수 없습니다",
     "notFoundDesc": "해당 강의가 존재하지 않거나 이미 삭제되었습니다.",
     "loadUnavailable": "강의를 불러오지 못했습니다",
     "loadUnavailableDesc": "강의를 가져올 수 없습니다. 접근 권한을 확인하거나 다시 시도해 주세요.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "홈으로 돌아가기",
     "runOutlining": "개요 작성 중…",
     "runAwaitingConfirmation": "확인 대기 중",
@@ -1403,6 +1431,8 @@
     "voxcpmAutoVoiceDescription": "에이전트 페르소나를 음성 프롬프트로 사용",
     "voxcpmUnavailable": "사용 불가",
     "voxcpmClone": "클론",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "현재 백엔드는 클론을 지원하지 않습니다",
     "voxcpmNoCustomVoices": "아직 커스텀 음성이 없습니다",
     "voxcpmCloneSaveOnly": "이 백엔드에만 저장됩니다",
@@ -1939,6 +1969,7 @@
     "deleteModel": "삭제",
     "deleteProvider": "제공업체 삭제",
     "deleteProviderConfirm": "이 제공업체를 삭제하시겠습니까?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "문서 파싱",
     "doubaoAccessKey": "액세스 키",
     "doubaoAppId": "앱 ID",
@@ -2395,7 +2426,19 @@
     "courseTabsAria": "열린 코스",
     "courseTabClose": "탭 닫기: {{name}}",
     "courseTabRunning": "생성 중",
-    "foldersUnavailable": "이 빌드에서는 폴더를 사용할 수 없습니다"
+    "foldersUnavailable": "이 빌드에서는 폴더를 사용할 수 없습니다",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "프로필",
@@ -2423,11 +2466,6 @@
     "language": "언어",
     "model": "모델"
   },
-  "accessCode": {
-    "title": "접근 코드 입력",
-    "placeholder": "접근 코드",
-    "error": "유효하지 않은 접근 코드입니다. 다시 시도해 주세요."
-  },
   "proMode": {
     "attach": "자료 첨부",
     "mentionCourse": "引用课堂",
@@ -2445,6 +2483,11 @@
     "badgeExit": "일반 모드로 돌아가기",
     "launchPlaceholder": "만들고 싶은 학습 경험을 설명해 보세요",
     "launchSend": "구축 시작"
+  },
+  "accessCode": {
+    "title": "접근 코드 입력",
+    "placeholder": "접근 코드",
+    "error": "유효하지 않은 접근 코드입니다. 다시 시도해 주세요."
   },
   "workbench": {
     "tool": {

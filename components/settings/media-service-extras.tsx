@@ -246,7 +246,7 @@ export function MediaModelsManager({
               {id}
               <button
                 type="button"
-                aria-label={`Remove ${id}`}
+                aria-label={t('settings.removeModel', { id })}
                 onClick={() => handleRemove(id)}
                 className="text-muted-foreground hover:text-destructive"
               >

@@ -12,7 +12,7 @@ function resolveLocale(lang: string): Locale {
   // Exact match
   const exact = supportedLocales.find((l) => l.code === lang);
   if (exact) return exact.code;
-  // Prefix match: 'en' → 'en-US', 'zh' → 'zh-CN'
+  // Prefix match: 'en' → 'en-US', 'zh' → 'zh-CN', 'id' → 'id-ID'
   const prefix = lang.split('-')[0].toLowerCase();
   const match = supportedLocales.find((l) => l.code.toLowerCase().startsWith(prefix));
   return match?.code ?? defaultLocale;
