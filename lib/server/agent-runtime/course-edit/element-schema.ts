@@ -61,7 +61,19 @@ const ChartType = Type.Union([
   Type.Literal('radar'),
   Type.Literal('scatter'),
 ]);
-const LinePoint = Type.Union([Type.Literal(''), Type.Literal('arrow'), Type.Literal('dot')]);
+const LinePoint = Type.Union([
+  // "" = tanpa marker di DSL. Jangan Literal(''): enum [""] ditolak Gemini
+  // (400 INVALID_ARGUMENT) saat schema tool dikirim sebagai function_declarations.
+  // String min/maxLength 0 hanya mengizinkan "" tanpa enum. Lihat
+  // lib/chat/pi/tools/native-whiteboard.ts.
+  Type.String({
+    minLength: 0,
+    maxLength: 0,
+    description: 'No marker (empty string in the persisted DSL).',
+  }),
+  Type.Literal('arrow'),
+  Type.Literal('dot'),
+]);
 const ShapePathFormulas = Type.Union([
   Type.Literal('roundRect'),
   Type.Literal('roundRectDiagonal'),

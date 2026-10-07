@@ -594,6 +594,64 @@ describe('discussion TTS synthesis lookahead', () => {
 });
 
 /**
+ * Browser speech failure recovery.
+ *
+ * Chrome reports a cancelled/interrupted utterance with `error` (never
+ * `end`), and `useDiscussionTTS` previously had no `onError` path: one failed
+ * utterance left isPlaying true forever, the StreamBuffer TTS hold never
+ * released, and discussion narration stalled with the loader spinning.
+ * Whiteboard turns seal many short segments around draw actions, so they hit
+ * speak/cancel cycling far more often than plain turns.
+ */
+describe('discussion TTS browser speech failure recovery', () => {
+  const browserTeacher = {
+    ...teacher,
+    id: 'browser-teacher',
+    voiceConfig: { providerId: 'browser-native-tts', voiceId: 'browser-voice' },
+  };
+
+  beforeEach(() => {
+    agents = [teacher, browserTeacher];
+    act(() => root.render(createElement(Probe)));
+  });
+
+  it('releases the hold when a browser utterance errors instead of ending', async () => {
+    await seal('A');
+    await seal('B', 'browser-teacher');
+    await respond(0);
+    await act(async () => FakeAudio.instances[0].end());
+    expect(mocks.speak).toHaveBeenCalledWith('Sentence B.', 'browser-voice');
+    expect(hook.shouldHold()).toEqual({ holding: true, segmentDone: 1 });
+    // Chrome reports the failed utterance with `error`, never `end`.
+    await act(async () => mocks.browserOptions.onError?.('interrupted'));
+    expect(hook.shouldHold()).toEqual({ holding: false, segmentDone: 2 });
+    // A late duplicate end must not double-count the segment.
+    await act(async () => mocks.browserOptions.onEnd?.());
+    expect(hook.shouldHold()).toEqual({ holding: false, segmentDone: 2 });
+  });
+
+  it('continues with the next segment after a browser speech error', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await seal('A');
+    await seal('B', 'browser-teacher');
+    await seal('C');
+    await respond(0);
+    await act(async () => FakeAudio.instances[0].end());
+    expect(mocks.speak).toHaveBeenCalledTimes(1);
+    // B is browser-native (no fetch); C is prefetched while B plays.
+    expect(requests.map((r) => r.body.audioId)).toEqual(['A', 'C']);
+    await respond(1);
+    await act(async () => mocks.browserOptions.onError?.('network'));
+    expect(warn).toHaveBeenCalledOnce();
+    expect(FakeAudio.instances[0].play).toHaveBeenCalledTimes(2);
+    expect(hook.shouldHold()).toEqual({ holding: true, segmentDone: 2 });
+    await act(async () => FakeAudio.instances[0].end());
+    expect(hook.shouldHold()).toEqual({ holding: false, segmentDone: 3 });
+    warn.mockRestore();
+  });
+});
+
+/**
  * Mobile autoplay policy for discussion narration.
  *
  * Mobile browsers only let a programmatic `play()` through on the element a

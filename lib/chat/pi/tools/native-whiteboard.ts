@@ -148,7 +148,22 @@ const NativeWhiteboardDrawTableParams = Type.Object(
   },
   { additionalProperties: false },
 );
-const LineMarker = Type.Union([Type.Literal(''), Type.Literal('arrow')]);
+// "" berarti "tanpa arrowhead" di kontrak DSL yang dipersist (points: ["","arrow"]).
+// Gemini function_declarations MENOLAK enum berisi string kosong:
+//   "GenerateContentRequest.tools[0].function_declarations[7]...points.items.
+//    any_of[0].enum[0]: cannot be empty" (400 INVALID_ARGUMENT) -> diskusi
+// classroom loading lalu berhenti (SSE error -> streamInterrupted).
+// Representasikan "" sebagai string dengan min/maxLength 0 (tanpa enum) agar
+// wire schema valid di Gemini, sementara validasi runtime tetap ketat (hanya
+// "" yang lolos cabang ini). Pola sama dipakai di classroom-actions.ts dan
+// course-edit/element-schema.ts. Rujukan upstream: THU-MAIC/OpenMAIC
+// lib/chat/pi/tools/native-whiteboard.ts (LineMarker masih Literal('')).
+const EmptyMarker = Type.String({
+  minLength: 0,
+  maxLength: 0,
+  description: 'No marker (empty string in the persisted DSL).',
+});
+const LineMarker = Type.Union([EmptyMarker, Type.Literal('arrow')]);
 const NativeWhiteboardDrawLineParams = Type.Object(
   {
     expectedLastSeq: ExpectedLastSeq,
@@ -945,11 +960,28 @@ export function buildNativeWhiteboardTools(opts: NativeWhiteboardToolOptions): A
           if (params.startX === params.endX && params.startY === params.endY) {
             throw new Error('wb_draw_line requires distinct start and end points');
           }
+          // Wire schema memakai String tanpa enum (kompat Gemini); validasi
+          // ketat tetap di sini agar hanya "" / "arrow" yang lolos.
+          if (
+            params.points !== undefined &&
+            !(
+              Array.isArray(params.points) &&
+              params.points.length === 2 &&
+              params.points.every((marker) => marker === '' || marker === 'arrow')
+            )
+          ) {
+            throw new Error('Native whiteboard arguments must match the strict schema.');
+          }
           return params;
         },
         createElement: (params, invocationDigest): PPTLineElement => {
           const left = Math.min(params.startX, params.endX);
           const top = Math.min(params.startY, params.endY);
+          const points = (
+            params.points
+              ? [params.points[0] === 'arrow' ? 'arrow' : '', params.points[1] === 'arrow' ? 'arrow' : '']
+              : ['', '']
+          ) as PPTLineElement['points'];
           return {
             id: `native-wb-element:${invocationDigest}`,
             type: 'line',
@@ -960,7 +992,7 @@ export function buildNativeWhiteboardTools(opts: NativeWhiteboardToolOptions): A
             end: [params.endX - left, params.endY - top],
             style: params.style ?? 'solid',
             color: params.color ?? '#333333',
-            points: params.points ? [params.points[0]!, params.points[1]!] : ['', ''],
+            points,
           };
         },
       }),
