@@ -66,6 +66,12 @@
     "pptx": "Ekspor PPTX",
     "resourcePack": "Ekspor paket sumber belajar",
     "resourcePackDesc": "PPTX + halaman interaktif",
+    "withPlaceholders": "Dengan slide pengganti (disarankan)",
+    "withPlaceholdersDesc": "Halaman interaktif, kuis, dan proyek mendapatkan slide berkode QR",
+    "slidesOnly": "Hanya slide",
+    "slidesOnlyDesc": "Hanya adegan slide",
+    "packWithPlaceholders": "PPTX dengan pengganti + halaman interaktif (disarankan)",
+    "packSlidesOnly": "PPTX hanya slide + halaman interaktif",
     "exporting": "Sedang mengekspor...",
     "exportSuccess": "Ekspor berhasil",
     "exportFailed": "Ekspor gagal",
@@ -153,6 +159,7 @@
     "subtitlesEmpty": "Tidak ada narasi untuk dibuat subtitle",
     "subtitlesFailed": "Unduhan subtitle gagal",
     "noSlides": "Tidak ada slide untuk diekspor",
+    "noSlidesSkipped": "Tidak ada slide dalam kursus ini — PPTX dilewati",
     "nothingToExport": "Tidak ada konten untuk diekspor",
     "placeholder": {
       "interactiveLabel": "Interaktif",
@@ -162,7 +169,11 @@
       "quizQuestionCount": "Soal: {{count}}",
       "openOnline": "Buka online",
       "openOffline": "Buka salinan offline",
-      "offlineHint": "berfungsi jika deck ini tetap berada di folder Paket Sumber Daya hasil ekstraksi"
+      "offlineHint": "berfungsi jika deck ini tetap berada di folder Paket Sumber Daya hasil ekstraksi",
+      "pblLabel": "Proyek",
+      "pblDesc": "Aktivitas berbasis proyek dengan peran AI. Buka online atau pindai kode QR.",
+      "pblGoal": "Tujuan: {{goal}}",
+      "pblMilestoneCount": "Tonggak: {{count}}"
     }
   },
   "import": {
