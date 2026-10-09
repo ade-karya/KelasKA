@@ -54,8 +54,11 @@ describe('provider opencode-go (tier2 + workbench picker)', () => {
     expect(getModelInfo('opencode', 'muse-spark-1.3-contributor-free')).toMatchObject({
       id: 'muse-spark-1.3-contributor-free',
     });
-    expect(getModelInfo('opencode', 'fledge-alpha-free')).toMatchObject({
-      id: 'fledge-alpha-free',
+    expect(getModelInfo('opencode', 'ling-3.1-flash-free')).toMatchObject({
+      id: 'ling-3.1-flash-free',
+    });
+    expect(getModelInfo('opencode', 'step-5-preview-free')).toMatchObject({
+      id: 'step-5-preview-free',
     });
   });
 });

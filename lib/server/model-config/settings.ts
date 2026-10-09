@@ -33,6 +33,7 @@ import {
   type CatalogueModel,
   type ProviderPreset,
 } from '@/lib/config/provider-presets';
+import type { OpencodeCliProvider } from '@/lib/server/agent-runtime/opencode-models';
 import { validateClientBaseUrl } from '@/lib/server/ssrf-guard';
 import {
   presetOfficialRegionalEndpoint,
@@ -263,11 +264,21 @@ function maskKey(key: string): string {
   return key.length >= 12 ? `…${key.slice(-4)}` : '…';
 }
 
+/** Registry OpenCode CLI — hanya Pro Workbench (GET /api/agent/models). */
+function isOpencodeRegistryId(registryId: string): registryId is OpencodeCliProvider {
+  return registryId === 'opencode' || registryId === 'opencode-go';
+}
+
 /**
  * What a provider can be assigned to, with its models: a workspace provider
  * with its own endpoint serves chat only (see media.ts), and a preset whose
  * registry catalogue says nothing about the endpoint (an OpenAI-compatible
  * server) offers only the models the provider lists.
+ *
+ * OpenCode CLI (`opencode` / `opencode-go`) TIDAK ditawarkan di classic —
+ * hanya Pro Workbench. Config lama yang sudah menunjuk ke sana tetap resolve
+ * di runtime (resolve-slot membaca PROVIDERS langsung), hanya disembunyikan
+ * dari view agar tak bisa dipilih baru.
  */
 function capabilityModels(
   preset: ProviderPreset | undefined,
@@ -281,6 +292,8 @@ function capabilityModels(
     // A provider the operator switched off for this capability is not offered.
     const registryId = preset.capabilities[capability]?.registryId;
     if (registryId && isForceDisabled(capability, registryId)) continue;
+    // OpenCode CLI hanya untuk Pro Workbench: lewati di view classic.
+    if (registryId && isOpencodeRegistryId(registryId)) continue;
     const offered = preset.trustsModelCatalogue === false ? [] : presetModels(preset, capability);
     // A provider's own model list narrows (or names) the models it serves:
     // the chat models for chat, and the fetched/pinned ids (a $0 OpenRouter
@@ -335,6 +348,13 @@ function officialEndpointOf(provider: Pick<Provider, 'preset' | 'baseUrl'>): str
 }
 
 function workspacePresetProblem(preset: ProviderPreset): string | undefined {
+  // OpenCode CLI hanya untuk Pro Workbench: preset tak bisa ditambah dari settings classic.
+  if (
+    preset.capabilities.chat?.registryId === 'opencode' ||
+    preset.capabilities.chat?.registryId === 'opencode-go'
+  ) {
+    return 'OpenCode CLI models are only available in Pro Workbench';
+  }
   if (preset.capabilities.chat?.registryId === 'bedrock') {
     return 'Amazon Bedrock can only be configured by the deployment (openmaic.yml)';
   }

@@ -13,7 +13,7 @@ import type {
   StreamTextResult,
 } from 'ai';
 import { createLogger } from '@/lib/logger';
-import { PROVIDERS } from './providers';
+import { OPENCODE_CLI_THINKING, PROVIDERS } from './providers';
 import { thinkingContext } from './thinking-context';
 import { isEmptyLlmOutput, shouldFallbackFor, logFallbackFired } from '@/lib/server/llm-fallback';
 import { getGenerationRunHooks } from '@/lib/server/generation-run-hooks/registry';
@@ -163,9 +163,14 @@ function buildThinkingProviderOptions(
   // Probed (fetched) model ids are not in the static catalog map — fall back
   // to family-pattern inference so their thinking control actually takes
   // effect at request time, not just in the settings UI.
+  // Id CLI live yang belum terdaftar di katalog statis (installer menulisnya
+  // ke OPENCODE_MODELS dari `opencode models`, settings classic menampilkannya
+  // dengan thinking generik) memakai fallback yang sama di sini — tanpa ini
+  // varian thinking classic untuk model live baru diam-diam diabaikan saat run.
   const thinking =
     info?.thinking ??
-    (providerId ? getProbedThinkingCapability(providerId, lookupModelId) : undefined);
+    (providerId ? getProbedThinkingCapability(providerId, lookupModelId) : undefined) ??
+    (providerId === 'opencode' || providerId === 'opencode-go' ? OPENCODE_CLI_THINKING : undefined);
   if (!thinking) return undefined; // model has no thinking capability
   if (thinking.control === 'none') return undefined;
 

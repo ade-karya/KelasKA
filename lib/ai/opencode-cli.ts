@@ -170,8 +170,7 @@ export function toCliModelId(modelId: string, cliProvider = 'opencode'): string 
  * ("Variant unavailable"), jadi tabel ini harus persis hasil probe:
  * - opencode/muse-spark-1.3-contributor-free: minimal,low,medium,high,xhigh
  * - opencode/space-bunny-free: low,medium,high,max,xhigh
- * - opencode/fledge-alpha-free: low,high,max
- * Model lain (big-pickle, longcat, mimo, ling, nemotron, dan semua yang
+ * Model lain (big-pickle, longcat, mimo, ling-3.1, step-5, nemotron, dan semua yang
  * terprobe tanpa varian — kimi, deepseek, glm-5.2, qwen, minimax, hy4)
  * TIDAK punya varian natif: effort disalurkan sebagai instruksi prompt
  * (buildThinkingHints). Model `opencode-go/*` yang tak terprobe (401 di
@@ -180,7 +179,6 @@ export function toCliModelId(modelId: string, cliProvider = 'opencode'): string 
 export const OPENCODE_NATIVE_VARIANTS: Readonly<Record<string, readonly string[]>> = {
   'opencode:muse-spark-1.3-contributor-free': ['minimal', 'low', 'medium', 'high', 'xhigh'],
   'opencode:space-bunny-free': ['low', 'medium', 'high', 'max', 'xhigh'],
-  'opencode:fledge-alpha-free': ['low', 'high', 'max'],
   // Inferensi keluarga (belum terverifikasi live — kredensial ini 401 untuk
   // semua `opencode-go/*`, sehingga probe varian tak bisa jalan; cermin
   // varian keluarga seinduk di `opencode/*` + bukti parsial `gpt-6-luna#low`

@@ -1768,8 +1768,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         capabilities: { streaming: true, tools: true, vision: false },
       },
       {
-        id: 'ling-3.0-flash-fin-free',
-        name: 'Ling 3.0 Flash Fin Free (Zen)',
+        id: 'ling-3.1-flash-free',
+        name: 'Ling 3.1 Flash Free (Zen)',
         contextWindow: 256000,
         outputWindow: 32000,
         capabilities: { streaming: true, tools: true, vision: false },
@@ -1789,8 +1789,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         capabilities: { streaming: true, tools: true, vision: false },
       },
       {
-        id: 'fledge-alpha-free',
-        name: 'Fledge Alpha Free (Zen)',
+        id: 'step-5-preview-free',
+        name: 'Step 5 Preview Free (Zen)',
         contextWindow: 256000,
         outputWindow: 32000,
         capabilities: { streaming: true, tools: true, vision: false },
@@ -3090,6 +3090,11 @@ export function warnBareModelIdDeprecation(bareModelId: string, where?: string):
 
 /**
  * Parse model string in format "providerId:modelId" or just "modelId" (defaults to OpenAI)
+ *
+ * Bentuk slash CLI (`opencode/<id>`, `opencode-go/<id>` — bentuk flag `-m`
+ * `opencode run`) juga diterima untuk kedua provider CLI dan dinormalisasi ke
+ * `provider:model`: tanpa ini request classic yang membawa bentuk slash
+ * jatuh ke default `openai` dengan modelId mentah `opencode/...`.
  */
 export function parseModelString(modelString: string): {
   providerId: ProviderId;
@@ -3102,6 +3107,24 @@ export function parseModelString(modelString: string): {
     return {
       providerId: modelString.slice(0, colonIndex) as ProviderId,
       modelId: modelString.slice(colonIndex + 1),
+    };
+  }
+
+  // Bentuk slash hanya untuk provider CLI (prefix eksak, case-insensitive).
+  // Model id provider lain yang mengandung slash (mis.
+  // `openrouter:deepseek/...` memakai kolon; bare id berslash tetap milik
+  // default openai seperti sebelumnya) tidak tersentuh.
+  const lower = modelString.toLowerCase();
+  if (lower.startsWith('opencode-go/')) {
+    return {
+      providerId: 'opencode-go',
+      modelId: modelString.slice('opencode-go/'.length),
+    };
+  }
+  if (lower.startsWith('opencode/')) {
+    return {
+      providerId: 'opencode',
+      modelId: modelString.slice('opencode/'.length),
     };
   }
 

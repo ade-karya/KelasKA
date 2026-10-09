@@ -746,3 +746,43 @@ describe('importModelSettings', () => {
     ]);
   });
 });
+
+describe('OpenCode CLI disembunyikan dari chat classic (hanya Pro Workbench)', () => {
+  const cliDeployment = () =>
+    deployment({
+      providers: { opencode: { preset: 'opencode' }, 'opencode-go': { preset: 'opencode-go' } },
+      slots: { llm: 'opencode:muse-spark-1.3-contributor-free' },
+    });
+
+  it('tidak menawarkan chat opencode/opencode-go di providers view', async () => {
+    vi.stubEnv('OPENCODE_MODELS', 'muse-spark-1.3-contributor-free,big-pickle');
+    vi.stubEnv('OPENCODE_GO_MODELS', 'gpt-6-luna');
+    cliDeployment();
+    const view = modelSettingsView(null);
+    expect(
+      view.providers.find((entry) => entry.id === 'opencode')?.capabilities.chat,
+    ).toBeUndefined();
+    expect(
+      view.providers.find((entry) => entry.id === 'opencode-go')?.capabilities.chat,
+    ).toBeUndefined();
+  });
+
+  it('tidak mencantumkan preset opencode/opencode-go agar tak bisa ditambah baru', async () => {
+    vi.stubEnv('OPENCODE_MODELS', 'muse-spark-1.3-contributor-free');
+    vi.stubEnv('OPENCODE_GO_MODELS', 'gpt-6-luna');
+    cliDeployment();
+    const view = modelSettingsView(null);
+    const ids = view.presets.map((preset) => preset.id);
+    expect(ids).not.toContain('opencode');
+    expect(ids).not.toContain('opencode-go');
+  });
+
+  it('slot lama opencode tetap resolve (config lama jalan)', async () => {
+    vi.stubEnv('OPENCODE_MODELS', 'muse-spark-1.3-contributor-free');
+    vi.stubEnv('OPENCODE_GO_MODELS', '');
+    cliDeployment();
+    const view = modelSettingsView(null);
+    const llm = view.slots.find((slot) => slot.slot === 'llm');
+    expect(llm?.effective.status).toBe('assigned');
+  });
+});

@@ -829,4 +829,19 @@ describe('opencode CLI thinking adapter (prompt-level providerOptions)', () => {
     const { model } = getModel({ providerId: 'opencode', modelId: 'big-pickle', apiKey: '' });
     expect(resolveThinkingProviderOptions(model, undefined)).toBeUndefined();
   });
+
+  it('id CLI live di luar katalog tetap dapat effort generik (paritas picker classic)', async () => {
+    const { OPENCODE_CLI_THINKING } = await import('@/lib/ai/providers');
+    for (const providerId of ['opencode', 'opencode-go'] as const) {
+      const { model } = getModel({
+        providerId,
+        modelId: 'model-live-belum-terdaftar-xyz',
+        apiKey: '',
+      });
+      expect(resolveThinkingProviderOptions(model, { mode: 'enabled', effort: 'high' })).toEqual({
+        opencode: { thinkingEffort: 'high' },
+      });
+      expect(OPENCODE_CLI_THINKING.effortValues).toContain('high');
+    }
+  });
 });

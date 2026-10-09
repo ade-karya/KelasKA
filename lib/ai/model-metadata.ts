@@ -516,7 +516,6 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
   //   muse-spark-1.3-contributor-free: minimal,low,medium,high,xhigh
   //     (none + max ditolak)
   //   space-bunny-free: low,medium,high,max,xhigh (none + minimal ditolak)
-  //   fledge-alpha-free: low,high,max (medium + lainnya ditolak)
   // Model `opencode-go/*` yang gagal probe karena 401 (kredensial ini tidak
   // mengentitle-nya) + yang terprobe tanpa varian (kimi, deepseek, glm-5.2,
   // qwen, minimax, mimo, longcat, hy4-preview): set generik prompt-hint
@@ -559,11 +558,6 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
     ['low', 'medium', 'high', 'max', 'xhigh'],
     'medium',
   ),
-  [getModelMetadataKey('opencode', 'fledge-alpha-free')]: effortCapability(
-    'opencode',
-    ['low', 'high', 'max'],
-    'low',
-  ),
   [getModelMetadataKey('opencode', 'big-pickle')]: effortCapability(
     'opencode',
     ['none', 'low', 'medium', 'high', 'max'],
@@ -579,7 +573,12 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
     ['none', 'low', 'medium', 'high', 'max'],
     'medium',
   ),
-  [getModelMetadataKey('opencode', 'ling-3.0-flash-fin-free')]: effortCapability(
+  [getModelMetadataKey('opencode', 'ling-3.1-flash-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'step-5-preview-free')]: effortCapability(
     'opencode',
     ['none', 'low', 'medium', 'high', 'max'],
     'medium',

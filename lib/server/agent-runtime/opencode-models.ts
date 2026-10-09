@@ -31,10 +31,10 @@ export const OPENCODE_FREE_FALLBACK_IDS = [
   'big-pickle',
   'longcat-2.5-preview-free',
   'mimo-v2.6-flash-free',
-  'ling-3.0-flash-fin-free',
+  'ling-3.1-flash-free',
   'nemotron-3-ultra-free',
   'nemotron-3.5-lightning-free',
-  'fledge-alpha-free',
+  'step-5-preview-free',
 ] as const;
 
 export const OPENCODE_DRIVER_API = 'opencode-cli' as const;

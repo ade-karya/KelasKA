@@ -28,7 +28,7 @@ import {
 import type { AgentInfo } from '@openmaic/generation';
 import { DEFAULT_LANGUAGE_DIRECTIVE } from '@openmaic/generation';
 import { MAX_PDF_CONTENT_CHARS, MAX_VISION_IMAGES } from '@/lib/constants/generation';
-import { MAX_OUTLINE_SCENES } from '@/lib/server/generation/outline-schema';
+import { MAX_OUTLINE_SCENES, applyOutlineAliases } from '@/lib/server/generation/outline-schema';
 import { nanoid } from 'nanoid';
 import type {
   UserRequirements,
@@ -675,11 +675,14 @@ async function streamOutlines(
         scanFrom = nextScanFrom;
         for (const outline of newOutlines) {
           if (parsedOutlines.length >= MAX_OUTLINE_SCENES) break;
-          // Ensure ID and order
+          // Ensure ID and order. Alias keys a model may emit instead of the
+          // canonical members (`sceneType`/`sceneTitle`/…) are resolved
+          // first, so live events carry what the committed outline will
+          // carry after the engine's normalization.
           const enrichedBase = {
-            ...outline,
+            ...(applyOutlineAliases(outline) ?? outline),
             order: parsedOutlines.length + 1,
-          };
+          } as SceneOutline;
           const normalized = taskEngineMode
             ? normalizeTaskEngineOutline(enrichedBase, requirement)
             : sanitizeNonTaskEngineOutline(enrichedBase);

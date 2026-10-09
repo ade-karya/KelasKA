@@ -11,6 +11,13 @@
  * shape is dropped (and so are the items of a list that are not what the
  * list holds); members the schema does not know are not carried over.
  * Normalizing a normalized outline changes nothing.
+ *
+ * Alias tolerance: some models emit the same members under different names
+ * (observed live: `sceneType`/`sceneTitle`/`sceneNumber`/`contentOutline`/
+ * `learningObjective`/`durationMinutes`/`visualNotes`). Canonical members win
+ * when both are present; otherwise the alias fills the canonical member
+ * before validation, so a well-formed outline under other names is usable
+ * instead of failing the run.
  */
 import { WIDGET_TYPES } from '@openmaic/dsl';
 
@@ -160,13 +167,70 @@ function pblConfig(value: unknown): SceneOutline['pblConfig'] {
 
 class OutlineRefused extends Error {}
 
+/**
+ * Alias keys some models emit instead of the canonical outline members.
+ * `durationMinutes` is deliberately absent: it counts minutes while
+ * `estimatedDuration` counts seconds, so it is converted separately in
+ * {@link applyOutlineAliases} rather than copied verbatim.
+ */
+const OUTLINE_KEY_ALIASES: Readonly<Record<string, string>> = {
+  sceneType: 'type',
+  sceneTitle: 'title',
+  sceneNumber: 'order',
+  contentOutline: 'keyPoints',
+  learningObjective: 'teachingObjective',
+  visualNotes: 'description',
+};
+
+/** Scene types the content pipeline supports (matched case-insensitively). */
+const KNOWN_SCENE_TYPES = ['slide', 'quiz', 'interactive', 'pbl'] as const;
+
+/**
+ * A parsed outline object with alias keys resolved to their canonical
+ * members, or undefined when the value is not an object. Canonical members
+ * win when both are present; alias keys are removed. Never throws: a value
+ * of the wrong shape stays wrong-shaped and fails validation downstream
+ * with the usual message.
+ *
+ * Shared by the normalizer below and the outline step's streaming extractor,
+ * so live `outline_item` events carry the same canonical keys the committed
+ * outline will have.
+ */
+export function applyOutlineAliases(value: unknown): Record<string, unknown> | undefined {
+  const raw = record(value);
+  if (!raw) return undefined;
+  const merged: Record<string, unknown> = { ...raw };
+  for (const [alias, canonical] of Object.entries(OUTLINE_KEY_ALIASES)) {
+    if (merged[canonical] === undefined && merged[alias] !== undefined) {
+      merged[canonical] = merged[alias];
+    }
+    delete merged[alias];
+  }
+  // `durationMinutes` counts minutes; `estimatedDuration` counts seconds.
+  if (merged.estimatedDuration === undefined) {
+    const minutes = raw.durationMinutes;
+    if (typeof minutes === 'number' && Number.isFinite(minutes) && minutes >= 0) {
+      merged.estimatedDuration = Math.round(minutes * 60);
+    }
+  }
+  delete merged.durationMinutes;
+  return merged;
+}
+
 function sceneOutline(value: unknown, index: number): SceneOutline {
   const at = `outlines[${index}]`;
-  const raw = record(value);
+  const raw = applyOutlineAliases(value);
   if (!raw) throw new OutlineRefused(`${at} must be an object`);
   const id = text(raw.id);
   if (!id || !id.trim()) throw new OutlineRefused(`${at}.id must be a non-empty string`);
-  const type = text(raw.type);
+  const rawType = text(raw.type);
+  // A known type under other casing is the same type (`Slide` from a model
+  // that capitalizes); anything else keeps the existing leniency of passing
+  // through to fail at its own content step, not here.
+  const type =
+    rawType && (KNOWN_SCENE_TYPES as readonly string[]).includes(rawType.trim().toLowerCase())
+      ? rawType.trim().toLowerCase()
+      : rawType;
   if (!type || !type.trim() || type.length > MAX_TYPE_CHARS) {
     throw new OutlineRefused(
       `${at}.type must be a non-empty string of at most ${MAX_TYPE_CHARS} characters`,

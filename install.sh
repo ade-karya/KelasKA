@@ -837,7 +837,8 @@ ACCESS_CODE_NEW="$(rand_hex 24)"      # 48 char, di atas minimum 16
 DEV_TOKEN_NEW="$(rand_hex 16)"
 
 tulis_openmaic_yml() {
-  # Slot `agent` (Pro Workbench + agent runtime) dari tier installer.
+  # Slot `llm` (chat classic + seluruh slot course/classroom yang mengikutinya)
+  # dan slot `agent` (Pro Workbench + agent runtime) dari tier installer.
   # MODEL_ROUTES tidak lagi dibaca server (menolak start tanpanya file ini),
   # jadi tier ditulis ke sini, bukan ke .env.local. Heredoc SENGAJA tanpa
   # quote agar ${tier...} terekspansi; referensi key ditulis \${VAR} agar
@@ -852,24 +853,125 @@ tulis_openmaic_yml() {
   else
     keyvar="GOOGLE_API_KEY"
   fi
+  # Chat classic memakai daftar aktif yang sama dengan Pro Workbench: selalu
+  # daftarkan kedua provider CLI (opencode-go disembunyikan otomatis bila
+  # OPENCODE_GO_MODELS kosong = belum login). Provider tier ditulis bila
+  # berbeda dari keduanya (mis. google pada tier1).
+  local opencode_block="  opencode:
+    preset: opencode"
+  local opencode_go_block="  opencode-go:
+    preset: opencode-go"
+  local extra_provider_block=""
+  if [[ "$provider" != "opencode" && "$provider" != "opencode-go" ]]; then
+    extra_provider_block="  ${provider}:
+    preset: ${provider}
+$(if [[ -n "$keyvar" ]]; then printf '    apiKey: ${%s}\n' "$keyvar"; fi)"
+  elif [[ "$provider" == "opencode-go" && -n "$keyvar" ]]; then
+    # Tier Go ber-key: tulis dengan key (jangan duplikat blok default).
+    opencode_go_block="  ${provider}:
+    preset: ${provider}
+    apiKey: \${${keyvar}}"
+  elif [[ "$provider" == "opencode" && -n "$keyvar" ]]; then
+    opencode_block="  ${provider}:
+    preset: ${provider}
+    apiKey: \${${keyvar}}"
+  fi
   cat <<EOF
 # =============================================================================
 # OpenMAIC model configuration — dibuat oleh install.sh (tier=${tier}).
-# Slot \`agent\` mengemudikan Pro Workbench/agent runtime (butuh tool calling).
+# Slot \`llm\` adalah default chat (chat classic + course/classroom yang
+# mengikutinya); slot \`agent\` mengemudikan Pro Workbench/agent runtime
+# (butuh tool calling).
 # Server membaca file ini saat start — restart setelah mengubah. Panduan:
 # packages/docs (Configuration) dan skills/openmaic/references/provider-keys.md.
 # Key tetap di .env.local dan dirujuk sebagai \${VAR}; nilai kustom Anda di
 # file ini tidak disentuh installer (hanya dibuat bila belum ada).
 # =============================================================================
 providers:
-  ${provider}:
-    preset: ${provider}
-$(if [[ -n "$keyvar" ]]; then printf '    apiKey: ${%s}\n' "$keyvar"; fi)
+${opencode_block}
+${opencode_go_block}
+$(if [[ -n "$extra_provider_block" ]]; then printf '%s\n' "$extra_provider_block"; fi)
 slots:
+  llm: ${model}
   agent:
     model: ${model}
     api: ${api}
 EOF
+}
+
+# Lengkapi openmaic.yml yang sudah ada TANPA menimpa nilai kustom: tambahkan
+# provider CLI yang hilang (opencode/opencode-go) dan slot `llm` bila belum
+# ada. File lama installer hanya menulis slot `agent`, sehingga chat classic
+# (slot classroom <- llm) unassigned dan gagal dengan SlotUnassignedError.
+# Berjalan idempoten di setiap run (dipanggil setelah
+# tulis_openmaic_yml_bila_belum_ada). $1=tier, $2=model tier saat ini.
+lengkapi_openmaic_yml() {
+  local tier="$1" model="$2"
+  [[ -f openmaic.yml ]] || return 0
+  # Abaikan baris komentar saat mendeteksi entri yang sudah ada.
+  local tanpa_komentar=""
+  tanpa_komentar="$(sed -E 's/(^|[^\\])#.*$/\1/' openmaic.yml)"
+  local perlu_opencode=0 perlu_go=0 perlu_llm=0
+  # `opencode:` saja (pola kunci diakhiri kolon; `opencode-go:` tidak kena).
+  if ! printf '%s\n' "$tanpa_komentar" | grep -qE '^[[:space:]]*opencode:[[:space:]]*$'; then
+    perlu_opencode=1
+  fi
+  if ! printf '%s\n' "$tanpa_komentar" | grep -qE '^[[:space:]]*opencode-go:'; then
+    perlu_go=1
+  fi
+  if ! printf '%s\n' "$tanpa_komentar" | grep -qE '^[[:space:]]*llm:'; then
+    perlu_llm=1
+  fi
+  if [[ "$perlu_opencode" -eq 0 && "$perlu_go" -eq 0 && "$perlu_llm" -eq 0 ]]; then
+    return 0
+  fi
+  local tmp=""
+  tmp="$(mktemp openmaic.yml.tmp.XXXXXX)" || return 0
+  awk -v perlu_opencode="$perlu_opencode" -v perlu_go="$perlu_go" \
+    -v perlu_llm="$perlu_llm" -v model="$model" '
+    BEGIN { di_providers = 0; providers_selesai = 0; ada_providers = 0; ada_slots = 0 }
+    /^providers:/ { di_providers = 1; ada_providers = 1; print; next }
+    /^(slots|lock|allowUserKeys):/ {
+      if (di_providers && !providers_selesai) {
+        if (perlu_opencode == 1) { print "  opencode:"; print "    preset: opencode" }
+        if (perlu_go == 1) { print "  opencode-go:"; print "    preset: opencode-go" }
+        providers_selesai = 1
+      }
+      di_providers = 0
+      print
+      if ($0 ~ /^slots:/) {
+        ada_slots = 1
+        if (perlu_llm == 1) { print "  llm: " model }
+      }
+      next
+    }
+    { print }
+    END {
+      if (di_providers && !providers_selesai) {
+        if (perlu_opencode == 1) { print "  opencode:"; print "    preset: opencode" }
+        if (perlu_go == 1) { print "  opencode-go:"; print "    preset: opencode-go" }
+        providers_selesai = 1
+      }
+      # File tanpa section providers/slots sama sekali (kustom minimal):
+      # tambahkan di akhir agar referensi llm tetap valid.
+      if (!ada_providers && (perlu_opencode == 1 || perlu_go == 1)) {
+        print "providers:"
+        if (perlu_opencode == 1) { print "  opencode:"; print "    preset: opencode" }
+        if (perlu_go == 1) { print "  opencode-go:"; print "    preset: opencode-go" }
+      }
+      if (!ada_slots && perlu_llm == 1) {
+        print "slots:"
+        print "  llm: " model
+      }
+    }
+  ' openmaic.yml > "$tmp" || { rm -f "$tmp"; return 0; }
+  chmod 644 "$tmp"
+  mv -f "$tmp" openmaic.yml
+  local apa=""
+  [[ "$perlu_opencode" -eq 1 ]] && apa="${apa}provider opencode "
+  [[ "$perlu_go" -eq 1 ]] && apa="${apa}provider opencode-go "
+  [[ "$perlu_llm" -eq 1 ]] && apa="${apa}slot llm=${model} "
+  info "openmaic.yml dilengkapi (${apa}— nilai kustom Anda tidak diubah)."
 }
 
 tulis_openmaic_yml_bila_belum_ada() {
@@ -885,7 +987,7 @@ tulis_openmaic_yml_bila_belum_ada() {
     || { rm -f "$tmp"; fail "gagal menulis openmaic.yml (lihat error di atas)."; }
   chmod 644 "$tmp"
   mv -f "$tmp" openmaic.yml
-  info "openmaic.yml dibuat (slot agent = ${model}, tier=${tier})."
+  info "openmaic.yml dibuat (slot llm + agent = ${model}, tier=${tier})."
 }
 
 tulis_template_env() {
@@ -1160,8 +1262,9 @@ TIER2_KEY_PRIMARY="OPENCODE_API_KEY"
 TIER2_KEY_HTTP="OPENCODE_GO_API_KEY"
 TIER3_MODEL="opencode:muse-spark-1.3-contributor-free"
 # Fallback katalog provider `opencode` (lib/ai/providers.ts) bila CLI belum
-# ada / offline: SEMUA model free diaktifkan, bukan satu pin saja.
-OPENCODE_FREE_FALLBACK="space-bunny-free,muse-spark-1.3-contributor-free,big-pickle,longcat-2.5-preview-free,mimo-v2.6-flash-free,ling-3.0-flash-fin-free,nemotron-3-ultra-free,nemotron-3.5-lightning-free,fledge-alpha-free"
+# ada / offline: SEMUA model free yang terverifikasi `opencode run` (Okt 2026;
+# exo-free deprecated + ling-3.0-flash-fin-free unavailable dibuang).
+OPENCODE_FREE_FALLBACK="space-bunny-free,muse-spark-1.3-contributor-free,big-pickle,longcat-2.5-preview-free,mimo-v2.6-flash-free,ling-3.1-flash-free,nemotron-3-ultra-free,nemotron-3.5-lightning-free,step-5-preview-free"
 # Nilai lama installer (sebelum grup Go disembunyikan saat belum login):
 # dikenali saat migrasi agar instalasi lama dimigrasi ke kosong, bukan
 # dianggap kustom. Kini bila belum login daftar Go = kosong (hidden).
@@ -1315,6 +1418,23 @@ OPENCODE_LOGIN_DETECTED=0
 # comma-separated, lalu aktifkan di OPENCODE_MODELS. Idempoten, toleran offline:
 # gagal/CLI absen -> fallback katalog di atas.
 # Dijalankan sebagai pemilik sesi (bukan /root saat sudo) agar auth + HOME benar.
+# Model `opencode/*` yang terverifikasi MATI via `opencode run` (Okt 2026):
+# exo-free = "Model has been deprecated", ling-3.0-flash-fin-free = "Model is
+# unavailable", fledge-alpha-free = hilang dari katalog. `opencode models`
+# masih menampilkannya, jadi disaring di sini agar tak masuk OPENCODE_MODELS.
+OPENCODE_DEAD_IDS="exo-free,ling-3.0-flash-fin-free,fledge-alpha-free"
+# Buang id mati dari daftar comma-separated (stdin -> stdout).
+buang_model_mati_opencode() {
+  local daftar="${1:-}" mati=""
+  daftar=",${daftar},"
+  for mati in exo-free ling-3.0-flash-fin-free fledge-alpha-free; do
+    daftar="${daftar//,${mati},/,}"
+  done
+  daftar="${daftar#,}"
+  daftar="${daftar%,}"
+  daftar="${daftar//,,/,}"
+  printf '%s' "$daftar"
+}
 # Output: satu baris `id1,id2,...` (bare id tanpa prefix `opencode/`).
 daftar_model_free_opencode() {
   local bin="" out="" json_tmp="" txt_tmp=""
@@ -1361,6 +1481,9 @@ daftar_model_free_opencode() {
       fi
     fi
   fi
+  if [[ -z "$out" ]]; then out="$OPENCODE_FREE_FALLBACK"; fi
+  # `opencode models` masih menampilkan model mati (lihat OPENCODE_DEAD_IDS).
+  if [[ -n "$out" ]]; then out="$(buang_model_mati_opencode "$out")"; fi
   if [[ -z "$out" ]]; then out="$OPENCODE_FREE_FALLBACK"; fi
   # Pastikan default tier3 selalu ikut (idempoten, di depan bila belum ada).
   if [[ ",${out}," != *",muse-spark-1.3-contributor-free,"* ]]; then
@@ -1428,6 +1551,9 @@ daftar_model_semua_opencode() {
       rm -f "$txt_tmp"
     fi
   fi
+  [[ -n "$out" ]] || return 1
+  # Saring model mati yang masih muncul di `opencode models`.
+  out="$(buang_model_mati_opencode "$out")"
   [[ -n "$out" ]] || return 1
   if [[ ",${out}," != *",muse-spark-1.3-contributor-free,"* ]]; then
     out="muse-spark-1.3-contributor-free${out:+,}${out}"
@@ -1807,8 +1933,10 @@ else
   esac
   # Slot agent kini tinggal di openmaic.yml (MODEL_ROUTES tidak dibaca server:
   # tanpa file ini server menolak start; dengan file ini routes diabaikan).
-  # Buat dari tier bila belum ada; file yang sudah ada tidak disentuh.
+  # Buat dari tier bila belum ada; file yang sudah ada dilengkapi (provider
+  # CLI + slot llm untuk chat classic) tanpa menyentuh nilai kustom.
   tulis_openmaic_yml_bila_belum_ada "$TIER" "$TIER_DEFAULT"
+  lengkapi_openmaic_yml "$TIER" "$TIER_DEFAULT"
   CUR_DRIVER="$(sed -n -E 's/^[^#]*"maic-agent-driver"[^}]*"model"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p' .env.local | head -1)"
   case "$CUR_DRIVER" in
     ollama:*|opencode:gpt-6-luna|opencode-go:gpt-6-luna|google:gemini-3.5-flash-lite|deepseek:deepseek-flash|opencode:space-bunny-free|opencode:muse-spark-1.3-contributor-free|opencode:big-pickle|opencode:longcat-2.5-preview-free|opencode:mimo-v2.6-flash-free|opencode:ling-3.0-flash-fin-free|opencode:nemotron-3-ultra-free|opencode:nemotron-3.5-lightning-free|opencode:*-free|tokendance:deepseek-v4.1-flash)

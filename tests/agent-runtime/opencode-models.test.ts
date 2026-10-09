@@ -68,7 +68,14 @@ describe('model CLI opencode/opencode-go (installer + workbench picker)', () => 
     const m = await import('@/lib/server/agent-runtime/opencode-models');
     const ids = m.activatedOpencodeIds('opencode');
     expect(ids).toContain('muse-spark-1.3-contributor-free');
-    expect(ids).toContain('fledge-alpha-free');
+    // Katalog statis mengikuti live `opencode models` yang terverifikasi via
+    // `opencode run` (Okt 2026): exo-free deprecated + ling-3.0-flash-fin-free
+    // unavailable sudah dibuang; fledge-alpha-free lebih dulu hilang.
+    expect(ids).toContain('ling-3.1-flash-free');
+    expect(ids).toContain('step-5-preview-free');
+    expect(ids).not.toContain('exo-free');
+    expect(ids).not.toContain('ling-3.0-flash-fin-free');
+    expect(ids).not.toContain('fledge-alpha-free');
     expect(m.activatedOpencodeIds('opencode-go')).toContain('gpt-6-luna');
   });
 
@@ -140,7 +147,7 @@ describe('varian natif per model (cermin /variants CLI)', () => {
 
   it('effortValues mengikuti himpunan natif terverifikasi per model', async () => {
     process.env.OPENCODE_MODELS =
-      'muse-spark-1.3-contributor-free,space-bunny-free,fledge-alpha-free,big-pickle';
+      'muse-spark-1.3-contributor-free,space-bunny-free,ling-3.1-flash-free,big-pickle,step-5-preview-free';
     process.env.OPENCODE_GO_MODELS = 'gpt-6-luna';
     const m = await import('@/lib/server/agent-runtime/opencode-models');
     const byId = new Map(m.activatedOpencodeModels().map((x) => [x.modelString, x]));
@@ -158,11 +165,9 @@ describe('varian natif per model (cermin /variants CLI)', () => {
       'max',
       'xhigh',
     ]);
-    expect(byId.get('opencode:fledge-alpha-free')?.thinking?.effortValues).toEqual([
-      'low',
-      'high',
-      'max',
-    ]);
+    // Model live baru (tanpa varian natif terverifikasi): set generik prompt-hint.
+    expect(byId.get('opencode:ling-3.1-flash-free')?.thinking?.effortValues).toContain('none');
+    expect(byId.get('opencode:step-5-preview-free')?.thinking?.effortValues).toContain('none');
     // Tanpa varian natif: set generik prompt-hint.
     expect(byId.get('opencode:big-pickle')?.thinking?.effortValues).toContain('none');
   });
