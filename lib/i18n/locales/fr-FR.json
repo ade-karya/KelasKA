@@ -16,7 +16,8 @@
     "greetingWithName": "Bonjour, {{name}}",
     "vocationalTestBadge": "Fonction de test",
     "vocationalTestLabel": "Tâche professionnelle",
-    "vocationalTestTooltip": "Envoyer un test de formation pratique professionnelle depuis le champ de saisie actuel"
+    "vocationalTestTooltip": "Envoyer un test de formation pratique professionnelle depuis le champ de saisie actuel",
+    "footer": "Classe d'Intelligence Artificielle"
   },
   "toolbar": {
     "pdfParser": "Analyseur",

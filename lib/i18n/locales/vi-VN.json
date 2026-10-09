@@ -16,7 +16,8 @@
     "greetingWithName": "Chào {{name}}",
     "vocationalTestBadge": "Tính năng thử nghiệm",
     "vocationalTestLabel": "Nhiệm vụ giáo dục nghề nghiệp",
-    "vocationalTestTooltip": "Gửi bài kiểm tra thực hành nghề nghiệp từ ô nhập hiện tại"
+    "vocationalTestTooltip": "Gửi bài kiểm tra thực hành nghề nghiệp từ ô nhập hiện tại",
+    "footer": "Lớp Trí tuệ Nhân tạo"
   },
   "toolbar": {
     "pdfParser": "Bộ đọc PDF",

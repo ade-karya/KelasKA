@@ -16,7 +16,8 @@
     "greetingWithName": "Olá, {{name}}",
     "vocationalTestBadge": "Função de teste",
     "vocationalTestLabel": "Tarefa vocacional",
-    "vocationalTestTooltip": "Enviar um teste de treinamento prático vocacional a partir da caixa de entrada atual"
+    "vocationalTestTooltip": "Enviar um teste de treinamento prático vocacional a partir da caixa de entrada atual",
+    "footer": "Turma de Inteligência Artificial"
   },
   "toolbar": {
     "pdfParser": "Analisador",

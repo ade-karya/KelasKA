@@ -12,11 +12,12 @@
     "increase": "增加"
   },
   "home": {
-    "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
+    "slogan": "多智能体互动教室中的生成式学习",
     "greetingWithName": "嗨，{{name}}",
     "vocationalTestBadge": "测试功能",
     "vocationalTestLabel": "职教任务",
-    "vocationalTestTooltip": "从当前输入框提交职教实操训练测试"
+    "vocationalTestTooltip": "从当前输入框提交职教实操训练测试",
+    "footer": "人工智能课堂"
   },
   "toolbar": {
     "pdfParser": "解析器",

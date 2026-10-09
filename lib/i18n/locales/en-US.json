@@ -16,7 +16,8 @@
     "greetingWithName": "Hi, {{name}}",
     "vocationalTestBadge": "Beta",
     "vocationalTestLabel": "Vocational task",
-    "vocationalTestTooltip": "Submit a vocational hands-on training test from the current input box"
+    "vocationalTestTooltip": "Submit a vocational hands-on training test from the current input box",
+    "footer": "Artificial Intelligence Class"
   },
   "toolbar": {
     "pdfParser": "Parser",

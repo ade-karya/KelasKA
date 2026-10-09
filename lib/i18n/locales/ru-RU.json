@@ -12,11 +12,12 @@
     "increase": "Increase"
   },
   "home": {
-    "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
+    "slogan": "Генеративное обучение в мультиагентном интерактивном классе",
     "greetingWithName": "Привет, {{name}}",
     "vocationalTestBadge": "Тестовая функция",
     "vocationalTestLabel": "Учебное задание",
-    "vocationalTestTooltip": "Отправить практический тест профподготовки из текущего поля ввода"
+    "vocationalTestTooltip": "Отправить практический тест профподготовки из текущего поля ввода",
+    "footer": "Класс искусственного интеллекта"
   },
   "toolbar": {
     "pdfParser": "Парсер",

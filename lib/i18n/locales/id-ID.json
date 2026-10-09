@@ -12,11 +12,12 @@
     "increase": "Tambah"
   },
   "home": {
-    "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
+    "slogan": "Pembelajaran Generatif di Kelas Interaktif Multi-Agen",
     "greetingWithName": "Hai, {{name}}",
     "vocationalTestBadge": "Fitur Uji",
     "vocationalTestLabel": "Tugas Vokasi",
-    "vocationalTestTooltip": "Kirim uji latihan praktik vokasi dari kolom input saat ini"
+    "vocationalTestTooltip": "Kirim uji latihan praktik vokasi dari kolom input saat ini",
+    "footer": "Kelas Kecerdasan Artifisial"
   },
   "toolbar": {
     "pdfParser": "Parser",

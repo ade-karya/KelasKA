@@ -16,7 +16,8 @@
     "greetingWithName": "こんにちは、{{name}}さん",
     "vocationalTestBadge": "テスト機能",
     "vocationalTestLabel": "職業訓練タスク",
-    "vocationalTestTooltip": "現在の入力欄から職業実践トレーニングのテストを送信する"
+    "vocationalTestTooltip": "現在の入力欄から職業実践トレーニングのテストを送信する",
+    "footer": "人工知能クラス"
   },
   "toolbar": {
     "pdfParser": "パーサー",

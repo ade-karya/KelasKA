@@ -16,7 +16,8 @@
     "greetingWithName": "مرحبًا، {{name}}",
     "vocationalTestBadge": "ميزة تجريبية",
     "vocationalTestLabel": "مهمة التعليم المهني",
-    "vocationalTestTooltip": "إرسال اختبار تدريب عملي مهني من مربع الإدخال الحالي"
+    "vocationalTestTooltip": "إرسال اختبار تدريب عملي مهني من مربع الإدخال الحالي",
+    "footer": "فصل الذكاء الاصطناعي"
   },
   "toolbar": {
     "pdfParser": "محلل PDF",

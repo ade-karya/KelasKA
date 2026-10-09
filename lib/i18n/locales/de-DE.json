@@ -16,7 +16,8 @@
     "greetingWithName": "Hallo, {{name}}",
     "vocationalTestBadge": "Testfunktion",
     "vocationalTestLabel": "Berufsbildungsaufgabe",
-    "vocationalTestTooltip": "Einen berufsbildenden Praxistest aus dem aktuellen Eingabefeld senden"
+    "vocationalTestTooltip": "Einen berufsbildenden Praxistest aus dem aktuellen Eingabefeld senden",
+    "footer": "Klasse für Künstliche Intelligenz"
   },
   "toolbar": {
     "pdfParser": "Parser",
