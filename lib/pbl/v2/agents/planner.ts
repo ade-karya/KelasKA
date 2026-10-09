@@ -289,7 +289,7 @@ function buildTools(
           .min(3)
           .max(5)
           .describe(
-            'A SHORT list (3-5) of learner-facing "what you\'ll gain" statements shown on the project Hero, IN THE PROJECT LANGUAGE. Each names ONE ability, awareness, or piece of knowledge the learner BUILDS by working through the project — what they take away and can do afterwards — NOT the final deliverable/result the project produces (that is `description`). Write each as a readable competency phrase, typically by expanding one terse outline targetSkill into plain language (e.g. for 博弈论: "理解纳什均衡的含义并能在具体场景中求解", "学会用收益矩阵刻画双方策略与收益", "培养把现实冲突抽象成博弈模型的建模意识"). NOT a task title, NOT a single terse keyword, NOT the project\'s end product. They must match THIS project.',
+            'A SHORT list (3-5) of learner-facing "what you\'ll gain" statements shown on the project Hero, IN THE PROJECT LANGUAGE. Each names ONE ability, awareness, or piece of knowledge the learner BUILDS by working through the project — what they take away and can do afterwards — NOT the final deliverable/result the project produces (that is `description`). Write each as a readable competency phrase, typically by expanding one terse outline targetSkill into plain language (e.g. for 博弈论: "理解纳什均衡的含义并能在具体场景中求解", "学会用收益矩阵刻画双方策略与收益", "培养把现实冲突抽象成博弈模型的建模意识"; for an id-ID science project: "Memahami makna keseimbangan Nash dan mampu menyelesaikannya dalam skenario nyata", "Mampu memetakan strategi dan hasil kedua pihak dengan matriks payoff"). NOT a task title, NOT a single terse keyword, NOT the project\'s end product. They must match THIS project.',
           ),
         proficiency: z
           .enum(['beginner', 'intermediate', 'advanced'])
@@ -413,7 +413,7 @@ function buildTools(
           .string()
           .optional()
           .describe(
-            'Set this ONLY for the 1-2 stages that carry the project\'s CORE knowledge point. A short description (in the project language) of the central concept this stage teaches — e.g. "为什么循环能避免重复代码". When set, the Instructor runs ONE integrative reverse-question about this concept at the end of the stage. Leave UNSET for ordinary / setup / polish stages so learners are not over-questioned. (For SCENARIO projects, never set this — see scenario mode.)',
+            'Set this ONLY for the 1-2 stages that carry the project\'s CORE knowledge point. A short description (in the project language) of the central concept this stage teaches — e.g. "为什么循环能避免重复代码" / "Mengapa perulangan bisa menghindari kode berulang". When set, the Instructor runs ONE integrative reverse-question about this concept at the end of the stage. Leave UNSET for ordinary / setup / polish stages so learners are not over-questioned. (For SCENARIO projects, never set this — see scenario mode.)',
           ),
         ...milestoneScenarioStageField,
       }),

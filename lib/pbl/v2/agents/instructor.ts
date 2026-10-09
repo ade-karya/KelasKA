@@ -547,7 +547,7 @@ export function buildInstructorRuntimeBrief(
  *  persona, which historically happened (see commit history for the
  *  "I'm Claude, here's what I can do" bug). */
 function buildHardRulesBlock(project: PBLProjectV2): string {
-  const langFallback = project.language || 'en-US';
+  const langFallback = project.language || 'id-ID';
   const langRule = project.languageDirective
     ? `follow this content-language policy: \`${project.languageDirective}\` (fallback BCP-47 locale: \`${langFallback}\`). If the directive contains nuanced instruction (e.g. "keep technical terms in English"), follow it literally.`
     : `reply ONLY in \`${langFallback}\`.`;
@@ -603,7 +603,7 @@ export function buildFirstTaskWorkspaceOrientationBlock(args: {
  *  request to respond in English. Falls back to English for any
  *  locale we haven't translated yet. */
 function syntheticPlatformOpener(phase: 'greeting' | 'setup', language: string): string {
-  const lang = language || 'en-US';
+  const lang = language || 'id-ID';
   if (phase === 'greeting') {
     const m: Record<string, string> = {
       'zh-CN':
@@ -650,16 +650,25 @@ function syntheticPlatformOpener(phase: 'greeting' | 'setup', language: string):
  *  Placed AFTER the runtime brief for maximum recency so it overrides
  *  the base teaching rhythm ("one idea per turn", questioning discipline)
  *  for this one cell. */
-function buildStageSynthesisBlock(milestone: PBLMilestone): string {
+function buildStageSynthesisBlock(milestone: PBLMilestone, language?: string): string {
   const concept = milestone.synthesisCheck?.coreConcept ?? '';
+  const lang = (language || 'id-ID').toLowerCase();
+  const isId = lang === 'id-id' || lang.startsWith('id');
+  const isZh = lang.startsWith('zh');
+  const bonusExample = isId
+    ? '"Tantangan bonus: kalau melihat seluruh tahap ini, kenapa konsep inti ini penting / masalah apa yang ia selesaikan?"'
+    : isZh
+      ? '"加分小挑战：回头看整个阶段，这个核心点为什么重要 / 它解决了什么问题？"'
+      : '"Bonus challenge: looking back at this whole stage, why does this core idea matter / what problem does it solve?"';
   return [
     '## Optional stage synthesis challenge — core-knowledge stage',
     '',
     `This stage carries the project's core concept: **${concept}**. The active microtask is the LAST one of this core stage, so you may offer ONE short integrative reverse-question about the WHOLE stage / this concept — NOT about this microtask alone.`,
     'Frame it explicitly as an optional bonus challenge / extra reflection, not as a requirement for completing the task or moving on.',
+    'Write the bonus question in the learner\'s project language (same language as your reply) — the example below is only illustrative, do NOT copy its language if the project language differs.',
     '',
     'Your job this turn:',
-    '1. If it fits the conversation and the learner is not asking for something else, ask exactly ONE optional bonus question — e.g. "加分小挑战：回头看整个阶段，这个核心点为什么重要 / 它解决了什么问题？". Ask it once, then stop and wait. Do not ask a second question, and do not answer it for them.',
+    `1. If it fits the conversation and the learner is not asking for something else, ask exactly ONE optional bonus question — e.g. ${bonusExample}. Ask it once, then stop and wait. Do not ask a second question, and do not answer it for them.`,
     '2. If the learner has ALREADY articulated this whole-stage concept on their own this session, do not make them repeat it — simply acknowledge it.',
     '3. If the platform has already said the task is complete or the learner is ready to move on, do not imply this challenge blocks progress.',
     '',
@@ -678,7 +687,7 @@ function scenarioCastLocale(language: string | undefined): {
   nameSeparator: string;
   quoteTitle: (title: string) => string;
 } {
-  const lang = language || 'en-US';
+  const lang = language || 'id-ID';
   if (lang.startsWith('zh')) {
     return {
       situationLabel: '当下处境：',
@@ -877,7 +886,9 @@ function buildSystemPrompt(args: {
   const synthesisOwed =
     args.phase === 'instructing' &&
     stageSynthesisOwed(args.project, args.milestone, args.microtask);
-  const synthesisBlock = synthesisOwed ? buildStageSynthesisBlock(args.milestone) : '';
+  const synthesisBlock = synthesisOwed
+    ? buildStageSynthesisBlock(args.milestone, args.project.languageDirective || args.project.language)
+    : '';
   const phaseBlock = PHASE_BLOCKS[args.phase];
   const firstTaskWorkspaceOrientationBlock = buildFirstTaskWorkspaceOrientationBlock(args);
   // SCENARIO ONLY. Empty for ordinary projects → no prompt change. Makes
@@ -1299,7 +1310,7 @@ export function stripPrematureNextTaskSetup(
  * translated yet (same fallback as the platform openers below).
  */
 function emptyLlmOutputMessage(language: string | undefined): string {
-  const lang = language || 'en-US';
+  const lang = language || 'id-ID';
   const isZh = lang === 'zh-CN' || lang === 'zh-TW' || lang.startsWith('zh');
   const isId = lang === 'id-ID' || lang.toLowerCase().startsWith('id');
   if (isZh) return '导师本轮没有产生新的内容。请稍后再试，或者把你的问题再说得具体一些。';

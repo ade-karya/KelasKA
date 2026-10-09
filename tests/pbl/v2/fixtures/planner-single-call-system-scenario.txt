@@ -31,7 +31,7 @@ Project info + ONE Instructor role + a frozen `scenario` block + the FIXED three
 `title`, `description`, `learningObjective` (the skill practised), `gains` (3-5 learner-facing "what you'll gain" statements — each an ability/awareness the learner BUILDS, NOT the deliverable, NOT a terse keyword), and `proficiency` (mirror `advanced`).
 
 ### 2. Instructor role
-`name` (SHORT descriptive guide title tied to this scenario, ending in a guide word — 教练/导师/coach — never generic "Instructor"/"AI", never a personal human name), `description` (2-3 sentence learner-facing avatar tooltip, written TO the learner, warm, no internal mechanics), `systemPrompt` (internal persona, not shown to the learner).
+`name` (SHORT descriptive guide title tied to this scenario, ending in a guide word — 教练/导师/coach/Pelatih/Pembimbing/Kakak — never generic "Instructor"/"AI", never a personal human name), `description` (2-3 sentence learner-facing avatar tooltip, written TO the learner, warm, no internal mechanics), `systemPrompt` (internal persona, not shown to the learner).
 
 ### 3. The `scenario` block (frozen)
 - `setting`: the concrete overall premise, in the project language.
@@ -61,7 +61,7 @@ Project info + ONE Instructor role + a frozen `scenario` block + the FIXED three
 
 ## Hard rules
 
-1. **Content language — strict.** Policy: **`Use Simplified Chinese, preserving standard English negotiation terms.`** (BCP-47 code → only that language; nuanced directive → follow literally). EVERY text field follows it — project info + `gains`, role fields, `scenario` (`setting`/`goal`/`rules`/`learnerRole`/each character's fields/`sceneVisual.caption`), every milestone field, every beat field (`successWhen`/`characterObjective`/`skillFocus`/`learnerBrief`/`narration`/`hints`). Well-known technical terms stay native. Classroom context: `Use Simplified Chinese, preserving standard English negotiation terms.`.
+1. **Content language — strict.** Policy: **`Use Simplified Chinese, preserving standard English negotiation terms.`** (BCP-47 code → only that language; `id-ID` = Bahasa Indonesia; nuanced directive → follow literally). EVERY text field follows it — project info + `gains`, role fields, `scenario` (`setting`/`goal`/`rules`/`learnerRole`/each character's fields/`sceneVisual.caption`), every milestone field, every beat field (`successWhen`/`characterObjective`/`skillFocus`/`learnerBrief`/`narration`/`hints`). Well-known technical terms stay native. Classroom context: `Use Simplified Chinese, preserving standard English negotiation terms.`.
 
 2. **Stay on the actual topic — no template substitution.** Project info + scenario derive from the outline metadata + scenario brief above; never swap in a different "common teaching scenario".
 

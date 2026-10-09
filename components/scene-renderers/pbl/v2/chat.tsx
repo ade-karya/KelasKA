@@ -469,13 +469,23 @@ export function PBLV2Chat({
     [messages, project.evaluations, roleplayHistory],
   );
 
-  // Auto-grow textarea as the learner types.
+  // Auto-grow textarea as the learner types. Also re-sync when the input
+  // becomes disabled (completed / handover): an inline `height` left over
+  // from a long draft would otherwise stick forever because the learner can
+  // no longer type to trigger a shrink.
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${Math.min(el.scrollHeight, MAX_INPUT_HEIGHT_PX)}px`;
-  }, [input]);
+  }, [input, projectCompleted, handoverPending]);
+
+  // A draft typed right before the project completes becomes unsendable
+  // (the box is disabled). Drop it so the disabled composer collapses back
+  // to a single row instead of keeping the draft's height forever.
+  useEffect(() => {
+    if (projectCompleted) setInput('');
+  }, [projectCompleted]);
 
   // Auto-scroll to bottom on new tokens / new messages.
   useEffect(() => {
@@ -682,13 +692,13 @@ export function PBLV2Chat({
             <span>{t('pbl.v2.chat.guidancePointer')}</span>
           </div>
         )}
-        <div className="flex items-center gap-2 rounded-2xl border border-cyan-100/[0.13] bg-slate-700/[0.26] px-3 py-2 shadow-[0_12px_34px_rgba(6,16,34,0.28)] transition-all focus-within:border-primary/70 focus-within:bg-slate-700/[0.34] focus-within:shadow-[0_0_0_1px_rgba(157,140,255,0.28),0_16px_40px_rgba(6,16,34,0.30)]">
+        <div className="flex items-end gap-2 rounded-2xl border border-cyan-100/[0.13] bg-slate-700/[0.26] px-3 py-2 shadow-[0_12px_34px_rgba(6,16,34,0.28)] transition-all focus-within:border-primary/70 focus-within:bg-slate-700/[0.34] focus-within:shadow-[0_0_0_1px_rgba(157,140,255,0.28),0_16px_40px_rgba(6,16,34,0.30)]">
           <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-cyan-100/[0.12] bg-cyan-100/[0.06] text-muted-foreground">
             <MessageSquare className="h-3.5 w-3.5" />
           </div>
           <textarea
             ref={textareaRef}
-            value={input}
+            value={projectCompleted ? '' : input}
             rows={MIN_ROWS}
             disabled={projectCompleted || handoverPending}
             onChange={(e) => setInput(e.target.value)}
@@ -713,6 +723,7 @@ export function PBLV2Chat({
           />
           <SpeechButton
             onTranscription={(text) => {
+              if (projectCompleted || handoverPending) return;
               if (!text.trim()) return;
               setInput((prev) => (prev ? `${prev} ${text}` : text));
             }}
