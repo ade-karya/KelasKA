@@ -55,6 +55,11 @@ export interface FetchedModel {
   contextLength?: number;
   /** OpenRouter `architecture.output_modalities` (e.g. `["text"]`), when provided. */
   outputModalities?: string[];
+  /**
+   * OpenRouter `created` timestamp (unix seconds per list-models) used only
+   * for newest-first ordering. Never surfaced to the client verbatim.
+   */
+  created?: number;
 }
 
 /**
@@ -188,13 +193,17 @@ interface ModelsApiResponse {
     display_name?: string;
     // OpenRouter catalog shape per
     // https://openrouter.ai/docs/api_reference/overview (list-models):
-    // `{ id, name, pricing: { prompt, completion, ... }, context_length,
-    // architecture: { output_modalities } }`. `name` is the human label
-    // ("Qwen: Qwen3.8 27B (free)") while `display_name` stays the
-    // OpenAI-compatible label. Both are accepted; `display_name` wins.
+    // `{ id, name, created, pricing: { prompt, completion, ... },
+    // context_length, architecture: { output_modalities } }`. `name` is the
+    // human label ("Qwen: Qwen3.8 27B (free)") while `display_name` is the
+    // legacy OpenAI-compatible label. `name` wins; `display_name` is only a
+    // fallback for gateways that do not send `name`.
+    // `created` is a unix timestamp (seconds) used for newest-first ordering.
     name?: string;
     pricing?: Record<string, string | number | null | undefined>;
     context_length?: number;
+    created?: number | string;
+    created_at?: number | string;
     architecture?: { output_modalities?: string[] };
   }>;
   models?: Array<{
@@ -228,30 +237,118 @@ export function isZeroCostPricing(
 const GEMINI_MAX_PAGES = 5;
 
 /**
- * Numeric version embedded in a `gemini-*` model id (`3.8` for
- * `gemini-3.8-flash`, `3.0` for `gemini-3-flash-preview`). Non-Gemini ids
- * (Gemma, `*-latest` aliases) return null and sort after versioned models.
+ * Whether an OpenRouter model id is an explicit free-tier variant (`:free`
+ * suffix, e.g. `qwen/qwen3-30b-a3b:free`). Kept case-insensitive.
  */
-function geminiVersion(id: string): [number, number] | null {
-  if (!id.startsWith('gemini-')) return null;
-  const dotted = id.match(/(\d+)\.(\d+)/);
-  if (dotted) return [Number(dotted[1]), Number(dotted[2])];
-  const major = id.match(/(\d+)/);
-  if (major) return [Number(major[1]), 0];
-  return null;
+export function isFreeModelId(id: string): boolean {
+  return id.trim().toLowerCase().endsWith(':free');
 }
 
-/** Newest Gemini version first; ties and versionless ids fall back to id order. */
-function compareGeminiNewestFirst(a: FetchedModel, b: FetchedModel): number {
+/**
+ * Whether a discovery target is OpenRouter's catalog (official
+ * `openrouter.ai` host in the base URL or an explicit models-URL override).
+ * Used to sort OpenRouter lists newest-first via `created`.
+ */
+export function isOpenRouterUrl(baseUrl: string, modelsUrlOverride?: string): boolean {
+  return `${baseUrl} ${modelsUrlOverride ?? ''}`.toLowerCase().includes('openrouter.ai');
+}
+
+/** Normalizes an OpenRouter `created`/`created_at` value to a finite number. */
+function normalizeCreated(value: number | string | undefined): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  const n = typeof value === 'number' ? value : Number(String(value).trim());
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/**
+ * Numeric version embedded in a `gemini-*` model id (`[3, 8, 0]` for
+ * `gemini-3.8-flash`, `[3, 0, 0]` for `gemini-3-flash-preview`,
+ * `[2, 0, 0]` for `gemini-2.0-flash-001` — the trailing `-001` snapshot is
+ * not a version bump). Non-Gemini ids (Gemma, `*-latest` aliases without a
+ * number) return null and sort after versioned models.
+ */
+function geminiVersion(id: string): [number, number, number] | null {
+  if (!id.startsWith('gemini-')) return null;
+  const dotted = id.match(/(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+  if (!dotted) return null;
+  return [
+    Number(dotted[1]),
+    dotted[2] !== undefined ? Number(dotted[2]) : 0,
+    dotted[3] !== undefined ? Number(dotted[3]) : 0,
+  ];
+}
+
+/** Fallback numeric version for non-Gemini ids (e.g. Gemma `4` in `gemma-4-31b-it`). */
+function genericVersion(id: string): [number, number, number] | null {
+  const dotted = id.match(/(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+  if (!dotted) return null;
+  return [
+    Number(dotted[1]),
+    dotted[2] !== undefined ? Number(dotted[2]) : 0,
+    dotted[3] !== undefined ? Number(dotted[3]) : 0,
+  ];
+}
+
+/** Whether a Gemini id names a preview/experimental alias rather than a GA build. */
+function isGeminiPreviewId(id: string): boolean {
+  return /(preview|experimental|latest|-exp([-. ]|$))/i.test(id);
+}
+
+/**
+ * Newest Gemini version first (the fetch button shows latest models on top);
+ * ties prefer the stable (non-preview) id, then fall back to id order so the
+ * display is deterministic. Non-Gemini ids (Gemma) sort after versioned
+ * Gemini models; among themselves newest version first, stable before
+ * preview aliases (`*-latest`).
+ */
+export function compareGeminiNewestFirst(a: FetchedModel, b: FetchedModel): number {
   const va = geminiVersion(a.id);
   const vb = geminiVersion(b.id);
   if (va && vb) {
-    if (va[0] !== vb[0]) return vb[0] - va[0];
-    if (va[1] !== vb[1]) return vb[1] - va[1];
+    for (let i = 0; i < 3; i++) {
+      if (va[i] !== vb[i]) return vb[i] - va[i];
+    }
+    const pa = isGeminiPreviewId(a.id) ? 1 : 0;
+    const pb = isGeminiPreviewId(b.id) ? 1 : 0;
+    if (pa !== pb) return pa - pb;
     return a.id.localeCompare(b.id);
   }
   if (va) return -1;
   if (vb) return 1;
+  // Both versionless for Gemini (Gemma family or `*-latest` aliases):
+  // newest numeric version first so `gemma-4-*` precedes `gemma-3-*` and any
+  // numbered Gemma precedes an unnumbered alias; stable before preview.
+  const ga = genericVersion(a.id);
+  const gb = genericVersion(b.id);
+  if (ga && gb) {
+    for (let i = 0; i < 3; i++) {
+      if (ga[i] !== gb[i]) return gb[i] - ga[i];
+    }
+  } else if (ga) {
+    return -1;
+  } else if (gb) {
+    return 1;
+  }
+  const pa = isGeminiPreviewId(a.id) ? 1 : 0;
+  const pb = isGeminiPreviewId(b.id) ? 1 : 0;
+  if (pa !== pb) return pa - pb;
+  return a.id.localeCompare(b.id);
+}
+
+/**
+ * Newest OpenRouter model first via the catalog `created` timestamp
+ * (unix seconds, descending). Entries without a timestamp sort last, then by
+ * id so the display is deterministic.
+ */
+export function compareOpenRouterNewestFirst(a: FetchedModel, b: FetchedModel): number {
+  const ca = a.created;
+  const cb = b.created;
+  if (ca !== undefined && cb !== undefined) {
+    if (ca !== cb) return cb - ca;
+    return a.id.localeCompare(b.id);
+  }
+  if (ca !== undefined) return -1;
+  if (cb !== undefined) return 1;
   return a.id.localeCompare(b.id);
 }
 
@@ -317,15 +414,19 @@ export async function fetchModels(
     }
     if (body === null) continue;
     // Native Gemini payloads are normalized to `data` inside the candidate
-    // fetch, so every success shape converges here. Gemini lists newest
-    // version first (the fetch button shows latest models on top); every
-    // other provider keeps id order.
+    // fetch, so every success shape converges here.
+    // - Gemini lists newest version first (the fetch button shows latest
+    //   models on top).
+    // - OpenRouter lists newest `created` first (same display contract).
+    // - Every other provider keeps id order.
     // OpenRouter note: the catalog's human label lives in `name`
-    // (e.g. "Qwen: Qwen3.8 27B (free)"), not `display_name`. Accept both so
-    // the settings panel shows the proper name instead of a prettified id.
+    // (e.g. "Qwen: Qwen3.8 27B (free)"), not the legacy `display_name`.
+    // Prefer `name` so the settings panel shows the proper name instead of
+    // a prettified id, and drop a label that merely repeats the id (the old
+    // display) so callers fall back to the id.
     const found: FetchedModel[] = (body.data ?? []).map((m) => {
-      const rawDisplay = m.display_name?.trim() || m.name?.trim() || undefined;
-      const displayName = rawDisplay && rawDisplay !== m.id ? rawDisplay : rawDisplay || undefined;
+      const rawDisplay = m.name?.trim() || m.display_name?.trim() || undefined;
+      const displayName = rawDisplay && rawDisplay !== m.id ? rawDisplay : undefined;
       const entry: FetchedModel = {
         id: m.id,
         ownedBy: m.owned_by,
@@ -338,9 +439,15 @@ export async function fetchModels(
       if (Array.isArray(m.architecture?.output_modalities)) {
         entry.outputModalities = m.architecture.output_modalities;
       }
+      const created = normalizeCreated(m.created ?? m.created_at);
+      if (created !== undefined) entry.created = created;
       return entry;
     });
-    return gemini ? found.sort(compareGeminiNewestFirst) : found.sort((a, b) => a.id.localeCompare(b.id));
+    if (gemini) return found.sort(compareGeminiNewestFirst);
+    if (isOpenRouterUrl(baseUrl, opts.modelsUrlOverride)) {
+      return found.sort(compareOpenRouterNewestFirst);
+    }
+    return found.sort((a, b) => a.id.localeCompare(b.id));
   }
 
   throw new ModelFetchError(404, `No /models endpoint found (tried: ${candidates.join(', ')})`);

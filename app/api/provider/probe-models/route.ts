@@ -2,7 +2,14 @@ import { NextRequest } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { validateClientBaseUrl, validateUrlForSSRF } from '@/lib/server/ssrf-guard';
-import { fetchModels, isZeroCostPricing, ModelFetchError } from '@/lib/server/model-fetch';
+import {
+  compareGeminiNewestFirst,
+  compareOpenRouterNewestFirst,
+  fetchModels,
+  isFreeModelId,
+  isZeroCostPricing,
+  ModelFetchError,
+} from '@/lib/server/model-fetch';
 import {
   savedChatEndpoint,
   savedProviderRef,
@@ -15,7 +22,7 @@ const log = createLogger('ProbeModels');
 
 /** Model ids that are not chat models — filtered out of probe results. */
 const NON_CHAT_PATTERN =
-  /(tts|asr|whisper|embedding|rerank|mineru|image|video|voxcpm|moderation|live|transcribe|audio|aqa|imagen)/i;
+  /(tts|asr|whisper|embedding|rerank|mineru|image|video|voxcpm|moderation|live|transcribe|audio|aqa|imagen|veo|lyria)/i;
 
 /**
  * Gemini-only non-text families. Verified against a live `GET /v1beta/models`
@@ -25,7 +32,7 @@ const NON_CHAT_PATTERN =
  * substrings (e.g. Xiaomi `mimo-v2-omni`) are unaffected.
  */
 const GEMINI_NON_TEXT_PATTERN =
-  /(banana|omni|lyria|robotics|computer-use|antigravity|deep-research)/i;
+  /(banana|omni|lyria|robotics|computer-use|antigravity|deep-research|veo)/i;
 
 /**
  * Whether a probe target is OpenRouter's catalog. Free-only filtering applies
@@ -57,10 +64,12 @@ export async function POST(req: NextRequest) {
     return apiError('INVALID_REQUEST', 400, 'Invalid JSON body');
   }
   try {
-    let { baseUrl, apiKey, modelsUrl, providerType, providerId } = body as {
+    let { baseUrl, apiKey, modelsUrl } = body as {
       baseUrl?: string;
       apiKey?: string;
       modelsUrl?: string;
+    };
+    const { providerType, providerId } = body as {
       providerType?: string;
       providerId?: string;
     };
@@ -105,10 +114,13 @@ export async function POST(req: NextRequest) {
     const isGemini =
       providerType === 'google' ||
       baseUrl.toLowerCase().includes('generativelanguage.googleapis.com');
-    // OpenRouter: free ($0) text models only. `pricing` comes from
-    // GET /models (all cost keys "0" for free entries, including `:free`
-    // variants). Entries without pricing (custom gateways, test doubles)
-    // are kept so discovery still works off-catalog.
+    // OpenRouter: FREE ($0) text models only — an explicit `:free` variant or
+    // a catalog entry whose every cost key is "0" (per
+    // https://openrouter.ai/docs/api_reference/overview → list-models).
+    // Entries without pricing are NOT free on the official catalog and are
+    // dropped (custom gateways without pricing keep the generic behavior only
+    // when they are not OpenRouter targets — but here isOpenRouter is true,
+    // so strict applies). Non-text outputs are never chat models.
     const isOpenRouter = isOpenRouterTarget(baseUrl, providerId, modelsUrl);
     const chatModels = models.filter((m) => {
       if (NON_CHAT_PATTERN.test(m.id)) return false;
@@ -119,16 +131,34 @@ export async function POST(req: NextRequest) {
         if (m.outputModalities && !m.outputModalities.every((mod) => mod === 'text')) {
           return false;
         }
-        if (m.pricing && !isZeroCostPricing(m.pricing)) return false;
+        const hasPricing = !!m.pricing && Object.keys(m.pricing).length > 0;
+        if (isFreeModelId(m.id)) {
+          // A `:free` variant still proves $0 when pricing is known.
+          if (hasPricing && !isZeroCostPricing(m.pricing)) return false;
+        } else {
+          // Paid catalog entries and entries without pricing are out: only
+          // explicit $0 pricing passes on the official catalog.
+          if (!hasPricing) return false;
+          if (!isZeroCostPricing(m.pricing)) return false;
+        }
       }
       return true;
     });
+
+    // Display contract: newest first. `fetchModels` already sorts Gemini
+    // (version desc) and OpenRouter (`created` desc), and `filter` preserves
+    // order — re-sort here so the response is newest-first even when a
+    // fallback endpoint returned an unsorted shape.
+    if (isGemini) chatModels.sort(compareGeminiNewestFirst);
+    else if (isOpenRouter) chatModels.sort(compareOpenRouterNewestFirst);
 
     return apiSuccess({
       models: chatModels.map((m) => ({
         id: m.id,
         ownedBy: m.ownedBy,
-        displayName: m.displayName,
+        // Drop a missing label or one that merely repeats the id (the old
+        // display) so the panel falls back to the id instead of showing it twice.
+        ...(m.displayName && m.displayName !== m.id ? { displayName: m.displayName } : {}),
         ...(typeof m.contextLength === 'number' ? { contextLength: m.contextLength } : {}),
       })),
       total: models.length,

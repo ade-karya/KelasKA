@@ -288,8 +288,10 @@ describe('gemini native discovery (per ai.google.dev docs)', () => {
       'gemini-3.8-flash',
       'gemini-3.1-pro-preview',
       'gemini-2.5-flash',
-      'gemini-flash-latest',
+      // Versionless tail: newest numeric version first, stable before
+      // preview aliases — a usable Gemma build precedes `*-latest`.
       'gemma-4-31b-it',
+      'gemini-flash-latest',
     ]);
   });
 });
