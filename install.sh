@@ -1589,6 +1589,43 @@ selaraskan_key_env() {
   fi
 }
 
+# OPENMAIC_SECRET_KEY: kunci penyegel provider key workspace di DB (SecretBox,
+# lib/server/secret-box.ts). WAJIB stabil lintas restart DAN rebuild:
+# - Tanpa var ini server membuat data/instance-secret.key acak saat boot;
+# - `npm run build` menghapus .next/standalone/data/ -> secret ikut hilang ->
+#   SEMUA provider key ter-seal (google/huggingface/dll) tak terbaca lagi
+#   (insiden 2026-10-08: PBL + LLM + media lumpuh total setelah rebuild).
+# Idempoten: nilai .env.local/env tidak pernah ditimpa. Bila keduanya kosong,
+# file secret yang masih hidup diadopsi; hanya bila tak ada di mana pun,
+# generate baru (32 byte acak base64, format yang diterima checkedSecret).
+pastikan_instance_secret() {
+  local file="${1:-.env.local}" cur="" adopsi="" kandidat=""
+  cur="$(env_get "$file" OPENMAIC_SECRET_KEY)"
+  if [[ -n "$cur" ]]; then return 0; fi
+  if [[ -n "${OPENMAIC_SECRET_KEY:-}" ]]; then
+    printf '%s\n' "OPENMAIC_SECRET_KEY=${OPENMAIC_SECRET_KEY}" >> "$file"
+    info "OPENMAIC_SECRET_KEY diisi dari environment."
+    return 0
+  fi
+  for kandidat in .next/standalone/data/instance-secret.key data/instance-secret.key; do
+    if [[ -f "$kandidat" ]]; then
+      adopsi="$(tr -d '[:space:]' < "$kandidat" 2>/dev/null || true)"
+      if [[ "$adopsi" =~ ^[A-Za-z0-9+/]{43}=$ ]]; then
+        printf '%s\n' "OPENMAIC_SECRET_KEY=${adopsi}" >> "$file"
+        info "OPENMAIC_SECRET_KEY diadopsi dari ${kandidat} (secret lama dipertahankan agar key ter-seal tetap terbaca)."
+        return 0
+      fi
+    fi
+  done
+  adopsi="$(head -c 32 /dev/urandom 2>/dev/null | base64 | tr -d '\n' || true)"
+  if [[ "$adopsi" =~ ^[A-Za-z0-9+/]{43}=$ ]]; then
+    printf '\n%s\n' "OPENMAIC_SECRET_KEY=${adopsi}" >> "$file"
+    info "OPENMAIC_SECRET_KEY dibuat acak dan disimpan di .env.local (jangan hapus — provider key DB bergantung padanya)."
+  else
+    warn "Gagal membuat OPENMAIC_SECRET_KEY acak; isi manual 32 byte base64 bila provider key tak terbaca setelah rebuild."
+  fi
+}
+
 # Run yang gagal di tengah (mis. heredoc template) meninggalkan .env.local
 # 0 byte, karena `> .env.local` memotong file SEBELUM isi ditulis. Anggap file
 # kosong sebagai tidak ada agar run ulang mengambil jalur buat-baru (atomik di
@@ -1955,6 +1992,15 @@ else
     warn "Postgres dilewati: agent runtime/persistence tidak disiapkan (nilai .env.local Anda tidak diubah)."
   fi
 fi
+
+# ============================================================ 5a. instance secret
+# Pin OPENMAIC_SECRET_KEY ke .env.local (baru maupun lama). Tanpa ini, rebuild
+# menghapus secret acak di .next/standalone/data/ dan semua provider key
+# ter-seal di DB menjadi tak terbaca (insiden 2026-10-08). Idempoten: nilai
+# yang sudah ada tidak disentuh; file secret yang hidup diadopsi.
+LANGKAH="instance-secret"
+pastikan_instance_secret .env.local
+chmod 600 .env.local 2>/dev/null || true
 
 # ============================================================ 5b. pgAdmin4 web
 # Default OFF (pasang dengan --with-pgadmin). Server headless -> varian
@@ -2714,6 +2760,15 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
         cp -f openmaic.yml .next/standalone/openmaic.yml
       fi
       info "Aset standalone disinkronkan (.next/static + public + openmaic.yml)."
+      # Prompt PBL (@openmaic/generation/prompts-pbl) dibaca runtime via
+      # readFileSync dengan path komputasi, jadi dikirim via
+      # outputFileTracingIncludes di next.config.ts (bukan cp manual).
+      # Verifikasi: bila file ini hilang, SEMUA scene PBL gagal ENOENT dan run
+      # paused berulang (insiden 2026-10-08). Gagalkan cepat dengan pesan jelas
+      # agar tidak disangka model/provider rusak.
+      if [[ ! -f .next/standalone/packages/@openmaic/generation/prompts-pbl/planner-single-call-system.md ]]; then
+        warn "prompts-pbl PBL tidak ada di standalone (.next/standalone/packages/@openmaic/generation/prompts-pbl/) — scene PBL akan gagal ENOENT. Pastikan next.config.ts outputFileTracingIncludes memuatnya lalu build ulang."
+      fi
       # Build/sync di atas lahir sebagai root bila via sudo (seksi 11 sudah
       # lewat) — kembalikan ke pemilik sebelum daemon PM2 membacanya.
       if [[ -n "${SUDO_USER:-}" && "$PM2_USER" != "root" ]]; then

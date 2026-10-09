@@ -145,6 +145,7 @@ export async function generateSceneActions(
     agents,
     userProfile,
     languageDirective,
+    logger: log,
   });
 
   log.info(`Generated ${actions.length} actions for: "${outline.title}"`);

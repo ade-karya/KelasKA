@@ -302,6 +302,7 @@ export async function generateSceneContent(
     targetLanguage: input.targetLanguage || undefined,
     userRequirements: requirements,
     allowProceduralSkill: vocationalActive,
+    logger: log,
     ...(effectiveOutline.type === 'pbl'
       ? {
           pblLoopFallback: (plannerInput) =>

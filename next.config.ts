@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/*': [
       'lib/server/agent-runtime/import-pptx-worker.mjs',
+      // @openmaic/generation reads these Markdown prompts at runtime via
+      // readFileSync with a computed path (packages' prompts-pbl/loader.ts),
+      // so the tracer never sees them. Without this, standalone builds ship
+      // without PBL planner prompts and EVERY PBL scene fails with ENOENT
+      // (2026-10-08: run run-nEW-x01TrGcMu6yD paused 9x on scene:4:content).
+      // templates/ + snippets/ are traced today, but keep them listed here
+      // too so a tracer change cannot silently break slide generation either.
+      'packages/@openmaic/generation/prompts-pbl/**',
+      'packages/@openmaic/generation/templates/**',
+      'packages/@openmaic/generation/snippets/**',
       'skills/openmaic/**',
       'skills/agent-runtime/**',
       // Loaded through a runtime-only `import('undici')` (see the LLM
