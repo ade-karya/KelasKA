@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AudioIndicatorState } from './audio-indicator';
+import { useFloatingDrag } from '@/components/roundtable/use-floating-drag';
 import { CanvasToolbar } from '@/components/canvas/canvas-toolbar';
 import { useAudioRecorder } from '@/lib/hooks/use-audio-recorder';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -225,6 +226,12 @@ export function Roundtable({
   const setAutoPlayLecture = useSettingsStore((s) => s.setAutoPlayLecture);
   const playbackSpeed = useSettingsStore((s) => s.playbackSpeed);
   const setPlaybackSpeed = useSettingsStore((s) => s.setPlaybackSpeed);
+  // Both presentation pills float and can be dragged from their background
+  // (appearance untouched: no handle, no extra chrome). Drags start past a
+  // small threshold so clicks and controls keep working as before.
+  // Offsets persist per pill so a custom layout survives reloads.
+  const toolbarDrag = useFloatingDrag('roundtable:presentation-toolbar-offset');
+  const dockDrag = useFloatingDrag('roundtable:presentation-dock-offset');
   const [isInputOpen, setIsInputOpen] = useState(false);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -781,7 +788,13 @@ export function Roundtable({
           )}
           style={{ right: chatCollapsed === false ? (chatAreaWidth ?? 320) : 0 }}
         >
-          <div className="mb-3 px-2 py-1 rounded-full bg-white/70 dark:bg-black/60 backdrop-blur-xl border border-gray-200/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto">
+          <div
+            ref={toolbarDrag.setNodeRef}
+            style={toolbarDrag.style}
+            data-testid="presentation-toolbar-pill"
+            {...toolbarDrag.pillProps}
+            className="mb-3 px-2 py-1 rounded-full bg-white/70 dark:bg-black/60 backdrop-blur-xl border border-gray-200/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] pointer-events-auto cursor-grab"
+          >
             {toolbar}
           </div>
         </div>
@@ -987,8 +1000,15 @@ export function Roundtable({
                 className="pointer-events-auto"
               >
                 <div
-                  ref={presentationActionAnchorRef}
-                  className="flex items-center gap-2.5 rounded-full bg-white/70 dark:bg-black/60 backdrop-blur-xl border border-gray-200/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] px-2.5 py-2"
+                  ref={(node) => {
+                    (presentationActionAnchorRef as React.MutableRefObject<HTMLDivElement | null>).current =
+                      node;
+                    dockDrag.setNodeRef(node);
+                  }}
+                  style={dockDrag.style}
+                  data-testid="presentation-dock-pill"
+                  {...dockDrag.pillProps}
+                  className="flex items-center gap-2.5 rounded-full bg-white/70 dark:bg-black/60 backdrop-blur-xl border border-gray-200/60 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] px-2.5 py-2 cursor-grab"
                 >
                   {/* Speaking / discussion-requesting agent avatar — shows when
                       a student agent is actively speaking OR a discussion request
