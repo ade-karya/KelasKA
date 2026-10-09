@@ -29,9 +29,14 @@ import { PBLV2RightPanelTabs } from './right-panel-tabs';
 import { shouldShowScenarioBriefing } from './scenario-briefing-gate';
 import { cn } from '@/lib/utils/cn';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import type { CSSProperties } from 'react';
-import { runOneStream, type StreamDisplayState, type StreamStatus } from './use-instructor-stream';
+import {
+  PBL_STREAM_TIMEOUT_MS,
+  runOneStream,
+  type StreamDisplayState,
+  type StreamStatus,
+} from './use-instructor-stream';
 import type { PBLProjectPatch } from '@/lib/pbl/v2/api/sse';
+import { PBL_WORKSPACE_THEME } from './workspace-theme';
 
 interface Props {
   readonly project: PBLProjectV2;
@@ -51,7 +56,6 @@ interface Props {
 
 type PanelSlot = 'sidebar' | 'chat' | 'submission';
 type ResizeHandleSide = 'left' | 'right';
-type CSSVariableProperties = CSSProperties & Record<`--${string}`, string | number>;
 
 const DEFAULT_PANEL_WIDTHS = {
   sidebar: 22,
@@ -73,27 +77,6 @@ function streamStatusForEvaluationKind(kind: unknown): StreamStatus {
   if (kind === 'task') return 'eval-task';
   return 'instructor';
 }
-
-const PBL_WORKSPACE_THEME = {
-  '--background': 'oklch(0.205 0.055 264)',
-  '--foreground': 'oklch(0.962 0.016 260)',
-  '--card': 'oklch(0.285 0.055 263)',
-  '--card-foreground': 'oklch(0.97 0.014 260)',
-  '--popover': 'oklch(0.265 0.055 263)',
-  '--popover-foreground': 'oklch(0.97 0.014 260)',
-  '--primary': '#9d8cff',
-  '--primary-foreground': 'oklch(0.99 0.005 260)',
-  '--secondary': 'oklch(0.32 0.052 260)',
-  '--secondary-foreground': 'oklch(0.95 0.016 260)',
-  '--muted': 'oklch(0.305 0.046 262)',
-  '--muted-foreground': 'oklch(0.78 0.04 258)',
-  '--accent': 'oklch(0.37 0.07 260)',
-  '--accent-foreground': 'oklch(0.965 0.014 260)',
-  '--destructive': 'oklch(0.66 0.19 25)',
-  '--border': 'oklch(0.74 0.055 262 / 0.22)',
-  '--input': 'oklch(0.68 0.05 262 / 0.3)',
-  '--ring': 'oklch(0.73 0.12 282)',
-} satisfies CSSVariableProperties;
 
 interface CompleteTaskPayload {
   project?: PBLProjectV2;
@@ -235,6 +218,11 @@ export function PBLV2Workspace({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ project, action: 'complete_pending_task' }),
+        // Same reasoning as the SSE timeouts: without a ceiling a stalled
+        // response holds the global streaming lock (and with it, "Kirim
+        // Hasil") forever. The abort lands in the catch below and the
+        // `finally` releases everything for retry.
+        signal: AbortSignal.timeout(PBL_STREAM_TIMEOUT_MS),
       });
       if (!res.ok) return;
       const data = (await res.json()) as CompleteTaskPayload & { data?: CompleteTaskPayload };

@@ -52,6 +52,19 @@ import { applyInstructorEvent } from './apply-instructor-event';
 
 const log = createLogger('PBL v2 InstructorStream');
 
+/**
+ * Absolute ceiling for a single SSE round-trip (chat turn or evaluation).
+ * Without it a stalled network / hung LLM keeps the stream promise pending
+ * forever, which wedges every lock derived from it — the chat Send button
+ * and, more critically, the submission panel's "Kirim Hasil", which stays
+ * disabled with only a faint "tutor sedang membalas" hint and no recovery
+ * except a page reload. Five minutes is generous (healthy turns settle in
+ * seconds) and only fires on genuinely dead streams; the resulting abort
+ * surfaces as a normal stream error with all locks released, so the learner
+ * can retry.
+ */
+export const PBL_STREAM_TIMEOUT_MS = 5 * 60 * 1000;
+
 interface RunOptions {
   endpoint: '/api/pbl/v2/instructor' | '/api/pbl/v2/open-task' | '/api/pbl/v2/simulator';
   body: Record<string, unknown>;
@@ -132,18 +145,26 @@ export function useInstructorStream(
       setStreaming(true);
       setStatus('instructor');
       setSimPhase(null);
-      onStreamingChange?.(true);
 
-      let workingProject: PBLProjectV2 = structuredClone(initialProject ?? projectRef.current);
+      // Fallible setup lives INSIDE the try below: structuredClone and the
+      // optimistic onProjectChange can throw (uncloneable state, store
+      // failure), and if they threw out here the `finally` would never run —
+      // leaking `runningRef` (all future chat sends silently ignored) and the
+      // parent's stream count (submission's "Kirim Hasil" locked forever with
+      // no visible stream). `workingProject` starts as the uncloned ref so
+      // the `finally` publish is always defined.
+      let workingProject: PBLProjectV2 = initialProject ?? projectRef.current;
       let ok = true;
-      if (normalizeProjectRuntime(workingProject)) {
-        onProjectChange(workingProject);
-      }
       // Evaluator triggers collected mid-stream, acted on after.
       const chain: EvalChainTriggers = { task: false, milestone: false, final: false };
       let lastPhase: StreamStatus = 'instructor';
 
       try {
+        onStreamingChange?.(true);
+        workingProject = structuredClone(workingProject);
+        if (normalizeProjectRuntime(workingProject)) {
+          onProjectChange(workingProject);
+        }
         workingProject = await runOneStream({
           endpoint,
           body: { project: workingProject, ...body },
@@ -282,7 +303,11 @@ export interface OneStreamArgs {
   onPatch?: (patch: Extract<PBLSSEEvent, { type: 'project_patch' }>['patch']) => void;
   onProjectUpdated?: (next: PBLProjectV2) => void;
   onSimPhase?: (phase: SimPhase) => void;
-}
+  /** Optional abort signal. Defaults to an absolute timeout
+   *  (PBL_STREAM_TIMEOUT_MS) so a stalled SSE response can never wedge the
+   *  caller's streaming locks forever. */
+  signal?: AbortSignal;
+};
 
 export async function runOneStream(args: OneStreamArgs): Promise<PBLProjectV2> {
   const { endpoint, body, startingProject, setDraftAssistant, onPatch } = args;
@@ -306,6 +331,7 @@ export async function runOneStream(args: OneStreamArgs): Promise<PBLProjectV2> {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
+    signal: args.signal ?? AbortSignal.timeout(PBL_STREAM_TIMEOUT_MS),
   });
   if (!res.body) throw new Error('Response has no readable body.');
   if (!res.ok) {

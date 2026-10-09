@@ -28,7 +28,8 @@
  *   explicitly out of scope per the PR 6 D2-A decision.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CheckCircle2,
   Download,
@@ -81,9 +82,11 @@ import {
 } from '@/lib/pbl/v2/operations/kernel/task-completion';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import i18n from '@/lib/i18n/config';
+import { PBL_WORKSPACE_THEME } from './workspace-theme';
 import {
   assertNotStreamError,
   isToleratedReactionStreamError,
+  PBL_STREAM_TIMEOUT_MS,
   type StreamStatus,
 } from './use-instructor-stream';
 
@@ -127,6 +130,47 @@ export interface SubmissionEvaluationStatus {
   readonly streamStatus?: StreamStatus;
   readonly draft?: string;
   readonly startedAt: string;
+}
+
+/** Where an escaped submission dialog should mount: the natively
+ *  fullscreened element when the browser is in fullscreen (only that
+ *  subtree is painted), otherwise `document.body`. Re-syncs on
+ *  `fullscreenchange` so a dialog opened before entering fullscreen
+ *  follows the presentation. Null outside a DOM (SSR/tests) — callers
+ *  fall back to inline rendering there. */
+function useModalHost(): HTMLElement | null {
+  const [host, setHost] = useState<HTMLElement | null>(() =>
+    typeof document !== 'undefined'
+      ? ((document.fullscreenElement as HTMLElement | null) ?? document.body)
+      : null,
+  );
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const sync = () => {
+      setHost((document.fullscreenElement as HTMLElement | null) ?? document.body);
+    };
+    sync();
+    document.addEventListener('fullscreenchange', sync);
+    return () => document.removeEventListener('fullscreenchange', sync);
+  }, []);
+  return host;
+}
+
+/** Renders a submission dialog OUTSIDE the workspace frame.
+ *
+ *  The docked frame is deliberately `isolate` (z-auto) so header dropdowns
+ *  paint above it — but that traps the dialogs' `fixed ... z-50` inside it,
+ *  so page-level presentation overlays (toolbar pill z-40, backdrop z-45,
+ *  dock z-48, all pointer-events-auto in browser fullscreen) paint ABOVE
+ *  the dialog and swallow clicks on its footer — the "Kirim Hasil does
+ *  nothing in browser fullscreen" bug. A body/fullscreen-element portal
+ *  with z-[130] escapes the trap while staying below blocking takeovers
+ *  (access-code z-200). No extra DOM wrapper: focus, backdrop-click and
+ *  Esc behaviour are untouched. */
+function SubmissionDialogPortal({ children }: { readonly children: ReactNode }) {
+  const host = useModalHost();
+  if (!host) return <>{children}</>;
+  return createPortal(children, host);
 }
 
 /** 5 MB cap. Larger than the v1 repo's 1 MB because v2 stores
@@ -427,7 +471,6 @@ export function PBLV2SubmissionPanel({
     microtaskTitle: string,
   ) => {
     setEvaluating(true);
-    onInstructorStreamingChange?.(true);
     setEvalError(null);
     const statusStartedAt = new Date().toISOString();
     const setEvaluationStatus = (patch: Partial<SubmissionEvaluationStatus>) => {
@@ -442,16 +485,26 @@ export function PBLV2SubmissionPanel({
       });
     };
 
-    setEvaluationStatus({
-      microtaskId,
-      microtaskTitle,
-      phase: 'evaluating',
-      streamStatus: 'eval-task',
-      draft: '',
-      startedAt: new Date().toISOString(),
-    });
-    let workingProject = structuredClone(snapshot);
+    // Fallible setup lives INSIDE the try below. `setEvaluationStatus` and
+    // `structuredClone` run BEFORE it here, and if either threw, the
+    // `finally` would never run — leaking the parent's stream count
+    // (submit locked with no visible stream) and leaving `evaluating` stuck
+    // true (this panel's own submit lock never released until remount).
+    // `workingProject` starts as the passed-in snapshot so the `finally`
+    // path is always defined.
+    let workingProject: PBLProjectV2 = snapshot;
     try {
+      onInstructorStreamingChange?.(true);
+
+      setEvaluationStatus({
+        microtaskId,
+        microtaskTitle,
+        phase: 'evaluating',
+        streamStatus: 'eval-task',
+        draft: '',
+        startedAt: new Date().toISOString(),
+      });
+      workingProject = structuredClone(snapshot);
       const runStream = async (
         endpoint: string,
         body: Record<string, unknown>,
@@ -476,6 +529,11 @@ export function PBLV2SubmissionPanel({
           method: 'POST',
           headers,
           body: JSON.stringify(body),
+          // Absolute ceiling so a stalled evaluation stream can't hold the
+          // submit lock (and the chat send lock) forever. The abort surfaces
+          // as a normal stream error: evalError is shown and all locks are
+          // released in the outer `finally`, so the learner can retry.
+          signal: AbortSignal.timeout(PBL_STREAM_TIMEOUT_MS),
         });
         if (!res.body) throw new Error('Response has no readable body.');
         if (!res.ok) {
@@ -717,35 +775,44 @@ export function PBLV2SubmissionPanel({
       )}
 
       {modalOpen && current && (
-        <SubmissionModal
-          project={project}
-          microtaskId={current.task.id}
-          milestoneId={current.milestone.id}
-          microtaskTitle={current.task.title}
-          existing={existing}
-          submitLocked={submitLocked}
-          onClose={() => setModalOpen(false)}
-          onSubmit={(args) => {
-            // Apply the submission to a clone so React picks up the
-            // change; addSubmission mutates the project, so we clone
-            // first to keep render semantics clean.
-            const next = structuredClone(project);
-            const sub = addSubmission(next, args);
-            appendSubmissionReceiptMessage(next, sub);
-            onProjectChange(next);
-            onSubmissionAdded?.(sub, args.microtaskId);
-            setModalOpen(false);
-            void runImmediateTaskEval(next, args.milestoneId, args.microtaskId, current.task.title);
-          }}
-        />
+        <SubmissionDialogPortal>
+          <SubmissionModal
+            project={project}
+            microtaskId={current.task.id}
+            milestoneId={current.milestone.id}
+            microtaskTitle={current.task.title}
+            existing={existing}
+            submitLocked={submitLocked}
+            onClose={() => setModalOpen(false)}
+            onSubmit={(args) => {
+              // Apply the submission to a clone so React picks up the
+              // change; addSubmission mutates the project, so we clone
+              // first to keep render semantics clean.
+              const next = structuredClone(project);
+              const sub = addSubmission(next, args);
+              appendSubmissionReceiptMessage(next, sub);
+              onProjectChange(next);
+              onSubmissionAdded?.(sub, args.microtaskId);
+              setModalOpen(false);
+              void runImmediateTaskEval(
+                next,
+                args.milestoneId,
+                args.microtaskId,
+                current.task.title,
+              );
+            }}
+          />
+        </SubmissionDialogPortal>
       )}
 
       {viewer && (
-        <SubmissionViewer
-          submission={viewer}
-          onClose={() => setViewer(null)}
-          onDownload={downloadSubmission}
-        />
+        <SubmissionDialogPortal>
+          <SubmissionViewer
+            submission={viewer}
+            onClose={() => setViewer(null)}
+            onDownload={downloadSubmission}
+          />
+        </SubmissionDialogPortal>
       )}
     </aside>
   );
@@ -845,7 +912,8 @@ function SubmissionViewer({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/48 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/48 p-4 backdrop-blur-md"
+      style={PBL_WORKSPACE_THEME}
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -1184,7 +1252,8 @@ function SubmissionModal({
   return (
     <div
       onClick={handleClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/48 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/48 p-4 backdrop-blur-md"
+      style={PBL_WORKSPACE_THEME}
     >
       <div
         onClick={(e) => e.stopPropagation()}
