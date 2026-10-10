@@ -104,7 +104,12 @@
 #   --colab             Preset Google Colab / runtime ephemerial (root tanpa
 #                       systemd): setara --yes --with-pm2 (postgres + pgadmin
 #                       tetap OFF kecuali diminta --with-postgres /
-#                       --with-pgadmin).
+#                       --with-pgadmin). Jalur cepat: apt idempoten (lewati
+#                       update/install bila paket sudah lengkap, ffmpeg dalam
+#                       satu transaksi), timeout `opencode models`/`auth list`
+#                       pendek (10/8 dtk, fallback katalog lokal), pnpm
+#                       --prefer-offline bila store terisi + heap mengikuti RAM,
+#                       PM2 tanpa audit/fund, dan penanda waktu tiap langkah.
 #                       Tulis --colab paling dulu bila digabung flag lain agar
 #                       masih bisa di-override (mis. --colab --with-pgadmin
 #                       --with-postgres).
@@ -147,6 +152,10 @@ set -euo pipefail
 # debconf yang menggantung di server tanpa TTY. Set sekali di sini, termasuk
 # untuk `playwright install --with-deps` yang memanggil apt sendiri.
 export DEBIAN_FRONTEND=noninteractive
+
+# Matikan telemetri Next.js di installer (hemat 1x panggilan jaringan + tulis
+# config saat `pnpm install`/`npm run build`; tanpa efek perilaku build).
+export NEXT_TELEMETRY_DISABLED=1
 
 # ---------------------------------------------------------------- warna & log
 if [[ -t 1 ]]; then
@@ -255,6 +264,28 @@ for arg in "$@"; do
   esac
 done
 [[ "$PG_MAJOR" =~ ^[0-9]+$ ]] || fail "--pg-major harus angka (contoh: --pg-major=18), bukan '$PG_MAJOR'."
+
+# Timeout panggilan jaringan OpenCode CLI. Runtime ephemerial (--colab) jarang
+# `opencode auth login`, jadi pakai timeout pendek agar fallback katalog lokal
+# langsung dipakai tanpa menunggu 30 detik per panggilan `opencode models`.
+if [[ "$WITH_COLAB" -eq 1 ]]; then
+  OPENCODE_CLI_TIMEOUT=10
+  OPENCODE_AUTH_TIMEOUT=8
+  OPENCODE_VER_TIMEOUT=10
+else
+  OPENCODE_CLI_TIMEOUT=30
+  OPENCODE_AUTH_TIMEOUT=15
+  OPENCODE_VER_TIMEOUT=20
+fi
+
+# Penanda waktu antar-langkah khusus --colab (best-effort, agar bottleneck
+# terlihat di log; no-op bila bukan colab agar log server tetap bersih).
+if [[ "$WITH_COLAB" -eq 1 ]]; then
+  COLAB_T0="$(date +%s)"
+  colab_mark() { local _now; _now="$(date +%s)"; info "waktu +$((_now - COLAB_T0))s: $*"; }
+else
+  colab_mark() { :; }
+fi
 
 # ---------------------------------------------------------------- sudo / root
 if [[ "$(id -u)" -eq 0 ]]; then
@@ -525,6 +556,19 @@ APT_PKGS=(
   libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev
 )
 if [[ "$WITH_POSTGRES" -eq 1 || "$WITH_PGADMIN" -eq 1 ]]; then APT_PKGS+=(gnupg); fi
+# ffmpeg digabung ke SATU transaksi apt (hemat 1x overhead dpkg + lock).
+# ffprobe ikut dalam paket ffmpeg; dilewati dengan --no-ffmpeg.
+if [[ "$WITH_FFMPEG" -eq 1 ]]; then APT_PKGS+=(ffmpeg); fi
+
+# Idempoten: lewati apt bila semua paket sudah terpasang (run ulang --colab
+# tidak membayar `apt-get update` + `apt-get install` lagi).
+apt_semua_terpasang() {
+  local p
+  for p in "$@"; do
+    dpkg -s "$p" >/dev/null 2>&1 || return 1
+  done
+  return 0
+}
 
 # ------------------------------------------------- sanitasi sumber r2u (deb-src)
 # r2u (https://r2u.stat.illinois.edu/ubuntu) hanya menyediakan paket binary
@@ -566,17 +610,28 @@ sanitasi_r2u_debsrc() {
 }
 sanitasi_r2u_debsrc
 
-info "Memperbarui daftar paket (apt-get update)..."
-run_as_root apt-get update -o Acquire::Retries=3
-info "Menginstal paket sistem via apt: ${APT_PKGS[*]}"
-run_as_root apt-get install -y -o Acquire::Retries=3 "${APT_PKGS[@]}"
-
-# ffmpeg (native apt) untuk provider `local-ffmpeg` (ekstraksi transcript
-# audio/video). Default dipasang; lewati dengan --no-ffmpeg.
-if [[ "$WITH_FFMPEG" -eq 1 ]]; then
-  info "Menginstal ffmpeg (ffprobe ikut dalam paket ffmpeg)..."
-  run_as_root apt-get install -y -o Acquire::Retries=3 ffmpeg
+# Lewati `apt-get update` bila (a) semua paket sudah terpasang, atau
+# (b) cache lists masih segar (<24 jam) — penghemat terbesar di run ulang.
+APT_PERLU_UPDATE=1
+if apt_semua_terpasang "${APT_PKGS[@]}"; then
+  info "Paket sistem sudah lengkap (${APT_PKGS[*]}) — lewati apt-get update/install."
+  APT_PERLU_UPDATE=0
+elif [[ -d /var/lib/apt/lists ]] \
+  && [[ -n "$(find /var/lib/apt/lists -maxdepth 1 -name '*InRelease' -mmin -1440 2>/dev/null)" ]]; then
+  info "Cache apt masih segar (<24 jam) — lewati apt-get update."
+  APT_PERLU_UPDATE=0
 fi
+if [[ "$APT_PERLU_UPDATE" -eq 1 ]]; then
+  info "Memperbarui daftar paket (apt-get update)..."
+  run_as_root apt-get update -o Acquire::Retries=3
+fi
+if apt_semua_terpasang "${APT_PKGS[@]}"; then
+  info "Paket sistem sudah lengkap — lewati apt-get install."
+else
+  info "Menginstal paket sistem via apt: ${APT_PKGS[*]}"
+  run_as_root apt-get install -y -o Acquire::Retries=3 "${APT_PKGS[@]}"
+fi
+colab_mark "paket sistem selesai"
 
 # ------------------------------------------------- PostgreSQL via PGDG
 # Paket `postgresql` bawaan distro tertinggal jauh (Ubuntu 24.04 = PG 16).
@@ -1375,16 +1430,16 @@ opencode_sudah_login() {
   out=""
   _auth_tmp="$(mktemp 2>/dev/null || echo '')"
   if [[ -n "$_auth_tmp" ]]; then
-    if opencode_sebagai_pemilik timeout 15 "$bin" auth list >"$_auth_tmp" 2>/dev/null; then
+    if opencode_sebagai_pemilik timeout "$OPENCODE_AUTH_TIMEOUT" "$bin" auth list >"$_auth_tmp" 2>/dev/null; then
       out="$(cat "$_auth_tmp" 2>/dev/null || true)"
     else
       # `auth list` gagal (CLI sangat lama?): coba alias `ls` sekali saja.
       # Bila ini pun gagal / mencetak help, di bawah ditolak sebagai help.
-      out="$(opencode_sebagai_pemilik timeout 15 "$bin" auth ls 2>/dev/null || true)"
+      out="$(opencode_sebagai_pemilik timeout "$OPENCODE_AUTH_TIMEOUT" "$bin" auth ls 2>/dev/null || true)"
     fi
     rm -f "$_auth_tmp"
   else
-    out="$(opencode_sebagai_pemilik timeout 15 "$bin" auth list 2>/dev/null || true)"
+    out="$(opencode_sebagai_pemilik timeout "$OPENCODE_AUTH_TIMEOUT" "$bin" auth list 2>/dev/null || true)"
     # Tanpa info exit code di jalur ini: output help ditolak di bawah anyway,
     # output kosong berarti belum login.
   fi
@@ -1442,7 +1497,7 @@ daftar_model_free_opencode() {
   if [[ -n "$bin" && -x "$bin" ]] && command -v timeout >/dev/null 2>&1 && command -v node >/dev/null 2>&1; then
     json_tmp="$(mktemp 2>/dev/null || echo '')"
     if [[ -n "$json_tmp" ]]; then
-      if opencode_sebagai_pemilik timeout 30 "$bin" models --format json >"$json_tmp" 2>/dev/null; then
+      if opencode_sebagai_pemilik timeout "$OPENCODE_CLI_TIMEOUT" "$bin" models --format json >"$json_tmp" 2>/dev/null; then
         out="$(node -e '
           const fs=require("node:fs");
           try{
@@ -1472,7 +1527,7 @@ daftar_model_free_opencode() {
     if [[ -z "$out" ]]; then
       txt_tmp="$(mktemp 2>/dev/null || echo '')"
       if [[ -n "$txt_tmp" ]]; then
-        if opencode_sebagai_pemilik timeout 30 "$bin" models >"$txt_tmp" 2>/dev/null; then
+        if opencode_sebagai_pemilik timeout "$OPENCODE_CLI_TIMEOUT" "$bin" models >"$txt_tmp" 2>/dev/null; then
           out="$(grep -oE 'opencode[/:][A-Za-z0-9._-]+' "$txt_tmp" 2>/dev/null \
             | sed -E 's|^opencode[/:]||' | grep -Ei 'free$|big-pickle' || true)"
           out="$(printf '%s' "$out" | awk 'NF && !seen[$0]++' | paste -sd, - 2>/dev/null || true)"
@@ -1508,7 +1563,7 @@ daftar_model_semua_opencode() {
   command -v node >/dev/null 2>&1 || return 1
   json_tmp="$(mktemp 2>/dev/null || echo '')"
   if [[ -n "$json_tmp" ]]; then
-    if opencode_sebagai_pemilik timeout 30 "$bin" models --format json >"$json_tmp" 2>/dev/null; then
+    if opencode_sebagai_pemilik timeout "$OPENCODE_CLI_TIMEOUT" "$bin" models --format json >"$json_tmp" 2>/dev/null; then
       out="$(node -e '
         const fs=require("node:fs");
         try{
@@ -1543,7 +1598,7 @@ daftar_model_semua_opencode() {
   if [[ -z "$out" ]]; then
     txt_tmp="$(mktemp 2>/dev/null || echo '')"
     if [[ -n "$txt_tmp" ]]; then
-      if opencode_sebagai_pemilik timeout 30 "$bin" models >"$txt_tmp" 2>/dev/null; then
+      if opencode_sebagai_pemilik timeout "$OPENCODE_CLI_TIMEOUT" "$bin" models >"$txt_tmp" 2>/dev/null; then
         out="$(grep -oE 'opencode[/:][A-Za-z0-9._-]+' "$txt_tmp" 2>/dev/null \
           | sed -E 's|^opencode[/:]||' || true)"
         out="$(printf '%s' "$out" | awk 'NF && !seen[$0]++' | paste -sd, - 2>/dev/null || true)"
@@ -1610,7 +1665,7 @@ daftar_model_go_opencode() {
   command -v node >/dev/null 2>&1 || return 1
   json_tmp="$(mktemp 2>/dev/null || echo '')"
   if [[ -n "$json_tmp" ]]; then
-    if opencode_sebagai_pemilik timeout 30 "$bin" models --format json >"$json_tmp" 2>/dev/null; then
+    if opencode_sebagai_pemilik timeout "$OPENCODE_CLI_TIMEOUT" "$bin" models --format json >"$json_tmp" 2>/dev/null; then
       out="$(GO_MODE="$mode" node -e '
         const fs=require("node:fs");
         try{
@@ -1646,7 +1701,7 @@ daftar_model_go_opencode() {
   if [[ -z "$out" ]]; then
     txt_tmp="$(mktemp 2>/dev/null || echo '')"
     if [[ -n "$txt_tmp" ]]; then
-      if opencode_sebagai_pemilik timeout 30 "$bin" models >"$txt_tmp" 2>/dev/null; then
+      if opencode_sebagai_pemilik timeout "$OPENCODE_CLI_TIMEOUT" "$bin" models >"$txt_tmp" 2>/dev/null; then
         out="$(grep -oE 'opencode-go[/:][A-Za-z0-9._-]+' "$txt_tmp" 2>/dev/null \
           | sed -E 's|^opencode-go[/:]||' || true)"
         if [[ "$mode" == "free" ]]; then
@@ -2519,8 +2574,32 @@ mkdir -p data/classrooms data/classroom-jobs
 if [[ "$WITH_INSTALL" -eq 1 ]]; then
   LANGKAH="pnpm install"
   info "Menjalankan pnpm install --frozen-lockfile (postinstall: build packages + sync vendor)..."
-  # Batas heap eksplisit seperti Dockerfile agar predictable di server kecil.
-  NODE_OPTIONS="--max-old-space-size=3072" pnpm install --frozen-lockfile
+  # Heap adaptif: 3072 seperti Dockerfile bila RAM cukup, turun mengikuti RAM
+  # di runtime kecil (--colab <4GB) agar tidak OOM; bawah 1024 tidak berguna.
+  PNPM_HEAP=3072
+  _ram_mb="$(awk '/^MemTotal:/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || true)"
+  if [[ "$_ram_mb" =~ ^[0-9]+$ ]]; then
+    _heap_ram=$((_ram_mb - 512))
+    if [[ "$_heap_ram" -lt 1024 ]]; then _heap_ram=1024; fi
+    if [[ "$_heap_ram" -lt "$PNPM_HEAP" ]]; then PNPM_HEAP="$_heap_ram"; fi
+  fi
+  unset _ram_mb _heap_ram
+  # Run ulang: --prefer-offline memakai pnpm store yang sudah terisi (hemat
+  # unduhan registry). Hanya bila store memang ada + berisi.
+  PNPM_INSTALL_ARGS=(--frozen-lockfile)
+  if [[ "$WITH_COLAB" -eq 1 ]]; then
+    _pnpm_store="$(pnpm store path 2>/dev/null || true)"
+    if [[ -n "$_pnpm_store" && -d "$_pnpm_store" ]] \
+      && [[ -n "$(ls -A "$_pnpm_store" 2>/dev/null)" ]]; then
+      PNPM_INSTALL_ARGS+=(--prefer-offline)
+      info "pnpm store terisi — pakai --prefer-offline (run ulang lebih cepat)."
+    fi
+    unset _pnpm_store
+    PNPM_INSTALL_ARGS+=(--reporter=append-only)
+  fi
+  NODE_OPTIONS="--max-old-space-size=${PNPM_HEAP}" pnpm install "${PNPM_INSTALL_ARGS[@]}"
+  unset PNPM_INSTALL_ARGS PNPM_HEAP
+  colab_mark "pnpm install selesai"
 
   LANGKAH="verifikasi dependensi"
   info "Verifikasi vendor bundle PPTX..."
@@ -2588,7 +2667,7 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
   fi
   if [[ -n "$OPENCODE_BIN_EXISTING" ]]; then
     OPENCODE_HAVE="$("$OPENCODE_BIN_EXISTING" --version 2>/dev/null | awk '{print $NF}' | sed 's/^v//' || true)"
-    OPENCODE_LATEST="$(curl -fsSL --max-time 20 https://opencode.ai/update/api/latest/cli/npm 2>/dev/null | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' || true)"
+    OPENCODE_LATEST="$(curl -fsSL --max-time "$OPENCODE_VER_TIMEOUT" https://opencode.ai/update/api/latest/cli/npm 2>/dev/null | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' || true)"
     if [[ -n "$OPENCODE_HAVE" && -n "$OPENCODE_LATEST" ]]; then
       if [[ "$OPENCODE_HAVE" == "$OPENCODE_LATEST" ]]; then
         info "OpenCode CLI ${OPENCODE_HAVE} sudah versi terbaru — lewati instalasi."
@@ -2788,6 +2867,7 @@ if [[ "$WITH_BUILD" -eq 1 ]]; then
   LANGKAH="npm run build"
   info "Menjalankan npm run build sebagai pembuktian..."
   npm run build
+  colab_mark "build --build selesai"
 fi
 
 # ==================================================== 11. Kepemilikan file (sudo)
@@ -2852,7 +2932,7 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
     info "PM2 sudah terinstal ($(pm2 --version 2>/dev/null || echo '?'))."
   else
     info "Menginstal PM2 global via npm..."
-    run_as_root npm install -g pm2 \
+    run_as_root npm install -g pm2 --no-audit --no-fund \
       || warn "Instalasi PM2 gagal; pasang manual: npm install -g pm2"
     hash -r 2>/dev/null || true
   fi
@@ -2888,6 +2968,7 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
         cp -f openmaic.yml .next/standalone/openmaic.yml
       fi
       info "Aset standalone disinkronkan (.next/static + public + openmaic.yml)."
+      colab_mark "build produksi + sinkron aset selesai"
       # Prompt PBL (@openmaic/generation/prompts-pbl) dibaca runtime via
       # readFileSync dengan path komputasi, jadi dikirim via
       # outputFileTracingIncludes di next.config.ts (bukan cp manual).
