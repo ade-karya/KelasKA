@@ -46,6 +46,7 @@ keakuratan kebahasaan; teks lebih panjang dan abstrak.
 ## Matematika SMP — ditambah aljabar, peluang, logika
 
 Muatan: **bilangan, aljabar, geometri dan pengukuran, data dan peluang**.
+Merujuk elemen Kurikulum 2013 dan Kurikulum Merdeka.
 Logika matematika diintegrasikan langsung ke elemen. Konteks keseharian
 personal/keluarga/lingkungan sekitar bersifat lokal.
 

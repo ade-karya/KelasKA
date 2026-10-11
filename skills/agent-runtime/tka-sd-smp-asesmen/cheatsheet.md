@@ -20,6 +20,7 @@
 - Panjang teks: SD 150–200 kata; SMP 200–250 kata; puisi dikecualikan.
 - Kalimat: SD 3–7 kata pola SPOK; SMP 5–9 kata.
 - Mata uji: Bahasa Indonesia + Matematika, keduanya dikerjakan.
+- Dasar hukum: Perkaban 047/H/AN/2025 (24 Juli 2025); acuan TKA: Permendikdasmen 9/2025 + Kepmen 95/M/2025.
 - Bukan kelulusan: jangan tulis konsekuensi lulus/tidak lulus di kelas.
 - Satu butir satu target; metadata selalu di brief.
 

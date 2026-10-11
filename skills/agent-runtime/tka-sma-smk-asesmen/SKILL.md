@@ -6,9 +6,11 @@ description: "Tes Kemampuan Akademik SMA/MA dan SMK/MAK per 045/H/AN/2025 plus m
 
 # Kerangka Asesmen TKA SMA/SMK
 
-Sumber: Peraturan Kepala BSKAP No. 045/H/AN/2025 (14 Juli 2025) untuk
-SMA/MA/sederajat dan SMK/MAK, dilengkapi kerangka Mata Uji Program Keahlian
-SMK/MAK (50 program keahlian, mengacu CP 046/H/KR/2025 Fase E). TKA bukan
+Sumber ganda, keduanya terverifikasi via MinerU T4: (1) Peraturan Kepala BSKAP
+No. 045/H/AN/2025 (14 Juli 2025) untuk mapel umum SMA/MA/sederajat dan
+SMK/MAK; (2) Peraturan Kepala BKPDM No. 1 Tahun 2026 untuk Mata Uji Program
+Keahlian SMK/MAK (50 program keahlian, kompetensi fondasi, mengacu CP
+046/H/KR/2025 Fase E dengan sebagian rujukan Fase F). TKA bukan
 penentu kelulusan; kelulusan tetap wewenang satuan pendidikan.
 
 Gunakan skill ini untuk merancang **satu stage OpenMAIC** yang selaras TKA
@@ -51,7 +53,7 @@ dan pedagogi setiap brief.
 - Wajib SMA/SMK: **Bahasa Indonesia, Matematika, Bahasa Inggris** (semuanya
   dikerjakan) + **dua pilihan** sesuai prodi/karir. Daftar 19 pilihan:
   B. Indonesia lanjut, Matematika lanjut, B. Inggris lanjut, Fisika, Kimia,
-  Biologi, PPKn/Pendidikan Pancasila, Ekonomi, Geografi, Sosiologi, Sejarah,
+  Biologi, Pendidikan Pancasila dan Kewarganegaraan/Pendidikan Pancasila, Ekonomi, Geografi, Sosiologi, Sejarah,
   Antropologi, Bahasa Prancis, Jerman, Jepang, Mandarin, Korea, Arab,
   Produk/Projek Kreatif dan Kewirausahaan (SMK).
 - Program Keahlian SMK: 50 program (daftar di
@@ -59,15 +61,18 @@ dan pedagogi setiap brief.
   Busana.
 - Jenis soal: SMA tiap mapel ada **tunggal** (berdiri sendiri) dan **grup**
   (satu stimulus, beberapa butir). SMK Program Keahlian: **soal tunggal**
-  saja.
+  saja (Perka BKPDM 1/2026 — "jenis soal pada setiap mata uji berupa soal
+  tunggal"; mapel umum SMK tetap ikut kerangka 045/H/AN/2025).
 - Bentuk soal selalu tiga: **PG sederhana** (satu benar), **PGK MCMA**
   (benar lebih dari satu), **PGK kategori** (Benar/Salah, Sesuai/Tidak
   Sesuai, Setuju/Tidak Setuju, Tepat/Tidak Tepat per baris).
-- Setiap butir wajib bermetadata: Kompetensi/Subkompetensi atau
-  Elemen/Sub-elemen + Level Kognitif + Bentuk Soal. Tulis metadata di
+- Setiap butir wajib bermetadata. SMA: Kompetensi/Subkompetensi + Level
+  Kognitif + Bentuk Soal + Jenis (tunggal/grup). SMK Program Keahlian memakai
+  6 kolom resmi: No. Soal, Elemen/Materi, Sub-elemen/Submateri, Kompetensi,
+  Level Kognitif, Bentuk Soal (label resmi "Pilihan Ganda"). Tulis metadata di
   `brief`, bukan di teks learner.
 
-### III. Tiga kompetensi membaca (berlaku semua bahasa)
+### III. Tiga kompetensi membaca (B. Indonesia dan B. Inggris; 6 bahasa asing memakai Pemahaman Literal / Reorganisasi / Pemahaman Inferensial)
 
 1. **Tekstual** — eksplisit: identifikasi, klasifikasi, kerangka/bagan,
    ringkas, sintesis.
@@ -90,18 +95,25 @@ exposition–discussion teknologi dan isu faktual.
   (Memodelkan, Menerapkan, Menginterpretasikan), L3 Reasoning (Menganalisis,
   Memecahkan masalah, Mengevaluasi, Menyimpulkan, Generalisasi,
   Menjustifikasi).
-- Sains/IPS/bahasa: Knowing (mengenali–menjelaskan–contoh), Applying
+- Sains/IPS: Knowing (mengenali–menjelaskan–contoh), Applying
   (membandingkan–menginterpretasikan model/informasi), Reasoning
   (memprediksi–merancang–mengevaluasi–menyimpulkan–menganalisis–
-  generalisasi–justifikasi). Fisika memakai label Pemahaman / Penerapan /
+  generalisasi–justifikasi). Pengecualian label resmi: **Geografi memakai
+  Pemahaman / Penerapan / Penalaran**; **6 bahasa asing memakai Pemahaman
+  Literal / Reorganisasi / Pemahaman Inferensial** (bukan Knowing–Applying–
+  Reasoning). Fisika memakai label Pemahaman / Penerapan /
   Analisis-Evaluasi + keterampilan proses sains (mengamati, mempertanyakan–
   memprediksi, merencanakan–menyelidiki, menganalisis–mengomunikasikan
   data). Biologi memakai Pemahaman / Penerapan / Penalaran + inkuiri.
-- SMK Program Keahlian: Knowing (mengidentifikasi–menjelaskan),
-  Applying (menerapkan–menggunakan–menghitung–mengoperasikan),
-  Reasoning (menganalisis–mengevaluasi–menyimpulkan–solusi operasional).
-  Elemen fondasi berulang: wawasan dunia kerja, K3LH dan budaya kerja 5R,
-  teknik dasar dan gambar teknik.
+- SMK Program Keahlian (label resmi: **Pengetahuan dan Pemahaman /
+  Aplikasi / Penalaran**): L1 (Memahami–Mengidentifikasi–Menjelaskan–
+  Mendeskripsikan–Mengenali), L2 (Menerapkan–Menggunakan–Menghitung–
+  Mengoperasikan–Menginterpretasikan–Mengklasifikasikan), L3 (Menganalisis–
+  Membandingkan–Mengevaluasi–Menyimpulkan–Memecahkan masalah–Merencanakan).
+  Satu sub-elemen bisa diukur di beberapa level kognitif.
+  Elemen fondasi berulang: wawasan dunia kerja, K3LH dan budaya kerja 5R/5S,
+  teknik dasar dan gambar teknik (hanya 14 program teknik; rumpun lain memakai
+  sketsa, desain 2D/3D, fotografi, atau tanpa gambar).
 
 ## Indeks muatan
 
@@ -196,8 +208,12 @@ membuatnya terlihat.
 
 ## Batasan
 
-Hanya mencakup 045/H/AN/2025 dan kerangka Program Keahlian SMK. Tabel penuh
-50 program diringkas pada pola fondasi; detail per program ada di regulasi
-sumber (CP 046/H/KR/2025 Fase E). Untuk implementasi di codebase, gabungkan
+Mencakup Perka BSKAP 045/H/AN/2025 (14 Juli 2025; mapel umum SMA/MA dan
+SMK/MAK) dan Perka BKPDM 1/2026 (Mata Uji Program Keahlian SMK/MAK;
+tanggal penetapan tak terbaca — cover salinan berupa pindaian). Tabel penuh
+50 program diringkas pada pola fondasi; detail dan batasan per program ada di
+regulasi sumber (CP 046/H/KR/2025 Fase E, sebagian merujuk Fase F; contoh
+resmi ±300 butir, 6 per program). Batasan larangan bersifat per-rumpun, bukan
+umum — cek `references/muatan-smk-keahlian.md` sebelum menulis butir SMK. Untuk implementasi di codebase, gabungkan
 dengan tool project. Topik di luar TKA: periksa skill terkait atau tanyakan
 langsung.

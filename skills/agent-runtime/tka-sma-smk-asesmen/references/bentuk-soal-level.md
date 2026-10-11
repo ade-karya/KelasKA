@@ -11,7 +11,7 @@
 
 | Bentuk | Aturan |
 |---|---|
-| PG sederhana | Satu benar; pilih satu (SMA: A–E) |
+| PG sederhana (label resmi "Pilihan Ganda") | Satu benar; pilih satu (contoh resmi beropsi A–E; jumlah opsi tak diatur eksplisit; SMK: 5 opsi A–E) |
 | PGK MCMA | Benar lebih dari satu; pilih semua yang benar |
 | PGK kategori | Respons tiap baris: Benar/Salah, Sesuai/Tidak Sesuai, Setuju/Tidak Setuju, Tepat/Tidak Tepat |
 
@@ -31,20 +31,33 @@
 - Biologi: Pemahaman (jelaskan konsep dari info dipelajari/disediakan);
   Penerapan (pakai konsep selesaikan masalah); Penalaran (analisis–evaluasi–
   simpulan info kompleks + argumen berbasis bukti).
-- IPS–bahasa: Knowing (mengenali–mengingat–definisi–prosedur); Applying
-  (terapkan konsep pada kasus, interpretasi data/sumber, kronologi, sebab–
-  akibat); Reasoning (kaitkan konsep–fenomena, evaluasi–refleksi–argumentasi
-  berbasis teori–data–fakta, rekomendasi).
-- SMK keahlian: Knowing (mengidentifikasi–menjelaskan); Applying
-  (menerapkan–menggunakan–menghitung–mengoperasikan–menentukan); Reasoning
-  (menganalisis–membandingkan–mengevaluasi–menyimpulkan–solusi operasional).
+- IPS (Ekonomi, Sosiologi, Sejarah, Antropologi, PPKn, Produk/KWU): Knowing
+  (mengenali–mengingat–definisi–prosedur); Applying (terapkan konsep pada
+  kasus, interpretasi data/sumber, kronologi, sebab–akibat); Reasoning
+  (kaitkan konsep–fenomena, evaluasi–refleksi–argumentasi berbasis
+  teori–data–fakta, rekomendasi). **Geografi memakai Pemahaman / Penerapan /
+  Penalaran**; **6 bahasa asing memakai Pemahaman Literal / Reorganisasi /
+  Pemahaman Inferensial**.
+- SMK keahlian (label resmi Pengetahuan dan Pemahaman / Aplikasi /
+  Penalaran): L1 Memahami–Mengidentifikasi–Menjelaskan–Mendeskripsikan–
+  Mengenali; L2 Menerapkan–Menggunakan–Menghitung–Mengoperasikan–
+  Menginterpretasikan–Mengklasifikasikan–Menentukan–Mengurutkan; L3
+  Menganalisis–Membandingkan–Mengevaluasi–Menyimpulkan–Memecahkan masalah–
+  Merencanakan. Satu sub-elemen bisa diukur di beberapa level kognitif.
 
 ## Kaidah penulisan butir
 
 1. Satu butir satu target (kompetensi + level dominan); metadata di `brief`.
 2. Grup butuh stimulus cukup (SMA B. Indonesia 250–300 kata; lanjut 300–350;
-   Inggris B1 250–350 / B2 300–400); SMK kontekstual dunia kerja ringan–
-   sedang.
+   Inggris B1 250–350 / A2 200–300 ≤2000 kata; lanjut B2 300–400); SMK
+   kontekstual dunia kerja ringan–sedang (kasus, tabel, dokumen administrasi;
+   contoh resmi ±300 butir, 6 per program, opsi PG A–E).
 3. Distraktor dari miskonsepsi nyata; tiap baris kategori independen.
-4. Kunci tunggal konsisten ("Kunci Jawaban : X"); patuhi batasan (tanpa
-   L'Hopital, tanpa HAZOP/JSA, tanpa ERP/CRM/SERVQUAL, tanpa desain IC).
+   Varian label resmi: Benar/Salah, Sesuai/Tidak Sesuai, Setuju/Tidak Setuju,
+   Tepat/Tidak Tepat, Conservation/Relaxation (B. Inggris), Yes/No.
+4. Kunci tunggal konsisten tiga pola resmi: PG satu huruf (A–E), MCMA
+   "Pernyataan …", kategori "Benar, Salah …". Patuhi batasan per-rumpun:
+   tanpa L'Hopital (Mat lanjut); HAZOP/JSA formal khusus Perminyakan
+   (JSA justru dipakai sebagai stimulus contoh resmi); ERP/ROI/AI dan MRP
+   khusus Logistik; CRM/SERVQUAL khusus Pelayanan Pelanggan; tanpa desain
+   IC (Elektronika); tanpa toleransi presisi tinggi industri (Mesin).

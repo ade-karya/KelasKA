@@ -10,15 +10,16 @@
 | Hitung rutin / baca grafik / kelompokkan / identifikasi | L1 / Knowing |
 | Modelkan / terapkan rutin / tafsir makna | L2 / Applying |
 | Konteks baru, kaitkan banyak konsep, nilai strategi, generalisasi, justifikasi | L3 / Reasoning |
+| Soal SMK keahlian | Label resmi: Pengetahuan dan Pemahaman / Aplikasi / Penalaran |
 | Satu benar | PG |
 | Beberapa benar | PGK MCMA |
 | Nilai per baris | PGK kategori |
 | Stimulus bersama (SMA) | Grup |
-| SMK keahlian | Tunggal saja |
+| SMK keahlian (BKPDM 1/2026) | Tunggal saja |
 
 ## Ambang
 
-- B. Indonesia 250–300 kata; lanjut 300–350; Inggris B1 250–350 / B2 300–400.
+- B. Indonesia 250–300 kata; lanjut 300–350; Inggris B1 250–350 / A2 200–300 (≤2000 kata); lanjut B2 300–400.
 - Wajib: B. Indonesia + Matematika + B. Inggris, tambah 2 pilihan.
 - Bukan kelulusan; satu butir satu target; metadata di brief.
 
@@ -27,8 +28,8 @@
 - Hanya mengajar yang diujikan → penyempitan kurikulum.
 - Baris kategori tidak independen → petunjuk silang.
 - Keluar batasan (L'Hopital, HAZOP, ERP/CRM, desain IC/sistem) → cek referensi.
-- SMK memakai soal grup → salah; program keahlian tunggal saja.
-- Kunci ganda format → samakan "Kunci Jawaban : X".
+- SMK memakai soal grup → salah; program keahlian tunggal saja (1/2026).
+- Kunci tiga pola resmi: PG satu huruf (A–E), MCMA "Pernyataan …", kategori "Benar, Salah …".
 
 ## Istilah → lokasi
 

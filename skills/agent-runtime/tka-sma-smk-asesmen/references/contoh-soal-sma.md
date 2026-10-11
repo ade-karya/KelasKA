@@ -28,4 +28,10 @@ disalin mentah.
 3. Objek geometri sudut, L2, PGK kategori — trapesium AD=BC, AB∥DC,
    ∠BAD=70°, ∠ABD=30°. Kunci: Benar, Benar, Salah.
 4. Pengukuran luas, L3, PG — trapesium siku-siku, AB=3, AD≤BC; kecukupan dua
-   pernyataan untuk "keliling > 25".
+   pernyataan untuk "keliling > 25". Kunci: B.
+5. Trigonometri (perbandingan sin–cos–tan–cotan–sec–csc), L2 Aplikasi, PG —
+   tangga 6 m disandarkan ke dinding, sudut dengan lantai 60°, tinggi sentuh
+   dinding. Kunci: C.
+6. Data–Peluang (pemusatan–penyebaran tunggal–kelompok), L3 Penalaran,
+   PGK MCMA — nilai tiga murid ujian susulan, semua pernyataan benar.
+   Kunci: pernyataan 1, 2, 3, 4.

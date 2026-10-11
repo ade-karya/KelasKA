@@ -23,13 +23,13 @@ Contoh kunci resmi: PGK MCMA "Pernyataan 2 dan Pernyataan 3"; PGK kategori
 
 | Level | Proses | Deskripsi |
 |---|---|---|
-| L1 Knowing and Understanding | Menghitung | Hitung aritmetika (+ − × ÷ atau kombinasi; SMP tambah aljabar/operasi lain) |
+| L1 Knowing and Understanding | Menghitung | Hitung aritmetika (+ − × ÷ atau kombinasi; SMP tambah operasi aljabar/operasi matematika lain — redaksi resmi) |
 | L1 | Memahami informasi | Baca grafik fungsi, tabel, diagram, infografis, visual lain |
 | L1 | Mengelompokkan | Kelompokkan objek berdasar fakta/konsep/prinsip sub-elemen |
 | L1 | Mengidentifikasi | Identifikasi objek dengan konsep/fakta/prinsip sub-elemen |
 | L2 Applying | Memodelkan | Ubah masalah kontekstual jadi kalimat matematika |
-| L2 | Mengaplikasikan | Pakai rumus/strategi rutin yang familiar |
-| L2 | Menginterpretasikan | Jelaskan makna situasi, pernyataan, representasi, masalah |
+| L2 | Mengaplikasikan | SD: pakai rumus/strategi rutin yang familiar; SMP: pakai strategi dan operasi matematika (hitung, aljabar, atau bentuk lain) untuk masalah familiar dan rutin |
+| L2 | Menginterpretasikan | Jelaskan makna situasi, pernyataan, representasi, masalah (SMP: pahami dan jelaskan maknanya) |
 | L3 Reasoning | Menganalisis | Tentukan dan gunakan hubungan antarkonsep/fakta/prinsip/prosedur |
 | L3 | Memecahkan masalah | Kaitkan banyak representasi untuk situasi baru/tidak rutin |
 | L3 | Mengevaluasi | Nilai alternatif strategi dan solusi |

@@ -1,13 +1,17 @@
 # Muatan pilihan SMA/SMK — 045/H/AN/2025
 
 Peserta mengerjakan 2 mapel pilihan sesuai prodi/karir. Semua memakai bentuk
-PG / PGK-MCMA / PGK-kategori dan tiga level kognitif.
+PG / PGK-MCMA / PGK-kategori dan tiga level kognitif. Catatan CP 046
+(Lampiran II): kelas X memakai IPA/IPS terpadu — Fisika, Kimia, Biologi dan
+Geografi, Ekonomi, Sosiologi, Antropologi, Sejarah menjadi mapel mandiri
+mulai Fase F (XI); 6 bahasa asing dan semua mapel Tingkat Lanjut hanya Fase F.
 
 ## Bahasa Indonesia Tingkat Lanjut (300–350 kata, kecuali puisi)
 
 Kosakata: khusus + umum, berimbuhan kompleks, abstrak, denotatif, istilah
 teknis, konotatif luas, nuansa makna. Kalimat: kompleks berbagai pola,
-efektif, logis. Wacana kohesif–koheren, konjungsi antarparagraf, ejaan.
+efektif, logis. Wacana kohesif–koheren, konjungsi antarparagraf, ejaan. Fiksi
+berlatar konkret, abstrak, atau metaforis.
 
 - Tekstual: informasi teks akademik; kalimat tanggapan/respons/kritik sesuai
   norma sosial-budaya; kalimat usulan–masalah–solusi akademik/kerja; karakter–
@@ -54,7 +58,7 @@ kata, kalimat kompleks. B1: 250–350 kata, ≤3000 kata.
   (suhu–wujud–pemuaian–perpindahan, rumah kaca, Boyle–Gay Lussac–gas ideal,
   4 proses termo–mesin kalor), listrik (Coulomb–medan–potensial, Ohm–Kirchoff
   seri-paralel daya). Level: Pemahaman / Penerapan / Analisis–Evaluasi.
-  Konteks: fenomena lingkungan, makhluk hidup, teknologi, percobaan.
+  Konteks: fenomena lingkungan, makhluk hidup, teknologi, percobaan (variabel–langkah–data).
 - Kimia: dasar (atom golongan utama, VSEPR–domain, ikatan ion–kovalen–
   koordinasi–logam–antarmolekul), stoikiometri (mol, Proust, Avogadro, gas,
   kekekalan massa, empiris–molekul, kadar, penyetaraan, pembatas, rendemen),
@@ -66,13 +70,15 @@ kata, kalimat kompleks. B1: 250–350 kata, ≤3000 kata.
 - Biologi: keanekaragaman Indonesia (klasifikasi, bakteri Gram, ekosistem),
   sel (katabolisme–anabolisme, enzim), transport manusia (sirkulasi–respirasi–
   ekskresi, keterkaitan antarsistem), imun, koordinasi (saraf–hormon),
-  reproduksi; KPS (mempertanyakan–merencanakan–memproses). Level:
+  reproduksi; KPS (mempertanyakan–merencanakan–memproses; miskonsepsi dapat menghalangi penalaran/inkuiri). Level:
   Pemahaman / Penerapan / Penalaran.
 
 ## IPS
 
-- PPKn: Pancasila, UUD 1945, Bhinneka Tunggal Ika, NKRI; menjelaskan–
-  menerapkan–menganalisis.
+- Pendidikan Pancasila dan Kewarganegaraan/Pendidikan Pancasila (PPKn):
+  Pancasila, UUD 1945, Bhinneka Tunggal Ika, NKRI; menjelaskan–
+  menerapkan–menganalisis. Muatan merujuk elemen PPKn K13 + Pendidikan
+  Pancasila Kurikulum Merdeka.
 - Ekonomi: konsep dasar (kelangkaan, biaya peluang), mikro–makro
   (permintaan–penawaran, pendapatan nasional, ketenagakerjaan, inflasi,
   moneter–fiskal–pajak, BUMN–BUMD–BUMS–koperasi), internasional (dagang,
@@ -96,8 +102,13 @@ Jerman A1+–A2.1 (~750 kata, naratif–deskripsi–dialog–fungsional); Jepang
 sederhana + pinyin, S+V+O); Korea TOPIK I-1 (≤200 hangeul); Arab dasar
 (fusha, naratif 25–50 kata, dialog 5–6 tanya-jawab, nahwu–sharf).
 
-## Produk/Projek Kreatif dan Kewirausahaan (SMK)
+## Produk/Projek Kreatif dan Kewirausahaan SMK/MAK (pilihan #19)
 
+Dua kompetensi resmi: **Kegiatan produksi** + **Kewirausahaan** (13
+sub-kompetensi: rencana produksi, quality assurance, kemasan–labelling,
+prototipe, distribusi, peluang, proposal, HAKI, laporan keuangan).
 Produksi–pemasaran–distribusi (desain, kemasan–labelling, prototipe,
-perencanaan–biaya, mutu) + pengelolaan usaha (peluang, proposal, keuangan,
-HaKI); knowing–applying–reasoning.
+perencanaan–biaya, mutu/QA) + pengelolaan usaha (peluang, proposal,
+keuangan, HAKI); knowing–applying–reasoning. Catatan: CP 046 tak memuat
+mapel ini tersendiri — fondasi KWU SMK ada di Wawasan Dunia Kerja tiap
+Dasar-dasar kejuruan.

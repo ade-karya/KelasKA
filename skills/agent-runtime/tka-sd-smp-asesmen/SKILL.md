@@ -7,8 +7,12 @@ description: "Tes Kemampuan Akademik SD/MI dan SMP/MTs per Peraturan Kepala BSKA
 # Kerangka Asesmen TKA SD/SMP
 
 Sumber tunggal: Peraturan Kepala Badan Standar, Kurikulum, dan Asesmen Pendidikan
-No. 047/H/AN/2025 (ditetapkan 24 Juli 2025) — Kerangka Asesmen Tes Kemampuan
-Akademik jenjang SD/MI/sederajat dan SMP/MTs/sederajat. TKA bukan penentu
+No. 047/H/AN/2025 (ditetapkan 24 Juli 2025, Toni Toharudin) — Kerangka Asesmen Tes Kemampuan
+Akademik jenjang SD/MI/sederajat dan SMP/MTs/sederajat. Terverifikasi kata-per-kata
+terhadap Salinan Perkaban 47/2025 via MinerU T4. Dasar hukum TKA: Permendikdasmen
+No. 9/2025 tentang Tes Kemampuan Akademik + Kepmen No. 95/M/2025 Pedoman
+Penyelenggaraan TKA. Struktur resmi: I. Latar Belakang dan Tujuan; II. Mata Uji dan
+Jenis Soal; III. Muatan dan Kompetensi; IV. Contoh Soal. TKA bukan penentu
 kelulusan; kelulusan tetap wewenang pendidik dan satuan pendidikan.
 
 Gunakan skill ini untuk merancang **satu stage OpenMAIC** yang selaras TKA:
@@ -91,6 +95,11 @@ Diukur pada tiga level, dari mudah ke sulit:
 
 - **L1 Knowing and Understanding** — Menghitung, Memahami informasi
   (grafik/tabel/diagram/infografis), Mengelompokkan, Mengidentifikasi.
+  Redaksi resmi berbeda: SD "Menghitung ... operasi hitung aritmetika" dan
+  "Mengaplikasikan rumus matematika ..."; SMP "Menghitung ... operasi hitung
+  aritmetika, operasi aljabar, atau operasi matematika lainnya" dan
+  "Mengaplikasikan strategi dan operasi matematika ...". Detail di
+  `references/bentuk-soal.md`.
 - **L2 Applying** — Memodelkan (kontekstual ke kalimat matematika),
   Mengaplikasikan (rumus/strategi rutin), Menginterpretasikan (makna situasi
   atau representasi).
@@ -232,7 +241,10 @@ performa yang membuatnya terlihat. Jangan memutar ulang seluruh daftar halaman.
 
 ## Batasan
 
-Skill ini hanya mencakup isi Peraturan 047/H/AN/2025. Untuk implementasi
+Skill ini hanya mencakup isi Peraturan 047/H/AN/2025 (terverifikasi terhadap
+Salinan Perkaban 47/2025). Revisi CP 2026 (Kepka BKPDM 020 tentang Agama +
+021 tentang Kepercayaan) tidak mengubah muatan TKA SD/SMP — TKA jenjang ini
+hanya menguji Bahasa Indonesia dan Matematika. Untuk implementasi
 langsung di codebase, gabungkan dengan tool project. Untuk topik di luar TKA,
 periksa skill terkait atau tanyakan langsung ke agen. Jika gambar sumber tidak
 terbaca (lebih dari 5 gambar hilang saat ekstraksi), nyatakan jumlahnya.

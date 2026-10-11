@@ -1,11 +1,16 @@
 # Mata Uji Program Keahlian SMK/MAK — 50 program
 
-Mengacu CP 046/H/KR/2025 Fase E. Mengukur **kompetensi fondasi** (irisan
-konsentrasi keahlian), adaptif teknologi, bukan penentu kelulusan. Jenis soal:
-**tunggal saja**. Bentuk: PG / PGK-MCMA / PGK-kategori. Level: Knowing
-(mengidentifikasi–menjelaskan) / Applying (menerapkan–menggunakan–
-menghitung–mengoperasikan) / Reasoning (menganalisis–mengevaluasi–
-menyimpulkan–solusi).
+Sumber: Perka BKPDM 1/2026 (pelengkap khusus SMK dari 045/H/AN/2025; nol
+rujukan ke 045 — mapel umum SMK tetap ikut kerangka 045). Mengacu CP
+046/H/KR/2025 Fase E (sebagian program merujuk Fase F). Mengukur
+**kompetensi fondasi** — irisan utama konsentrasi keahlian per program,
+esensial dan representatif — adaptif teknologi dan dunia kerja, penjaminan
+mutu dan arah perbaikan pembelajaran, bukan penentu kelulusan.
+Jenis soal: **tunggal saja** ("pada setiap mata uji"). Bentuk: PG
+("Pilihan Ganda") / PGK-MCMA / PGK-kategori. Level resmi: Pengetahuan dan
+Pemahaman / Aplikasi / Penalaran (satu sub-elemen bisa diukur di beberapa
+level). Contoh resmi ±300 butir (6/program): PG ±131, MCMA ±82, kategori
+±72; Aplikasi ±118, Penalaran ±85, Pengetahuan-Pemahaman ±79.
 
 ## Daftar 50 program
 
@@ -32,18 +37,30 @@ Keuangan Lembaga · 40 Usaha Layanan Pariwisata · 41 Perhotelan · 42 Kuliner �
 Produksi Kriya · 47 Seni Pertunjukan · 48 Broadcasting–Perfilman · 49 Animasi ·
 50 Busana
 
-## Pola fondasi berulang (pakai untuk tiap program)
+Nama resmi memakai bentuk panjang ("Konstruksi dan Perawatan …",
+"Pengembangan Perangkat Lunak dan Gim" = PPLG–Gim, "Akuntansi dan Keuangan
+Lembaga"); singkatan di atas hanya untuk hemat tempat.
+
+## Pola fondasi (elemen 1–2 hampir universal; selebihnya per-rumpun)
 
 - Wawasan dunia kerja: proses bisnis, profesi–job profile–technopreneurship,
-  isu global (green building, industri 4.0, sustainability).
+  isu global (green building, industri 4.0, sustainability). Kewirausahaan SMK
+  tidak ada sebagai mapel CP tersendiri — peluang usaha + technopreneurship
+  hidup di elemen Wawasan tiap Dasar-dasar kejuruan (CP 046 Lampiran III).
 - Kecakapan dasar + K3LH + budaya kerja: APD, 5R (Ringkas–Rapi–Resik–Rawat–
-  Rajin), SOP, risiko ringan–sedang (tanpa HAZOP/JSA formal, tanpa sertifikasi
-  industri).
-- Teknik dasar + gambar teknik: alat tangan–ukur–bertenga sesuai SOP bengkel/
-  lab sekolah; gambar proyeksi–potongan, standar ISO/SNI, CAD/skim dasar.
-- Batasan khas: hitungan sederhana (volume, biaya, RAB), tanpa toleransi
-  presisi industri, tanpa desain sistem lanjutan, tanpa business plan/analisis
-  finansial, tanpa ERP–ROI–AI prediktif.
+  Rajin; contoh resmi juga memakai 5S Jepang Seiri–Shitsuke), SOP, risiko
+  ringan–sedang.
+- Teknik dasar (+ gambar teknik HANYA di 14 program teknik: 1–8, 10–12, 16,
+  17, 19): alat tangan–ukur–bertenga sesuai SOP bengkel/lab sekolah; gambar
+  proyeksi–potongan, standar ISO/SNI, CAD/skim dasar. Rumpun lain: sketsa,
+  desain 2D/3D, fotografi/videografi, storyboard — atau tanpa gambar.
+- Batasan khas BERSIFAT PER-RUMPUN (jangan digeneralisasi): hitungan
+  sederhana (volume, biaya, RAB); tanpa toleransi presisi tinggi industri
+  (Mesin); tanpa desain sistem lanjutan atau perhitungan teknis kompleks
+  (Energi); tanpa business plan/analisis finansial (Energi); HAZOP/JSA formal
+  khusus Perminyakan; ERP/ROI/AI dan MRP khusus Logistik; CRM/SERVQUAL
+  khusus Pelayanan Pelanggan; tanpa desain IC (Elektronika); tanpa sertifikasi
+  kompetensi industri (Mesin, Elektronika, Logistik).
 
 ## Contoh fondasi per rumpun (dari regulasi)
 
@@ -60,6 +77,12 @@ Produksi Kriya · 47 Seni Pertunjukan · 48 Broadcasting–Perfilman · 49 Anima
   sterilisasi–media–TPC/MPN, label–MSDS.
 - Bisnis–layanan (37–43): bauran pemasaran, dokumen–arsip, laporan keuangan
   dasar, pelayanan prima–keluhan, mutu–HaKI.
+- Maritim–perikanan (33–36): konvensi internasional sebagai batas muatan
+  (UNCLOS, SOLAS, STCW, MARPOL).
+- Penopang CP (046 Lampiran III): Dasar-dasar kejuruan Fase E tiap bidang
+  (Wawasan, K3 + budaya kerja termasuk 5R, teknik dasar, bahan, gambar
+  teknik/CADD); Projek IPAS, Sejarah SMK, dan Koding-KA Fase E; Konsentrasi
+  Keahlian Fase F.
 
 Detail tabel penuh tiap program ada di regulasi sumber; skill ini menyimpan
 pola + batasan agar butir tidak keluar dari fondasi.

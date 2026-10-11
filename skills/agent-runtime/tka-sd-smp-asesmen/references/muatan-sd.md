@@ -38,7 +38,8 @@ Tiga kompetensi dan subkompetensi:
 
 ## Matematika SD — fakta, konsep, prinsip, prosedur + problem solving
 
-Muatan: **bilangan, geometri dan pengukuran, data**. Konteks: matematika dan
+Muatan: **bilangan, geometri dan pengukuran, data**. Merujuk elemen Kurikulum 2013
+dan Kurikulum Merdeka. Konteks: matematika dan
 keseharian (personal, keluarga, lingkungan sekitar).
 
 Kemampuan matematis: pengetahuan, representasi matematis, penalaran, pemecahan
