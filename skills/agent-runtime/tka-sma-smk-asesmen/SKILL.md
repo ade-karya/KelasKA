@@ -127,18 +127,37 @@ exposition–discussion teknologi dan isu faktual.
 
 ## Merancang stage selaras TKA SMA/SMK
 
-Tetapkan dulu: jenjang (SMA/MA atau SMK/MAK + program keahlian), mapel, dan
-target kompetensi atau elemen. Lalu baca dengan tool `read` asli:
+Tetapkan dulu tiga hal ini secara berurutan (jenjang → kategori →
+nama mapel), lalu baca dengan tool `read` asli:
 
 1. [references/bentuk-soal-level.md](references/bentuk-soal-level.md), selalu;
 2. tepat satu muatan yang cocok (wajib, pilihan, atau SMK keahlian);
 3. [references/contoh-soal-sma.md](references/contoh-soal-sma.md) saat menulis
    butir baru, sebagai model format dan kunci.
 
-Bila mapel belum jelas, ajukan maksimal dua pertanyaan penentu dalam satu
-panggilan `ask_user`. Default ke SMA Bahasa Indonesia wajib, stimulus
-250–300 kata, satu grup 2–3 butir. Jangan tanyakan ulang yang sudah ada di
-permintaan atau materi.
+Alur pertanyaan penentu (wajib tiga langkah, satu pertanyaan per
+panggilan `ask_user`, berurutan — jangan digabung dalam satu panggilan):
+
+1. **Jenjang:** tanyakan tingkat — SD/MI, SMP/MTs, SMA/MA, atau SMK/MAK
+   (untuk SMK, tanyakan juga nama program keahliannya). Jika jawaban
+   SD/MI atau SMP/MTs, alihkan ke skill `tka-sd-smp-asesmen` dan ikuti
+   alur di sana. Skill ini hanya mencakup SMA/MA dan SMK/MAK.
+2. **Kategori mata pelajaran:** tanyakan Wajib, Pilihan, atau (khusus
+   SMK) Program Keahlian. Wajib SMA/SMK: Bahasa Indonesia, Matematika,
+   Bahasa Inggris (semuanya dikerjakan) + dua pilihan. Pilihan (19):
+   B. Indonesia lanjut, Matematika lanjut, B. Inggris lanjut, Fisika,
+   Kimia, Biologi, Pendidikan Pancasila, Ekonomi, Geografi, Sosiologi,
+   Sejarah, Antropologi, Bahasa Prancis, Jerman, Jepang, Mandarin,
+   Korea, Arab, Produk/Projek Kreatif dan Kewirausahaan (SMK).
+   Program Keahlian SMK: 50 program — lihat
+   `references/muatan-smk-keahlian.md`.
+3. **Nama mata pelajaran:** tanyakan mata pelajarannya sesuai kategori
+   yang dipilih pada langkah 2 (untuk SMK Program Keahlian: nama
+   program keahliannya).
+
+Default jika pengguna tidak menjawab: SMA Bahasa Indonesia wajib,
+stimulus 250–300 kata, satu grup 2–3 butir. Jangan tanyakan ulang yang
+sudah ada di permintaan atau materi.
 
 Nyatakan kontrak belajar sebelum daftar halaman:
 

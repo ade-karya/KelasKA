@@ -132,9 +132,8 @@ sub-elemen ada di referensi; jangan keluar dari batasan itu saat menulis soal.
 
 ## Merancang stage selaras TKA
 
-Sebelum mengusulkan halaman, tetapkan: jenjang (SD/MI atau SMP/MTs), mapel
-(B. Indonesia atau Matematika), dan target kompetensi atau elemen. Kemudian
-baca dengan tool `read` asli:
+Sebelum mengusulkan halaman, tetapkan tiga hal ini secara berurutan
+(jenjang → kategori → nama mapel), lalu baca dengan tool `read` asli:
 
 1. [references/bentuk-soal.md](references/bentuk-soal.md), selalu;
 2. tepat satu dari [references/muatan-sd.md](references/muatan-sd.md) atau
@@ -142,8 +141,22 @@ baca dengan tool `read` asli:
 3. [references/contoh-soal.md](references/contoh-soal.md) saat menulis butir
    baru, sebagai model format dan kunci.
 
-Jika jenjang atau mapel belum jelas, ajukan maksimal dua pertanyaan penentu
-dalam satu panggilan `ask_user`. Default selebihnya ke SD/MI Bahasa Indonesia,
+Alur pertanyaan penentu (wajib tiga langkah, satu pertanyaan per
+panggilan `ask_user`, berurutan — jangan digabung dalam satu panggilan):
+
+1. **Jenjang:** tanyakan tingkat — SD/MI, SMP/MTs, SMA/MA, atau SMK/MAK.
+   Jika jawaban SMA/MA atau SMK/MAK, alihkan ke skill
+   `tka-sma-smk-asesmen` dan ikuti alur di sana. Skill ini hanya
+   mencakup SD/MI dan SMP/MTs.
+2. **Kategori mata pelajaran:** tanyakan Wajib atau Pilihan. Untuk
+   SD/MI dan SMP/MTs TKA hanya menguji Bahasa Indonesia dan
+   Matematika dan keduanya wajib dikerjakan — tidak ada mata uji
+   pilihan. Tetap tanyakan langkah ini untuk konfirmasi, lalu
+   tetapkan kategori Wajib.
+3. **Nama mata pelajaran:** tanyakan mata pelajarannya — Bahasa
+   Indonesia atau Matematika.
+
+Default jika pengguna tidak menjawab: SD/MI Bahasa Indonesia (Wajib),
 teks informasi 150–200 kata, satu stimulus grup 2–3 butir. Jangan tanyakan
 ulang informasi yang sudah ada di permintaan atau materi terlampir.
 
