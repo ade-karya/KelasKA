@@ -55,7 +55,7 @@ async function drain(stream: AsyncIterable<unknown>): Promise<void> {
 }
 
 const providers = {
-  openai: { preset: 'openai', apiKey: 'sk' },
+  openai: { preset: 'openai', apiKey: 'sk', models: ['gpt-5.6-luna'] },
   ac: { preset: 'atlascloud', apiKey: 'sk' },
   opencode: { preset: 'opencode', apiKey: 'sk' },
   'opencode-go': { preset: 'opencode-go', apiKey: 'sk' },

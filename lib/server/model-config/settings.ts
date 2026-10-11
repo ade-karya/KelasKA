@@ -12,6 +12,11 @@
  * read-only. Every change is validated against the whole configuration before
  * it is stored, so a stored workspace configuration always resolves.
  */
+import {
+  deploymentAuthorizedModels,
+  ModelAuthorizationError,
+  usesServerCredentials,
+} from './model-authorization';
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 import { z } from 'zod';
@@ -283,7 +288,17 @@ function isOpencodeRegistryId(registryId: string): registryId is OpencodeCliProv
 function capabilityModels(
   preset: ProviderPreset | undefined,
   pinned?: string[],
-  { chatOnly = false }: { chatOnly?: boolean } = {},
+  {
+    chatOnly = false,
+    strictModels = false,
+    deployment,
+    providerId,
+  }: {
+    chatOnly?: boolean;
+    strictModels?: boolean;
+    deployment?: ModelConfigFile;
+    providerId?: string;
+  } = {},
 ): CapabilityModels {
   const result: CapabilityModels = {};
   if (!preset) return result;
@@ -295,16 +310,18 @@ function capabilityModels(
     // OpenCode CLI hanya untuk Pro Workbench: lewati di view classic.
     if (registryId && isOpencodeRegistryId(registryId)) continue;
     const offered = preset.trustsModelCatalogue === false ? [] : presetModels(preset, capability);
-    // A provider's own model list narrows (or names) the models it serves:
-    // the chat models for chat, and the fetched/pinned ids (a $0 OpenRouter
-    // list, a hand-added id) everywhere else. Unknown ids ride the catalogue
-    // entry when it names them, else their id.
+    // A provider's own model list narrows (or names) the chat models it serves.
+    // Server-managed credentials enforce deployment authorization (strictModels).
+    const authorized =
+      strictModels && providerId
+        ? deploymentAuthorizedModels(deployment, providerId, capability)
+        : pinned;
     const models =
-      pinned?.length && registryId
-        ? pinned.map(
+      (capability === 'chat' && pinned?.length) || strictModels
+        ? (authorized ?? []).map(
             (id) =>
               offered.find((model) => model.id === id) ??
-              catalogueModel(capability, registryId, id),
+              catalogueModel(capability, registryId!, id),
           )
         : offered;
     result[capability] = { models, ...(registryId ? { registryId } : {}) };
@@ -433,7 +450,8 @@ function effectiveFor(
     }
     return effectiveView(resolution);
   } catch (error) {
-    if (error instanceof SlotResolutionError) return { status: 'invalid', message: error.message };
+    if (error instanceof SlotResolutionError || error instanceof ModelAuthorizationError)
+      return { status: 'invalid', message: error.message };
     throw error;
   }
 }
@@ -477,7 +495,11 @@ export function modelSettingsView(stored: StoredWorkspaceConfig | null): ModelSe
       source: 'deployment' as const,
       ...(provider.models ? { models: [...provider.models] } : {}),
       ...(provider.options ? { options: { ...provider.options } } : {}),
-      capabilities: capabilityModels(getProviderPreset(provider.preset), provider.models),
+      capabilities: capabilityModels(getProviderPreset(provider.preset), provider.models, {
+        strictModels: usesServerCredentials(provider),
+        deployment: deployment?.config,
+        providerId: id,
+      }),
     })),
     ...Object.entries(workspaceProviders).map(([id, provider]) => ({
       id,
@@ -792,6 +814,7 @@ export async function applyModelSettingsChange(
         }
       }
     } catch (error) {
+      if (error instanceof ModelAuthorizationError) throw error;
       if (error instanceof SlotResolutionError) {
         throw new ModelSettingsError('INVALID_ASSIGNMENT', error.message);
       }
@@ -905,6 +928,10 @@ export async function importModelSettings(
       config = await applyModelSettingsChange(config, change);
       imported.push(item);
     } catch (error) {
+      if (error instanceof ModelAuthorizationError) {
+        skipped.push({ ...item, code: 'INVALID_ASSIGNMENT', reason: error.message });
+        return;
+      }
       if (!(error instanceof ModelSettingsError)) throw error;
       skipped.push({ ...item, code: error.code, reason: error.message });
     }
