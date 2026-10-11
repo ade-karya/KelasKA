@@ -56,6 +56,14 @@ const env = {
 if (!env.OPENMAIC_CONFIG) {
   env.OPENMAIC_CONFIG = path.join(root, 'openmaic.yml');
 }
+// Paksa bind ke semua interface. Jangan andalkan urutan spread di atas:
+// `pm2 restart --update-env` mewarisi HOSTNAME dari shell (ID container,
+// mis. 87ea30a9246a) sehingga menimpa '0.0.0.0' dan server hanya listen di
+// IP container (curl localhost:3000 -> refused). Untuk restart, JANGAN pakai
+// bare `--update-env`; pakai `pm2 restart ecosystem.config.cjs` (tanpa flag)
+// atau `HOSTNAME=0.0.0.0 pm2 restart ecosystem.config.cjs --update-env`.
+env.HOSTNAME = '0.0.0.0';
+if (!env.PORT) env.PORT = '3000';
 // Health endpoint reads npm_package_version (normally set by npm run start).
 if (pkgVersion && !env.npm_package_version) env.npm_package_version = pkgVersion;
 
