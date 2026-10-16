@@ -207,7 +207,7 @@ export function buildStateContext(storeState: StatelessChatRequest['storeState']
           const score = quizResults.results.reduce((acc, r) => acc + (r.earned ?? 0), 0);
           const total = questions.reduce((acc, q) => acc + (q.points ?? 1), 0);
           lines.push(
-            `Quiz results — the student JUST submitted (${score}/${total} pts). Use these to address THIS student's specific mistakes; do not re-teach what they already got right. Walk through wrong answers, acknowledge correct ones briefly, and tie feedback back to the underlying concept.\n${lineEntries.join('\n')}`,
+            `Quiz results — the student JUST submitted (${score}/${total} pts). Use these to address THIS student's specific mistakes; do not re-teach what they already got right. Walk through wrong answers, acknowledge correct ones briefly, and tie feedback back to the underlying concept.\nRemediation style (especially math/science reasoning like UTBK/SNBT): for each WRONG answer, teach step-by-step on the whiteboard — open it, then alternate short speech with one clear board element per reasoning step (step title via wb_draw_text, each formula via wb_draw_latex, compare options via wb_draw_table when useful). One formula per draw, numbered Langkah 1/2/3 (or Step 1/2/3), keep layout in safe zones with gaps, do not crowd. Start from the concept, show every derivation/calculation to the final answer, and explicitly contrast why the student's answer fails.\n${lineEntries.join('\n')}`,
           );
         } else {
           // Student has NOT submitted yet. Surface the questions in full so the

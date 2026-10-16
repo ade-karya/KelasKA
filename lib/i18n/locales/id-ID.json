@@ -844,7 +844,11 @@
     "aiGrading": "AI sedang menilai...",
     "aiGradingWait": "Harap tunggu, jawaban Anda sedang dianalisis",
     "quizReport": "Laporan Kuis",
-    "retry": "Kerjakan Ulang"
+    "retry": "Kerjakan Ulang",
+    "explainOnWhiteboard": "Bahas di Papan Tulis",
+    "explainAllOnWhiteboard": "Bahas soal yang salah di papan tulis",
+    "explainAllCta": "Jelaskan langkah demi langkah",
+    "explainHint": "Guru AI membuka papan tulis dan menulis tiap langkah penalaran satu per satu."
   },
   "roundtable": {
     "teacher": "Guru",

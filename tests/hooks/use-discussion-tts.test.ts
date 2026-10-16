@@ -604,7 +604,7 @@ describe('discussion TTS synthesis lookahead', () => {
  * speak/cancel cycling far more often than plain turns.
  */
 describe('discussion TTS browser speech failure recovery', () => {
-  const browserTeacher = {
+  const browserTeacher: AgentConfig = {
     ...teacher,
     id: 'browser-teacher',
     voiceConfig: { providerId: 'browser-native-tts', voiceId: 'browser-voice' },

@@ -844,7 +844,11 @@
     "aiGrading": "AI is grading...",
     "aiGradingWait": "Please wait, analyzing your answers",
     "quizReport": "Quiz Report",
-    "retry": "Retry"
+    "retry": "Retry",
+    "explainOnWhiteboard": "Explain on Whiteboard",
+    "explainAllOnWhiteboard": "Walk through my mistakes on the whiteboard",
+    "explainAllCta": "Explain step by step",
+    "explainHint": "The AI teacher opens the whiteboard and writes each reasoning step one by one."
   },
   "roundtable": {
     "teacher": "TEACHER",

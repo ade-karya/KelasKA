@@ -844,7 +844,11 @@
     "aiGrading": "AI 正在批改中...",
     "aiGradingWait": "請稍候，正在分析你的答案",
     "quizReport": "答題報告",
-    "retry": "重新答題"
+    "retry": "重新答題",
+    "explainOnWhiteboard": "在白板上講解",
+    "explainAllOnWhiteboard": "在白板上逐題講解錯題",
+    "explainAllCta": "逐步講解",
+    "explainHint": "AI 老師會打開白板，把每一步推理逐條寫出來。"
   },
   "roundtable": {
     "teacher": "教師",

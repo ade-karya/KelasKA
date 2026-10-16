@@ -844,7 +844,11 @@
     "aiGrading": "AI đang chấm…",
     "aiGradingWait": "Vui lòng đợi, đang phân tích câu trả lời của bạn",
     "quizReport": "Báo cáo kết quả",
-    "retry": "Làm lại"
+    "retry": "Làm lại",
+    "explainOnWhiteboard": "Giảng trên bảng",
+    "explainAllOnWhiteboard": "Chữa câu sai trên bảng",
+    "explainAllCta": "Giảng từng bước",
+    "explainHint": "Giáo viên AI mở bảng và viết từng bước suy luận một."
   },
   "roundtable": {
     "teacher": "GIẢNG VIÊN",

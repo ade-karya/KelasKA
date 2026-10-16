@@ -2,16 +2,16 @@
  * Sibling-still reuse for image-to-video generation.
  *
  * When a video element sits on a slide that already holds a committed image
- * (e.g. a class image generated earlier), the orchestrator animates THAT
- * still instead of billing a second image generation.
+ * (e.g. a class image generated earlier), the server media lane animates THAT
+ * still instead of billing a second image generation. These tests pin the
+ * pure lookup the lane reads the course document with.
  */
 import { describe, expect, it } from 'vitest';
 
 import {
   findOtherSlideImageSources,
   findSiblingImageSources,
-  materializeSiblingStill,
-} from '@/lib/media/media-orchestrator';
+} from '@/lib/media/sibling-image-source';
 
 const slideWithVideoAndImage = {
   id: 'scene_1',
@@ -104,9 +104,9 @@ describe('findOtherSlideImageSources', () => {
   };
 
   it('finds a committed classroom image when the video slide has none', () => {
-    expect(findOtherSlideImageSources([slideWithVideoOnly, slideWithImage], 'gen_vid_x')).toEqual(
-      [{ elementId: 'img_class', src: 'ast_classimage1' }],
-    );
+    expect(findOtherSlideImageSources([slideWithVideoOnly, slideWithImage], 'gen_vid_x')).toEqual([
+      { elementId: 'img_class', src: 'ast_classimage1' },
+    ]);
   });
 
   it('skips the video slide even when it holds its own committed image', () => {
@@ -121,17 +121,5 @@ describe('findOtherSlideImageSources', () => {
     expect(findOtherSlideImageSources([slideWithImage], 'gen_vid_missing')).toEqual([]);
     expect(findOtherSlideImageSources([slideWithVideoOnly], 'gen_vid_x')).toEqual([]);
     expect(findOtherSlideImageSources(undefined, 'gen_vid_x')).toEqual([]);
-  });
-});
-
-describe('materializeSiblingStill', () => {
-  it('passes remote https: refs through untouched', async () => {
-    await expect(materializeSiblingStill('https://cdn.example/a.jpg')).resolves.toBe(
-      'https://cdn.example/a.jpg',
-    );
-  });
-
-  it('returns undefined for empty refs', async () => {
-    await expect(materializeSiblingStill('  ')).resolves.toBeUndefined();
   });
 });

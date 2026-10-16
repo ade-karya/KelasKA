@@ -844,7 +844,11 @@
     "aiGrading": "A IA está corrigindo...",
     "aiGradingWait": "Aguarde, analisando suas respostas",
     "quizReport": "Relatório do Questionário",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "explainOnWhiteboard": "Explicar no quadro",
+    "explainAllOnWhiteboard": "Revisar meus erros no quadro",
+    "explainAllCta": "Explicar passo a passo",
+    "explainHint": "O professor IA abre o quadro e escreve cada passo do raciocínio um por um."
   },
   "roundtable": {
     "teacher": "PROFESSOR",

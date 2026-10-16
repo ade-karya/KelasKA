@@ -844,7 +844,11 @@
     "aiGrading": "Die KI wertet aus...",
     "aiGradingWait": "Bitte warten, deine Antworten werden ausgewertet",
     "quizReport": "Quizbericht",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "explainOnWhiteboard": "An der Tafel erklären",
+    "explainAllOnWhiteboard": "Meine Fehler an der Tafel durchgehen",
+    "explainAllCta": "Schritt für Schritt erklären",
+    "explainHint": "Die KI-Lehrkraft öffnet die Tafel und schreibt jeden Denkschritt einzeln auf."
   },
   "roundtable": {
     "teacher": "LEHRKRAFT",

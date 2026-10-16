@@ -13,6 +13,7 @@ import {
   BookOpenText,
   Loader2,
   Sparkles,
+  Presentation,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
@@ -20,6 +21,12 @@ import { createLogger } from '@/lib/logger';
 
 const log = createLogger('QuizView');
 import type { QuizQuestion } from '@/lib/types/stage';
+import {
+  buildMultiQuizWhiteboardExplainMessage,
+  buildSingleQuizWhiteboardExplainMessage,
+  dispatchQuizWhiteboardExplain,
+  type QuizWhiteboardExplainItem,
+} from '@/lib/quiz/whiteboard-explain';
 import { SpeechButton } from '@/components/audio/speech-button';
 import { gradeChoiceQuestions, isShortAnswer, type QuestionResult } from '@/lib/quiz/grading';
 import { renderQuizMathText } from '@/lib/quiz/math-text';
@@ -598,6 +605,46 @@ function QuestionCard({
   );
 }
 
+function quizOptionDisplay(question: QuizQuestion, value: string): string {
+  const byValue = question.options?.find((o) => o.value === value);
+  if (byValue) return `${byValue.value}. ${byValue.label}`;
+  const byLabel = question.options?.find((o) => o.label === value);
+  if (byLabel) return `${byLabel.value}. ${byLabel.label}`;
+  return value;
+}
+
+function quizStudentAnswerText(
+  question: QuizQuestion,
+  answer: string | string[] | undefined,
+): string {
+  if (Array.isArray(answer)) {
+    if (answer.length === 0) return '';
+    return answer.map((v) => quizOptionDisplay(question, v)).join(', ');
+  }
+  return (answer ?? '').trim();
+}
+
+function quizCorrectAnswerText(question: QuizQuestion): string {
+  const key = Array.isArray(question.answer) ? question.answer : [];
+  if (key.length === 0) return '';
+  return key.map((v) => quizOptionDisplay(question, v)).join(', ');
+}
+
+function toWhiteboardExplainItem(
+  question: QuizQuestion,
+  index: number,
+  answer: string | string[] | undefined,
+): QuizWhiteboardExplainItem {
+  return {
+    questionNumber: index + 1,
+    questionId: question.id,
+    question: question.question,
+    studentAnswer: quizStudentAnswerText(question, answer),
+    correctAnswer: quizCorrectAnswerText(question),
+    analysis: question.analysis,
+  };
+}
+
 function ScoreBanner({
   score,
   total,
@@ -876,6 +923,33 @@ export function QuizView({ questions, sceneId, stageId }: QuizViewProps) {
     return map;
   }, [results]);
 
+  const wrongExplainItems = useMemo(
+    () =>
+      questions
+        .map((q, i) => ({ q, i, r: resultMap[q.id] }))
+        .filter(({ r }) => r?.status === 'incorrect')
+        .map(({ q, i }) => toWhiteboardExplainItem(q, i, answers[q.id])),
+    [questions, resultMap, answers],
+  );
+
+  const handleExplainSingle = useCallback(
+    (question: QuizQuestion, index: number) => {
+      const item = toWhiteboardExplainItem(question, index, answers[question.id]);
+      const message = buildSingleQuizWhiteboardExplainMessage(item, locale);
+      dispatchQuizWhiteboardExplain(message, { sceneId, questionIds: [question.id] });
+    },
+    [answers, locale, sceneId],
+  );
+
+  const handleExplainAllWrong = useCallback(() => {
+    if (wrongExplainItems.length === 0) return;
+    const message = buildMultiQuizWhiteboardExplainMessage(wrongExplainItems, locale);
+    dispatchQuizWhiteboardExplain(message, {
+      sceneId,
+      questionIds: wrongExplainItems.map((item) => item.questionId),
+    });
+  }, [wrongExplainItems, locale, sceneId]);
+
   if (runtimeGate.status === 'error') {
     return (
       <div className="flex h-full w-full items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -1065,10 +1139,36 @@ export function QuizView({ questions, sceneId, stageId }: QuizViewProps) {
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               <ScoreBanner score={earnedScore} total={totalPoints} results={results} />
 
+              {wrongExplainItems.length > 0 && (
+                <div className="rounded-2xl border border-violet-200 dark:border-violet-800 bg-violet-50/70 dark:bg-violet-900/20 p-4 flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-violet-500 text-white flex items-center justify-center shrink-0">
+                    <Presentation className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-violet-900 dark:text-violet-100">
+                      {t('quiz.explainAllOnWhiteboard')}
+                    </p>
+                    <p className="text-xs text-violet-700/80 dark:text-violet-300/80 mt-0.5">
+                      {t('quiz.explainHint')}
+                    </p>
+                    <button
+                      type="button"
+                      data-testid="quiz-explain-all-whiteboard"
+                      onClick={handleExplainAllWrong}
+                      className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-violet-600 text-white text-xs font-medium shadow-sm hover:bg-violet-700 active:scale-[0.97] transition-all"
+                    >
+                      <Presentation className="w-3.5 h-3.5" />
+                      {t('quiz.explainAllCta')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {questions.map((q, i) => {
                 const r = resultMap[q.id];
-                if (q.type === 'single') {
-                  return (
+                const isWrong = r?.status === 'incorrect';
+                const questionNode =
+                  q.type === 'single' ? (
                     <SingleChoiceQuestion
                       key={q.id}
                       question={q}
@@ -1078,10 +1178,7 @@ export function QuizView({ questions, sceneId, stageId }: QuizViewProps) {
                       disabled
                       result={r}
                     />
-                  );
-                }
-                if (q.type === 'multiple') {
-                  return (
+                  ) : q.type === 'multiple' ? (
                     <MultipleChoiceQuestion
                       key={q.id}
                       question={q}
@@ -1091,18 +1188,33 @@ export function QuizView({ questions, sceneId, stageId }: QuizViewProps) {
                       disabled
                       result={r}
                     />
+                  ) : (
+                    <ShortAnswerQuestion
+                      key={q.id}
+                      question={q}
+                      index={i}
+                      value={answers[q.id] as string | undefined}
+                      onChange={() => {}}
+                      disabled
+                      result={r}
+                    />
                   );
-                }
+                if (!isWrong) return questionNode;
                 return (
-                  <ShortAnswerQuestion
-                    key={q.id}
-                    question={q}
-                    index={i}
-                    value={answers[q.id] as string | undefined}
-                    onChange={() => {}}
-                    disabled
-                    result={r}
-                  />
+                  <div key={q.id} className="space-y-2">
+                    {questionNode}
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        data-testid={`quiz-explain-whiteboard-${q.id}`}
+                        onClick={() => handleExplainSingle(q, i)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-violet-200 dark:border-violet-700 bg-white dark:bg-gray-800 text-xs font-medium text-violet-700 dark:text-violet-300 shadow-sm hover:bg-violet-50 dark:hover:bg-violet-900/40 hover:border-violet-300 active:scale-[0.97] transition-all"
+                      >
+                        <Presentation className="w-3.5 h-3.5" />
+                        {t('quiz.explainOnWhiteboard')}
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
             </div>

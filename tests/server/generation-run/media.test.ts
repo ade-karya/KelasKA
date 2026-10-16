@@ -14,6 +14,15 @@ const mocks = vi.hoisted(() => ({
   commitGenerationRunIn: vi.fn(),
 }));
 
+const persistence = vi.hoisted(() => ({ resolve: vi.fn() }));
+
+vi.mock('@/lib/persistence/server-provider', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/persistence/server-provider')>()),
+  getServerPersistenceProvider: async () => ({
+    assetStore: { resolve: persistence.resolve },
+  }),
+}));
+
 vi.mock('@/lib/server/model-config/media', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/server/model-config/media')>()),
   resolveMediaSlot: mocks.resolveMediaSlot,
@@ -277,6 +286,7 @@ describe('image-to-video source still', () => {
   function i2vLaneContext(
     request: Record<string, unknown>,
     imageSlot: { status: 'ready' } | { status: 'off' },
+    scenes: unknown = [],
   ) {
     const steps = new Map<string, unknown>([
       ['media:gen_vid_1', { mediaType: 'video', status: 'queued' }],
@@ -299,10 +309,16 @@ describe('image-to-video source still', () => {
       owner: () => 'user:a',
       refreshOwner: async () => undefined,
       stageId: 'stage-1',
+      courseScenes: async () => scenes,
       outline: { outlines: [], languageDirective: '', taskEngineMode: false },
       items: [
         {
-          request: { type: 'video' as const, prompt: 'a cat surfing', elementId: 'gen_vid_1', ...request },
+          request: {
+            type: 'video' as const,
+            prompt: 'a cat surfing',
+            elementId: 'gen_vid_1',
+            ...request,
+          },
           sceneIndex: 0,
         },
       ],
@@ -317,6 +333,7 @@ describe('image-to-video source still', () => {
   }
 
   beforeEach(() => {
+    persistence.resolve.mockReset();
     mocks.generateImageStep.mockReset().mockResolvedValue({
       base64: Buffer.from([1, 2, 3]).toString('base64'),
       mimeType: 'image/png',
@@ -386,6 +403,163 @@ describe('image-to-video source still', () => {
       status: 'failed',
       message: expect.stringContaining('turned off'),
     });
+  });
+
+  it("reuses the committed image on the video's slide instead of generating a still", async () => {
+    const scenes = [
+      {
+        id: 'scene_1',
+        content: {
+          canvas: {
+            elements: [
+              { id: 'img_1', type: 'image', src: 'https://cdn.example/a.jpg' },
+              { id: 'video_1', type: 'video', mediaRef: 'gen_vid_1' },
+            ],
+          },
+        },
+      },
+    ];
+    const { ctx, steps } = i2vLaneContext({}, { status: 'ready' }, scenes);
+    await runMediaLane(ctx as never);
+    expect(mocks.generateImageStep).not.toHaveBeenCalled();
+    expect(mocks.generateVideoStep).toHaveBeenCalledTimes(1);
+    const options = mocks.generateVideoStep.mock.calls[0]![0].options as {
+      sourceImageUrl?: string;
+    };
+    expect(options.sourceImageUrl).toBe('https://cdn.example/a.jpg');
+    expect(steps.get('media:gen_vid_1')).toEqual({
+      mediaType: 'video',
+      status: 'stored',
+      assetId: 'ast_v',
+    });
+  });
+
+  it('reuses a committed image even when the image slot is off', async () => {
+    // The committed image needs no fresh generation, so a turned-off image
+    // slot must not fail the video.
+    const scenes = [
+      {
+        id: 'scene_1',
+        content: {
+          canvas: {
+            elements: [
+              { id: 'img_1', type: 'image', src: 'https://cdn.example/a.jpg' },
+              { id: 'video_1', type: 'video', mediaRef: 'gen_vid_1' },
+            ],
+          },
+        },
+      },
+    ];
+    const { ctx } = i2vLaneContext({}, { status: 'off' }, scenes);
+    await runMediaLane(ctx as never);
+    expect(mocks.generateImageStep).not.toHaveBeenCalled();
+    expect(mocks.generateVideoStep).toHaveBeenCalledTimes(1);
+    const options = mocks.generateVideoStep.mock.calls[0]![0].options as {
+      sourceImageUrl?: string;
+    };
+    expect(options.sourceImageUrl).toBe('https://cdn.example/a.jpg');
+  });
+
+  it("falls back to another slide's committed image before generating", async () => {
+    const scenes = [
+      {
+        id: 'scene_video',
+        content: {
+          canvas: { elements: [{ id: 'video_1', type: 'video', mediaRef: 'gen_vid_1' }] },
+        },
+      },
+      {
+        id: 'scene_image',
+        content: {
+          canvas: {
+            elements: [{ id: 'img_class', type: 'image', src: 'https://cdn.example/class.jpg' }],
+          },
+        },
+      },
+    ];
+    const { ctx } = i2vLaneContext({}, { status: 'ready' }, scenes);
+    await runMediaLane(ctx as never);
+    expect(mocks.generateImageStep).not.toHaveBeenCalled();
+    const options = mocks.generateVideoStep.mock.calls[0]![0].options as {
+      sourceImageUrl?: string;
+    };
+    expect(options.sourceImageUrl).toBe('https://cdn.example/class.jpg');
+  });
+
+  it('falls back to generating the still when the course holds only placeholders', async () => {
+    const scenes = [
+      {
+        id: 'scene_1',
+        content: {
+          canvas: {
+            elements: [
+              { id: 'img_pending', type: 'image', src: 'gen_img_pending' },
+              { id: 'video_1', type: 'video', mediaRef: 'gen_vid_1' },
+            ],
+          },
+        },
+      },
+    ];
+    const { ctx } = i2vLaneContext({}, { status: 'ready' }, scenes);
+    await runMediaLane(ctx as never);
+    expect(mocks.generateImageStep).toHaveBeenCalledTimes(1);
+    const options = mocks.generateVideoStep.mock.calls[0]![0].options as {
+      sourceImageUrl?: string;
+    };
+    expect(options.sourceImageUrl).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('never asks the pool about a reference it cannot hold', async () => {
+    const scenes = [
+      {
+        id: 'scene_1',
+        content: {
+          canvas: {
+            elements: [
+              { id: 'img_import', type: 'image', src: 'V1StGXR8_Z5jdHi6B-myT' },
+              { id: 'video_1', type: 'video', mediaRef: 'gen_vid_1' },
+            ],
+          },
+        },
+      },
+    ];
+    const { ctx } = i2vLaneContext({}, { status: 'ready' }, scenes);
+    await runMediaLane(ctx as never);
+    // An id an import minted is not the pool's: the guard keeps the asset
+    // store out of it, and the still is generated fresh instead.
+    expect(persistence.resolve).not.toHaveBeenCalled();
+    expect(mocks.generateImageStep).toHaveBeenCalledTimes(1);
+  });
+
+  it('inlines a committed pool image as a data URL without generating a still', async () => {
+    persistence.resolve.mockResolvedValue({
+      bytes: new Uint8Array([1, 2, 3]),
+      mime: 'image/png',
+      revision: 1,
+    });
+    const scenes = [
+      {
+        id: 'scene_1',
+        content: {
+          canvas: {
+            elements: [
+              { id: 'img_asset', type: 'image', src: 'ast_classimage1' },
+              { id: 'video_1', type: 'video', mediaRef: 'gen_vid_1' },
+            ],
+          },
+        },
+      },
+    ];
+    const { ctx } = i2vLaneContext({}, { status: 'ready' }, scenes);
+    await runMediaLane(ctx as never);
+    expect(mocks.generateImageStep).not.toHaveBeenCalled();
+    const options = mocks.generateVideoStep.mock.calls[0]![0].options as {
+      sourceImageUrl?: string;
+    };
+    expect(options.sourceImageUrl).toBe(
+      `data:image/png;base64,${Buffer.from([1, 2, 3]).toString('base64')}`,
+    );
+    expect(persistence.resolve).toHaveBeenCalledWith(expect.anything(), 'ast_classimage1');
   });
 });
 describe('recording a submitted video task', () => {

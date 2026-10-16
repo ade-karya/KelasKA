@@ -844,7 +844,11 @@
     "aiGrading": "AIが採点中...",
     "aiGradingWait": "回答を分析しています。お待ちください",
     "quizReport": "クイズレポート",
-    "retry": "やり直す"
+    "retry": "やり直す",
+    "explainOnWhiteboard": "ホワイトボードで解説",
+    "explainAllOnWhiteboard": "間違えた問題をホワイトボードで解説",
+    "explainAllCta": "ステップごとに解説",
+    "explainHint": "AI先生がホワイトボードを開き、推論の各ステップを1つずつ書きます。"
   },
   "roundtable": {
     "teacher": "教師",

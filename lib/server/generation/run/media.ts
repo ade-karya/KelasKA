@@ -27,6 +27,11 @@ import { toAssetId } from '@openmaic/storage';
 
 import { rewriteSceneMediaReference } from '@/lib/media/generated-media-references';
 import { ASSET_QUOTA_EXCEEDED } from '@/lib/media/media-failure';
+import { mayNameAPoolAsset } from '@/lib/media/media-placeholder';
+import {
+  findOtherSlideImageSources,
+  findSiblingImageSources,
+} from '@/lib/media/sibling-image-source';
 import type { MediaGenerationRequest, VideoProviderId } from '@/lib/media/types';
 import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
 import { createLogger } from '@/lib/logger';
@@ -211,6 +216,13 @@ export interface MediaLaneContext {
   owner(): string;
   refreshOwner(): Promise<void>;
   stageId: string;
+  /**
+   * The course's current scenes, for the sibling-still lookup: a video an
+   * image-to-video provider must animate prefers a committed image of the
+   * course over billing a fresh still. A read that fails without ending the
+   * lane falls back to generating the still.
+   */
+  courseScenes(): Promise<unknown>;
   outline: GenerationRunOutline;
   items: readonly RunMediaItem[];
   /** The run's checkpoints, shared with the engine (media entries included). */
@@ -241,6 +253,75 @@ export function endsLane(error: unknown, signal: AbortSignal): boolean {
     isGenerationRunLeaseLostError(error) ||
     (error instanceof Error && error.name === 'RunCourseDeletedError')
   );
+}
+
+/** Reused stills above this are skipped (the data: URL would burst request limits). */
+const MAX_REUSED_STILL_BYTES = 8 * 1024 * 1024;
+
+/**
+ * Turn a committed image src into what the video step accepts as
+ * `sourceImageUrl`. Remote `https:` refs and the course's own `data:image`
+ * URLs pass through (a provider fetches them directly); asset-pool bytes
+ * (`ast_*`) are read here and inlined as a `data:` URL, because a pool id is
+ * no address the provider could fetch. Returns undefined when the candidate
+ * is unusable, so the caller tries the next one or bills a fresh still.
+ */
+async function materializeReusedStill(ownerId: string, src: string): Promise<string | undefined> {
+  const trimmed = src.trim();
+  if (!trimmed) return undefined;
+  if (/^https:/i.test(trimmed) || /^data:image\//i.test(trimmed)) return trimmed;
+  if (!mayNameAPoolAsset(trimmed)) return undefined;
+  try {
+    const { assetStore } = await getServerPersistenceProvider(process.env.DATABASE_URL ?? '');
+    const resolved = await assetStore.resolve(assetPrincipalForOwner(ownerId), toAssetId(trimmed));
+    if (!resolved) return undefined;
+    const { bytes, mime } = resolved;
+    if (bytes.byteLength === 0 || bytes.byteLength > MAX_REUSED_STILL_BYTES) return undefined;
+    if (!mime.startsWith('image/')) return undefined;
+    return `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
+  } catch (error) {
+    log.warn(`reading the committed image ${trimmed} as a source still failed:`, error);
+    return undefined;
+  }
+}
+
+/**
+ * The first committed image the course offers as a source still for a video
+ * whose request carries none: the video's own slide first, then every other
+ * slide's committed images (they are paid for, and on a free ZeroGPU tier a
+ * fresh FLUX still can be the run that exhausts the daily quota). Returns
+ * undefined when the course holds nothing usable — the caller generates the
+ * still instead.
+ */
+async function committedSourceStill(
+  ctx: MediaLaneContext,
+  elementId: string,
+): Promise<string | undefined> {
+  let scenes: unknown;
+  try {
+    scenes = await ctx.courseScenes();
+  } catch (error) {
+    if (endsLane(error, ctx.signal)) throw error;
+    log.warn(
+      `run ${ctx.runId}: reading the course for a reusable source still failed; generating one instead`,
+      error,
+    );
+    return undefined;
+  }
+  const candidates = [
+    ...findSiblingImageSources(scenes, elementId),
+    ...findOtherSlideImageSources(scenes, elementId),
+  ];
+  for (const candidate of candidates) {
+    const still = await materializeReusedStill(ctx.owner(), candidate.src);
+    if (still) {
+      log.info(
+        `run ${ctx.runId}: reusing the committed image ${candidate.elementId || candidate.src} as the source still of ${elementId}`,
+      );
+      return still;
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -366,64 +447,73 @@ async function generateItem(
       if (resume) log.info(`run ${ctx.runId}: resuming the wait on video task ${resume.taskId}`);
       // Image-to-video providers (Hugging Face Video Gen) animate a source
       // still instead of dreaming motion from text: when the outline's
-      // request carries no sourceImageUrl, generate the still from the video
-      // prompt through the image slot first (the "video based on the
-      // generated image" flow the provider catalogue documents) and hand it
-      // to the video step as a data URL. A resumed wait already submitted
-      // with a source, so it skips this.
+      // request carries no sourceImageUrl, animate a committed image of the
+      // course first (it is paid for — a fresh FLUX still can be the run that
+      // exhausts a free ZeroGPU tier's day). Only with none, generate the
+      // still from the video prompt through the image slot (the "video based
+      // on the generated image" flow the provider catalogue documents) and
+      // hand it to the video step as a data URL. A resumed wait already
+      // submitted with a source, so it skips this.
       let videoRequest = request;
       if (!resume) {
         const provider = VIDEO_PROVIDERS[connection.providerId as VideoProviderId];
         if (provider?.requiresSourceImage && !request.sourceImageUrl) {
-          const imageSlot = connections.image;
-          if (imageSlot.status !== 'ready') {
-            const message =
-              imageSlot.status === 'off'
-                ? 'The video provider needs a source image, but image generation is turned off'
-                : `The video provider needs a source image: ${imageSlot.message}`;
-            await record({
-              mediaType,
-              status: 'failed',
-              message,
-              ...(imageSlot.status === 'refused' ? { errorCode: imageSlot.errorCode } : {}),
-            });
-            return {};
-          }
-          log.info(`run ${ctx.runId}: generating the source still for video ${elementId}`);
-          let still: { bytes: Uint8Array; mimeType: string };
-          try {
-            still = await withDeadline(stepId, MEDIA_DEADLINE_MS, ctx.signal, (signal) =>
-              ctx.services.generateImage(
-                owner,
-                {
-                  request: {
-                    type: 'image',
-                    prompt: request.prompt,
-                    elementId: `${elementId}-still`,
-                    ...(request.aspectRatio ? { aspectRatio: request.aspectRatio } : {}),
+          // The lookup runs before the image slot is checked: a course that
+          // already holds an image needs no image slot at all.
+          const reused = await committedSourceStill(ctx, elementId);
+          if (reused) {
+            videoRequest = { ...request, sourceImageUrl: reused };
+          } else {
+            const imageSlot = connections.image;
+            if (imageSlot.status !== 'ready') {
+              const message =
+                imageSlot.status === 'off'
+                  ? 'The video provider needs a source image, but image generation is turned off'
+                  : `The video provider needs a source image: ${imageSlot.message}`;
+              await record({
+                mediaType,
+                status: 'failed',
+                message,
+                ...(imageSlot.status === 'refused' ? { errorCode: imageSlot.errorCode } : {}),
+              });
+              return {};
+            }
+            log.info(`run ${ctx.runId}: generating the source still for video ${elementId}`);
+            let still: { bytes: Uint8Array; mimeType: string };
+            try {
+              still = await withDeadline(stepId, MEDIA_DEADLINE_MS, ctx.signal, (signal) =>
+                ctx.services.generateImage(
+                  owner,
+                  {
+                    request: {
+                      type: 'image',
+                      prompt: request.prompt,
+                      elementId: `${elementId}-still`,
+                      ...(request.aspectRatio ? { aspectRatio: request.aspectRatio } : {}),
+                    },
+                    stageId: ctx.stageId,
+                    connection: imageSlot.connection,
                   },
-                  stageId: ctx.stageId,
-                  connection: imageSlot.connection,
-                },
-                { log, signal },
-              ),
-            );
-          } catch (error) {
-            if (endsLane(error, ctx.signal)) throw error;
-            log.warn(`run ${ctx.runId}: the source still of ${elementId} failed:`, error);
-            const failure = mediaFailure(error, 'image');
-            await record({
-              mediaType,
-              status: 'failed',
-              message: `The video's source image could not be generated: ${failure.message}`,
-              ...(failure.errorCode ? { errorCode: failure.errorCode } : {}),
-            });
-            return {};
+                  { log, signal },
+                ),
+              );
+            } catch (error) {
+              if (endsLane(error, ctx.signal)) throw error;
+              log.warn(`run ${ctx.runId}: the source still of ${elementId} failed:`, error);
+              const failure = mediaFailure(error, 'image');
+              await record({
+                mediaType,
+                status: 'failed',
+                message: `The video's source image could not be generated: ${failure.message}`,
+                ...(failure.errorCode ? { errorCode: failure.errorCode } : {}),
+              });
+              return {};
+            }
+            videoRequest = {
+              ...request,
+              sourceImageUrl: `data:${still.mimeType};base64,${Buffer.from(still.bytes).toString('base64')}`,
+            };
           }
-          videoRequest = {
-            ...request,
-            sourceImageUrl: `data:${still.mimeType};base64,${Buffer.from(still.bytes).toString('base64')}`,
-          };
         }
       }
       const video = await withDeadline(stepId, MEDIA_DEADLINE_MS, ctx.signal, (signal) =>
