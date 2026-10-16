@@ -15,6 +15,11 @@ name: Upstream Sync (Colab)
 # from starting other workflow runs. Set the `UPSTREAM_SYNC_TOKEN` secret (a
 # fine-grained PAT with contents and pull requests write access) if the sync
 # should be able to trigger CI.
+#
+# The runner ends up with two remotes (origin = this fork, upstream =
+# OpenMAIC). `gh`'s repository auto-detection does not reliably pick the fork
+# from a plain `git remote` list (this repo's checkout resolves to OpenMAIC),
+# so every `gh` call below pins `--repo "$GITHUB_REPOSITORY"`.
 
 on:
   schedule:
@@ -78,7 +83,7 @@ jobs:
         if: steps.state.outputs.needed == 'true'
         run: |
           set -euo pipefail
-          number=$(gh pr list --head "$CONFLICT_BRANCH" --state open \
+          number=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$CONFLICT_BRANCH" --state open \
             --json number --jq '.[0].number // empty')
           if [ -n "$number" ]; then
             echo "number=$number" >> "$GITHUB_OUTPUT"
@@ -123,6 +128,7 @@ jobs:
           so it is safe to force-push.
           EOF
           gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
             --base Colab \
             --head "$CONFLICT_BRANCH" \
             --title 'chore: merge upstream/main into Colab (resolve conflicts)' \
