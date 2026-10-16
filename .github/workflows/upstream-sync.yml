@@ -1,0 +1,157 @@
+name: Upstream Sync (Colab)
+
+# Merges THU-MAIC/OpenMAIC's `main` into this fork's `Colab` branch.
+#
+# This file has to live on `main`: a scheduled workflow only runs when its file
+# exists on the repository's default branch. Which branch is merged is decided
+# by the checkout below, not by where this file sits.
+#
+# Clean merges are pushed straight to `Colab`. A merge with conflicts is
+# committed (markers included) to `upstream-sync/colab` and handed to a pull
+# request, so the resolution can happen in the GitHub UI and lands in `Colab`
+# through the PR.
+#
+# Pushes and PRs made with the default `GITHUB_TOKEN` are deliberately blocked
+# from starting other workflow runs. Set the `UPSTREAM_SYNC_TOKEN` secret (a
+# fine-grained PAT with contents and pull requests write access) if the sync
+# should be able to trigger CI.
+
+on:
+  schedule:
+    # 02:30 UTC (09:30 WIB) daily, well after upstream's usual activity.
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Attempt the merge without pushing or opening a pull request
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  # Two merges resolving against different tips of Colab would race on push.
+  group: upstream-sync-colab
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Merge upstream/main into Colab
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+      CONFLICT_BRANCH: upstream-sync/colab
+    steps:
+      - name: Check out Colab
+        uses: actions/checkout@v5
+        with:
+          ref: Colab
+          fetch-depth: 0
+          # `with:` cannot see the job env above, so the expression repeats.
+          token: ${{ secrets.UPSTREAM_SYNC_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Fetch upstream
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add upstream https://github.com/THU-MAIC/OpenMAIC.git
+          git fetch --no-tags upstream '+main:refs/remotes/upstream/main'
+
+      - name: Check whether upstream/main is already merged
+        id: state
+        run: |
+          set -euo pipefail
+          if git merge-base --is-ancestor refs/remotes/upstream/main HEAD; then
+            echo 'needed=false' >> "$GITHUB_OUTPUT"
+            echo 'Colab already contains upstream/main; nothing to do.'
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            echo "Incoming commits: $(git rev-list --count HEAD..refs/remotes/upstream/main)"
+          fi
+
+      - name: Look for an unresolved conflict pull request
+        id: open-pr
+        if: steps.state.outputs.needed == 'true'
+        run: |
+          set -euo pipefail
+          number=$(gh pr list --head "$CONFLICT_BRANCH" --state open \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            echo "number=$number" >> "$GITHUB_OUTPUT"
+            echo "::notice::Upstream sync PR #$number is still open; skipping this run."
+          fi
+
+      - name: Merge upstream/main
+        id: merge
+        if: steps.state.outputs.needed == 'true' && steps.open-pr.outputs.number == ''
+        run: |
+          set -euo pipefail
+          if git merge --no-edit refs/remotes/upstream/main; then
+            echo 'result=clean' >> "$GITHUB_OUTPUT"
+          else
+            # Keep the conflicted tree as a commit so the pull request below can
+            # carry the resolution back into Colab.
+            git add -A
+            git commit --no-edit
+            echo 'result=conflict' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push the clean merge to Colab
+        if: steps.merge.outputs.result == 'clean' && inputs.dry-run != true
+        run: |
+          set -euo pipefail
+          git push origin HEAD:Colab
+          # A branch from an earlier, already-resolved conflict is stale now.
+          git push --delete origin "$CONFLICT_BRANCH" 2>/dev/null || true
+
+      - name: Open the conflict resolution pull request
+        if: steps.merge.outputs.result == 'conflict' && inputs.dry-run != true
+        run: |
+          set -euo pipefail
+          git push --force origin "HEAD:refs/heads/$CONFLICT_BRANCH"
+          cat > /tmp/upstream-sync-body.md <<'EOF'
+          Automatic sync of `THU-MAIC/OpenMAIC` `main` into `Colab` hit merge conflicts.
+
+          This branch commits the conflicted merge, so the files below contain
+          conflict markers. Resolve them — the GitHub editor works, and a local
+          checkout lets you run the test suite — then merge this pull request.
+          The branch is rebuilt from scratch whenever the previous PR is closed,
+          so it is safe to force-push.
+          EOF
+          gh pr create \
+            --base Colab \
+            --head "$CONFLICT_BRANCH" \
+            --title 'chore: merge upstream/main into Colab (resolve conflicts)' \
+            --body-file /tmp/upstream-sync-body.md
+
+      - name: Fail the run when conflicts need attention
+        if: steps.merge.outputs.result == 'conflict' && inputs.dry-run != true
+        run: |
+          echo '::error::Upstream sync ended in conflicts; resolve the pull request, then rerun.'
+          exit 1
+
+      - name: Dry-run note
+        if: inputs.dry-run == true && steps.merge.outputs.result != ''
+        run: |
+          echo "::notice::Dry run: the merge resulted in '${{ steps.merge.outputs.result }}'; nothing was pushed."
+
+      - name: Write run summary
+        if: always()
+        env:
+          NEEDED: ${{ steps.state.outputs.needed }}
+          OPEN_PR: ${{ steps.open-pr.outputs.number }}
+          RESULT: ${{ steps.merge.outputs.result }}
+        run: |
+          {
+            echo '## Upstream sync (THU-MAIC/OpenMAIC main to Colab)'
+            echo
+            echo '| check | value |'
+            echo '| --- | --- |'
+            echo "| sync needed | ${NEEDED:-not evaluated} |"
+            echo "| open conflict PR | ${OPEN_PR:-none} |"
+            echo "| merge result | ${RESULT:-skipped} |"
+          } >> "$GITHUB_STEP_SUMMARY"
