@@ -1395,7 +1395,8 @@
       "baidu": "百度",
       "claude": "Claude",
       "searxng": "SearXNG",
-      "opencode": "OpenCode CLI"
+      "opencode": "OpenCode CLI",
+      "builtin": "内置读取服务"
     },
     "modelCount": "个模型",
     "modelSingular": "个模型",
@@ -1845,7 +1846,7 @@
     "tokenPlan": {
       "nav": "Token Plan",
       "title": "Token Plan 一键配置",
-      "desc": "选择你的 Token Plan 服务商并填入密钥，将自动配置所有已适配的模态(语言模型/图像/视频/语音/网络搜索)。",
+      "desc": "选择你的 Token Plan 服务商并填入密钥，将自动配置所有已适配的模态(语言模型/图像/视频/语音/网络搜索/网页抓取)。",
       "selectPlan": "选择服务商",
       "apiKey": "API 密钥",
       "updateKey": "更新密钥",
@@ -1871,6 +1872,7 @@
       "capTts": "语音合成",
       "capVideo": "视频生成",
       "capWebSearch": "联网搜索",
+      "capWebFetch": "网页抓取",
       "saved": "连接设置已保存",
       "stageInteractive": "互动页面",
       "stageSlide": "课件页面",
@@ -2053,7 +2055,8 @@
         "providers": "配置语言模型服务的凭证、接口地址与模型目录",
         "tts": "配置语音合成服务、音色与模型",
         "video": "配置视频生成服务的凭证与模型目录",
-        "webSearch": "配置网络搜索服务与检索来源"
+        "webSearch": "配置网络搜索服务与检索来源",
+        "webFetch": "配置网页内容提取服务"
       },
       "nav": "模型服务",
       "notConfigured": "未配置",
@@ -2164,7 +2167,7 @@
       },
       "picker": {
         "follow": "跟随{{name}}",
-        "providers": "Provider",
+        "providers": "服务商",
         "providerDefault": "默认模型",
         "modelId": "模型 ID",
         "use": "使用",
@@ -2255,6 +2258,10 @@
         "document": {
           "name": "文档解析",
           "desc": "读取上传的文档。"
+        },
+        "webFetch": {
+          "name": "网页抓取",
+          "desc": "供智能体读取会话中已获准的网页。"
         }
       },
       "source": {
@@ -2268,6 +2275,7 @@
         "lines": {
           "rewrite": "改写",
           "search": "搜索",
+          "fetch": "抓取",
           "image": "图像",
           "video": "视频"
         }
@@ -2366,7 +2374,11 @@
     "alidocmindAccessKeySecret": "AccessKey Secret",
     "enableThisProvider": "启用此提供方",
     "enableThisProviderHint": "关闭后，此提供方不再出现在课程模型配置中",
-    "serverConfiguredAddOwn": "如需使用自己的凭据，请新增一个提供方。"
+    "serverConfiguredAddOwn": "如需使用自己的凭据，请新增一个提供方。",
+    "webFetchSettings": "网页抓取",
+    "webFetchHint": "选择网页读取方式。托管服务只会收到会话中已获准的公开网址。结果仍是不可信数据，失败时不会切换读取服务。",
+    "webFetchApiKey": "API 密钥",
+    "webFetchSharedKeyHint": "此密钥也用于与同一服务商进行对话。修改或移除密钥也会影响对话。"
   },
   "workspace": {
     "untitledCourse": "未命名课堂",

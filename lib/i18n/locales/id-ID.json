@@ -80,6 +80,19 @@
     "classroomZipDesc": "Struktur kursus + file media",
     "html": "Ekspor sebagai HTML",
     "htmlDesc": "Satu file offline, tanpa narasi",
+    "htmlWithNarration": "Dengan narasi dan video",
+    "htmlWithNarrationDesc": "Diputar seperti kelas: narasi, subtitle, dan klip video",
+    "htmlSilent": "Tanpa narasi",
+    "htmlSilentDesc": "File lebih kecil: subtitle dengan tempo waktu baca; video tidak disertakan",
+    "htmlLarge": "File hasil ekspor berukuran {{size}} MB dan mungkin terbuka lambat. Ekspor tanpa narasi untuk file yang lebih kecil.",
+    "htmlLargeSilent": "File hasil ekspor berukuran {{size}} MB dan mungkin terbuka lambat.",
+    "htmlTooLarge": "Kelas ini akan menghasilkan ekspor berukuran {{size}} MB — terlalu besar bahkan untuk disimpan sebagai ZIP. Ekspor tanpa narasi sebagai gantinya.",
+    "htmlTooLargeSilent": "Kelas ini akan menghasilkan ekspor berukuran {{size}} MB — terlalu besar untuk disimpan.",
+    "htmlPageTooLarge": "Meski gambar dan medianya disimpan sebagai file terpisah, halaman kelas ini berukuran sekitar {{size}} MB — terlalu besar untuk dibuka dengan andal. Media di dalam adegan interaktif tetap berada di halaman; ekspor tanpa narasi untuk mengeluarkannya.",
+    "htmlPageTooLargeSilent": "Meski gambar dan medianya disimpan sebagai file terpisah, halaman kelas ini berukuran sekitar {{size}} MB — terlalu besar untuk dibuka dengan andal. Media di dalam adegan interaktif tetap berada di halaman.",
+    "htmlZipFallback": "Kelas ini terlalu besar untuk satu file HTML (sekitar {{size}} MB), jadi disimpan sebagai ZIP: classroom.html beserta gambar dan medianya di folder-folder di sampingnya.",
+    "htmlZipFallbackDesc": "Ekstrak seluruh ZIP, lalu buka classroom.html.",
+    "htmlZipReadme": "Ekstrak seluruh file ZIP ini terlebih dahulu, lalu buka classroom.html di browser web. Pertahankan folder (images, audio, media) di samping classroom.html: halaman menampilkan gambar serta memutar narasi dan videonya dari sana. Jika dibuka dari dalam ZIP tanpa diekstrak, halaman tidak dapat menemukannya.",
     "htmlPlayer": {
       "previous": "Sebelumnya",
       "next": "Berikutnya",
@@ -108,7 +121,18 @@
       "pblLearningObjective": "Tujuan pembelajaran",
       "pblMilestones": "Tonggak",
       "pblOnlineOnly": "Mengerjakan proyek bersama agen AI hanya tersedia di kelas online.",
-      "pblContinueOnline": "Lanjutkan proyek ini secara online"
+      "pblContinueOnline": "Lanjutkan proyek ini secara online",
+      "play": "Putar",
+      "pause": "Jeda",
+      "playbackStart": "Putar kelas",
+      "playbackContinue": "Lanjutkan",
+      "captions": "Subtitle",
+      "discussionTitle": "Diskusi",
+      "discussionContinueOnline": "Diskusikan ini di kelas online",
+      "discussionDismiss": "Tutup",
+      "linkedFilesUnavailable": "Beberapa gambar, narasi, atau video tidak dapat dimuat. Jika Anda membuka classroom.html dari dalam ZIP, ekstrak seluruh ZIP terlebih dahulu.",
+      "scriptRequired": "Kelas ini memerlukan JavaScript. Buka file ini di browser web dengan JavaScript aktif, seperti Safari atau Chrome.",
+      "startFailed": "Kelas ini tidak dapat dimulai. Coba buka file ini di browser lain, seperti Safari atau Chrome."
     },
     "scriptMd": "Unduh naskah (.md)",
     "scriptMdDesc": "Ekspor teks narasi sebagai Markdown",
@@ -119,6 +143,7 @@
     "textOnly": "Ekspor naskah",
     "mediaPending": "Menunggu pembuatan media selesai",
     "inlinePartial": "{{count}} sumber daya eksternal gagal dikemas, kursus mungkin tidak tampil normal saat offline.",
+    "narrationMissing": "{{count}} klip narasi tidak dapat disertakan; baris tersebut memakai tempo waktu baca.",
     "video": "Ekspor video",
     "videoDesc": "Proyek Hyperframes mandiri (dapat dirender menjadi MP4)",
     "videoNoScenes": "Tidak ada adegan untuk diekspor.",
@@ -207,6 +232,8 @@
     "endQA": "Akhiri tanya jawab",
     "softClosing": "Lanjutkan diskusi",
     "error": {
+      "toolCallingRequired": "Chat kelas memerlukan model yang mendukung tool calling. Pilih model untuk slot kelas di Pengaturan → Konfigurasi Model Kursus, atau hubungi administrator Anda jika pengaturan ini dikelola.",
+      "geminiNativeRequired": "Interaksi kelas dengan Gemini memerlukan Google native. Tambahkan Google (preset google) di Pengaturan → Layanan Model, lalu pilih untuk \"Kelas\" di Konfigurasi Model Kursus. Jika konfigurasi ini dikelola, hubungi administrator Anda.",
       "emptyAgentResponses": "Agent terus-menerus tidak merespons, diskusi telah dihentikan. Silakan coba lagi atau periksa konfigurasi model.",
       "streamInterrupted": "Aliran data terputus tiba-tiba, diskusi tidak selesai. Silakan coba lagi.",
       "rateLimited": "Model sedang menerima terlalu banyak permintaan. Tunggu sebentar, lalu coba lagi.",
@@ -1152,6 +1179,7 @@
     "materialTooLarge": "{{name}} terlalu besar: satu materi maksimal {{size}}."
   },
   "generation": {
+    "quotaExhausted": "Kuota pembuatan telah habis. Periksa jatah paket atau saldo akun Anda, atau hubungi administrator sebelum mencoba lagi.",
     "pdfLoadFailed": "Gagal memuat file PDF, silakan coba lagi",
     "pdfParseFailed": "Gagal mengurai PDF",
     "courseMaterialLoadFailed": "Gagal memuat materi kursus, silakan coba lagi",
@@ -1283,6 +1311,8 @@
     },
     "apiKey": "API Key",
     "apiKeyDesc": "Konfigurasikan API Key Anda",
+    "credentialStorageHint": "Terenkripsi di server instance ini",
+    "credentialStorageHintDetail": "Disimpan terenkripsi di server instance ini dan digunakan untuk memanggil penyedia atas nama Anda. Operator deployment ini dapat mengaksesnya, jadi masukkan kunci hanya pada instance yang Anda percayai.",
     "apiBaseUrl": "Alamat endpoint API",
     "apiBaseUrlDesc": "Konfigurasikan alamat endpoint API Anda",
     "apiKeyRequired": "API Key tidak boleh kosong",
@@ -1365,7 +1395,8 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
-      "opencode": "OpenCode CLI"
+      "opencode": "OpenCode CLI",
+      "builtin": "Pembaca bawaan"
     },
     "modelCount": "model",
     "modelSingular": "model",
@@ -1716,6 +1747,7 @@
     "providerNanoBanana": "Nano Banana (Gemini)",
     "providerMiniMaxImage": "MiniMax Image",
     "providerGrokImage": "Grok Image (xAI)",
+    "providerGlmImage": "GLM Image (Zhipu)",
     "providerOpenRouterImage": "OpenRouter Image",
     "providerComfyUIImage": "ComfyUI Image",
     "providerLemonadeImage": "Lemonade Image (Lokal)",
@@ -1814,7 +1846,7 @@
     "tokenPlan": {
       "nav": "Token Plan",
       "title": "Penyiapan Token Plan sekali klik",
-      "desc": "Pilih penyedia Token Plan Anda dan masukkan kunci — semua modalitas yang didukung (model bahasa/gambar/video/suara/pencarian web) akan dikonfigurasi secara otomatis.",
+      "desc": "Pilih penyedia Token Plan Anda dan masukkan kunci — semua modalitas yang didukung (model bahasa/gambar/video/suara/pencarian web/pengambilan halaman web) akan dikonfigurasi secara otomatis.",
       "selectPlan": "Pilih penyedia",
       "apiKey": "API Key",
       "updateKey": "Perbarui kunci",
@@ -1822,7 +1854,7 @@
       "capabilities": "Kemampuan yang disediakan paket",
       "offeredNote": "Daftar model yang disediakan paket. Pilih model yang ingin digunakan di bilah pembuatan — ketersediaan tergantung pada tingkatan paket Anda, model yang tidak didukung akan error saat pembuatan.",
       "statusConnected": "Terhubung",
-      "keyStorage": "Kunci disimpan di pengaturan browser lokal dan hanya digunakan untuk permintaan ke layanan ini.",
+      "applyModelsNote": "Menghubungkan akan menerapkan model rekomendasi paket ini ke tahap-tahap kursus; jika itu akan menggantikan model yang sedang dipakai suatu tahap (model pilihan Anda atau bawaan server), Anda akan ditanya terlebih dahulu.",
       "saveKey": "Simpan dan aktifkan",
       "cancelKeyUpdate": "Batalkan pembaruan",
       "manageAccount": "Kelola akun",
@@ -1840,6 +1872,7 @@
       "capTts": "Sintesis suara",
       "capVideo": "Pembuatan video",
       "capWebSearch": "Pencarian web",
+      "capWebFetch": "Pengambilan halaman web",
       "saved": "Pengaturan koneksi tersimpan",
       "stageInteractive": "Halaman interaktif",
       "stageSlide": "Halaman slide",
@@ -2022,7 +2055,8 @@
         "providers": "Konfigurasi kredensial, alamat endpoint, dan katalog model untuk layanan model bahasa",
         "tts": "Konfigurasi layanan sintesis suara, suara, dan model",
         "video": "Konfigurasi kredensial dan katalog model untuk layanan pembuatan video",
-        "webSearch": "Konfigurasi layanan pencarian web dan sumber pencarian"
+        "webSearch": "Konfigurasi layanan pencarian web dan sumber pencarian",
+        "webFetch": "Konfigurasi layanan ekstraksi halaman web"
       },
       "nav": "Layanan model",
       "notConfigured": "Belum dikonfigurasi",
@@ -2224,6 +2258,10 @@
         "document": {
           "name": "Pengurai dokumen",
           "desc": "Membaca dokumen yang diunggah."
+        },
+        "webFetch": {
+          "name": "Pengambilan halaman web",
+          "desc": "Memungkinkan agen membaca halaman web yang disetujui dalam sesi."
         }
       },
       "source": {
@@ -2237,6 +2275,7 @@
         "lines": {
           "rewrite": "Kueri",
           "search": "Cari",
+          "fetch": "Ambil",
           "image": "Gambar",
           "video": "Video"
         }
@@ -2335,7 +2374,11 @@
     "alidocmindAccessKeySecret": "AccessKey Secret",
     "enableThisProvider": "Aktifkan provider ini",
     "enableThisProviderHint": "Jika dimatikan, provider ini tidak lagi muncul di Konfigurasi Model Kursus.",
-    "serverConfiguredAddOwn": "Untuk menggunakan kredensial Anda sendiri, tambahkan provider terpisah."
+    "serverConfiguredAddOwn": "Untuk menggunakan kredensial Anda sendiri, tambahkan provider terpisah.",
+    "webFetchSettings": "Pengambilan halaman web",
+    "webFetchHint": "Pilih cara halaman web dibaca. Pembaca terkelola hanya menerima URL publik yang disetujui dalam sesi. Hasilnya tetap dianggap tidak tepercaya, dan kegagalan tidak mengalihkan pembaca.",
+    "webFetchApiKey": "API Key",
+    "webFetchSharedKeyHint": "Kunci ini juga digunakan untuk chat dengan penyedia ini. Mengubah atau menghapusnya akan memengaruhi chat."
   },
   "workspace": {
     "untitledCourse": "Kelas tanpa nama",
