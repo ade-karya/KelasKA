@@ -593,6 +593,26 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
     ['none', 'low', 'medium', 'high', 'max'],
     'medium',
   ),
+  [getModelMetadataKey('opencode', 'beam-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'deepseek-v4.1-flash-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'glm-5.3-flash-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
+  [getModelMetadataKey('opencode', 'nemotron-3.5-super-vl-free')]: effortCapability(
+    'opencode',
+    ['none', 'low', 'medium', 'high', 'max'],
+    'medium',
+  ),
   [getModelMetadataKey('opencode-go', 'deepseek-v4-flash')]: effortCapability(
     'opencode',
     ['none', 'low', 'medium', 'high', 'max'],

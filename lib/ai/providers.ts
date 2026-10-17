@@ -1795,6 +1795,35 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         outputWindow: 32000,
         capabilities: { streaming: true, tools: true, vision: false },
       },
+      // Gelombang baru katalog `opencode models` (Okt 2026).
+      {
+        id: 'beam-free',
+        name: 'Beam Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek-v4.1-flash-free',
+        name: 'DeepSeek V4.1 Flash Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'glm-5.3-flash-free',
+        name: 'GLM 5.3 Flash Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'nemotron-3.5-super-vl-free',
+        name: 'Nemotron 3.5 Super VL Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
     ],
   },
 

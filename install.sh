@@ -1318,8 +1318,9 @@ TIER2_KEY_HTTP="OPENCODE_GO_API_KEY"
 TIER3_MODEL="opencode:muse-spark-1.3-contributor-free"
 # Fallback katalog provider `opencode` (lib/ai/providers.ts) bila CLI belum
 # ada / offline: SEMUA model free yang terverifikasi `opencode run` (Okt 2026;
-# exo-free deprecated + ling-3.0-flash-fin-free unavailable dibuang).
-OPENCODE_FREE_FALLBACK="space-bunny-free,muse-spark-1.3-contributor-free,big-pickle,longcat-2.5-preview-free,mimo-v2.6-flash-free,ling-3.1-flash-free,nemotron-3-ultra-free,nemotron-3.5-lightning-free,step-5-preview-free"
+# exo-free deprecated + ling-3.0-flash-fin-free unavailable dibuang; gelombang
+# baru beam/deepseek-v4.1/glm-5.3/nemotron-3.5-super-vl ikut diaktifkan).
+OPENCODE_FREE_FALLBACK="space-bunny-free,muse-spark-1.3-contributor-free,big-pickle,longcat-2.5-preview-free,mimo-v2.6-flash-free,ling-3.1-flash-free,nemotron-3-ultra-free,nemotron-3.5-lightning-free,step-5-preview-free,beam-free,deepseek-v4.1-flash-free,glm-5.3-flash-free,nemotron-3.5-super-vl-free"
 # Nilai lama installer (sebelum grup Go disembunyikan saat belum login):
 # dikenali saat migrasi agar instalasi lama dimigrasi ke kosong, bukan
 # dianggap kustom. Kini bila belum login daftar Go = kosong (hidden).
@@ -1477,6 +1478,9 @@ OPENCODE_LOGIN_DETECTED=0
 # exo-free = "Model has been deprecated", ling-3.0-flash-fin-free = "Model is
 # unavailable", fledge-alpha-free = hilang dari katalog. `opencode models`
 # masih menampilkannya, jadi disaring di sini agar tak masuk OPENCODE_MODELS.
+# Daftar ini sekaligus bagian allowlist deteksi "daftar milik installer" saat
+# menyegarkan OPENCODE_MODELS: daftar lama yang masih memuat id mati tetap
+# disegarkan (bukan salah dikunci sebagai kustom selamanya).
 OPENCODE_DEAD_IDS="exo-free,ling-3.0-flash-fin-free,fledge-alpha-free"
 # Buang id mati dari daftar comma-separated (stdin -> stdout).
 buang_model_mati_opencode() {
@@ -2008,15 +2012,16 @@ else
   # kustom lain tidak disentuh. Daftar kini login-aware: sudah login berisi
   # SEMUA model tersedia, belum login berisi SEMUA model free (tombol
   # /workspace memilih di antaranya). Hanya migrasi bila tiap entri adalah id
-  # milik installer (daftar fallback + daftar live saat ini) — nilai kustom
-  # operator (mis. berisi id di luar keduanya) dipertahankan.
+  # milik installer (daftar fallback + daftar live saat ini + id mati yang
+  # pernah ditulis installer) — nilai kustom operator (mis. berisi id di luar
+  # ketiganya) dipertahankan.
   CUR_PIN="$(env_get .env.local OPENCODE_MODELS)"
   if [[ -n "$CUR_PIN" ]]; then
     _pin_milik_installer=1
     _ifs_lama="$IFS"; IFS=','; set -f
     for _satu in $CUR_PIN; do
       _satu="$(printf '%s' "$_satu" | tr -d '[:space:]' | sed -E 's|^opencode[/:]||')"
-      case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna,${TIER_PIN}," in
+      case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna,${TIER_PIN},${OPENCODE_DEAD_IDS}," in
         *",${_satu},"*) ;;
         *) _pin_milik_installer=0; break ;;
       esac
@@ -2753,7 +2758,7 @@ if [[ "$WITH_OPENCODE" -eq 1 ]]; then
       _ifs_live="$IFS"; IFS=','; set -f
       for _satu_live in $CUR_PIN_LIVE; do
         _satu_live="$(printf '%s' "$_satu_live" | tr -d '[:space:]' | sed -E 's|^opencode[/:]||')"
-        case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna,${OPENCODE_FREE_LIVE}," in
+        case ",${OPENCODE_FREE_FALLBACK},gpt-6-luna,${OPENCODE_FREE_LIVE},${OPENCODE_DEAD_IDS}," in
           *",${_satu_live},"*) ;;
           *) _live_milik_installer=0; break ;;
         esac

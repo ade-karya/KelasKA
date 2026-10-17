@@ -35,6 +35,10 @@ export const OPENCODE_FREE_FALLBACK_IDS = [
   'nemotron-3-ultra-free',
   'nemotron-3.5-lightning-free',
   'step-5-preview-free',
+  'beam-free',
+  'deepseek-v4.1-flash-free',
+  'glm-5.3-flash-free',
+  'nemotron-3.5-super-vl-free',
 ] as const;
 
 export const OPENCODE_DRIVER_API = 'opencode-cli' as const;
