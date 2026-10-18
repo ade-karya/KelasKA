@@ -954,19 +954,100 @@ slots:
 EOF
 }
 
-# Lengkapi openmaic.yml yang sudah ada TANPA menimpa nilai kustom: tambahkan
-# provider CLI yang hilang (opencode/opencode-go) dan slot `llm` bila belum
-# ada. File lama installer hanya menulis slot `agent`, sehingga chat classic
-# (slot classroom <- llm) unassigned dan gagal dengan SlotUnassignedError.
-# Berjalan idempoten di setiap run (dipanggil setelah
-# tulis_openmaic_yml_bila_belum_ada). $1=tier, $2=model tier saat ini.
+# Lengkapi openmaic.yml yang sudah ada TANPA menimpa nilai kustom:
+# 1) tambahkan provider CLI yang hilang (opencode/opencode-go) dan slot `llm`
+#    bila belum ada — file lama installer hanya menulis slot `agent`, sehingga
+#    chat classic (slot classroom <- llm) unassigned dan gagal dengan
+#    SlotUnassignedError;
+# 2) tambahkan BLOK PROVIDER TIER yang belum terdeklarasi (mis. `google` pada
+#    tier1). Dulu provider tier hanya ditulis di jalur buat-file-baru, jadi di
+#    file yang sudah ada penambahan `llm: google:...` tanpa blok provider
+#    google membuat server menolak start ("reference to an undeclared
+#    provider");
+# 3) selaraskan slot `llm`/`agent` MILIK INSTALLER ke model tier saat ini, dan
+#    `api` slot agent mengikuti tier (opencode-cli <-> openai-completions).
+#    Dulu rerun setelah isi/kosongkan key hanya menggeser DEFAULT_MODEL
+#    (legacy, diabaikan server bila openmaic.yml ada) — slot itu tetap tier
+#    lama sehingga naik-tier tidak memiliki efek. Hanya file berpenanda
+#    installer ("dibuat oleh install.sh") dan hanya model MILIK installer
+#    (daftar pin di bawah) yang digeser; nilai kustom user di luar pin tidak
+#    disentuh;
+# 4) saat turun tier dari tier1, blok provider `google` bawaan installer yang
+#    mereferensikan ${GOOGLE_API_KEY} tidak lagi bisa diinterpolasi (key
+#    kosong) dan menjadikan server menolak start — blok dimatikan (slot-nya
+#    sudah digeser ke OpenCode di poin 3).
+# Slot `agent` yang modelnya bukan pin installer tidak disentuh, dan slot
+# lain (lock/allowUserKeys) dipertahankan apa adanya. Berjalan idempoten di
+# setiap run (dipanggil setelah tulis_openmaic_yml_bila_belum_ada).
+# $1=tier, $2=model tier saat ini.
 lengkapi_openmaic_yml() {
   local tier="$1" model="$2"
   [[ -f openmaic.yml ]] || return 0
+  local provider="${model%%:*}"
+
+  # --- (poin 3) selaraskan slot milik installer ke tier saat ini -------------
+  # Dijalankan SEBELUM snapshot flag provider/slots agar perlu-* mengikuti
+  # nilai baru. Hanya file berpenanda installer yang diproses; hanya nilai
+  # MILIK installer (pin di bawah) yang ditimpa.
+  if grep -q "dibuat oleh install.sh" openmaic.yml 2>/dev/null; then
+    local pin_re='(opencode:(gpt-6-luna|big-pickle|[A-Za-z0-9._-]*-free)|opencode-go:gpt-6-luna|google:gemini-3.5-flash-lite|deepseek:deepseek-flash|tokendance:deepseek-v4.1-flash)'
+    local model_esc cur_llm cur_model cur_api
+    model_esc="$(sed_escape_replacement "$model")"
+    cur_llm="$(sed -n -E 's/^[[:space:]]*llm:[[:space:]]*//p' openmaic.yml | head -1 | tr -d '[:space:]')"
+    cur_model="$(sed -n -E 's/^[[:space:]]*model:[[:space:]]*//p' openmaic.yml | head -1 | tr -d '[:space:]')"
+    if printf '%s' "$cur_llm" | grep -qE "^${pin_re}$" \
+      || printf '%s' "$cur_model" | grep -qE "^${pin_re}$"; then
+      if [[ "$cur_llm" != "$model" || "$cur_model" != "$model" ]]; then
+        # Delimiter `/`: pin_re memuat `|` (alternasi) sehingga `s|...|...|`
+        # akan memotong pattern di pipa pertama (sed gagal senyap; fatal
+        # setelah `set -e`). Nilai model tidak memuat `/`.
+        sed -i -E \
+          -e "s/^([[:space:]]*llm:[[:space:]]*)${pin_re}[[:space:]]*\$/\1${model_esc}/" \
+          -e "s/^([[:space:]]*model:[[:space:]]*)${pin_re}[[:space:]]*\$/\1${model_esc}/" \
+          openmaic.yml
+        # `api` slot agent mengikuti tier, dan HANYA bila model slot agent
+        # memang milik installer (pin): api adalah field slot agent, jadi
+        # agent kustom user (mis. minimax) jangan ikut ditukar. Nilai `api`
+        # bawaan installer adalah openai-completions (tier ber-key) atau
+        # opencode-cli (tier3); selain itu (kustom, mis. openai-responses)
+        # dibiarkan apa adanya.
+        if printf '%s' "$cur_model" | grep -qE "^${pin_re}$"; then
+          local api_baru api_kini
+          if [[ "$tier" == "tier3" ]]; then api_baru="opencode-cli"; else api_baru="openai-completions"; fi
+          api_kini="$(sed -n -E 's/^[[:space:]]*api:[[:space:]]*//p' openmaic.yml | head -1 | tr -d '[:space:]')"
+          if [[ "$api_kini" == "opencode-cli" || "$api_kini" == "openai-completions" ]]; then
+            if [[ "$api_kini" != "$api_baru" ]]; then
+              sed -i -E "s/^([[:space:]]*api:[[:space:]]*)${api_kini}[[:space:]]*\$/\1${api_baru}/" openmaic.yml
+            fi
+          fi
+        fi
+        info "Slot openmaic.yml milik installer diselaraskan: llm/agent = ${model} (tier=${tier})."
+      fi
+    fi
+  fi
+
+  # --- (poin 4) deteksi blok google milik installer dengan key kosong --------
+  # GOOGLE_API_KEY dulu terisi (tier1 dipakai), kini kosong lagi: slot sudah/
+  # akan digeser ke OpenCode, tapi ref ${GOOGLE_API_KEY} yang tersisa di blok
+  # provider bersifat fatal saat start.
+  local google_kunci="" google_kosong=0
+  google_kunci="$(env_get .env.local GOOGLE_API_KEY)"
+  [[ -n "$google_kunci" ]] || google_kunci="${GOOGLE_API_KEY:-}"
+  if [[ -z "$google_kunci" && "$provider" != "google" ]] \
+    && grep -qE '^[[:space:]]*apiKey:[[:space:]]*\$\{GOOGLE_API_KEY\}' openmaic.yml 2>/dev/null; then
+    google_kosong=1
+  fi
+
   # Abaikan baris komentar saat mendeteksi entri yang sudah ada.
   local tanpa_komentar=""
   tanpa_komentar="$(sed -E 's/(^|[^\\])#.*$/\1/' openmaic.yml)"
-  local perlu_opencode=0 perlu_go=0 perlu_llm=0
+  local perlu_opencode=0 perlu_go=0 perlu_llm=0 perlu_tierprov=0
+  local tier_keyvar=""
+  if [[ "$tier" == "tier2" ]]; then
+    tier_keyvar="OPENCODE_GO_API_KEY"
+  elif [[ "$provider" != "opencode" && "$provider" != "opencode-go" ]]; then
+    tier_keyvar="GOOGLE_API_KEY"
+  fi
   # `opencode:` saja (pola kunci diakhiri kolon; `opencode-go:` tidak kena).
   if ! printf '%s\n' "$tanpa_komentar" | grep -qE '^[[:space:]]*opencode:[[:space:]]*$'; then
     perlu_opencode=1
@@ -977,19 +1058,50 @@ lengkapi_openmaic_yml() {
   if ! printf '%s\n' "$tanpa_komentar" | grep -qE '^[[:space:]]*llm:'; then
     perlu_llm=1
   fi
-  if [[ "$perlu_opencode" -eq 0 && "$perlu_go" -eq 0 && "$perlu_llm" -eq 0 ]]; then
+  # Blok provider tier belum dideklarasikan (poin 2). Tier2 = opencode-go
+  # (sudah ditutup perlu_go); tier3 = opencode (perlu_opencode); tier1=lain.
+  if [[ "$provider" != "opencode" && "$provider" != "opencode-go" ]] \
+    && ! printf '%s\n' "$tanpa_komentar" | grep -qE "^[[:space:]]*${provider}:"; then
+    perlu_tierprov=1
+  fi
+  if [[ "$perlu_opencode" -eq 0 && "$perlu_go" -eq 0 && "$perlu_llm" -eq 0 \
+    && "$perlu_tierprov" -eq 0 && "$google_kosong" -eq 0 ]]; then
     return 0
   fi
   local tmp=""
   tmp="$(mktemp openmaic.yml.tmp.XXXXXX)" || return 0
   awk -v perlu_opencode="$perlu_opencode" -v perlu_go="$perlu_go" \
-    -v perlu_llm="$perlu_llm" -v model="$model" '
-    BEGIN { di_providers = 0; providers_selesai = 0; ada_providers = 0; ada_slots = 0 }
+    -v perlu_llm="$perlu_llm" -v perlu_tierprov="$perlu_tierprov" \
+    -v tier_provider="$provider" -v tier_keyvar="$tier_keyvar" \
+    -v google_kosong="$google_kosong" -v model="$model" '
+    function tulis_provider_installer() {
+      if (perlu_opencode == 1) { print "  opencode:"; print "    preset: opencode" }
+      if (perlu_go == 1) { print "  opencode-go:"; print "    preset: opencode-go" }
+      if (perlu_tierprov == 1) {
+        print "  " tier_provider ":"
+        print "    preset: " tier_provider
+        if (tier_keyvar != "") { print "    apiKey: ${" tier_keyvar "}" }
+      }
+    }
+    BEGIN { di_providers = 0; providers_selesai = 0; ada_providers = 0; ada_slots = 0; di_google = 0; google_diproses = 0 }
+    # (poin 4) matikan blok google bawaan installer saat key kosong:
+    # baris `  google:` diganti komentar; `preset:`/`apiKey:` barisnya dihapus.
+    # Blok berakhir di: baris `apiKey:` yang cocok, atau baris TIDAK-nested
+    # (indent < 2 spasi — key provider/slots berikutnya, baris kosong, dsb).
+    google_kosong == 1 && google_diproses == 0 && /^[[:space:]]*google:[[:space:]]*$/ {
+      google_diproses = 1
+      print "# provider google (install.sh) dinonaktifkan: GOOGLE_API_KEY tidak terisi lagi."
+      print "# Isi key lalu jalankan ulang install.sh untuk mengaktifkan kembali."
+      di_google = 1
+      next
+    }
+    di_google == 1 && /apiKey:.*\$\{GOOGLE_API_KEY\}/ { di_google = 0; next }
+    di_google == 1 && $0 !~ /^[[:space:]]+[^[:space:]]/ { di_google = 0 }
+    di_google == 1 { next }
     /^providers:/ { di_providers = 1; ada_providers = 1; print; next }
     /^(slots|lock|allowUserKeys):/ {
       if (di_providers && !providers_selesai) {
-        if (perlu_opencode == 1) { print "  opencode:"; print "    preset: opencode" }
-        if (perlu_go == 1) { print "  opencode-go:"; print "    preset: opencode-go" }
+        tulis_provider_installer()
         providers_selesai = 1
       }
       di_providers = 0
@@ -1003,16 +1115,14 @@ lengkapi_openmaic_yml() {
     { print }
     END {
       if (di_providers && !providers_selesai) {
-        if (perlu_opencode == 1) { print "  opencode:"; print "    preset: opencode" }
-        if (perlu_go == 1) { print "  opencode-go:"; print "    preset: opencode-go" }
+        tulis_provider_installer()
         providers_selesai = 1
       }
       # File tanpa section providers/slots sama sekali (kustom minimal):
       # tambahkan di akhir agar referensi llm tetap valid.
-      if (!ada_providers && (perlu_opencode == 1 || perlu_go == 1)) {
+      if (!ada_providers && (perlu_opencode == 1 || perlu_go == 1 || perlu_tierprov == 1)) {
         print "providers:"
-        if (perlu_opencode == 1) { print "  opencode:"; print "    preset: opencode" }
-        if (perlu_go == 1) { print "  opencode-go:"; print "    preset: opencode-go" }
+        tulis_provider_installer()
       }
       if (!ada_slots && perlu_llm == 1) {
         print "slots:"
@@ -1025,7 +1135,9 @@ lengkapi_openmaic_yml() {
   local apa=""
   [[ "$perlu_opencode" -eq 1 ]] && apa="${apa}provider opencode "
   [[ "$perlu_go" -eq 1 ]] && apa="${apa}provider opencode-go "
+  [[ "$perlu_tierprov" -eq 1 ]] && apa="${apa}provider ${provider} "
   [[ "$perlu_llm" -eq 1 ]] && apa="${apa}slot llm=${model} "
+  [[ "$google_kosong" -eq 1 ]] && apa="${apa}provider google dimatikan (key kosong) "
   info "openmaic.yml dilengkapi (${apa}— nilai kustom Anda tidak diubah)."
 }
 
@@ -1221,12 +1333,16 @@ EOF
 # Escape nilai agar aman sebagai replacement `sed s|||`: backslash dulu
 # (kalau belakangan, backslash hasil escape &/| ikut tergandakan), lalu & dan
 # delimiter |. Tanpa ini password paksa berisi `\` rusak (mis. `a\b` -> `ab`,
-# `p\a` -> BEL) di semua path sed di bawah.
+# `p\a` -> BEL) di semua path sed di bawah. `/` juga di-escape agar nilai aman
+# dipakai di sed ber-delimiter `/` (mis. realign slot openmaic.yml) tanpa
+# merusak pemakaian lain yang ber-delimiter `|` (pola `\/` di dalam
+# replacement `|`-delimited masih berarti literal `/`).
 sed_escape_replacement() {
   local s="$1"
   s="${s//\\/\\\\}"
   s="${s//&/\\&}"
   s="${s//|/\\|}"
+  s="${s//\//\\/}"
   printf '%s' "$s"
 }
 
