@@ -328,6 +328,88 @@ describe('agent driver CLI dua provider + thinking varian', () => {
     }
   });
 
+  it('override tombol mengalahkan model HTTP yang dipilih workspace sendiri', async () => {
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const file = path.join(
+      os.tmpdir(),
+      `openmaic-test-driver-workspace-${process.pid}-${Math.random().toString(36).slice(2)}.json`,
+    );
+    process.env.OPENCODE_ACTIVE_MODEL_FILE = file;
+    process.env.OPENCODE_MODELS = 'deepseek-v4.1-flash-free';
+    // `agent` tidak punya assignment sendiri: ia mewarisi `llm` workspace,
+    // yang di sini memakai transport HTTP ber-key.
+    const resolve = await configure(undefined, {
+      workspace: {
+        source: 'workspace',
+        config: { slots: { llm: 'openai:gpt-5.6-luna' } },
+      },
+    });
+    try {
+      fs.writeFileSync(
+        file,
+        JSON.stringify({
+          model: 'opencode:deepseek-v4.1-flash-free',
+          api: 'opencode-cli',
+          thinking: { mode: 'enabled', effort: 'low' },
+        }),
+      );
+      mocks.resolveModel.mockResolvedValue({
+        model: {},
+        modelInfo: { contextWindow: 256_000, outputWindow: 32_000 },
+        modelString: 'opencode:deepseek-v4.1-flash-free',
+        providerId: 'opencode',
+        modelId: 'deepseek-v4.1-flash-free',
+        apiKey: '',
+        baseUrl: 'https://opencode.ai/zen/v1',
+        thinkingConfig: { mode: 'enabled', effort: 'low' },
+      });
+      const resolved = await resolve('user:alice');
+      expect(mocks.resolveModel).toHaveBeenCalledWith({
+        modelString: 'opencode:deepseek-v4.1-flash-free',
+        thinkingConfig: { mode: 'enabled', effort: 'low' },
+      });
+      expect(resolved.isCliDriver).toBe(true);
+      expect(resolved.piModel).toMatchObject({
+        id: 'deepseek-v4.1-flash-free',
+        provider: 'opencode',
+      });
+    } finally {
+      if (fs.existsSync(file)) fs.rmSync(file, { force: true });
+      delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
+      delete process.env.OPENCODE_MODELS;
+    }
+  });
+
+  it('override tombol tidak membajak model HTTP milik operator', async () => {
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const file = path.join(
+      os.tmpdir(),
+      `openmaic-test-driver-operator-${process.pid}-${Math.random().toString(36).slice(2)}.json`,
+    );
+    process.env.OPENCODE_ACTIVE_MODEL_FILE = file;
+    process.env.OPENCODE_MODELS = 'deepseek-v4.1-flash-free';
+    // Slot agent dari deployment (sumber `default`) tetap menang.
+    const resolve = await configure('openai:gpt-5.6-luna');
+    try {
+      fs.writeFileSync(
+        file,
+        JSON.stringify({ model: 'opencode:deepseek-v4.1-flash-free', api: 'opencode-cli' }),
+      );
+      const resolved = await resolve();
+      expect(mocks.resolveModel).not.toHaveBeenCalled();
+      expect(resolved.isCliDriver).toBe(false);
+      expect(resolved.piModel).toMatchObject({ id: 'gpt-5.6-luna', provider: 'openai' });
+    } finally {
+      if (fs.existsSync(file)) fs.rmSync(file, { force: true });
+      delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
+      delete process.env.OPENCODE_MODELS;
+    }
+  });
+
   it('override di luar allowlist go diabaikan (pakai slot)', async () => {
     const fs = await import('node:fs');
     const os = await import('node:os');

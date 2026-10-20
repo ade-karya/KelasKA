@@ -132,15 +132,18 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
   }
   // Tombol pemilih model Pro Workbench (/workspace -> POST /api/agent/models)
   // menyimpan override global di data/agent-driver-model.json: model
-  // `opencode:*` / `opencode-go:*` + varian thinking per model. Override hanya
+  // `opencode:*` / `opencode-go:*` + varian thinking per model. Override
   // berlaku bila slot menunjuk transport CLI yang gratis (provider
-  // `opencode`/`opencode-go` atau api CLI): bila slot menunjuk tier ber-key
-  // via HTTP, override diabaikan agar pilihan operator ber-key tidak dibajak.
-  // Override di luar allowlist juga diabaikan.
+  // `opencode`/`opencode-go` atau api CLI) ATAU bila model itu dipilih
+  // workspace sendiri: pilihan pemilih model adalah pilihan user yang sama,
+  // jadi jangan tampilkan DeepSeek di toolbar sementara run memakai model
+  // ber-key lain dari settings workspace. Pilihan operator (deployment/locked)
+  // tetap tidak dibajak; override di luar allowlist juga diabaikan.
   const override = readActiveModelOverride();
   if (override) {
     const input = parseOpencodeModelInput(override.modelString);
-    if (input && isActivatedOpencodeId(input.bare, input.provider) && slotIsCliTransport) {
+    const overrideMayApply = slotIsCliTransport || resolution.source === 'workspace';
+    if (input && isActivatedOpencodeId(input.bare, input.provider) && overrideMayApply) {
       const connection = await resolveModel({
         modelString: override.modelString,
         // Varian thinking tombol workbench menang; bila tak diset, pakai
