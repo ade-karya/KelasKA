@@ -32,7 +32,7 @@
 #      (provider terdaftar di lib/ai/providers.ts) —
 #      1 Gemini (google:gemini-3.5-flash-lite), 2 OpenCode Go
 #      (opencode-go:gpt-6-luna), 3 OpenCode free CLI
-#      (opencode:muse-spark-1.3-contributor-free sebagai default, dengan
+#      (opencode:deepseek-v4.1-flash-free sebagai default, dengan
 #      OPENCODE_MODELS berisi SEMUA model opencode yang tersedia: bila
 #      `opencode auth login` sudah dilakukan user pemilik sesi, SEMUA model
 #      dari `opencode models` diaktifkan; bila belum login, hanya model free —
@@ -257,7 +257,7 @@ for arg in "$@"; do
     --no-upstream)     WITH_UPSTREAM=0 ;;
     --upstream-url=*)  UPSTREAM_URL="${arg#*=}"; [[ -n "$UPSTREAM_URL" ]] || fail "--upstream-url butuh nilai (contoh: --upstream-url=https://github.com/THU-MAIC/OpenMAIC.git)." ;;
     --pg-major=*)      PG_MAJOR="${arg#*=}" ;;
-    --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (tier gratis: opencode:muse-spark-1.3-contributor-free). Hapus flag tersebut dan ulangi." ;;
+    --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (tier gratis: opencode:deepseek-v4.1-flash-free). Hapus flag tersebut dan ulangi." ;;
     --pg-password=*)   PG_PASSWORD="${arg#*=}"; [[ -n "$PG_PASSWORD" ]] || fail "--pg-password butuh nilai (contoh: --pg-password=rahasia)." ;;
     -h|--help)         tampilkan_help; exit 0 ;;
     *) fail "Opsi tidak dikenal: $arg (lihat --help)." ;;
@@ -1181,7 +1181,8 @@ tulis_template_env() {
 #      OPENCODE_GO_API_KEY untuk jalur HTTP/driver; \`opencode auth login\`
 #      saja TIDAK cukup untuk driver HTTP)
 #   3. OpenCode free CLI : ${tier_default} (tanpa auth sama sekali; default =
-#      muse-spark bila ada di daftar free, else entri pertama OPENCODE_MODELS)
+#      deepseek-v4.1-flash-free bila ada di daftar free, else entri pertama
+#      OPENCODE_MODELS)
 # Slug tier2 persis katalog \`opencode models\` (terverifikasi); butuh
 # registrasi provider opencode-go di lib/ai/providers.ts (sudah ada).
 # CLI diinstal via: curl -fsSL https://opencode.ai/v2/install | bash
@@ -1419,7 +1420,7 @@ set_tts_browser_flag() {
 #           `opencode models` (terverifikasi RC=0). Kunci: OPENCODE_API_KEY
 #           (utama) dan/atau OPENCODE_GO_API_KEY (jalur HTTP/driver).
 #           `opencode auth login` saja tidak cukup untuk driver HTTP.
-#   tier3 = OpenCode free CLI : opencode:muse-spark-1.3-contributor-free
+#   tier3 = OpenCode free CLI : opencode:deepseek-v4.1-flash-free
 #           (default; eksekusi lokal, tanpa auth; terverifikasi RC=0 tanpa
 #           kredensial). Daftar model login-aware: sudah `opencode auth login`
 #           -> SEMUA model `opencode` tersedia; belum login -> hanya model free.
@@ -1431,7 +1432,7 @@ TIER1_KEY_VAR="GOOGLE_API_KEY"
 TIER2_MODEL="opencode-go:gpt-6-luna"
 TIER2_KEY_PRIMARY="OPENCODE_API_KEY"
 TIER2_KEY_HTTP="OPENCODE_GO_API_KEY"
-TIER3_MODEL="opencode:muse-spark-1.3-contributor-free"
+TIER3_MODEL="opencode:deepseek-v4.1-flash-free"
 # Fallback katalog provider `opencode` (lib/ai/providers.ts) bila CLI belum
 # ada / offline: SEMUA model free yang terverifikasi `opencode run` (Okt 2026;
 # exo-free deprecated + ling-3.0-flash-fin-free unavailable dibuang; gelombang
@@ -1660,10 +1661,10 @@ daftar_model_free_opencode() {
   # `opencode models` masih menampilkan model mati (lihat OPENCODE_DEAD_IDS).
   if [[ -n "$out" ]]; then out="$(buang_model_mati_opencode "$out")"; fi
   if [[ -z "$out" ]]; then out="$OPENCODE_FREE_FALLBACK"; fi
-  # Pastikan default tier3 selalu ikut (idempoten, di depan bila belum ada).
-  if [[ ",${out}," != *",muse-spark-1.3-contributor-free,"* ]]; then
-    out="muse-spark-1.3-contributor-free${out:+,}${out}"
-  fi
+  # Jangan paksakan model default lama ke depan daftar: `opencode models`
+  # adalah sumber kebenaran. Muse Spark pernah dipaksa di sini meski sudah
+  # hilang dari katalog; tier3 lalu menulis model mati sebagai default dan
+  # setiap run gagal "Model unavailable" (lihat tier3_default_dari_daftar).
   printf '%s' "$out"
 }
 
@@ -1730,9 +1731,8 @@ daftar_model_semua_opencode() {
   # Saring model mati yang masih muncul di `opencode models`.
   out="$(buang_model_mati_opencode "$out")"
   [[ -n "$out" ]] || return 1
-  if [[ ",${out}," != *",muse-spark-1.3-contributor-free,"* ]]; then
-    out="muse-spark-1.3-contributor-free${out:+,}${out}"
-  fi
+  # Sama seperti daftar free: jangan sisipkan model default lama yang mungkin
+  # sudah tidak ada di katalog.
   printf '%s' "$out"
 }
 
@@ -1840,15 +1840,18 @@ daftar_model_go_opencode() {
   printf '%s' "$out"
 }
 
-# Model default tier3 = entri pertama daftar free (preferensi muse-spark bila ada).
+# Model default tier3 = deepseek-v4.1-flash-free bila tersedia, else entri
+# pertama daftar free. Model preferensi WAJIB berasal dari daftar live:
+# muse-spark-1.3-contributor-free dulu dipaksa ke daftar padahal sudah hilang
+# dari katalog, sehingga default tier3 selalu "Model unavailable".
 tier3_default_dari_daftar() {
   local daftar="${1:-$OPENCODE_FREE_FALLBACK}" pertama=""
-  if [[ ",${daftar}," == *",muse-spark-1.3-contributor-free,"* ]]; then
-    printf 'opencode:muse-spark-1.3-contributor-free'
+  if [[ ",${daftar}," == *",deepseek-v4.1-flash-free,"* ]]; then
+    printf 'opencode:deepseek-v4.1-flash-free'
     return
   fi
   pertama="$(printf '%s' "$daftar" | cut -d, -f1 | tr -d '[:space:]')"
-  [[ -z "$pertama" ]] && pertama="muse-spark-1.3-contributor-free"
+  [[ -z "$pertama" ]] && pertama="deepseek-v4.1-flash-free"
   printf 'opencode:%s' "$pertama"
 }
 
@@ -3288,8 +3291,8 @@ echo "    2. OpenCode Go + key  : opencode-go:gpt-6-luna (slug persis katalog"
 echo "       'opencode models', terverifikasi; ISI MANUAL OPENCODE_API_KEY"
 echo "       dan/atau OPENCODE_GO_API_KEY untuk jalur HTTP/driver;"
 echo "       'opencode auth login' saja tidak cukup untuk driver)"
-echo "    3. OpenCode free CLI : default opencode:muse-spark-1.3-contributor-free (tanpa auth;"
-echo '       coba manual: opencode run -m opencode/muse-spark-1.3-contributor-free "hi"'
+echo "    3. OpenCode free CLI : default opencode:deepseek-v4.1-flash-free (tanpa auth;"
+echo '       coba manual: opencode run -m opencode/deepseek-v4.1-flash-free "hi"'
 echo "       OPENCODE_BIN menunjuk binary absolut. Tool-calling paritas ber-key:"
 echo "       multi-blok fence, validasi skema argumen, sekali repair otomatis;"
 echo "       skills disajikan identik (hanya seed unsupported)."
