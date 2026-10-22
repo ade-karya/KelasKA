@@ -50,6 +50,13 @@ import {
 } from './fetch-url';
 import { assembleRunnerTools, buildRunnerCoursePrompt } from './runner-contract';
 import { buildMaterialTools, MATERIAL_TOOL_NAMES } from './material-tools';
+import { defaultLocale, supportedLocaleOf, type Locale } from '@/lib/i18n/types';
+import { startExtractionWatcher, type ExtractionWatcher } from './extraction-watcher';
+import {
+  buildMaterialLibraryTools,
+  MATERIAL_LIBRARY_TOOL_NAMES,
+  type MaterialLibraryChange,
+} from './material-library-tools';
 import { buildRosterTools, ROSTER_TOOL_NAMES, ROSTER_TOOLS_PROMPT } from './roster-tools';
 import {
   buildVoiceCloneTools,
@@ -66,7 +73,8 @@ import {
   preloadUserMessage,
   type SkillPreload,
 } from './skill-preload';
-import { listSessionMaterials, sessionMaterialsPromptBlock } from './session-materials';
+import { listSessionScopeMaterials } from './material-resolver';
+import { materialsPromptBlock } from './material-prompt';
 import {
   availableSkillsPromptBlock,
   createNativeSkillReadTool,
@@ -710,6 +718,25 @@ export function durableUserMessageSeq(message: AgentMessage): number | null {
 }
 
 /**
+ * The interface language in effect once the user message `through` has been
+ * consumed (#1880): the latest message up to it that names a supported
+ * locale, else the session's own (for a first run with no message event at
+ * all), else the project default. Messages after `through` never count, so a
+ * queued message cannot change the words of the turn before it.
+ */
+export function localeThrough(
+  messages: ReadonlyMap<number, Locale>,
+  through: number,
+  sessionLocale: unknown,
+): Locale {
+  let latest: { seq: number; locale: Locale } | null = null;
+  for (const [seq, locale] of messages) {
+    if (seq <= through && (!latest || seq > latest.seq)) latest = { seq, locale };
+  }
+  return latest?.locale ?? supportedLocaleOf(sessionLocale) ?? defaultLocale;
+}
+
+/**
  * The classrooms a message named, resolved against the owner's own library.
  *
  * The composer stores a SNAPSHOT title on the ref, which is right for the
@@ -978,6 +1005,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
   let criticalWriteError: unknown;
   let entryWritesHealthy = true;
   let terminalFrameEmitted = false;
+  let extractionWatcher: ExtractionWatcher | undefined;
 
   const markLeaseLost = () => {
     leaseLost = true;
@@ -1061,6 +1089,9 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         abort.abort();
       }
       return;
+    }
+    if (type === LIFECYCLE.sessionEnd || type === LIFECYCLE.sessionInterrupted) {
+      extractionWatcher?.stop();
     }
     runEventEmitted = true;
     if (type === LIFECYCLE.sessionEnd) terminalFrameEmitted = true;
@@ -1274,6 +1305,14 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
 
     const loggedMessages = await listAgentUserMessages(store, id);
     let deliveredThrough = meta.deliveredUserMessageSeq ?? 0;
+    // Each durable message's interface language (#1880), filled as the run
+    // reads messages; `localeThrough` decides which one is in effect.
+    const messageLocales = new Map<number, Locale>();
+    const rememberLocale = (message: { seq: number; locale?: unknown }) => {
+      const locale = supportedLocaleOf(message.locale);
+      if (locale) messageLocales.set(message.seq, locale);
+    };
+    loggedMessages.forEach(rememberLocale);
     // Resolve the classrooms each pending message named against the owner's
     // library BEFORE the prompt is built: the run must be told the course's
     // current name (reference semantics), and the same resolved refs feed the
@@ -1340,7 +1379,9 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       languageModel: driver.connection.model,
       supportsToolImages: driver.connection.modelInfo?.capabilities?.vision,
       maxOutputTokens: cliOpts ? cliOpts.maxOutputTokens : driver.wireMaxOutputTokens,
-      omitMaxOutputTokens: cliOpts ? cliOpts.omitMaxOutputTokens : driver.wireMaxOutputTokens === undefined,
+      omitMaxOutputTokens: cliOpts
+        ? cliOpts.omitMaxOutputTokens
+        : driver.wireMaxOutputTokens === undefined,
       thinkingConfig: driver.connection.thinkingConfig,
       source: cliOpts ? cliOpts.source : 'agent-runtime',
       abortSignal: abort.signal,
@@ -1428,6 +1469,23 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       idleAttach,
       firstRunSeq: recovery.firstRunSeq,
     });
+    // The language of the message this run answers first: the one it starts
+    // from (not the newest queued), or -- a first prompt, or a resume -- what
+    // was in effect at the last consumed message. A user frame in the retained
+    // transcript was consumed even when the delivered cursor, a separate
+    // write, did not land before the worker stopped. It moves only when a
+    // steered message is actually consumed (below).
+    const consumedInTranscript = plannedMessages.reduce(
+      (latest, message) => Math.max(latest, durableUserMessageSeq(message) ?? 0),
+      0,
+    );
+    let runLocale = localeThrough(
+      messageLocales,
+      plannedStart.kind === 'prompt' && plannedStart.durableMessageSeq !== undefined
+        ? plannedStart.durableMessageSeq
+        : Math.max(deliveredThrough, consumedInTranscript),
+      meta.locale,
+    );
     // The owner probe is the tool layer's legality boundary: every course call
     // declares its stageId, and stageAccess resolves that stage against the
     // session owner (owned / foreign / missing / tombstoned) before the tool
@@ -1484,8 +1542,35 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     // semantics: the material tools are always registered alongside the
     // capability-gated web_search). The listing only feeds the prompt block;
     // the tools read through the same session-scoped store on each call.
-    const materials = await listSessionMaterials(id);
-    const materialTools = buildMaterialTools({ sessionId: id });
+    const materials = await listSessionScopeMaterials(id);
+    // Material-library changes reach the client as the durable
+    // `library_changed` with `library: 'materials'`; its material lists
+    // refetch, and the course tree does not.
+    const onMaterialLibraryChanged = (change: MaterialLibraryChange) =>
+      emit(LIFECYCLE.libraryChanged, change);
+    // Sources whose extraction this run cares about are watched while it
+    // lasts, so a settlement reaches the client without another wait.
+    extractionWatcher = startExtractionWatcher({
+      onSettled: (materialIds) =>
+        onMaterialLibraryChanged({
+          library: 'materials',
+          change: 'extraction_settled',
+          materialIds,
+        }),
+    });
+    const materialTools = buildMaterialTools({
+      sessionId: id,
+      onLibraryChanged: onMaterialLibraryChanged,
+      extractionWatcher,
+      locale: () => runLocale,
+    });
+    // Organizing the knowledge base: the run's owner, never a parameter.
+    const materialLibraryTools = buildMaterialLibraryTools({
+      sessionId: id,
+      ownerId: meta.ownerId,
+      onLibraryChanged: onMaterialLibraryChanged,
+      locale: () => runLocale,
+    });
     // Session-scoped registered voices: register_voice appends here, and
     // list_voices / set_roster (roster-tools) read the same array, so a cloned
     // voice stays bindable within the session that registered it (in-session
@@ -1556,6 +1641,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         curriculumTools,
         scenePreviewTools,
         materialTools,
+        materialLibraryTools,
         rosterTools,
         voiceCloneTools,
         personalHistoryTools,
@@ -1572,7 +1658,9 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         ...(search ? { search: searchPromptBlock() } : {}),
         ...(fetchConnection ? { fetch: fetchPromptBlock() } : {}),
         untrustedContent: untrustedContentPolicyPromptBlock(!!fetchConnection),
-        ...(materials.length ? { materials: sessionMaterialsPromptBlock(materials) } : {}),
+        // Always: a conversation with nothing attached can still use the
+        // knowledge base.
+        materials: materialsPromptBlock(materials),
         roster: ROSTER_TOOLS_PROMPT,
         voice: voiceCloneToolsPrompt(voiceRegistrationEnabled),
       }),
@@ -1585,6 +1673,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         ...SKILL_EDIT_TOOL_NAMES,
         ...(skillReadTool ? ['read'] : []),
         ...MATERIAL_TOOL_NAMES,
+        ...MATERIAL_LIBRARY_TOOL_NAMES,
         ...(fetchConnection ? ['fetch_url'] : []),
         ...dslTools.map((tool) => tool.name),
         ...scenePreviewTools.map((tool) => tool.name),
@@ -1621,7 +1710,14 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         if (event.message.role === 'assistant') {
           trackToolCallMessage(inFlightToolCalls, event.message);
         }
-        if (event.message.role === 'user') userFramesSeen += 1;
+        if (event.message.role === 'user') {
+          userFramesSeen += 1;
+          // A durable message enters the transcript here -- the start prompt
+          // or a steered follow-up -- and from now on the run answers it, in
+          // its language.
+          const consumed = durableUserMessageSeq(event.message);
+          if (consumed !== null) runLocale = localeThrough(messageLocales, consumed, meta.locale);
+        }
         enqueue(async () => {
           await entrySession!.appendMessage(event.message);
           const deliveredSeq = durableUserMessageSeq(event.message);
@@ -1681,6 +1777,8 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
       let delivered = 0;
       for (const message of all) {
         if (message.seq <= deliveredThrough || acceptedMessageSeqs.has(message.seq)) continue;
+        // Recorded now, in effect only once pi consumes the message.
+        rememberLocale(message);
         const followUp = toFollowUp(message);
         // Same resolution as the start path: a steered message names its
         // classrooms on the durable event, and the model must be told the
@@ -1964,6 +2062,7 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
   } finally {
     clearInterval(heartbeatTimer);
     clearInterval(cancelPoll);
+    extractionWatcher?.stop();
     unsubscribeWakeup();
     drainOnWake = null;
     await flushAll(false);

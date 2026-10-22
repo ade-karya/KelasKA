@@ -789,12 +789,7 @@ function HomePage() {
       >
         {/* ── Logo: Kemendikdasmen + DPRD + Kelas KA ── */}
         <div className="relative" data-pro-morph="lockup">
-          <div
-            className={cn(
-              'mb-2',
-              heroEnter('fade-in zoom-in-90 duration-500 delay-100'),
-            )}
-          >
+          <div className={cn('mb-2', heroEnter('fade-in zoom-in-90 duration-500 delay-100'))}>
             <BrandLogo size="lg" className="flex-wrap justify-center" />
           </div>
           {workbenchEntryEnabled ? (

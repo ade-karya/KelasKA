@@ -1,3 +1,4 @@
+import type { ConfiguredTTSVoice } from '@/lib/audio/types';
 /**
  * The model settings a workspace sees and edits (RFC #1701, tracked in #1725,
  * P2). This is the service behind `/api/model-config`: it reads the slot tree
@@ -13,11 +14,7 @@
  * it is stored, so a stored workspace configuration always resolves.
  */
 import type { WebFetchProviderInfo } from '@/lib/web-fetch/types';
-import {
-  DEFAULT_WEB_FETCH_PROVIDER,
-  getWebFetchProvider,
-  webFetchProviderMetadata,
-} from '@/lib/web-fetch/registry';
+import { DEFAULT_WEB_FETCH_PROVIDER, webFetchProviderMetadata } from '@/lib/web-fetch/registry';
 import {
   deploymentAuthorizedModels,
   ModelAuthorizationError,
@@ -51,7 +48,7 @@ import {
   presetRegionalEndpointTemplate,
 } from '@/lib/config/official-endpoints';
 
-import { isForceDisabled, isLocalEndpoint } from './media';
+import { acceptsWorkspaceToolBaseUrl, isForceDisabled, isLocalEndpoint } from './media';
 import {
   checkModelConfigShape,
   thinkingEffortIssue,
@@ -99,6 +96,7 @@ export interface ProviderView {
    * are the deployment's (openmaic.yml).
    */
   options?: Record<string, string | number | boolean>;
+  voices?: ConfiguredTTSVoice[];
   /** What it offers, with the models to pick from per capability. */
   capabilities: CapabilityModels;
   /** Workspace providers only. */
@@ -284,8 +282,8 @@ function isOpencodeRegistryId(registryId: string): registryId is OpencodeCliProv
 
 /**
  * What a provider can be assigned to, with its models: a workspace provider
- * with its own endpoint serves chat only (see media.ts), except official web fetch
- * endpoints accepted by the registry. A preset whose
+ * with its own endpoint serves chat only (see media.ts), except official web search
+ * and web fetch endpoints accepted by the registries. A preset whose
  * registry catalogue says nothing about the endpoint (an OpenAI-compatible
  * server) offers only the models the provider lists.
  *
@@ -317,13 +315,7 @@ function capabilityModels(
     if (
       chatOnly &&
       capability !== 'chat' &&
-      !(
-        capability === 'webFetch' &&
-        baseUrl &&
-        getWebFetchProvider(preset.capabilities.webFetch!.registryId)?.acceptsWorkspaceBaseUrl?.(
-          baseUrl,
-        )
-      )
+      !acceptsWorkspaceToolBaseUrl(capability, preset.capabilities[capability]!.registryId, baseUrl)
     )
       continue;
     // A provider the operator switched off for this capability is not offered.
@@ -525,6 +517,7 @@ export function modelSettingsView(stored: StoredWorkspaceConfig | null): ModelSe
       source: 'deployment' as const,
       ...(provider.models ? { models: [...provider.models] } : {}),
       ...(provider.options ? { options: { ...provider.options } } : {}),
+      ...(provider.voices ? { voices: provider.voices.map((voice) => ({ ...voice })) } : {}),
       capabilities: capabilityModels(getProviderPreset(provider.preset), provider.models, {
         strictModels: usesServerCredentials(provider),
         deployment: deployment?.config,
@@ -538,6 +531,8 @@ export function modelSettingsView(stored: StoredWorkspaceConfig | null): ModelSe
       source: 'workspace' as const,
       ...(provider.baseUrl ? { baseUrl: viewEndpoint(provider.baseUrl) } : {}),
       ...(provider.models ? { models: [...provider.models] } : {}),
+      ...(provider.options ? { options: { ...provider.options } } : {}),
+      ...(provider.voices ? { voices: provider.voices.map((voice) => ({ ...voice })) } : {}),
       capabilities: capabilityModels(getProviderPreset(provider.preset), provider.models, {
         // An official regional endpoint is the service's own, not a custom one.
         chatOnly: provider.baseUrl !== undefined && !officialEndpointOf(provider),
@@ -856,10 +851,10 @@ export async function applyModelSettingsChange(
           if (
             target?.providerSource === 'workspace' &&
             target.customBaseUrl &&
-            !(
-              getSlot(slot as SlotId).capability === 'webFetch' &&
-              target.baseUrl &&
-              getWebFetchProvider(target.registryId)?.acceptsWorkspaceBaseUrl?.(target.baseUrl)
+            !acceptsWorkspaceToolBaseUrl(
+              getSlot(slot as SlotId).capability,
+              target.registryId,
+              target.baseUrl,
             )
           ) {
             throw new ModelSettingsError(

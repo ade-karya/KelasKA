@@ -338,7 +338,8 @@ export function VoxCPMVoiceManager() {
                         profile.kind === 'clone' && !supportsReferenceAudio
                           ? t('settings.voxcpmCloneUnsupportedDetail')
                           : profile.kind === 'clone'
-                            ? profile.referenceAudioName || t('settings.voxcpmReferenceAudioFallback')
+                            ? profile.referenceAudioName ||
+                              t('settings.voxcpmReferenceAudioFallback')
                             : profile.voicePrompt || ''
                       }
                       kind={profile.kind === 'clone' ? 'clone' : 'prompt'}

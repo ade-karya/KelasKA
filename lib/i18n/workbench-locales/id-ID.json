@@ -45,7 +45,8 @@
     "fileTooLarge": "Berkas terlalu besar. Kompres atau bagi berkas lalu coba lagi.",
     "fileTooLargeWithLimit": "Berkas terlalu besar. Pilih berkas maksimal {{limit}} MB.",
     "unsupportedType": "Jenis berkas tidak didukung. Pilih berkas yang didukung.",
-    "quotaExceeded": "Batas unggah materi tercapai."
+    "quotaExceeded": "Batas unggah materi tercapai.",
+    "storageFull": "Penyimpanan penuh. Materi ini tidak dapat diunggah."
   },
   "skill": {
     "listFailed": "Gagal memuat daftar Skill",
@@ -102,7 +103,9 @@
       "teacher-style-clone": "Gaya mengajar guru",
       "understanding-by-design": "Desain berbasis pemahaman (UbD)",
       "vocational": "Pelatihan vokasi",
-      "workshop-style": "Lokakarya interaktif"
+      "workshop-style": "Lokakarya interaktif",
+      "tka-sd-smp-asesmen": "Kerangka Asesmen TKA SD/SMP",
+      "tka-sma-smk-asesmen": "Kerangka Asesmen TKA SMA/SMK"
     }
   },
   "thinking": {
@@ -149,6 +152,11 @@
     },
     "label": {
       "listMaterials": "Periksa materi",
+      "listMaterialFolders": "Periksa folder basis pengetahuan",
+      "createMaterialFolder": "Buat folder basis pengetahuan",
+      "renameMaterialFolder": "Ganti nama folder basis pengetahuan",
+      "moveMaterials": "Pindahkan materi",
+      "renameMaterial": "Ganti nama materi",
       "extractMaterial": "Ekstrak materi",
       "waitMaterials": "Tunggu ekstraksi materi",
       "readMaterial": "Baca materi",
@@ -229,11 +237,27 @@
       "allCourses": "Semua kelas",
       "folderCourses": "Kelas dalam folder",
       "reusedCourse": "Menggunakan kelas yang ada",
-      "movedToFolder": "Dipindahkan ke folder"
+      "movedToFolder": "Dipindahkan ke folder",
+      "materialFolders": "{{count}} folder",
+      "materials": "{{count}} materi",
+      "extractionStarted": "Dimulai",
+      "extractionInProgress": "Sudah berjalan",
+      "extractionDone": "Sudah diekstrak",
+      "extractionComplete": "Selesai",
+      "extractionStillRunning": "Masih mengekstrak",
+      "parseFailed": "Gagal mengurai",
+      "folderExisted": "Folder sudah ada",
+      "unchanged": "Tidak ada perubahan",
+      "movedOutOfFolder": "Dipindahkan keluar folder"
     },
     "error": {
       "materialExtraction": "Gagal mengekstrak materi",
       "listMaterials": "Gagal memeriksa materi",
+      "listMaterialFolders": "Gagal memeriksa folder basis pengetahuan",
+      "createMaterialFolder": "Gagal membuat folder basis pengetahuan",
+      "renameMaterialFolder": "Gagal mengganti nama folder basis pengetahuan",
+      "moveMaterials": "Gagal memindahkan materi",
+      "renameMaterial": "Gagal mengganti nama materi",
       "readMaterial": "Gagal membaca materi",
       "searchMaterial": "Gagal mencari materi",
       "clipAudio": "Gagal memotong audio referensi",

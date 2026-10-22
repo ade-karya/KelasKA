@@ -96,15 +96,13 @@ describe('thinking config metadata', () => {
     // Pin the flash model's capabilities (live /v1/models: input text+image)
     // so a regression to vision: false (silently dropping document images
     // during generation) fails this test.
-    const visionModel = getProvider('deepseek')?.models.find(
-      (m) => m.id === 'deepseek-flash',
-    );
+    const visionModel = getProvider('deepseek')?.models.find((m) => m.id === 'deepseek-flash');
     expect(visionModel?.capabilities).toMatchObject({
       streaming: true,
       tools: true,
       vision: true,
     });
-    expect(hunyuanModels).toEqual(['hy3-preview']);
+    expect(hunyuanModels).toEqual(['hy3']);
     expect(minimaxModels).toEqual(['MiniMax-M3', 'MiniMax-M2.7']);
     expect(siliconflowModels).not.toContain('MiniMaxAI/MiniMax-M2');
   });
@@ -323,7 +321,7 @@ describe('thinking config normalization', () => {
   });
 
   it('normalizes Tencent HY3 thinking as no_think/low/high effort levels', () => {
-    const thinking = getThinking('tencent-hunyuan', 'hy3-preview');
+    const thinking = getThinking('tencent-hunyuan', 'hy3');
 
     expect(getDefaultThinkingConfig(thinking)).toEqual({
       mode: 'disabled',

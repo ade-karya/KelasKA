@@ -20,10 +20,7 @@ import { createProviderFetch, isRejectedRedirectError } from '@/lib/server/provi
 import { isZeroCostPricing, ModelFetchError } from '@/lib/server/model-fetch';
 import { openRouterBaseUrl } from '@/lib/media/adapters/openrouter-image-adapter';
 
-export type OpenRouterMediaFetchTransport = (
-  url: string,
-  init: RequestInit,
-) => Promise<Response>;
+export type OpenRouterMediaFetchTransport = (url: string, init: RequestInit) => Promise<Response>;
 
 const pinnedMediaFetch: OpenRouterMediaFetchTransport = createProviderFetch({
   allowLocalNetworks: undefined,
@@ -99,7 +96,10 @@ async function getJson(
       }
     }
     if (res.status === 404 || res.status === 405) {
-      throw new ModelFetchError(404, `No /${url.includes('/videos/') ? 'videos' : 'images'}/models endpoint found`);
+      throw new ModelFetchError(
+        404,
+        `No /${url.includes('/videos/') ? 'videos' : 'images'}/models endpoint found`,
+      );
     }
     throw new ModelFetchError(res.status, `HTTP ${res.status}`);
   } catch (error) {

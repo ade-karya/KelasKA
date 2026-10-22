@@ -69,13 +69,33 @@ const ACTION_CONFIG: Record<string, ActionCfg> = {
 
   // Whiteboard drawing
   wb_draw_text: { i18nKey: 'actions.names.wb_draw_text', Icon: Type, style: WB_STYLE, wb: true },
-  wb_draw_shape: { i18nKey: 'actions.names.wb_draw_shape', Icon: Shapes, style: WB_STYLE, wb: true },
-  wb_draw_chart: { i18nKey: 'actions.names.wb_draw_chart', Icon: BarChart3, style: WB_STYLE, wb: true },
+  wb_draw_shape: {
+    i18nKey: 'actions.names.wb_draw_shape',
+    Icon: Shapes,
+    style: WB_STYLE,
+    wb: true,
+  },
+  wb_draw_chart: {
+    i18nKey: 'actions.names.wb_draw_chart',
+    Icon: BarChart3,
+    style: WB_STYLE,
+    wb: true,
+  },
   wb_draw_latex: { i18nKey: 'actions.names.wb_draw_latex', Icon: Sigma, style: WB_STYLE, wb: true },
-  wb_draw_table: { i18nKey: 'actions.names.wb_draw_table', Icon: Table2, style: WB_STYLE, wb: true },
+  wb_draw_table: {
+    i18nKey: 'actions.names.wb_draw_table',
+    Icon: Table2,
+    style: WB_STYLE,
+    wb: true,
+  },
   wb_draw_line: { i18nKey: 'actions.names.wb_draw_line', Icon: Minus, style: WB_STYLE, wb: true },
   wb_draw_code: { i18nKey: 'actions.names.wb_draw_code', Icon: Code2, style: WB_STYLE, wb: true },
-  wb_edit_code: { i18nKey: 'actions.names.wb_edit_code', Icon: FileCode, style: WB_STYLE, wb: true },
+  wb_edit_code: {
+    i18nKey: 'actions.names.wb_edit_code',
+    Icon: FileCode,
+    style: WB_STYLE,
+    wb: true,
+  },
 
   // Social
   discussion: { i18nKey: 'actions.names.discussion', Icon: MessageSquare, style: DISCUSS_STYLE },

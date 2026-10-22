@@ -187,9 +187,10 @@ describe('gemini native discovery (per ai.google.dev docs)', () => {
   const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
   it('probes {base}/models first (v1beta is not an OpenAI /v{N} segment)', () => {
-    expect(
-      buildModelsUrlCandidates(GEMINI_BASE, { providerType: 'google' }),
-    ).toEqual([`${GEMINI_BASE}/models`, `${GEMINI_BASE}/openai/models`]);
+    expect(buildModelsUrlCandidates(GEMINI_BASE, { providerType: 'google' })).toEqual([
+      `${GEMINI_BASE}/models`,
+      `${GEMINI_BASE}/openai/models`,
+    ]);
   });
 
   it('detects the generativelanguage host even without providerType', () => {
@@ -274,7 +275,10 @@ describe('gemini native discovery (per ai.google.dev docs)', () => {
           { name: 'models/gemini-flash-latest', supportedGenerationMethods: ['generateContent'] },
           { name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] },
           { name: 'models/gemma-4-31b-it', supportedGenerationMethods: ['generateContent'] },
-          { name: 'models/gemini-3.1-pro-preview', supportedGenerationMethods: ['generateContent'] },
+          {
+            name: 'models/gemini-3.1-pro-preview',
+            supportedGenerationMethods: ['generateContent'],
+          },
         ],
       }),
     } as unknown as Response);

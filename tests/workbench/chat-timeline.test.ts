@@ -293,17 +293,19 @@ describe('rowsForRender tool-run aggregation', () => {
     );
     expect(html).toContain('Periksa materi');
     expect(html).toContain('Baca materi');
-    expect(html).toContain('Gagal mengekstrak materi');
     expect(html).toContain('data-status="running"');
-    expect(html).toContain('data-status="failed"');
-    expect(html).toContain('data-status="error"');
+    // #1880: a call that succeeded is not an error, even when a file in its
+    // result failed to parse.
+    expect(html).not.toContain('Gagal mengekstrak materi');
+    expect(html).not.toContain('data-status="failed"');
+    expect(html).not.toContain('data-status="error"');
     expect(html).not.toContain('list_materials');
     expect(html).not.toContain('read_material');
     expect(html).not.toContain('mat_private');
     expect(html).not.toContain('Hasil mentah');
   });
 
-  it('marks a settled material-tool group as failed when extraction failed semantically', () => {
+  it('keeps a settled material-tool group done when a file in a result failed to parse', () => {
     const failed = tool('read_material', 'read-failed');
     failed.toolDetails = { materials: [{ status: 'failed' }] };
     const html = renderToStaticMarkup(
@@ -312,7 +314,8 @@ describe('rowsForRender tool-run aggregation', () => {
         plan: [],
       }),
     );
-    expect(html).toContain('Ada kesalahan');
+    expect(html).not.toContain('Ada kesalahan');
+    expect(html).toContain('Selesai');
   });
 });
 

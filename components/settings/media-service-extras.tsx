@@ -7,10 +7,7 @@ import { useI18n } from '@/lib/hooks/use-i18n';
 import { cn } from '@/lib/utils';
 import { Download, ExternalLink, Loader2, LogIn, Plus, X } from 'lucide-react';
 import { ModelEditDialog } from './model-edit-dialog';
-import {
-  saveServiceProvider,
-  type ServicePanelProps,
-} from './server-settings';
+import { saveServiceProvider, type ServicePanelProps } from './server-settings';
 
 /**
  * The Hugging Face walkthrough for gated models and token quotas: login →
@@ -26,19 +23,34 @@ export function HuggingFaceHint({ kind }: { kind: 'image' | 'video' }) {
         {t(isVideo ? 'settings.huggingfaceVideoHint' : 'settings.huggingfaceTokenHint')}
       </p>
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" asChild className="gap-1.5 bg-white dark:bg-transparent">
+        <Button
+          variant="outline"
+          size="sm"
+          asChild
+          className="gap-1.5 bg-white dark:bg-transparent"
+        >
           <a href="https://huggingface.co/login" target="_blank" rel="noreferrer">
             <LogIn className="h-3.5 w-3.5" />
             {t('settings.huggingfaceLogin')}
           </a>
         </Button>
-        <Button variant="outline" size="sm" asChild className="gap-1.5 bg-white dark:bg-transparent">
+        <Button
+          variant="outline"
+          size="sm"
+          asChild
+          className="gap-1.5 bg-white dark:bg-transparent"
+        >
           <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noreferrer">
             <ExternalLink className="h-3.5 w-3.5" />
             {t('settings.huggingfaceGetToken')}
           </a>
         </Button>
-        <Button variant="outline" size="sm" asChild className="gap-1.5 bg-white dark:bg-transparent">
+        <Button
+          variant="outline"
+          size="sm"
+          asChild
+          className="gap-1.5 bg-white dark:bg-transparent"
+        >
           <a
             href={
               isVideo
@@ -70,14 +82,21 @@ export function FluxOptionsPanel({ entry }: Pick<ServicePanelProps, 'entry'>) {
     ['Seed', typeof options.seed === 'number' ? String(options.seed) : '42 (Space default)'],
     [
       'Steps',
-      typeof options.numInferenceSteps === 'number' ? String(options.numInferenceSteps) : '28 (Space default)',
+      typeof options.numInferenceSteps === 'number'
+        ? String(options.numInferenceSteps)
+        : '28 (Space default)',
     ],
     [
       'Guidance',
-      typeof options.guidanceScale === 'number' ? String(options.guidanceScale) : '3.5 (Space default)',
+      typeof options.guidanceScale === 'number'
+        ? String(options.guidanceScale)
+        : '3.5 (Space default)',
     ],
     ['Width', typeof options.width === 'number' ? String(options.width) : '1024 (Space default)'],
-    ['Height', typeof options.height === 'number' ? String(options.height) : '1024 (Space default)'],
+    [
+      'Height',
+      typeof options.height === 'number' ? String(options.height) : '1024 (Space default)',
+    ],
     [
       'Randomize seed',
       typeof options.randomizeSeed === 'boolean'
@@ -93,8 +112,9 @@ export function FluxOptionsPanel({ entry }: Pick<ServicePanelProps, 'entry'>) {
         <div className="text-sm font-medium">FLUX Parameters</div>
         <p className="text-xs text-muted-foreground">
           /infer — black-forest-labs/FLUX.1-dev. Set in openmaic.yml under the provider&apos;s{' '}
-          <code className="font-mono">options</code>, e.g. <code className="font-mono">guidanceScale: 3.5</code>;
-          the model settings show them but cannot change them.
+          <code className="font-mono">options</code>, e.g.{' '}
+          <code className="font-mono">guidanceScale: 3.5</code>; the model settings show them but
+          cannot change them.
         </p>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -132,7 +152,13 @@ export function MediaModelsManager({
 
   const saveModels = useCallback(
     async (ids: string[]): Promise<boolean> => {
-      const next = await saveServiceProvider(view, apply, entry, { models: ids.length ? ids : null }, t);
+      const next = await saveServiceProvider(
+        view,
+        apply,
+        entry,
+        { models: ids.length ? ids : null },
+        t,
+      );
       return next !== null;
     },
     [view, apply, entry, t],
@@ -230,7 +256,9 @@ export function MediaModelsManager({
         <p
           className={cn(
             'text-xs',
-            fetchStatus === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
+            fetchStatus === 'success'
+              ? 'text-green-600 dark:text-green-400'
+              : 'text-red-600 dark:text-red-400',
           )}
         >
           {fetchMessage}

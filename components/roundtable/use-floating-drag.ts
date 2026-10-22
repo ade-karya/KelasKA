@@ -236,7 +236,9 @@ export function useFloatingDrag(storageKey: string) {
     },
     style: {
       transform:
-        offset.x === 0 && offset.y === 0 ? undefined : `translate3d(${offset.x}px, ${offset.y}px, 0)`,
+        offset.x === 0 && offset.y === 0
+          ? undefined
+          : `translate3d(${offset.x}px, ${offset.y}px, 0)`,
     } as React.CSSProperties,
   };
 }

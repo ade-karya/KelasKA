@@ -323,7 +323,12 @@ export async function generateWithHuggingFaceWanVideo(
   // duration, guidance scale, guidance scale 2, seed, randomize seed.
   // Unset fields fall back to the Space defaults (steps 6, 3.5s, guidance 1).
   const steps = Math.floor(
-    clampNumber(options.steps ?? HUGGINGFACE_WAN_DEFAULTS.steps, 1, 30, HUGGINGFACE_WAN_DEFAULTS.steps),
+    clampNumber(
+      options.steps ?? HUGGINGFACE_WAN_DEFAULTS.steps,
+      1,
+      30,
+      HUGGINGFACE_WAN_DEFAULTS.steps,
+    ),
   );
   const durationSeconds =
     Math.round(

@@ -307,7 +307,7 @@ export interface OneStreamArgs {
    *  (PBL_STREAM_TIMEOUT_MS) so a stalled SSE response can never wedge the
    *  caller's streaming locks forever. */
   signal?: AbortSignal;
-};
+}
 
 export async function runOneStream(args: OneStreamArgs): Promise<PBLProjectV2> {
   const { endpoint, body, startingProject, setDraftAssistant, onPatch } = args;

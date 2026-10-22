@@ -73,7 +73,12 @@ const log = createLogger('AIProviders');
 export type { ProviderId, ProviderConfig, ModelInfo, ModelConfig };
 
 /** Provider IDs whose logos are monochrome-dark and need `dark:invert` in dark mode */
-export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'openrouter', 'ollama', 'atlascloud']);
+export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set([
+  'openai',
+  'openrouter',
+  'ollama',
+  'atlascloud',
+]);
 
 /**
  * Fallback thinking untuk id CLI live yang belum terdaftar di
@@ -851,22 +856,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         },
       },
       {
-        id: 'qwen3.6-max-preview',
-        name: 'Qwen3.6 Max Preview',
-        contextWindow: 256000,
-        outputWindow: 64000,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: false,
-          thinking: {
-            toggleable: true,
-            budgetAdjustable: true,
-            defaultEnabled: false,
-          },
-        },
-      },
-      {
         id: 'qwen3.6-plus',
         name: 'Qwen3.6 Plus',
         contextWindow: 1000000,
@@ -959,13 +948,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         contextWindow: 1000000,
         outputWindow: 65536,
         capabilities: { streaming: true, tools: true, vision: true },
-      },
-      {
-        id: 'qwen3-max',
-        name: 'Qwen3 Max',
-        contextWindow: 262144,
-        outputWindow: 65536,
-        capabilities: { streaming: true, tools: true, vision: false },
       },
       {
         id: 'qwen3-vl-plus',
@@ -1098,39 +1080,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
           },
         },
       },
-      // K2.5 Series (2026) - 1T MoE, 32B active parameters
-      {
-        id: 'kimi-k2.5',
-        name: 'Kimi K2.5',
-        contextWindow: 256000,
-        outputWindow: 8192,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: true,
-          thinking: {
-            toggleable: true,
-            budgetAdjustable: false,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'kimi-k2-thinking',
-        name: 'Kimi K2 Thinking',
-        contextWindow: 256000,
-        outputWindow: 8192,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: false,
-          thinking: {
-            toggleable: true,
-            budgetAdjustable: false,
-            defaultEnabled: true,
-          },
-        },
-      },
     ],
   },
 
@@ -1186,13 +1135,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         outputWindow: 8192,
         capabilities: { streaming: true, tools: true, vision: false },
       },
-      {
-        id: 'deepseek-ai/DeepSeek-R1-Distill-Qwen-7B',
-        name: 'DeepSeek-R1-Distill-Qwen-7B',
-        contextWindow: 128000,
-        outputWindow: 8192,
-        capabilities: { streaming: true, tools: true, vision: false },
-      },
       // Qwen Series
       {
         id: 'Qwen/Qwen3-VL-32B-Instruct',
@@ -1200,29 +1142,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         contextWindow: 256000,
         outputWindow: 32768,
         capabilities: { streaming: true, tools: true, vision: true },
-      },
-      // Kimi Series
-      {
-        id: 'Pro/moonshotai/Kimi-K2.5',
-        name: 'Kimi-K2.5',
-        contextWindow: 256000,
-        outputWindow: 96000,
-        capabilities: { streaming: true, tools: true, vision: false },
-      },
-      // GLM Series
-      {
-        id: 'THUDM/GLM-4.1V-9B-Thinking',
-        name: 'GLM-4.1V-9B-Thinking',
-        contextWindow: 64000,
-        outputWindow: 8192,
-        capabilities: { streaming: true, tools: true, vision: true },
-      },
-      {
-        id: 'THUDM/GLM-Z1-Rumination-32B-0414',
-        name: 'GLM-Z1-Rumination-32B',
-        contextWindow: 32000,
-        outputWindow: 16384,
-        capabilities: { streaming: true, tools: true, vision: false },
       },
     ],
   },
@@ -1280,13 +1199,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
       {
         id: 'doubao-seed-2-0-mini-260215',
         name: 'Doubao Seed 2.0 Mini',
-        contextWindow: 128000,
-        outputWindow: 32768,
-        capabilities: { streaming: true, tools: true, vision: true },
-      },
-      {
-        id: 'doubao-seed-1-8-251228',
-        name: 'Doubao Seed 1.8',
         contextWindow: 128000,
         outputWindow: 32768,
         capabilities: { streaming: true, tools: true, vision: true },
@@ -1430,36 +1342,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
           },
         },
       },
-      {
-        id: 'grok-4-1-fast-reasoning',
-        name: 'Grok 4.1 Fast Reasoning',
-        contextWindow: 2000000,
-        outputWindow: 131072,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: true,
-          thinking: {
-            toggleable: false,
-            budgetAdjustable: false,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'grok-4-1-fast-non-reasoning',
-        name: 'Grok 4.1 Fast',
-        contextWindow: 2000000,
-        outputWindow: 131072,
-        capabilities: { streaming: true, tools: true, vision: true },
-      },
-      {
-        id: 'grok-code-fast-1',
-        name: 'Grok Code Fast',
-        contextWindow: 256000,
-        outputWindow: 32768,
-        capabilities: { streaming: true, tools: true, vision: false },
-      },
     ],
   },
 
@@ -1479,8 +1361,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     icon: '/logos/hunyuan.svg',
     models: [
       {
-        id: 'hy3-preview',
-        name: 'Tencent Hy3 Preview',
+        id: 'hy3',
+        name: 'Tencent Hy3',
         contextWindow: 256000,
         outputWindow: 64000,
         capabilities: { streaming: true, tools: true, vision: false },
@@ -1561,22 +1443,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         },
       },
       {
-        id: 'mimo-v2-pro',
-        name: 'MiMo V2 Pro',
-        contextWindow: 1048576,
-        outputWindow: 131072,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: false,
-          thinking: {
-            toggleable: true,
-            budgetAdjustable: false,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
         id: 'mimo-v2.5',
         name: 'MiMo V2.5',
         contextWindow: 1048576,
@@ -1585,38 +1451,6 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
           streaming: true,
           tools: true,
           vision: true,
-          thinking: {
-            toggleable: true,
-            budgetAdjustable: false,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'mimo-v2-omni',
-        name: 'MiMo V2 Omni',
-        contextWindow: 262144,
-        outputWindow: 131072,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: true,
-          thinking: {
-            toggleable: true,
-            budgetAdjustable: false,
-            defaultEnabled: true,
-          },
-        },
-      },
-      {
-        id: 'mimo-v2-flash',
-        name: 'MiMo V2 Flash',
-        contextWindow: 262144,
-        outputWindow: 65536,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: false,
           thinking: {
             toggleable: true,
             budgetAdjustable: false,

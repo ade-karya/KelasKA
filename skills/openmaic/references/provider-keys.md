@@ -119,9 +119,9 @@ These features need their own slot assigned, usually with a provider of their ow
 
 | Feature | Slot | Example presets |
 |---------|------|-----------------|
-| Web Search | `webSearch` | `tavily`, `exa`, `bocha`, `brave`, `baidu` |
+| Web Search | `webSearch` | `tavily`, `exa`, `firecrawl`, `bocha`, `brave`, `baidu` |
 | Image Generation | `image` | `seedream`, `qwen-image`, `nano-banana`, `openai-image`, `huggingface-image`, `openrouter-image` |
-| Video Generation | `video` | `seedance`, `kling`, `veo`, `minimax-video`, `huggingface-video`, `openrouter-video` |
+| Video Generation | `video` | `seedance`, `kling`, `minimax-video`, `huggingface-video`, `openrouter-video` |
 | TTS | `tts` | `openai-tts`, `azure-tts`, `glm-tts`, `qwen-tts`, `minimax-tts` |
 | Speech Recognition | `asr` | `openai-whisper`, `qwen-asr`, `funasr-asr` |
 | Document Parsing | `document` | `mineru-cloud`, `mineru`, `alidocmind` |

@@ -46,7 +46,9 @@ export function BrandLogo({
   const currentSize = sizeClasses[size];
 
   return (
-    <div className={cn('inline-flex max-w-full flex-wrap items-center', currentSize.gap, className)}>
+    <div
+      className={cn('inline-flex max-w-full flex-wrap items-center', currentSize.gap, className)}
+    >
       {showLogos && (
         <div className={cn('flex items-center', currentSize.gap)}>
           <img

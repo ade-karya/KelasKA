@@ -349,7 +349,9 @@ function fetchSpaceCallInfo(
             ? config.api_prefix
             : '/gradio_api';
         const deps = Array.isArray(config?.dependencies) ? config!.dependencies : [];
-        const fnIndex = deps.findIndex((dep) => dep?.api_name === 'infer' || dep?.api_name === '/infer');
+        const fnIndex = deps.findIndex(
+          (dep) => dep?.api_name === 'infer' || dep?.api_name === '/infer',
+        );
         return { apiPrefix, fnIndex: fnIndex >= 0 ? fnIndex : 2 };
       } catch {
         return { apiPrefix: '/gradio_api', fnIndex: 2 };
@@ -387,7 +389,9 @@ export async function generateWithHuggingFaceImage(
   // ImageGenerationOptions (the Settings panel exposes the same fields);
   // unset fields fall back to the API defaults (seed 0 + randomize keeps
   // every call fresh).
-  const seed = Number.isFinite(options.seed) ? Math.max(0, Math.floor(options.seed as number)) : HUGGINGFACE_FLUX_DEFAULTS.seed;
+  const seed = Number.isFinite(options.seed)
+    ? Math.max(0, Math.floor(options.seed as number))
+    : HUGGINGFACE_FLUX_DEFAULTS.seed;
   const randomizeSeed = options.randomizeSeed ?? HUGGINGFACE_FLUX_DEFAULTS.randomizeSeed;
   const guidanceScale =
     Number.isFinite(options.guidanceScale) && (options.guidanceScale as number) > 0

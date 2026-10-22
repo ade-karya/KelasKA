@@ -665,7 +665,7 @@ function buildStageSynthesisBlock(milestone: PBLMilestone, language?: string): s
     '',
     `This stage carries the project's core concept: **${concept}**. The active microtask is the LAST one of this core stage, so you may offer ONE short integrative reverse-question about the WHOLE stage / this concept — NOT about this microtask alone.`,
     'Frame it explicitly as an optional bonus challenge / extra reflection, not as a requirement for completing the task or moving on.',
-    'Write the bonus question in the learner\'s project language (same language as your reply) — the example below is only illustrative, do NOT copy its language if the project language differs.',
+    "Write the bonus question in the learner's project language (same language as your reply) — the example below is only illustrative, do NOT copy its language if the project language differs.",
     '',
     'Your job this turn:',
     `1. If it fits the conversation and the learner is not asking for something else, ask exactly ONE optional bonus question — e.g. ${bonusExample}. Ask it once, then stop and wait. Do not ask a second question, and do not answer it for them.`,
@@ -748,7 +748,10 @@ export function buildScenarioAwarenessBlock(args: {
       const situation = trimmedPBLText(c.situation);
       const personaShort = persona.length > 140 ? persona.slice(0, 140) + '…' : persona;
       const situationShort = situation.length > 160 ? situation.slice(0, 160) + '…' : situation;
-      const parts = [personaShort, situationShort ? `${castLocale.situationLabel}${situationShort}` : '']
+      const parts = [
+        personaShort,
+        situationShort ? `${castLocale.situationLabel}${situationShort}` : '',
+      ]
         .filter(Boolean)
         .join(castLocale.partSeparator);
       return `**${c.name}**${parts ? ` — ${parts}` : ''}`;
@@ -887,7 +890,10 @@ function buildSystemPrompt(args: {
     args.phase === 'instructing' &&
     stageSynthesisOwed(args.project, args.milestone, args.microtask);
   const synthesisBlock = synthesisOwed
-    ? buildStageSynthesisBlock(args.milestone, args.project.languageDirective || args.project.language)
+    ? buildStageSynthesisBlock(
+        args.milestone,
+        args.project.languageDirective || args.project.language,
+      )
     : '';
   const phaseBlock = PHASE_BLOCKS[args.phase];
   const firstTaskWorkspaceOrientationBlock = buildFirstTaskWorkspaceOrientationBlock(args);

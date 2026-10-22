@@ -114,7 +114,9 @@ describe('OpenRouter image adapter', () => {
 
     expect(result.base64).toBe('DDDD');
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(JSON.parse((fetchMock.mock.calls[1] as unknown as [string, RequestInit])[1].body as string)).toEqual({
+    expect(
+      JSON.parse((fetchMock.mock.calls[1] as unknown as [string, RequestInit])[1].body as string),
+    ).toEqual({
       model: 'inclusionai/ming-image-0.1-design',
       prompt: 'a fox',
     });

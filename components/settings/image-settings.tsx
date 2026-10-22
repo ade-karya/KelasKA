@@ -159,9 +159,7 @@ export function ImageSettings(props: ServicePanelProps) {
                 entry={entry}
               />
             )}
-            {isOpenRouter && ownProvider && (
-              <MediaModelsManager kind="image" {...props} />
-            )}
+            {isOpenRouter && ownProvider && <MediaModelsManager kind="image" {...props} />}
           </div>
         )
       }

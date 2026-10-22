@@ -50,7 +50,10 @@ function dataDir(): string {
 
 export function activeModelFilePath(): string {
   const override = process.env.OPENCODE_ACTIVE_MODEL_FILE?.trim();
-  if (override) return path.isAbsolute(override) ? override : path.join(/*turbopackIgnore: true*/ process.cwd(), override);
+  if (override)
+    return path.isAbsolute(override)
+      ? override
+      : path.join(/*turbopackIgnore: true*/ process.cwd(), override);
   return path.join(dataDir(), OPENCODE_ACTIVE_MODEL_FILE);
 }
 
@@ -228,7 +231,9 @@ export function readActiveModelOverride(): {
   try {
     const file = activeModelFilePath();
     if (!fs.existsSync(/*turbopackIgnore: true*/ file)) return null;
-    const parsed = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, 'utf8')) as ActiveModelFile;
+    const parsed = JSON.parse(
+      fs.readFileSync(/*turbopackIgnore: true*/ file, 'utf8'),
+    ) as ActiveModelFile;
     const input = parseOpencodeModelInput(parsed.model ?? '');
     if (!input || !isActivatedOpencodeId(input.bare, input.provider)) return null;
     const out: { modelString: string; api: string; thinking?: ThinkingConfig } = {

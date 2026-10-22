@@ -748,7 +748,10 @@ describe('runPiSingleRequest', () => {
   });
 
   it('falls back to the status message when the server error body is empty', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('oops', { status: 503 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('oops', { status: 503 })),
+    );
 
     try {
       await expect(
@@ -837,10 +840,7 @@ describe('runPiSingleRequest', () => {
 describe('live-chat error classification', () => {
   it.each([
     // The exact production failure from the 429 report.
-    [
-      'Failed after 3 attempts. Last error: Too Many Requests',
-      'chat.error.rateLimited',
-    ],
+    ['Failed after 3 attempts. Last error: Too Many Requests', 'chat.error.rateLimited'],
     ['Too Many Requests', 'chat.error.rateLimited'],
     ['Pi chat request failed: 429', 'chat.error.rateLimited'],
     ['Upstream rate limit reached. Please try again shortly.', 'chat.error.rateLimited'],
@@ -867,9 +867,9 @@ describe('live-chat error classification', () => {
   });
 
   it('flags transient upstream failures for warn-level logging', () => {
-    expect(isTransientLiveError(new Error('Upstream rate limit reached. Please try again shortly.'))).toBe(
-      true,
-    );
+    expect(
+      isTransientLiveError(new Error('Upstream rate limit reached. Please try again shortly.')),
+    ).toBe(true);
     expect(
       isTransientLiveError(
         new Error('Upstream model provider is temporarily unavailable. Please try again.'),

@@ -394,7 +394,9 @@ export function CanvasToolbar({
                         ? 'text-violet-600 dark:text-violet-400'
                         : 'text-gray-500 dark:text-gray-400',
                     )}
-                    aria-label={autoPlayLecture ? t('roundtable.autoPlayOff') : t('roundtable.autoPlay')}
+                    aria-label={
+                      autoPlayLecture ? t('roundtable.autoPlayOff') : t('roundtable.autoPlay')
+                    }
                   >
                     <Repeat className="w-3.5 h-3.5" />
                   </button>

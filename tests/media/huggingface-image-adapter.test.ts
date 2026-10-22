@@ -228,7 +228,9 @@ describe('generateWithHuggingFaceImage', () => {
     });
 
     const [dataUrl, dataInit] = fetchMock.mock.calls[2] as unknown as [string, RequestInit];
-    expect(String(dataUrl)).toContain('https://black-forest-labs-flux-1-dev.hf.space/gradio_api/queue/data?session_hash=');
+    expect(String(dataUrl)).toContain(
+      'https://black-forest-labs-flux-1-dev.hf.space/gradio_api/queue/data?session_hash=',
+    );
     expect((dataInit.headers as Record<string, string>).Authorization).toBe('Bearer hf-test');
   });
 

@@ -194,9 +194,7 @@ export function EditableElement({
         disable: true,
       },
       {
-        text: elementInfo.groupId
-          ? t('edit.contextMenu.ungroup')
-          : t('edit.contextMenu.group'),
+        text: elementInfo.groupId ? t('edit.contextMenu.ungroup') : t('edit.contextMenu.group'),
         subText: 'Ctrl + G',
         handler: elementInfo.groupId ? uncombineElements : combineElements,
         hide: !isMultiSelect,

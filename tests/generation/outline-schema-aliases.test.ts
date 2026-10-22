@@ -15,8 +15,7 @@ const step5FirstOutline = {
   sceneType: 'slide',
   sceneTitle: 'Apa Itu Metamorfosis?',
   sceneNumber: 1,
-  visualNotes:
-    'Foto perbandingan ulat vs kupu-kupu di satu layar, latar hijau lembut, teks besar',
+  visualNotes: 'Foto perbandingan ulat vs kupu-kupu di satu layar, latar hijau lembut, teks besar',
   contentOutline: [
     'Definisi metamorfosis: perubahan bentuk tubuh dari menetas/lahir hingga dewasa',
     'Contoh hewan: kupu-kupu, katak, belalang, nyamuk, lebah',

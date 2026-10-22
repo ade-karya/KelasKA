@@ -1083,7 +1083,10 @@ export function buildNativeWhiteboardTools(opts: NativeWhiteboardToolOptions): A
           const top = Math.min(params.startY, params.endY);
           const points = (
             params.points
-              ? [params.points[0] === 'arrow' ? 'arrow' : '', params.points[1] === 'arrow' ? 'arrow' : '']
+              ? [
+                  params.points[0] === 'arrow' ? 'arrow' : '',
+                  params.points[1] === 'arrow' ? 'arrow' : '',
+                ]
               : ['', '']
           ) as PPTLineElement['points'];
           return {

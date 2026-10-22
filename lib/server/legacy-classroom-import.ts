@@ -208,7 +208,12 @@ async function importClassroomMedia(
   // compares real paths on both sides.
   let classroomRoot: string | null;
   try {
-    classroomRoot = await fs.realpath(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ context.directory, context.legacyId));
+    classroomRoot = await fs.realpath(
+      /*turbopackIgnore: true*/ path.join(
+        /*turbopackIgnore: true*/ context.directory,
+        context.legacyId,
+      ),
+    );
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     classroomRoot = null;
@@ -222,7 +227,9 @@ async function importClassroomMedia(
     let assetId: string | null = null;
     try {
       if (!classroomRoot) throw new ImportRefusedError();
-      const realPath = await fs.realpath(/*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ classroomRoot, relativeFile));
+      const realPath = await fs.realpath(
+        /*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ classroomRoot, relativeFile),
+      );
       if (!realPath.startsWith(classroomRoot + path.sep)) throw new ImportRefusedError();
       const bytes = await fs.readFile(/*turbopackIgnore: true*/ realPath);
       const mimeType = classroomMediaMimeType(path.extname(realPath)) ?? 'application/octet-stream';
@@ -471,7 +478,10 @@ export async function importLegacyClassrooms(
 
         try {
           const read = await readLegacyClassroom(
-            /*turbopackIgnore: true*/ path.join(/*turbopackIgnore: true*/ directory, `${legacyId}.json`),
+            /*turbopackIgnore: true*/ path.join(
+              /*turbopackIgnore: true*/ directory,
+              `${legacyId}.json`,
+            ),
             legacyId,
           );
           if ('skip' in read) {

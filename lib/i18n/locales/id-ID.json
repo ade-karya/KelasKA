@@ -499,7 +499,8 @@
       "sceneIncomplete": "Konten halaman ini belum lengkap",
       "addPage": "Tambah halaman",
       "nextPage": "Halaman berikutnya",
-      "prevPage": "Halaman sebelumnya"
+      "prevPage": "Halaman sebelumnya",
+      "sceneHasErrors": "Halaman ini memiliki kesalahan"
     },
     "zorder": {
       "toFront": "Bawa ke depan",
@@ -1400,7 +1401,8 @@
       "claude": "Claude",
       "searxng": "SearXNG",
       "opencode": "OpenCode CLI",
-      "builtin": "Pembaca bawaan"
+      "builtin": "Pembaca bawaan",
+      "firecrawl": "Firecrawl"
     },
     "modelCount": "model",
     "modelSingular": "model",
@@ -1768,7 +1770,6 @@
     "videoModel": "Model pembuatan video",
     "providerSeedance": "Seedance (ByteDance)",
     "providerKling": "Kling (Kuaishou)",
-    "providerVeo": "Veo (Google)",
     "providerSora": "Sora (OpenAI)",
     "providerMiniMaxVideo": "MiniMax Video",
     "providerGrokVideo": "Grok Video (xAI)",
@@ -2399,7 +2400,22 @@
       "pillHint": "Pesan ini merujuk ke “{{name}}”",
       "notAccepted": "Layanan sementara tidak tersedia, silakan coba lagi nanti.",
       "reference": "Rujuk “{{name}}”",
-      "capped": "Hanya menampilkan {{count}} pertama, terus ketik untuk mempersempit"
+      "capped": "Hanya menampilkan {{count}} pertama, terus ketik untuk mempersempit",
+      "search": "Cari kelas dan materi",
+      "searchMaterials": "Cari materi",
+      "searchClassrooms": "Cari kelas",
+      "courseOrder": "Kelas yang dibuka lebih dulu, lalu yang terbaru diperbarui",
+      "materialOrder": "Unggahan terbaru lebih dulu",
+      "titleBoth": "Rujuk kelas atau lampirkan materi basis pengetahuan ke pesan ini",
+      "titleMaterials": "Lampirkan materi basis pengetahuan ke pesan ini",
+      "classrooms": "Kelas",
+      "knowledgeBase": "Basis pengetahuan",
+      "emptyWithMaterials": "Tidak ada kelas atau materi yang cocok",
+      "attachMaterial": "Lampirkan {{name}} ke pesan ini",
+      "materialUnavailable": "{{name}} tidak dapat dilampirkan ({{reason}}). Buka basis pengetahuan untuk melihat penyebabnya lalu uraikan lagi.",
+      "materialAttached": "Sudah ada di percakapan ini",
+      "materialStaged": "Sudah ada di pesan ini",
+      "materialsCapped": "Menampilkan {{count}} materi pertama — terus ketik untuk mempersempit"
     },
     "heroTitle": "Ingin menciptakan apa hari ini?",
     "heroSubtitle": "Sampaikan ide Anda dan ubah menjadi perjalanan belajar yang bisa dialami langsung",
@@ -2497,6 +2513,117 @@
       "loadError": "Gagal memuat model",
       "choose": "Pilih model",
       "ariaLabel": "Pilih model Pro Workbench"
+    },
+    "knowledgeBase": {
+      "title": "Basis pengetahuan",
+      "topLevel": "Tingkat teratas",
+      "back": "Kembali",
+      "search": "Cari nama dan jenis file",
+      "loading": "Memuat…",
+      "retry": "Coba lagi",
+      "loadMore": "Muat lebih banyak",
+      "failure": {
+        "more": "Tentang kegagalan ini: {{reason}}",
+        "storage_full": {
+          "label": "Ruang penyimpanan tidak cukup",
+          "description": "Tidak ada cukup ruang untuk menyimpan hasil penguraian. Kosongkan ruang lalu coba lagi."
+        },
+        "source_unavailable": {
+          "label": "File asli tidak tersedia",
+          "description": "File asli tidak dapat dibaca. Unggah ulang lalu coba lagi."
+        },
+        "service_unavailable": {
+          "label": "Layanan penguraian tidak tersedia",
+          "description": "Belum ada layanan penguraian yang dikonfigurasi untuk jenis file ini. Minta administrator mengonfigurasinya, lalu pilih Uraikan lagi."
+        },
+        "media_too_long": {
+          "label": "Audio atau video terlalu panjang",
+          "description": "Metode penguraian ini menangani audio atau video hingga {{minutes}} menit. Pendekkan atau bagi file lalu unggah kembali."
+        },
+        "no_text_extracted": {
+          "label": "Tidak ada teks yang diekstrak",
+          "description": "Tidak ada teks yang dapat digunakan kali ini. Periksa isinya atau coba file lain."
+        },
+        "processing_interrupted": {
+          "label": "Penguraian tidak selesai",
+          "description": "Penguraian tidak dapat diselesaikan. Anda dapat mencoba lagi nanti."
+        }
+      },
+      "status": {
+        "uploading": "Mengunggah",
+        "stored": "Tersimpan · belum diuraikan",
+        "parsing": "Menguraikan",
+        "searchable": "Dapat dicari",
+        "failed": "Gagal diuraikan"
+      },
+      "column": {
+        "name": "Nama",
+        "status": "Status",
+        "folder": "Folder",
+        "size": "Ukuran",
+        "date": "Tanggal"
+      },
+      "limits": {
+        "perFile": "Hingga {{document}} per dokumen atau gambar, {{media}} per audio atau video"
+      },
+      "usage": {
+        "summary": "Terpakai {{used}} dari {{max}} · {{count}} dari {{maxCount}} file",
+        "fileStorage": "Penyimpanan file, dihitung terpisah: {{used}} dari {{max}} (termasuk konten hasil penguraian dan media kursus)",
+        "fileStorageUnlimited": "Penyimpanan file, dihitung terpisah: {{used}} terpakai (termasuk konten hasil penguraian dan media kursus)"
+      },
+      "empty": {
+        "title": "Basis pengetahuan Anda masih kosong",
+        "body": "Unggah materi ajar Anda, biarkan asisten menata dan menguraikannya, lalu pilih dengan @ saat menyiapkan kursus.",
+        "folder": "Belum ada materi di folder ini",
+        "query": "Tidak ada materi yang cocok dengan “{{query}}”"
+      },
+      "upload": {
+        "button": "Unggah materi",
+        "dismiss": "Tutup"
+      },
+      "error": {
+        "load": "Basis pengetahuan tidak dapat dimuat",
+        "busy": "Akun Anda sedang diperbarui. Coba lagi sebentar lagi",
+        "identity": "Sesi masuk Anda berubah. Muat ulang halaman",
+        "stale": "yang ditampilkan mungkin sudah tidak terbaru",
+        "nameTaken": "Folder lain sudah memakai nama ini",
+        "invalidName": "Masukkan nama maksimal 255 karakter",
+        "folderNameEmpty": "Masukkan nama folder",
+        "folderNameTooLong": "Nama folder ini terlalu panjang",
+        "folderLimit": "Anda telah mencapai batas folder",
+        "notMovable": "Materi ini tidak dapat dipindahkan",
+        "gone": "Item ini sudah tidak ada",
+        "save": "Tindakan itu gagal. Coba lagi",
+        "notEmpty": "Folder ini masih berisi materi. Pindahkan dulu"
+      },
+      "actions": {
+        "parse": "Uraikan",
+        "reparse": "Uraikan lagi",
+        "more": "Tindakan lainnya untuk {{name}}",
+        "rename": "Ganti nama",
+        "delete": "Hapus",
+        "open": "Buka",
+        "downloadOriginal": "Unduh file asli",
+        "chat": "Obrolkan materi ini"
+      },
+      "folder": {
+        "new": "Folder baru",
+        "items": "{{count}} item",
+        "items_one": "{{count}} item",
+        "items_other": "{{count}} item"
+      },
+      "dialog": {
+        "cancel": "Batal",
+        "close": "Tutup"
+      },
+      "delete": {
+        "materialTitle": "Hapus “{{name}}”?",
+        "materialLinks": "Percakapan yang memakainya tidak dapat membacanya lagi; teks yang sudah ada di percakapan tersebut tetap tersimpan.",
+        "materialCourses": "Konten yang sudah disimpan ke kursus tidak terpengaruh.",
+        "cannotUndo": "Tindakan ini tidak dapat dibatalkan.",
+        "folderTitle": "Hapus folder “{{name}}”?",
+        "folderContents": "File dipindahkan ke tingkat teratas: {{count}}. Tidak ada file yang dihapus."
+      }
     }
   },
   "profile": {
@@ -2541,7 +2668,8 @@
     "badgeEnter": "Mode pro",
     "badgeExit": "Kembali ke mode biasa",
     "launchPlaceholder": "Deskripsikan pengalaman belajar yang ingin Anda buat",
-    "launchSend": "Mulai Membangun"
+    "launchSend": "Mulai Membangun",
+    "mentionCourseOrMaterial": "Rujuk kelas atau materi basis pengetahuan"
   },
   "accessCode": {
     "title": "Masukkan kode akses",
