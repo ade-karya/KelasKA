@@ -66,6 +66,13 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: '200mb',
   },
   allowedDevOrigins: ['kelaska.riau.ai'],
+  async rewrites() {
+    return [
+      // public/ files are served as-is, so `/wireframes/` has no directory
+      // index. Map the folder URL to the standalone document explicitly.
+      { source: '/wireframes', destination: '/wireframes/index.html' },
+    ];
+  },
   async headers() {
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
     const frameAncestors = extraAncestors ? `'self' ${extraAncestors}` : "'self'";

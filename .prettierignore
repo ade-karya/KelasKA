@@ -15,7 +15,7 @@ packages/@openmaic/importer/src1/
 packages/docs/
 
 # Hand-authored design artifact with intentionally compact CSS
-wireframes/index.html
+public/wireframes/index.html
 
 # Build output
 .next/

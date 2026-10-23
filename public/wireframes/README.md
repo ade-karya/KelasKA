@@ -4,14 +4,20 @@ Dokumen wireframe low-fidelity untuk seluruh permukaan produk Kelas KA: beranda 
 
 ## Cara membuka
 
-Buka `index.html` langsung di browser:
+Saat server berjalan, buka:
 
-```bash
-open wireframes/index.html        # macOS
-xdg-open wireframes/index.html    # Linux
+```
+http://localhost:3000/wireframes/
 ```
 
-Tidak ada build step, server, font eksternal, atau dependensi JavaScript. Seluruh CSS dan skrip daftar isi ditanam di dalam file. Dokumen optimal dibaca di desktop (lebar 1280–1440px); gunakan **Cetak / PDF** di kanan atas untuk arsip atau review.
+Atau buka file-nya langsung tanpa server:
+
+```bash
+open public/wireframes/index.html        # macOS
+xdg-open public/wireframes/index.html    # Linux
+```
+
+Tidak ada build step, font eksternal, atau dependensi JavaScript. Seluruh CSS dan skrip daftar isi ditanam di dalam file. Dokumen optimal dibaca di desktop (lebar 1280–1440px); gunakan **Cetak / PDF** di kanan atas untuk arsip atau review.
 
 ## Isi dokumen
 
