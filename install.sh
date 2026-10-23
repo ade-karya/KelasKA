@@ -176,6 +176,14 @@ done
 [[ "$BUN_MIN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
   || fail "--min-bun-version harus semver 3 angka (contoh: --min-bun-version=1.3.14)."
 
+# Penanda waktu antar-langkah khusus --colab (best-effort, agar bottleneck
+# terlihat di log; no-op bila bukan colab agar log server tetap bersih).
+if [[ "$WITH_COLAB" -eq 1 ]]; then
+  COLAB_T0="$(date +%s)"
+  colab_mark() { local _now; _now="$(date +%s)"; info "waktu +$((_now - COLAB_T0))s: $*"; }
+else
+  colab_mark() { :; }
+fi
 # Default Postgres: otomatis. Aplikasi menolak start tanpa DATABASE_URL, jadi
 # pasang lokal hanya bila belum ada URL (file atau environment).
 if [[ "$WITH_POSTGRES" == "auto" ]]; then
@@ -410,17 +418,27 @@ apt_install() {
 
 if apt_semua_terpasang "${APT_PKGS[@]}"; then
   info "Paket sistem sudah lengkap — lewati apt-get update/install."
+  APT_PERLU_UPDATE=0
 else
+  # Lewati apt-get update bila cache lists masih segar (<24 jam) — penghemat
+  # terbesar di run ulang Colab (install-node.sh pola yang sama).
+  APT_PERLU_UPDATE=1
+  if [[ -d /var/lib/apt/lists ]] \
+    && [[ -n "$(find /var/lib/apt/lists -maxdepth 1 -name '*InRelease' -mmin -1440 2>/dev/null)" ]]; then
+    info "Cache apt masih segar (<24 jam) — lewati apt-get update."
+    APT_PERLU_UPDATE=0
+  fi
+  if [[ "$APT_PERLU_UPDATE" -eq 1 ]]; then
+    apt_update
+  fi
   info "Menginstal paket sistem: ${APT_PKGS[*]}"
-  # Try the existing package lists first. On a fresh Colab runtime those lists
-  # are usually good enough, and an unconditional `apt-get update` is one of
-  # the slowest fixed costs of the install.
   if ! apt_install "${APT_PKGS[@]}"; then
     warn "Daftar paket lama/tidak lengkap — memperbarui apt lalu mencoba lagi."
     apt_update
     apt_install "${APT_PKGS[@]}" || fail "Instalasi paket sistem gagal."
   fi
 fi
+colab_mark "paket sistem selesai"
 
 # PGDG hanya bila Postgres diminta.
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then
@@ -813,6 +831,7 @@ if (changed) {
   as_owner "$BUN_BIN" scripts/assert-vendor-maic-importer.mjs
   info "Verifikasi kontrak engine..."
   as_owner "$BUN_BIN" scripts/check-node-engine-contract.mjs
+  colab_mark "bun install selesai"
 
   if [[ -n "$DB_URL_EFEKTIF" && -f scripts/bootstrap-db-schema.mts ]]; then
     LANGKAH="bootstrap skema database"
@@ -822,6 +841,7 @@ if (changed) {
     else
       warn "Bootstrap skema database gagal; skema dibuat lazy saat server jalan."
     fi
+  colab_mark "bootstrap skema database selesai"
   fi
 else
   info "Lewati bun install (--no-install). Jalankan manual nanti: bun install"
@@ -846,9 +866,24 @@ fi
 BUILD_DONE=0
 jalankan_build() {
   LANGKAH="bun: build produksi"
+  # Heap adaptif untuk tsc/esbuild yang dijalankan bun saat build (pola
+  # install-node.sh). Mencegah OOM di runtime Colab kecil tanpa memperlambat
+  # runtime besar.
+  if [[ -z "${NODE_OPTIONS:-}" ]]; then
+    BUILD_HEAP=3072
+    _ram_mb="$(awk '/^MemTotal:/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || true)"
+    if [[ "$_ram_mb" =~ ^[0-9]+$ ]]; then
+      _heap_ram=$((_ram_mb - 512))
+      if [[ "$_heap_ram" -lt 1024 ]]; then _heap_ram=1024; fi
+      if [[ "$_heap_ram" -lt "$BUILD_HEAP" ]]; then BUILD_HEAP="$_heap_ram"; fi
+    fi
+    unset _ram_mb _heap_ram
+    export NODE_OPTIONS="--max-old-space-size=${BUILD_HEAP}"
+  fi
   info "Menjalankan build produksi Bun (bun --bun run build)..."
   as_owner env NEXT_TELEMETRY_DISABLED=1 "$BUN_BIN" --bun run build
   BUILD_DONE=1
+  colab_mark "build produksi selesai"
 }
 
 if [[ "$WITH_BUILD" -eq 1 ]]; then
@@ -962,7 +997,7 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
   pm2_as_owner startOrReload ecosystem.bun.config.cjs --update-env
   pm2_as_owner save || warn "pm2 save gagal; jalankan manual: pm2 save"
   info "Aplikasi berjalan via PM2 (proses: kelaska, runtime Bun)."
-
+  colab_mark "PM2 start selesai"
   LANGKAH="pm2: startup systemd"
   if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
     PM2_HOME_USER="${OWNER_HOME}/.pm2"
@@ -1080,6 +1115,15 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   echo "Colab: ekspos port 3000 ke browser dengan sel Python:"
   echo "  from google.colab import output"
   echo "  output.serve_kernel_port_as_window(3000)"
+  echo ""
+  echo "Colab: jaga runtime tetap hidup (anti-idle) dengan sel Python looping:"
+  echo "  from IPython.display import display, Javascript"
+  echo "  import threading, time"
+  echo "  display(Javascript(\"(function(){if(window.__openmaicKeepAlive)return;window.__openmaicKeepAlive=true;function tick(){try{const x=Math.floor(Math.random()*window.innerWidth),y=Math.floor(Math.random()*window.innerHeight);['mousemove','mousedown','mouseup','click'].forEach(function(t){document.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));window.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));});window.scrollBy(0,1);window.scrollBy(0,-1);document.querySelectorAll('colab-connect-button,colab-toolbar-button,button[aria-label*=\"Connect\" i],button[aria-label*=\"Reconnect\" i]').forEach(function(el){if(el&&!el.disabled)try{el.click();}catch(e){}});fetch('http://localhost:3000/api/health',{mode:'no-cors'}).catch(function(){});console.log('[keep-alive] tick',new Date().toISOString());}catch(e){console.warn('[keep-alive] err',e);}} tick();setInterval(tick,30000);})()\")"
+  echo "  def _hb():"
+  echo "      while True:"
+  echo "          print('[keep-alive] kernel heartbeat', time.strftime('%H:%M:%S'), flush=True); time.sleep(120)"
+  echo "  threading.Thread(target=_hb, daemon=True).start()"
 fi
 echo ""
 echo "Catatan:"

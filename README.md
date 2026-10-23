@@ -369,6 +369,46 @@ from google.colab import output
 output.serve_kernel_port_as_window(3000)
 ```
 
+To keep the Colab runtime from going idle (which would kill the machine), run a
+keep-alive loop that simulates browser interaction. In the notebook, run the
+**Keep Colab Alive (Anti-Idle)** cell (or paste this into a Python cell and leave
+it running):
+
+```python
+from IPython.display import display, Javascript
+import threading, time
+
+display(Javascript("""
+(function() {
+  if (window.__openmaicKeepAlive) return;
+  window.__openmaicKeepAlive = true;
+  function tick() {
+    try {
+      const x = Math.floor(Math.random() * window.innerWidth);
+      const y = Math.floor(Math.random() * window.innerHeight);
+      ['mousemove','mousedown','mouseup','click'].forEach(function(t){
+        document.dispatchEvent(new MouseEvent(t, {bubbles:true, clientX:x, clientY:y}));
+        window.dispatchEvent(new MouseEvent(t, {bubbles:true, clientX:x, clientY:y}));
+      });
+      window.scrollBy(0, 1); window.scrollBy(0, -1);
+      document.querySelectorAll('colab-connect-button, colab-toolbar-button, button[aria-label*="Connect" i], button[aria-label*="Reconnect" i]')
+        .forEach(function(el){ if (el && !el.disabled) try { el.click(); } catch(e){} });
+      fetch('http://localhost:3000/api/health', {mode:'no-cors'}).catch(function(){});
+      console.log('[keep-alive] tick', new Date().toISOString());
+    } catch (e) { console.warn('[keep-alive] err', e); }
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+"""))
+
+def _heartbeat():
+    while True:
+        print('[keep-alive] kernel heartbeat', time.strftime('%H:%M:%S'), flush=True)
+        time.sleep(120)
+threading.Thread(target=_heartbeat, daemon=True).start()
+```
+
 Notes: a Colab runtime is ephemeral — `data/`, the local database, and
 `.env.local` disappear when it is recycled, so back up `.env.local` and
 `data/` (or use an external `DATABASE_URL`) before closing. Keep the tab open
