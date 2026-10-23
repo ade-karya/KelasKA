@@ -372,8 +372,9 @@ output.serve_kernel_port_as_window(3000)
 Notes: a Colab runtime is ephemeral — `data/`, the local database, and
 `.env.local` disappear when it is recycled, so back up `.env.local` and
 `data/` (or use an external `DATABASE_URL`) before closing. Keep the tab open
-during the install (system packages plus the production build can take
-20–40 minutes on a small runtime). This installer does not create
+during the install (system packages plus the production build typically take
+about 10–15 minutes on a 2-vCPU runtime; re-runs with unchanged sources finish
+in under a minute). This installer does not create
 `openmaic.yml`; configure providers in Settings or copy `openmaic.example.yml`.
 
 ### Vercel Deployment (up to 1.1.x)

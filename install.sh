@@ -384,7 +384,11 @@ APT_PKGS=(
   libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev
 )
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then APT_PKGS+=(gnupg); fi
-if [[ "$WITH_FFMPEG" -eq 1 ]]; then APT_PKGS+=(ffmpeg); fi
+# Colab/containers often ship an ffmpeg binary from a non-apt image; installing
+# the distro package would only add a large download.
+if [[ "$WITH_FFMPEG" -eq 1 ]] && ! command -v ffmpeg >/dev/null 2>&1; then
+  APT_PKGS+=(ffmpeg)
+fi
 
 apt_semua_terpasang() {
   local p
@@ -394,24 +398,28 @@ apt_semua_terpasang() {
   return 0
 }
 
-APT_PERLU_UPDATE=1
-if apt_semua_terpasang "${APT_PKGS[@]}"; then
-  info "Paket sistem sudah lengkap — lewati apt-get update/install."
-  APT_PERLU_UPDATE=0
-elif [[ -d /var/lib/apt/lists ]] \
-  && [[ -n "$(find /var/lib/apt/lists -maxdepth 1 -name '*InRelease' -mmin -1440 2>/dev/null)" ]]; then
-  info "Cache apt masih segar (<24 jam) — lewati apt-get update."
-  APT_PERLU_UPDATE=0
-fi
-if [[ "$APT_PERLU_UPDATE" -eq 1 ]]; then
+apt_update() {
   info "Memperbarui daftar paket (apt-get update)..."
   run_as_root apt-get update -o Acquire::Retries=3
-fi
+}
+
+apt_install() {
+  run_as_root env DEBIAN_FRONTEND=noninteractive \
+    apt-get install -y --no-install-recommends -o Acquire::Retries=3 "$@"
+}
+
 if apt_semua_terpasang "${APT_PKGS[@]}"; then
-  info "Paket sistem sudah lengkap — lewati apt-get install."
+  info "Paket sistem sudah lengkap — lewati apt-get update/install."
 else
   info "Menginstal paket sistem: ${APT_PKGS[*]}"
-  run_as_root apt-get install -y -o Acquire::Retries=3 "${APT_PKGS[@]}"
+  # Try the existing package lists first. On a fresh Colab runtime those lists
+  # are usually good enough, and an unconditional `apt-get update` is one of
+  # the slowest fixed costs of the install.
+  if ! apt_install "${APT_PKGS[@]}"; then
+    warn "Daftar paket lama/tidak lengkap — memperbarui apt lalu mencoba lagi."
+    apt_update
+    apt_install "${APT_PKGS[@]}" || fail "Instalasi paket sistem gagal."
+  fi
 fi
 
 # PGDG hanya bila Postgres diminta.
@@ -439,7 +447,7 @@ if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     [[ -n "$CODENAME" ]] || fail "Tidak bisa membaca VERSION_CODENAME dari /etc/os-release."
     echo "deb [signed-by=$PGDG_KEYRING] https://apt.postgresql.org/pub/repos/apt ${CODENAME}-pgdg main" \
       | run_as_root tee "$PGDG_LIST" >/dev/null
-    run_as_root apt-get update -o Acquire::Retries=3
+    apt_update
   fi
 fi
 
@@ -493,7 +501,10 @@ PG_PASSWORD_GENERATED=0
 
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then
   info "Menginstal PostgreSQL ${PG_MAJOR} dari PGDG..."
-  run_as_root apt-get install -y -o Acquire::Retries=3 "postgresql-${PG_MAJOR}"
+  if ! apt_install "postgresql-${PG_MAJOR}"; then
+    apt_update
+    apt_install "postgresql-${PG_MAJOR}" || fail "Instalasi PostgreSQL ${PG_MAJOR} gagal."
+  fi
 
   PG_ONLINE="$(pg_lsclusters 2>/dev/null \
     | awk -v v="${PG_MAJOR}" '$1==v && $2=="main" && $4=="online" {print 1; exit}' || true)"
@@ -850,19 +861,29 @@ fi
 # ============================================================ 9. Kepemilikan
 LANGKAH="kepemilikan file"
 if [[ "$(id -u)" -eq 0 && "$OWNER_USER" != "root" ]]; then
-  info "Menyerahkan kepemilikan artefak ke user ${OWNER_USER}..."
-  for path in .env.local data node_modules public/vendor .next bun.lock package.json; do
-    [[ -e "$path" ]] || continue
+  # Hanya chown path yang masih milik root. Semua langkah berat (bun install,
+  # build) dijalankan sebagai OWNER_USER, jadi rerun biasanya tidak perlu
+  # menyentuh node_modules/.next yang berukuran GB.
+  chown_path() {
+    local path="$1" owner
+    [[ -e "$path" ]] || return 0
+    owner="$(stat -c %U "$path" 2>/dev/null || true)"
+    [[ "$owner" == "$OWNER_USER" ]] && return 0
     chown -R "$OWNER_USER" "$path" 2>/dev/null \
       || warn "Gagal chown $path ke ${OWNER_USER}; jalankan manual: sudo chown -R ${OWNER_USER} $path"
+  }
+  info "Menyerahkan kepemilikan artefak ke user ${OWNER_USER}..."
+  for path in .env.local data node_modules public/vendor .next bun.lock package.json; do
+    chown_path "$path"
   done
   for bak in .env.local.bak.*; do
     [[ -e "$bak" ]] || continue
     chown "$OWNER_USER" "$bak" 2>/dev/null || true
   done
   if [[ -d packages ]]; then
-    find packages -maxdepth 3 -name node_modules -type d -print0 2>/dev/null \
-      | xargs -0 -r chown -R "$OWNER_USER" 2>/dev/null || true
+    while IFS= read -r -d '' dir; do
+      chown_path "$dir"
+    done < <(find packages -maxdepth 3 -name node_modules -type d -print0 2>/dev/null)
   fi
 fi
 
