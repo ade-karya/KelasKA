@@ -314,42 +314,47 @@ the cache only improves performance and is not required for a correct build.
 
 ### Server Install (install.sh)
 
-On Ubuntu/Debian, `install.sh` provisions a full server stack from scratch:
-Node.js 24 (LTS), pnpm, PostgreSQL 18, `.env.local` (with a random
-`ACCESS_CODE`), plus optional pgAdmin4, OpenCode CLI, and PM2:
+On Ubuntu/Debian, `install.sh` provisions a full server stack from scratch
+with the Bun runtime: Bun (>= 1.3.14), PostgreSQL 18 when `DATABASE_URL` is
+not already configured, `.env.local` (with a random `ACCESS_CODE` and
+`OPENMAIC_SECRET_KEY`), plus optional PM2 and Playwright. The installer does
+not install Node.js or pnpm; the legacy installer is kept as `install-node.sh`.
 
 ```bash
 sudo ./install.sh --yes            # base stack
 sudo ./install.sh --yes --with-pm2 # + production build, served via PM2
-sudo ./install.sh --colab          # Colab preset (= --yes --with-pm2 --no-pgadmin)
+sudo ./install.sh --colab          # Colab preset (= --yes --with-pm2)
 ```
 
-The installer is idempotent — re-running it after filling in API keys is safe
-(it auto-selects the model tier from the keys it finds). Other useful flags:
-`--build` (prove the production build), `--with-playwright` (e2e browser),
-`--no-pgadmin`, `--no-postgres`, `--pg-major=N`, `--pg-password=...`. See
+The installer is idempotent — re-running it is safe and preserves non-empty
+values in `.env.local`. Other useful flags: `--build` (prove the production
+build), `--with-playwright` (e2e browser), `--with-postgres` / `--no-postgres`,
+`--pg-major=N`, `--pg-password=...`, and `--bun-version=X`. See
 `./install.sh --help` for all options.
 
-Manage the production process with PM2:
+Manage the production process with PM2 (the Bun ecosystem file runs the
+Next.js standalone server with Bun):
 
 ```bash
-pm2 startOrReload ecosystem.config.cjs  # start, or zero-downtime reload
-pm2 save                                # persist the process list
-pm2 logs kelaska                         # follow logs
-pm2 reload kelaska                       # re-read .env.local (runtime vars)
-pm2 stop kelaska                         # stop
+pm2 startOrReload ecosystem.bun.config.cjs --update-env  # start/reload + env
+pm2 save                                                  # persist process list
+pm2 logs kelaska                                          # follow logs
+pm2 reload kelaska                                        # zero-downtime reload
+pm2 stop kelaska                                          # stop
 ```
 
-`PORT` in `.env.local` only needs a reload, but `NEXT_PUBLIC_*` values are
-baked in at build time: rebuild (`npm run build`), re-sync the standalone
-assets (see `ecosystem.config.cjs`), then `pm2 reload kelaska`.
+A new `PORT` in `.env.local` only needs
+`pm2 startOrReload ecosystem.bun.config.cjs --update-env` (no rebuild), but
+`NEXT_PUBLIC_*` values are baked in at build time: rebuild
+(`bun --bun run build`), re-sync the standalone assets (see
+`ecosystem.bun.config.cjs`), then run the same command.
 
 #### Google Colab
 
 The `--colab` preset is tuned for Colab's root, systemd-less, non-interactive
-runtimes (verified on 2 vCPU / 12 GB RAM): it runs non-interactively, builds
-production, and serves via PM2, while skipping pgAdmin4 web (pass
-`--with-pgadmin` after `--colab` to keep it). One cell runs the whole install:
+runtimes: it runs non-interactively, builds production, and serves via PM2.
+If `DATABASE_URL` is not set, it also installs a local PostgreSQL instance
+for the session. One cell runs the whole install:
 
 ```bash
 %%bash
@@ -364,11 +369,12 @@ from google.colab import output
 output.serve_kernel_port_as_window(3000)
 ```
 
-Notes: a Colab runtime is ephemeral — `data/` and the database disappear when
-it is recycled, so back up `.env.local` and `data/` before closing. Keep the
-tab open during the install (system packages plus the production build can
-take 20–40 minutes on a small runtime). The model tier follows the API keys
-in `.env.local`: fill one in and re-run `./install.sh --colab` to pick it up.
+Notes: a Colab runtime is ephemeral — `data/`, the local database, and
+`.env.local` disappear when it is recycled, so back up `.env.local` and
+`data/` (or use an external `DATABASE_URL`) before closing. Keep the tab open
+during the install (system packages plus the production build can take
+20–40 minutes on a small runtime). This installer does not create
+`openmaic.yml`; configure providers in Settings or copy `openmaic.example.yml`.
 
 ### Vercel Deployment (up to 1.1.x)
 
