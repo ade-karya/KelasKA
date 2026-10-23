@@ -866,7 +866,7 @@ DeepSeek 也通过 `deepseek` 预设提供托管 Markdown 提取，复用对话�
 
 ## 交互场景依赖库
 
-交互场景从部署自身加载 KaTeX、Three.js（含 addons）、Chart.js 和 Tailwind v4 浏览器运行时，而不是从公共 CDN 加载。`pnpm install`、`pnpm dev` 和 `pnpm build` 会把已安装包中的固定版本复制到 `public/vendor/interactive`，并通过 `/vendor/interactive` 提供。只有包含数学公式的页面才会加载 KaTeX。
+交互场景从部署自身加载 KaTeX、Three.js（含 addons）、Chart.js 和 Tailwind v4 浏览器运行时，而不是从公共 CDN 加载。`bun install`、`bun run dev` 和 `bun run build` 会把已安装包中的固定版本复制到 `public/vendor/interactive`，并通过 `/vendor/interactive` 提供。只有包含数学公式的页面才会加载 KaTeX。
 
 `INTERACTIVE_ASSET_BASE_URL` 是公开的构建时配置。如需从自己的 CDN 或对象存储提供这些文件，请复制 `public/vendor/interactive` 并保留其中的包名/版本路径，把该变量设为新的基础地址（例如 `https://assets.example.com/interactive`）后重新构建；Docker 构建通过 `--build-arg` 传入。交互场景运行在沙箱 iframe 中，因此该主机必须以正确的 MIME 类型提供 JavaScript、CSS 和字体文件，并返回 `Access-Control-Allow-Origin: *`。
 

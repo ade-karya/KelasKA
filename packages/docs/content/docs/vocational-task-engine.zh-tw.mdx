@@ -27,7 +27,7 @@ NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI=true
 | `OPENMAIC_ENABLE_VOCATIONAL`          | 允許伺服器使用職教任務規劃與實作元件內容生成。 | 執行時讀取；修改程序環境變數後重新啟動應用。 |
 | `NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI` | 在首頁顯示實驗性的職教開關。                   | 建置時讀取；正式環境修改後需要重新建置應用。 |
 
-兩個開關均接受 `true` 或 `1`，未設定時關閉。本機修改設定後重新啟動 `pnpm dev`。正式環境應在 `pnpm build` 前設定前端開關，並在啟動應用時提供伺服器開關。這些設定屬於 OpenMAIC 應用，而非文件站服務。完整設定見[設定說明](./configuration.mdx)。
+兩個開關均接受 `true` 或 `1`，未設定時關閉。本機修改設定後重新啟動 `bun run dev`。正式環境應在 `bun run build` 前設定前端開關，並在啟動應用時提供伺服器開關。這些設定屬於 OpenMAIC 應用，而非文件站服務。完整設定見[設定說明](./configuration.mdx)。
 
 顯示開關本身不會啟用伺服器功能。職教生成需要伺服器開關開啟，且生成請求包含 `requirements.taskEngineMode`。伺服器開關關閉時，請求沿用一般或互動模式的生成流程。
 

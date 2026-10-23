@@ -40,7 +40,7 @@ an access code; until then, setting `ACCESS_CODE` is up to you.
 
 Each default in `docker-compose.defaults.env` can be overridden in `.env.local`,
 which Compose reads after it: for example `OWNER_SINGLE_USER=false` for one
-anonymous owner per browser (what `pnpm dev` does), or to use
+anonymous owner per browser (what `bun run dev` does), or to use
 `PERSISTENCE_SHARED_OWNER_ID` instead, or your own `DATABASE_URL` for an
 external database. The bundled `postgres` service still starts in that case
 (the app waits for its health check) but is not used; remove it from a copy of
@@ -90,14 +90,14 @@ not set. ...` with the fix and exits with code `1`. Outside Compose, build
 normally and run with a `DATABASE_URL`:
 
 ```bash
-pnpm build
-DATABASE_URL=postgres://openmaic:password@localhost:5432/openmaic pnpm start
+bun run build
+DATABASE_URL=postgres://openmaic:password@localhost:5432/openmaic bun run start
 ```
 
-For local development, `pnpm db:up` starts a separate development database
+For local development, `bun run db:up` starts a separate development database
 (the Compose `postgres` service definition under its own project and volume,
 `openmaic-dev-db`, shared by every checkout on this machine) and publishes it on `127.0.0.1` (port `OPENMAIC_DB_PORT`, default `5432`); the
-matching `DATABASE_URL` is commented in `.env.example`, and `pnpm db:down` stops
+matching `DATABASE_URL` is commented in `.env.example`, and `bun run db:down` stops
 it again.
 
 Configure models as usual (`openmaic.yml` with keys in `.env.local`, or Settings → Model Services). Course documents, folders,
@@ -438,7 +438,7 @@ requests. Single-user mode runs with or without `ACCESS_CODE`:
 - **Without it**, the deployment relies on nobody else reaching the server:
   bind it to loopback or a private network (the Compose file publishes on
   `127.0.0.1` by default; outside Compose, for example
-  `pnpm start -H 127.0.0.1`). The server logs one prominent warning at startup
+  `bun run start -H 127.0.0.1`). The server logs one prominent warning at startup
   explaining that anyone who can reach it shares, edits and can delete the
   single library, and how to set `ACCESS_CODE`. It does not refuse to start.
 

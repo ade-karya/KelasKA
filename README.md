@@ -88,17 +88,17 @@ https://github.com/user-attachments/assets/8f3f1e5f-1468-4e93-8054-afeeea683a61
 
 ### Prerequisites
 
-- **Node.js** >= 24.21 (pinned by `engines` in `package.json`)
-- **pnpm** >= 12.9 (pinned by `packageManager` in `package.json`)
+- **Bun** >= 1.3.14 (default package manager and runtime used by `install.sh`; pinned by `packageManager` in `package.json`)
+- **Node.js** >= 24.21 only for the legacy Node/pnpm toolchain (the Bun installer does not install it)
 - **PostgreSQL** 18 — courses are stored on the server. For local development
-  `pnpm db:up` starts one in Docker for you.
+  `bun run db:up` starts one in Docker for you.
 
 ### 1. Clone & Install
 
 ```bash
 git clone https://github.com/THU-MAIC/OpenMAIC.git
 cd OpenMAIC
-pnpm install
+bun install
 ```
 
 ### 2. Configure
@@ -213,7 +213,7 @@ Bedrock uses AWS environment credentials or the AWS SDK credential provider chai
 ### 3. Start the database
 
 ```bash
-pnpm db:up
+bun run db:up
 ```
 
 Then uncomment the local `DATABASE_URL` line in `.env.local`:
@@ -222,12 +222,12 @@ Then uncomment the local `DATABASE_URL` line in `.env.local`:
 DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
 ```
 
-`pnpm db:up` starts a development PostgreSQL on `127.0.0.1:5432` (set `OPENMAIC_DB_PORT` for another port). It is its own Compose project, `openmaic-dev-db`, shared by every checkout on this machine, with its own container and volume, so it never touches the database of a `docker compose up` stack. `pnpm db:down` stops it and keeps the data. Any other PostgreSQL works too.
+`bun run db:up` starts a development PostgreSQL on `127.0.0.1:5432` (set `OPENMAIC_DB_PORT` for another port). It is its own Compose project, `openmaic-dev-db`, shared by every checkout on this machine, with its own container and volume, so it never touches the database of a `docker compose up` stack. `bun run db:down` stops it and keeps the data. Any other PostgreSQL works too.
 
 ### 4. Run
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 Open **http://localhost:3000** and start learning! Without a `DATABASE_URL` the
@@ -237,7 +237,7 @@ server refuses to start and tells you how to provide one (see
 ### 5. Build for Production
 
 ```bash
-pnpm build && DATABASE_URL=postgres://... pnpm start
+bun run build && DATABASE_URL=postgres://... bun run start
 ```
 
 Keep the server running as a long-running process (a process manager or a
@@ -305,8 +305,8 @@ docker build \
 ```
 
 These arguments do not accelerate Docker Hub pulls, including the Dockerfile
-frontend and the `node:22-alpine` base image. Configure a Docker daemon registry
-mirror separately if those pulls are slow. The pnpm store cache is reused by the
+frontend and the `node:24-alpine` base image. Configure a Docker daemon registry
+mirror separately if those pulls are slow. The Bun install cache is reused by the
 same BuildKit builder across builds, subject to normal cache garbage collection;
 the cache only improves performance and is not required for a correct build.
 
@@ -381,7 +381,7 @@ during the install (system packages plus the production build can take
 Serverless deployment is supported up to OpenMAIC 1.1.x. From 1.2.0, course
 generation runs on the server in a process that outlives requests, so OpenMAIC
 needs a long-running Node.js process with PostgreSQL (the
-[Docker deployment](#docker-deployment) or `pnpm start`); Vercel and other
+[Docker deployment](#docker-deployment) or `bun run start`); Vercel and other
 serverless hosts are not supported, and the repository no longer ships a
 `vercel.json`. To deploy 1.1.x on Vercel:
 
@@ -401,7 +401,7 @@ for every kind of deployment.
 
 OpenMAIC keeps courses on the server. Course documents, folders, chat history, learner sessions and generated media live in PostgreSQL (media optionally in S3), served by the app itself at `/api/persistence`. The browser keeps only what belongs to the device, such as settings, playback position and caches; **Settings → Clear Local Cache** never touches the server.
 
-- **`DATABASE_URL` is required.** Without it the server prints the fix and exits with code `1`. Compose sets it for you; for development, [`pnpm db:up`](#3-start-the-database) starts a database.
+- **`DATABASE_URL` is required.** Without it the server prints the fix and exits with code `1`. Compose sets it for you; for development, [`bun run db:up`](#3-start-the-database) starts a database.
 - **Courses an older build kept in the browser** are imported once per browser, automatically, the first time it opens the upgraded app. The browser copy is left untouched.
 - **Invalid settings stop the server** at startup with a one-line `[boot]` reason instead of a server that answers every request with `500`.
 
@@ -893,7 +893,7 @@ Or, in other agent workbenches such as Codex, DeepSeek, or WorkBuddy, import the
 | Phase | What the skill does |
 |------|-------------|
 | **Clone** | Detect an existing checkout or ask before cloning/installing |
-| **Startup** | Choose between `pnpm dev`, `pnpm build && pnpm start`, or Docker |
+| **Startup** | Choose between `bun run dev`, `bun run build && bun run start`, or Docker |
 | **Provider Keys** | Recommend a provider path; you edit `.env.local` yourself |
 | **Generation** | Submit an async generation job and poll until it completes |
 

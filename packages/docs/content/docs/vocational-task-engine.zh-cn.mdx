@@ -27,7 +27,7 @@ NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI=true
 | `OPENMAIC_ENABLE_VOCATIONAL`          | 允许服务端使用职教任务规划和实操组件内容生成。 | 运行时读取；修改进程环境变量后重启应用。     |
 | `NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI` | 在首页显示实验性的职教开关。                   | 构建时读取；生产环境修改后需要重新构建应用。 |
 
-两个开关均接受 `true` 或 `1`，未配置时关闭。本地修改配置后重启 `pnpm dev`。生产环境应在 `pnpm build` 前配置前端开关，并在启动应用时提供服务端开关。它们配置的是 OpenMAIC 应用，不是文档站服务。完整配置见[配置说明](./configuration.mdx)。
+两个开关均接受 `true` 或 `1`，未配置时关闭。本地修改配置后重启 `bun run dev`。生产环境应在 `bun run build` 前配置前端开关，并在启动应用时提供服务端开关。它们配置的是 OpenMAIC 应用，不是文档站服务。完整配置见[配置说明](./configuration.mdx)。
 
 显示开关本身不会启用服务端功能。职教生成需要服务端开关开启，且生成请求包含 `requirements.taskEngineMode`。服务端开关关闭时，请求沿用普通或互动模式的生成流程。
 

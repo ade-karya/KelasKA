@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- PM2 loads ecosystem files as CommonJS. */
 // PM2 ecosystem untuk produksi lokal: menjalankan server standalone Next.js
 // (output: 'standalone') sehingga warning "next start does not work with
 // output: standalone" hilang. Env runtime dimuat dari .env.local karena

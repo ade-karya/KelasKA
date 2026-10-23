@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports -- PM2 loads ecosystem files as CommonJS. */
 // PM2 ecosystem untuk runtime Bun.
 //
 // Berbeda dari ecosystem.config.cjs (Node), file ini memaksa PM2 menjalankan

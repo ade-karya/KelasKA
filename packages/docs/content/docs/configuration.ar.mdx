@@ -866,7 +866,7 @@ slots:
 
 ## مكتبات المشاهد التفاعلية
 
-تحمّل المشاهد التفاعلية KaTeX وThree.js (مع addons) وChart.js وبيئة تشغيل Tailwind v4 للمتصفح من النشر نفسه بدلًا من شبكة CDN عامة. تنسخ الأوامر `pnpm install` و`pnpm dev` و`pnpm build` الإصدارات المثبّتة من الحزم المثبَّتة إلى `public/vendor/interactive`، وتُقدَّم من المسار `/vendor/interactive`. لا يُحمَّل KaTeX إلا في الصفحات التي تحتوي على صيغ رياضية.
+تحمّل المشاهد التفاعلية KaTeX وThree.js (مع addons) وChart.js وبيئة تشغيل Tailwind v4 للمتصفح من النشر نفسه بدلًا من شبكة CDN عامة. تنسخ الأوامر `bun install` و`bun run dev` و`bun run build` الإصدارات المثبّتة من الحزم المثبَّتة إلى `public/vendor/interactive`، وتُقدَّم من المسار `/vendor/interactive`. لا يُحمَّل KaTeX إلا في الصفحات التي تحتوي على صيغ رياضية.
 
 `INTERACTIVE_ASSET_BASE_URL` إعداد عام يُحدَّد وقت البناء. لتقديم هذه الملفات من شبكة CDN خاصة بك أو من تخزين كائنات، انسخ `public/vendor/interactive` مع الحفاظ على مسارات الحزمة/الإصدار، واضبط المتغير على عنوان URL الأساسي الجديد (مثل `https://assets.example.com/interactive`) ثم أعد البناء؛ وفي Docker مرّره عبر `--build-arg`. ولأن المشاهد التفاعلية تعمل داخل إطارات iframe معزولة، يجب أن يقدّم المضيف ملفات JavaScript وCSS والخطوط بأنواع MIME الصحيحة وأن يرسل `Access-Control-Allow-Origin: *`.
 

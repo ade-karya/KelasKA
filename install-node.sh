@@ -19,7 +19,7 @@
 #      paket bawaan distro yang tertinggal (Ubuntu 24.04 = PG 16); ganti mayor
 #      dengan --pg-major=N.
 #   2. Node.js 24 (>= 24.21, sesuai `engines` di package.json) via NodeSource.
-#   3. pnpm 12.9.1 via corepack (sesuai `packageManager` di package.json).
+#   3. pnpm 12.9.1 via corepack (installer legacy; default repo sekarang Bun).
 #   4. PostgreSQL 18 (hanya dengan --with-postgres; default dilewati):
 #      database + user `openmaic` + password acak.
 #   5. OpenCode CLI v2 via https://opencode.ai/v2/install (default terinstal;
@@ -719,13 +719,15 @@ NPM_V="$(npm -v 2>/dev/null || echo '?')"
 info "Node $(node -v), npm $NPM_V."
 
 # ============================================================ 3. pnpm 12.9.1
-# Versi dikunci mengikuti kolom `packageManager` di package.json (Dockerfile
-# memakai cara yang sama lewat corepack).
+# Installer legacy ini tetap memakai pnpm; packageManager default sekarang Bun
+# (install.sh). Versi pnpm dikunci di sini agar tidak mengikuti packageManager.
 LANGKAH="pnpm via corepack"
-PNPM_WANT="$(node -p "require('./package.json').packageManager || ''" | sed 's/.*pnpm@//; s/+.*//')"
-[[ -n "$PNPM_WANT" ]] || PNPM_WANT="12.9.1"
+PNPM_WANT="12.9.1"
 info "Menyiapkan pnpm@$PNPM_WANT via corepack..."
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+# package.json pins Bun; corepack would otherwise reject that spec before pnpm
+# gets a chance to run. The legacy installer intentionally stays on pnpm.
+export COREPACK_ENABLE_PROJECT_SPEC=0
 run_as_root corepack enable >/dev/null 2>&1 || corepack enable >/dev/null 2>&1 \
   || warn "corepack enable gagal; pnpm mungkin tetap tersedia lewat npm."
 # corepack baru lebih suka `install --global`; `prepare --activate` dipakai

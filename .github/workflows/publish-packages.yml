@@ -102,6 +102,8 @@ jobs:
           persist-credentials: false
 
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
+        with:
+          version: 12.9.1
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
@@ -265,8 +267,8 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
           # setup-node v5 enables package-manager caching whenever package.json
-          # declares `packageManager`, which requires pnpm on PATH. This job only
-          # publishes prebuilt tarballs with npm and never installs pnpm.
+          # declares `packageManager`, which requires that package manager on
+          # PATH. This job only publishes prebuilt tarballs with npm.
           package-manager-cache: false
 
       - name: Download validated package tarballs
@@ -441,7 +443,8 @@ jobs:
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 24
-          # See the publish job: no pnpm here, so disable the automatic cache.
+          # See the publish job: no package manager is installed here, so
+          # disable the automatic cache.
           package-manager-cache: false
 
       - name: Write missing release markers

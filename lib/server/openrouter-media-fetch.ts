@@ -156,8 +156,8 @@ export async function fetchOpenRouterMediaModels(
 
   // Pricing map from the unified list-models endpoint. A 404/405 (custom
   // gateway without it) falls back to the raw catalog with no $0 filter.
-  let pricingById = new Map<string, Record<string, string | number | null | undefined>>();
-  let pricingNameById = new Map<string, string>();
+  const pricingById = new Map<string, Record<string, string | number | null | undefined>>();
+  const pricingNameById = new Map<string, string>();
   try {
     const pricingBody = (await getJson(
       fetchImpl,

@@ -52,7 +52,7 @@ body:
     attributes:
       label: Deployment Method
       options:
-        - Local development (npm run dev / pnpm dev / yarn dev)
+        - Local development (bun run dev / npm run dev / pnpm dev / yarn dev)
         - Vercel deployment (1.1.x)
         - Docker
         - Other

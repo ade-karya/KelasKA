@@ -8,7 +8,7 @@ OpenMAIC — это приложение на Next.js, которое можно
 ## Предварительные требования
 
 - **Node.js** версии 24.21.0 или выше
-- **pnpm** 12.6.0 (если не установлен, выполните `npm install -g pnpm@12.6.0`)
+- **Bun** версии 1.3.14 или выше (пакетный менеджер по умолчанию)
 - Настроить как минимум одного LLM-провайдера; облачные провайдеры обычно требуют API key, локальные Ollama или Lemonade — нет
 
 ## Установка
@@ -18,7 +18,7 @@ OpenMAIC — это приложение на Next.js, которое можно
 ```bash
 git clone https://github.com/THU-MAIC/OpenMAIC.git
 cd OpenMAIC
-pnpm install
+bun install
 ```
 
 В процессе установки будут собраны необходимые workspace-пакеты проекта, при первом запуске это может занять некоторое время.
@@ -63,7 +63,7 @@ DEFAULT_MODEL=anthropic:claude-sonnet-4-6
 Курсы хранятся в PostgreSQL, и без `DATABASE_URL` сервер отказывается запускаться. Запустите локальную базу для разработки (отдельный PostgreSQL в Docker на `127.0.0.1:5432`, общий для всех копий репозитория на этой машине; другой порт задаётся `OPENMAIC_DB_PORT`) и задайте `DATABASE_URL` в `.env.local`:
 
 ```bash
-pnpm db:up
+bun run db:up
 ```
 
 ```bash title=".env.local"
@@ -73,7 +73,7 @@ DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
 Запустите сервер разработки:
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 Откройте [http://localhost:3000](http://localhost:3000), вы увидите генератор классов OpenMAIC. Введите тему или загрузите учебные материалы и нажмите «Generate». AI-преподаватель создаст полноценный класс с несколькими сценами. Поддерживаемые форматы материалов зависят от выбранного парсера и обычно включают PDF, Office-документы, Markdown/обычный текст, изображения и некоторые аудио/видео; точный набор зависит от возможностей парсера.
@@ -94,8 +94,8 @@ pnpm dev
 ## Production build
 
 ```bash
-pnpm build
-DATABASE_URL=postgres://... pnpm start
+bun run build
+DATABASE_URL=postgres://... bun run start
 ```
 
 Также можно развернуть OpenMAIC в Docker или на собственном сервере — см. [Руководство по развертыванию](./deployment.mdx).

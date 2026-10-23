@@ -866,7 +866,7 @@ DeepSeek は `deepseek` プリセットでホスト型 Markdown 抽出も提供�
 
 ## インタラクティブシーンのライブラリ
 
-インタラクティブシーンは、KaTeX、Three.js（addons を含む）、Chart.js、Tailwind v4 ブラウザランタイムを公開 CDN ではなくデプロイ自身から読み込みます。`pnpm install`、`pnpm dev`、`pnpm build` は、インストール済みパッケージから固定バージョンを `public/vendor/interactive` にコピーし、`/vendor/interactive` で配信します。KaTeX は数式を含むページでのみ読み込まれます。
+インタラクティブシーンは、KaTeX、Three.js（addons を含む）、Chart.js、Tailwind v4 ブラウザランタイムを公開 CDN ではなくデプロイ自身から読み込みます。`bun install`、`bun run dev`、`bun run build` は、インストール済みパッケージから固定バージョンを `public/vendor/interactive` にコピーし、`/vendor/interactive` で配信します。KaTeX は数式を含むページでのみ読み込まれます。
 
 `INTERACTIVE_ASSET_BASE_URL` は公開されるビルド時の設定です。独自の CDN やオブジェクトストレージからこれらのファイルを配信する場合は、パッケージ/バージョンのパスを保ったまま `public/vendor/interactive` をコピーし、この変数を新しいベース URL（例：`https://assets.example.com/interactive`）に設定して再ビルドしてください。Docker では `--build-arg` で渡します。インタラクティブシーンはサンドボックス化された iframe で動作するため、配信先は JavaScript、CSS、フォントを正しい MIME タイプで返し、`Access-Control-Allow-Origin: *` を送信する必要があります。
 

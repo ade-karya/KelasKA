@@ -866,7 +866,7 @@ The session URL gate, strict URL normalization and all local DNS address checks 
 
 ## Interactive scene libraries
 
-Interactive scenes load KaTeX, Three.js (with its addons), Chart.js and the Tailwind v4 browser runtime from the deployment instead of a public CDN. `pnpm install`, `pnpm dev` and `pnpm build` copy the pinned versions from the installed packages into `public/vendor/interactive`, which is served at `/vendor/interactive`. KaTeX loads only on pages that contain math.
+Interactive scenes load KaTeX, Three.js (with its addons), Chart.js and the Tailwind v4 browser runtime from the deployment instead of a public CDN. `bun install`, `bun run dev` and `bun run build` copy the pinned versions from the installed packages into `public/vendor/interactive`, which is served at `/vendor/interactive`. KaTeX loads only on pages that contain math.
 
 `INTERACTIVE_ASSET_BASE_URL` is a public, build-time setting. To serve these files from your own CDN or object storage, copy `public/vendor/interactive` with its package/version paths intact, set the variable to the new base URL (for example `https://assets.example.com/interactive`) and rebuild; for Docker, pass it with `--build-arg`. Because interactive scenes run in sandboxed iframes, the host must serve JavaScript, CSS and fonts with their correct MIME types and send `Access-Control-Allow-Origin: *`.
 

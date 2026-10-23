@@ -63,7 +63,7 @@ services:
 
   # PostgreSQL for the app-embedded persistence API. Started by default; the
   # app waits for its health check. Its port is not published to the host here;
-  # `pnpm db:up` runs this service definition as a separate development
+  # `bun run db:up` runs this service definition as a separate development
   # database (its own project and volume, see docker-compose.db.yml).
   postgres:
     image: postgres:18

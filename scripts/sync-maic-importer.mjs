@@ -21,7 +21,7 @@ try {
   await stat(srcDir);
 } catch {
   console.error(`[sync-maic-importer] missing dist: ${srcDir}`);
-  console.error('Run `cd packages/@openmaic/importer && pnpm run build` first.');
+  console.error('Run `cd packages/@openmaic/importer && bun run build` first.');
   process.exit(1);
 }
 
