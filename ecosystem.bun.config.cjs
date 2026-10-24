@@ -68,6 +68,11 @@ if (!env.OPENMAIC_CONFIG) {
   // tersimpan di env proses PM2 saat installer dijalankan ulang.
   env.OPENMAIC_CONFIG = fs.existsSync(configFile) ? configFile : '';
 }
+// Simpan pilihan model workbench di root repo (bukan di .next/standalone/data
+// yang terhapus setiap rebuild). Path absolut agar tidak bergantung pada cwd.
+if (!env.OPENCODE_ACTIVE_MODEL_FILE) {
+  env.OPENCODE_ACTIVE_MODEL_FILE = path.join(root, 'data', 'agent-driver-model.json');
+}
 // Jangan andalkan HOSTNAME dari shell PM2 (mis. ID container). Paksa bind
 // semua interface; PORT tetap bisa dioverride dari .env.local.
 env.HOSTNAME = '0.0.0.0';

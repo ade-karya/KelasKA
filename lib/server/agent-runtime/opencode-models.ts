@@ -56,6 +56,13 @@ export const CODEX_DRIVER_API = 'codex-sdk' as const;
 export const OPENCODE_ACTIVE_MODEL_FILE = 'agent-driver-model.json';
 
 function dataDir(): string {
+  let dir = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    if (fs.existsSync(path.join(dir, 'package.json'))) return path.join(dir, 'data');
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
   return path.join(process.cwd(), 'data');
 }
 
