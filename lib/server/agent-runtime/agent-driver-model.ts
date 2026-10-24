@@ -162,7 +162,35 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
 }> {
   const resolution = await lookupSlot('agent', workspaceId);
   if (resolution.status === 'disabled') throw new SlotDisabledError('agent');
-  if (resolution.status === 'unassigned') throw new SlotUnassignedError('agent');
+
+  // An unassigned agent slot can still be driven by the Pro Workbench's
+  // override (the model picked in the workbench picker) or, failing that, by
+  // the default tier-3 model, so a workspace that never configured the agent
+  // slot can still run. Both are local transports.
+  if (resolution.status === 'unassigned') {
+    const override = readActiveModelOverride();
+    if (override) {
+      const input = parseDriverModelInput(override.modelString);
+      if (input && isActivatedDriverModel(input.provider, input.bare)) {
+        const connection = await resolveModel({
+          modelString: override.modelString,
+          thinkingConfig: override.thinking,
+        });
+        const driverApi = override.api || driverApiFor(input.provider);
+        return {
+          connection,
+          piModel: buildPiDriverModel(connection, driverApi, undefined),
+          wireMaxOutputTokens: undefined,
+          reservedOutputTokens:
+            connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
+          isCliDriver: true,
+          driverTransport: driverTransportFor(driverApi, connection.providerId),
+          driverApi,
+        };
+      }
+    }
+    throw new SlotUnassignedError('agent');
+  }
   if (resolution.requirements.some((check) => check.status === 'unmet')) {
     throw new Error(
       `The agent model ${resolution.modelId} does not support tool calling; choose another model for the agent.`,
