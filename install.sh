@@ -46,6 +46,14 @@
 #   --colab               Preset Colab/ephemeral: --yes --with-pm2, tanpa
 #                         Playwright; PostgreSQL mengikuti mode otomatis
 #                         (bisa dioverride flag lain).
+#   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
+#                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
+#                         latar belakang (log: data/dev-server.log, PID:
+#                         data/dev-server.pid). Port dari PORT di .env.local
+#                         (default 3000). Butuh Chromium e2e? Tambahkan
+#                         --with-playwright.
+#   --no-start            Jangan jalankan dev server otomatis (hanya relevan
+#                         dengan --dev).
 #   --with-ffmpeg         Instal ffmpeg (default ON; no-op).
 #   --no-ffmpeg           Lewati ffmpeg (ekstraksi media lokal mati).
 #   --with-browser-tts    TTS browser-native ON (default ON; no-op).
@@ -113,6 +121,8 @@ WITH_BUILD=0
 WITH_PLAYWRIGHT=0
 WITH_PM2=0
 WITH_COLAB=0
+WITH_DEV=0
+WITH_DEV_START=1
 WITH_FFMPEG=1
 WITH_BROWSER_TTS=1
 PG_MAJOR="${PG_MAJOR:-18}"
@@ -132,6 +142,8 @@ Contoh:
   sudo ./install.sh --yes --with-pm2
   sudo ./install.sh --with-postgres --with-pm2 --yes
   sudo ./install.sh --colab
+  sudo ./install.sh --dev
+  sudo ./install.sh --dev --no-start
   sudo ./install.sh --yes --full
   sudo ./install.sh --yes --no-ffmpeg
   sudo ./install.sh --yes --no-browser-tts
@@ -150,6 +162,8 @@ for arg in "$@"; do
     --with-playwright)   WITH_PLAYWRIGHT=1 ;;
     --full|--with-dev-tools) WITH_BUILD=1; WITH_PLAYWRIGHT=1 ;;
     --colab)             WITH_COLAB=1; ASSUME_YES=1; WITH_PM2=1; WITH_PLAYWRIGHT=0 ;;
+    --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
+    --no-start)          WITH_DEV_START=0 ;;
     --with-ffmpeg)       WITH_FFMPEG=1 ;;
     --no-ffmpeg)         WITH_FFMPEG=0 ;;
     --with-browser-tts)  WITH_BROWSER_TTS=1 ;;
@@ -179,6 +193,20 @@ done
   || fail "--bun-version harus semver 3 angka (contoh: --bun-version=1.4.4)."
 [[ "$BUN_MIN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
   || fail "--min-bun-version harus semver 3 angka (contoh: --min-bun-version=1.3.14)."
+
+# --dev dan PM2 sama-sama menjalankan server di PORT yang sama; jalankan salah
+# satu agar tidak ada dua proses berebut port.
+if [[ "$WITH_DEV" -eq 1 && "$WITH_PM2" -eq 1 ]]; then
+  if [[ "$WITH_COLAB" -eq 1 ]]; then
+    WITH_PM2=0
+    info "Mode dev + Colab: PM2 dilewati, dev server yang dijalankan."
+  else
+    fail "--dev tidak bisa digabung dengan --with-pm2 (dua server di port yang sama). Pilih salah satu."
+  fi
+fi
+if [[ "$WITH_DEV" -eq 1 && "$WITH_BUILD" -eq 1 ]]; then
+  info "Mode dev: --build tetap dijalankan, tetapi dev server memakai next dev (build tidak wajib)."
+fi
 
 # Penanda waktu antar-langkah khusus --colab (best-effort, agar bottleneck
 # terlihat di log; no-op bila bukan colab agar log server tetap bersih).
@@ -383,6 +411,13 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_BUILD" -eq 1 ]]; then echo "  - jalankan build produksi Bun"; fi
   if [[ "$WITH_PM2" -eq 1 ]]; then echo "  - instal PM2 via Bun + jalankan aplikasi standalone"; fi
   if [[ "$WITH_COLAB" -eq 1 ]]; then echo "  - preset Colab: non-interaktif + PM2 (tanpa systemd)"; fi
+  if [[ "$WITH_DEV" -eq 1 ]]; then
+    if [[ "$WITH_DEV_START" -eq 1 ]]; then
+      echo "  - preset dev: non-interaktif, tanpa build/PM2, dev server di latar belakang"
+    else
+      echo "  - preset dev: non-interaktif, tanpa build/PM2 (server tidak dijalankan)"
+    fi
+  fi
   [[ -t 0 ]] || fail "Tidak ada TTY untuk konfirmasi. Jalankan ulang dengan --yes."
   read -rp "Lanjut? [y/N] " jawab
   [[ "$jawab" =~ ^[yY]$ ]] || { info "Dibatalkan."; exit 0; }
@@ -1049,6 +1084,86 @@ else
   info "Lewati PM2 (pakai --with-pm2 untuk produksi via PM2)."
 fi
 
+# ============================================================ 11. Dev server (opsional)
+DEV_PORT=""
+DEV_STARTED=0
+DEV_PID_FILE="$ROOT_DIR/data/dev-server.pid"
+DEV_LOG_FILE="$ROOT_DIR/data/dev-server.log"
+DEV_WRAPPER="$ROOT_DIR/data/dev-server.sh"
+
+if [[ "$WITH_DEV" -eq 1 ]]; then
+  DEV_PORT="$(env_get .env.local PORT)"
+  DEV_PORT="${DEV_PORT:-3000}"
+  [[ "$DEV_PORT" =~ ^[0-9]+$ ]] || DEV_PORT=3000
+
+  dev_pid() {
+    [[ -f "$DEV_PID_FILE" ]] || return 0
+    tr -dc '0-9' < "$DEV_PID_FILE" 2>/dev/null || true
+  }
+  dev_pid_hidup() {
+    local pid
+    pid="$(dev_pid)"
+    # PID file berisi pemimpin grup proses (setsid), bukan hanya proses Bun:
+    # Bun bisa spawn `next dev` sebagai anak, jadi periksa seluruh grup.
+    [[ -n "$pid" ]] && kill -0 -- "-$pid" 2>/dev/null
+  }
+  dev_health() {
+    curl -fsS --max-time 5 "http://127.0.0.1:${DEV_PORT}/api/health" >/dev/null 2>&1
+  }
+
+  if [[ "$WITH_INSTALL" -ne 1 ]]; then
+    warn "Mode dev butuh dependensi terpasang; dev server tidak dijalankan. Jalankan manual: bun --bun run dev"
+  elif [[ "$WITH_DEV_START" -ne 1 ]]; then
+    info "Mode dev: dev server tidak dijalankan (--no-start). Jalankan manual: bun --bun run dev"
+  elif dev_pid_hidup && dev_health; then
+    DEV_STARTED=1
+    info "Dev server sudah berjalan (PID $(dev_pid)) di http://localhost:${DEV_PORT}."
+  elif dev_health; then
+    DEV_STARTED=1
+    info "Sudah ada server OpenMAIC di http://localhost:${DEV_PORT} — dev server tidak dijalankan ulang."
+  else
+    LANGKAH="dev: server"
+    mkdir -p data
+    info "Menjalankan dev server (bun --bun run dev) di latar belakang..."
+    # Wrapper mencatat PID-nya sendiri lalu exec Bun, jadi isi PID file tetap
+    # valid untuk `kill $(cat data/dev-server.pid)`.
+    {
+      echo '#!/usr/bin/env bash'
+      echo "echo \$\$ > $(printf '%q' "$DEV_PID_FILE")"
+      printf 'exec env NEXT_TELEMETRY_DISABLED=1 PORT=%q %q --bun run dev\n' \
+        "$DEV_PORT" "$BUN_BIN"
+    } > "$DEV_WRAPPER"
+    chmod 0755 "$DEV_WRAPPER"
+    if [[ "$(id -u)" -eq 0 && "$OWNER_USER" != "root" ]]; then
+      chown "$OWNER_USER" "$DEV_WRAPPER" data 2>/dev/null || true
+    fi
+    # setsid melepas dev server dari sesi installer, sehingga tetap hidup
+    # setelah skrip selesai (pola yang sama dengan PM2, tanpa systemd).
+    as_owner setsid "$DEV_WRAPPER" >>"$DEV_LOG_FILE" 2>&1 < /dev/null &
+    info "Menunggu dev server siap di port ${DEV_PORT} (maks 300 detik)..."
+    DEV_OK=0
+    for i in {1..300}; do
+      if dev_health; then DEV_OK=1; break; fi
+      # Beri waktu wrapper menulis PID file; setelah itu berhenti bila seluruh
+      # grup proses sudah mati (bukan sekadar health check belum siap).
+      if [[ "$i" -gt 5 && -f "$DEV_PID_FILE" ]] && ! dev_pid_hidup; then break; fi
+      sleep 1
+    done
+    if [[ "$(id -u)" -eq 0 && "$OWNER_USER" != "root" ]]; then
+      for f in "$DEV_LOG_FILE" "$DEV_PID_FILE"; do
+        [[ -e "$f" ]] && chown "$OWNER_USER" "$f" 2>/dev/null || true
+      done
+    fi
+    if [[ "$DEV_OK" -eq 1 ]]; then
+      DEV_STARTED=1
+      info "Dev server siap: http://localhost:${DEV_PORT} (log: data/dev-server.log)"
+    else
+      warn "Dev server belum merespons di port ${DEV_PORT}. Lihat: tail -n 40 data/dev-server.log"
+      [[ -f "$DEV_LOG_FILE" ]] && tail -n 20 "$DEV_LOG_FILE" >&2 || true
+    fi
+  fi
+fi
+
 # ============================================================ Selesai
 LANGKAH="ringkasan"
 echo ""
@@ -1095,6 +1210,13 @@ if [[ "$WITH_BUILD" -eq 1 || "$WITH_PM2" -eq 1 ]]; then
     warn "Build produksi tidak menghasilkan .next — ulangi: bun --bun run build"
   fi
 fi
+if [[ "$WITH_DEV" -eq 1 ]]; then
+  if [[ "$DEV_STARTED" -eq 1 ]]; then
+    info "  Dev server: OK (http://localhost:${DEV_PORT}, log: data/dev-server.log)"
+  else
+    info "  Dev server: tidak berjalan (mulai manual: bun --bun run dev)"
+  fi
+fi
 if [[ "$WITH_PM2" -eq 1 ]]; then
   if pm2_as_owner pid kelaska 2>/dev/null | grep -qE '^[1-9][0-9]*$'; then
     info "  PM2: OK (proses kelaska; kelola: pm2 logs kelaska | pm2 reload kelaska)"
@@ -1125,6 +1247,14 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
   echo "  pm2 reload kelaska  # reload tanpa downtime"
   echo "  pm2 stop kelaska    # hentikan"
   echo "  Config: ecosystem.bun.config.cjs"
+fi
+if [[ "$WITH_DEV" -eq 1 ]]; then
+  echo ""
+  echo "Mode pengembangan (dev):"
+  echo "  curl http://localhost:${DEV_PORT}/api/health    # cek status server"
+  echo "  tail -f data/dev-server.log                     # ikuti log"
+  echo "  kill -- -\$(cat data/dev-server.pid)             # hentikan dev server"
+  echo "  bun --bun run dev                               # jalankan manual (foreground)"
 fi
 if [[ "$WITH_COLAB" -eq 1 ]]; then
   echo ""

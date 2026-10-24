@@ -323,6 +323,7 @@ not install Node.js or pnpm; the legacy installer is kept as `install-node.sh`.
 ```bash
 sudo ./install.sh --yes            # base stack
 sudo ./install.sh --yes --with-pm2 # + production build, served via PM2
+sudo ./install.sh --dev            # dev server in the background (no build/PM2)
 sudo ./install.sh --colab          # Colab preset (= --yes --with-pm2)
 ```
 
@@ -331,6 +332,13 @@ values in `.env.local`. Other useful flags: `--build` (prove the production
 build), `--with-playwright` (e2e browser), `--with-postgres` / `--no-postgres`,
 `--pg-major=N`, `--pg-password=...`, and `--bun-version=X`. See
 `./install.sh --help` for all options.
+
+`--dev` is the development preset: non-interactive, no production build, no
+PM2, and it starts `bun --bun run dev` detached on `PORT` from `.env.local`
+(default 3000). Logs go to `data/dev-server.log`; stop it with
+`kill -- -$(cat data/dev-server.pid)` (the file holds the process-group
+leader, so Bun's child `next dev` is stopped too). Add `--no-start` to prepare
+the stack without launching the server.
 
 Manage the production process with PM2 (the Bun ecosystem file runs the
 Next.js standalone server with Bun):
@@ -361,6 +369,9 @@ for the session. One cell runs the whole install:
 cd /content/KelasKA
 ./install.sh --colab
 ```
+
+For development on Colab, combine it with `--dev`: PM2 is skipped and the
+detached `next dev` server takes over port 3000 (`./install.sh --dev --colab`).
 
 Then expose the app to your browser from a Python cell:
 
