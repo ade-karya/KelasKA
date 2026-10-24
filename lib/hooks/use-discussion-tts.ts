@@ -108,6 +108,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
     cancel: browserCancel,
   } = useBrowserTTS({
     rate: ttsSpeed,
+    lang: locale,
     onEnd: () => {
       finishBrowserLineRef.current();
     },
