@@ -8,6 +8,7 @@ import {
 } from '@/lib/server/model-config/runtime';
 import { resolveModel, type ResolvedModel } from '@/lib/server/resolve-model';
 import {
+  CODEX_PROVIDER,
   driverApiFor,
   isActivatedDriverModel,
   parseDriverModelInput,
@@ -171,7 +172,13 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
     const override = readActiveModelOverride();
     if (override) {
       const input = parseDriverModelInput(override.modelString);
-      if (input && isActivatedDriverModel(input.provider, input.bare)) {
+      // The picker only offers activated models, but the runner process may not
+      // have populated the in-memory discovered-codex set, so trust a codex
+      // override that came from the picker instead of re-validating it here.
+      const activated =
+        !!input &&
+        (input.provider === CODEX_PROVIDER || isActivatedDriverModel(input.provider, input.bare));
+      if (input && activated) {
         const connection = await resolveModel({
           modelString: override.modelString,
           thinkingConfig: override.thinking,
