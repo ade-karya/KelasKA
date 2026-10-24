@@ -135,7 +135,7 @@ export function codexSdkSettingsFromEnv(overrides: CodexSdkSettings = {}): Codex
     model: overrides.model ?? readEnv('OPENMAIC_CODEX_MODEL', 'CODEX_MODEL'),
     apiKey: overrides.apiKey ?? readEnv('CODEX_API_KEY', 'OPENAI_API_KEY'),
     baseUrl: overrides.baseUrl ?? readEnv('CODEX_BASE_URL'),
-    codexPathOverride: overrides.codexPathOverride ?? readEnv('CODEX_PATH'),
+    codexPathOverride: overrides.codexPathOverride ?? readEnv('CODEX_PATH') ?? resolveCodexBinary() ?? undefined,
     sandboxMode:
       overrides.sandboxMode ??
       (sandbox === 'workspace-write' || sandbox === 'danger-full-access' ? sandbox : 'read-only'),
@@ -296,4 +296,69 @@ export async function resumeCodexThread(
     ...(options.signal ? { signal: options.signal } : {}),
   });
   return collectCodexTurn(events);
+}
+
+// ---------------------------------------------------------------------------
+// Binary resolution (shared by the SDK transport and the auth helpers)
+// ---------------------------------------------------------------------------
+
+import { createRequire } from 'node:module';
+import { existsSync, readdirSync } from 'node:fs';
+import path from 'node:path';
+
+const _require = createRequire(import.meta.url);
+
+/**
+ * Locate the native `codex` binary on this host, trying several strategies so
+ * the integration works even when bun did not hoist the optional platform
+ * package into `node_modules/@openai`.
+ */
+export function resolveCodexBinary(): string | null {
+  const candidates: string[] = [];
+  if (process.env.CODEX_PATH?.trim()) candidates.push(process.env.CODEX_PATH.trim());
+
+  const tryResolve = (specifier: string) => {
+    try {
+      return _require.resolve(specifier);
+    } catch {
+      return null;
+    }
+  };
+
+  const platformPkg = tryResolve('@openai/codex-linux-x64/package.json');
+  if (platformPkg) {
+    candidates.push(path.join(path.dirname(platformPkg), 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex'));
+  }
+  const shimPkg = tryResolve('@openai/codex/package.json');
+  if (shimPkg) {
+    candidates.push(path.join(path.dirname(shimPkg), 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex'));
+  }
+
+  const bunRoot = path.join(process.cwd(), 'node_modules', '.bun');
+  try {
+    for (const entry of readdirSync(bunRoot)) {
+      if (!entry.startsWith('@openai+codex@')) continue;
+      const vendorDir = path.join(bunRoot, entry, 'node_modules', '@openai', 'codex', 'vendor');
+      try {
+        for (const triple of readdirSync(vendorDir)) {
+          candidates.push(path.join(vendorDir, triple, 'bin', 'codex'));
+        }
+      } catch {
+        // no vendor
+      }
+    }
+  } catch {
+    // no .bun cache
+  }
+
+  candidates.push('/usr/local/bin/codex', '/usr/bin/codex', '/opt/codex/bin/codex');
+
+  for (const candidate of candidates) {
+    try {
+      if (candidate && existsSync(candidate)) return candidate;
+    } catch {
+      // ignore
+    }
+  }
+  return null;
 }

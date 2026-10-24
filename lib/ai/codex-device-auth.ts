@@ -9,7 +9,7 @@
  */
 import { spawn, type ChildProcess } from 'node:child_process';
 
-import { resolveCodexShim } from './codex-auth';
+import { resolveCodexBinary } from './codex-sdk';
 
 const URL_RE = /https:\/\/\S+/;
 const CODE_RE = /\b([A-Z0-9]{4}-[A-Z0-9]{5,})\b/;
@@ -56,8 +56,8 @@ export async function codexDeviceAuthStart(): Promise<DeviceAuthStartResult> {
     };
   }
 
-  const shim = resolveCodexShim();
-  if (!shim) {
+  const binary = resolveCodexBinary();
+  if (!binary) {
     return {
       ok: false,
       url: null,
@@ -67,7 +67,7 @@ export async function codexDeviceAuthStart(): Promise<DeviceAuthStartResult> {
     };
   }
 
-  const child = spawn(process.execPath, [shim, 'login', '--device-auth'], {
+  const child = spawn(binary, ['login', '--device-auth'], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 

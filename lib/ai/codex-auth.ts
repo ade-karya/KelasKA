@@ -1,17 +1,9 @@
 /**
  * Auth helpers for the local Codex CLI, used by the Pro Workbench auth UI.
- *
- * The Codex SDK itself never carries a login flow; authentication lives in the
- * `codex` binary (`codex login --with-api-key` reads the key from stdin and
- * stores it in `~/.codex/auth.json`). These helpers shell out to that binary so
- * the workbench can log in / out / check status without a terminal.
- *
- * Server-side only.
  */
 import { spawn } from 'node:child_process';
-import { createRequire } from 'node:module';
 
-const require = createRequire(import.meta.url);
+import { resolveCodexBinary } from './codex-sdk';
 
 export interface CliResult {
   code: number;
@@ -19,23 +11,11 @@ export interface CliResult {
   stderr: string;
 }
 
-/** Resolve the `codex` shim (a Node script) so we don't depend on PATH. */
-export function resolveCodexShim(): string | null {
-  if (process.env.CODEX_PATH?.trim()) return process.env.CODEX_PATH.trim();
-  try {
-    const pkgJson = require.resolve('@openai/codex/package.json');
-    return pkgJson.replace(/package\.json$/, 'bin/codex.js');
-  } catch {
-    return null;
-  }
-}
-
-/** Run a codex subcommand and resolve with its exit code + output. */
-export function runCodex(args: string[], stdin?: string): Promise<CliResult> {
+function runCodex(args: string[], stdin?: string): Promise<CliResult> {
   return new Promise((resolve) => {
-    const shim = resolveCodexShim();
-    const child = shim
-      ? spawn(process.execPath, [shim, ...args], { stdio: ['pipe', 'pipe', 'pipe'] })
+    const binary = resolveCodexBinary();
+    const child = binary
+      ? spawn(binary, args, { stdio: ['pipe', 'pipe', 'pipe'] })
       : spawn('codex', args, { stdio: ['pipe', 'pipe', 'pipe'], shell: true });
     let stdout = '';
     let stderr = '';
@@ -65,8 +45,8 @@ export interface CodexAuthStatus {
 }
 
 export async function codexAuthStatus(): Promise<CodexAuthStatus> {
-  const shim = resolveCodexShim();
-  if (!shim) {
+  const binary = resolveCodexBinary();
+  if (!binary) {
     return { installed: false, loggedIn: false, message: 'Codex CLI is not installed.' };
   }
   const result = await runCodex(['login', 'status']);
