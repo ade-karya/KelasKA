@@ -980,6 +980,13 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
   rm -rf .next/standalone/.next/static .next/standalone/public
   cp -a .next/static .next/standalone/.next/static
   cp -a public .next/standalone/public
+  # Codex CLI (binary) harus ikut ke standalone agar resolveCodexBinary()
+  # menemukannya tanpa bergantung pada parent node_modules.
+  if [[ -d node_modules/@openai ]]; then
+    mkdir -p .next/standalone/node_modules
+    cp -aL node_modules/@openai .next/standalone/node_modules/ 2>/dev/null \
+      || warn "Gagal menyalin @openai ke standalone."
+  fi
   if [[ -f openmaic.yml ]]; then
     cp -f openmaic.yml .next/standalone/openmaic.yml
   fi
