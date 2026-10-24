@@ -559,6 +559,13 @@ export function modelSettingsView(stored: StoredWorkspaceConfig | null): ModelSe
     },
   ];
 
+  // Transport lokal (OpenCode CLI / Codex SDK) hanya untuk Pro Workbench:
+  // sembunyikan dari daftar provider classic, meskipun terkonfigurasi.
+  const visibleProviders = providers.filter((p) => {
+    const registryId = p.capabilities?.chat?.registryId;
+    return !registryId || !isWorkbenchOnlyRegistryId(registryId);
+  });
+
   const deploymentSlots = deployment?.config.slots ?? {};
   const workspaceSlots = counted?.config.slots ?? {};
   const layers = { deployment, workspace };
@@ -611,7 +618,7 @@ export function modelSettingsView(stored: StoredWorkspaceConfig | null): ModelSe
     revision: stored?.revision ?? null,
     allowUserKeys,
     presets,
-    providers,
+    providers: visibleProviders,
     slots,
     webFetchProviders: webFetchProviderMetadata(),
   };
