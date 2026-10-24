@@ -135,7 +135,8 @@ export function codexSdkSettingsFromEnv(overrides: CodexSdkSettings = {}): Codex
     model: overrides.model ?? readEnv('OPENMAIC_CODEX_MODEL', 'CODEX_MODEL'),
     apiKey: overrides.apiKey ?? readEnv('CODEX_API_KEY', 'OPENAI_API_KEY'),
     baseUrl: overrides.baseUrl ?? readEnv('CODEX_BASE_URL'),
-    codexPathOverride: overrides.codexPathOverride ?? readEnv('CODEX_PATH') ?? resolveCodexBinary() ?? undefined,
+    codexPathOverride:
+      overrides.codexPathOverride ?? readEnv('CODEX_PATH') ?? resolveCodexBinary() ?? undefined,
     sandboxMode:
       overrides.sandboxMode ??
       (sandbox === 'workspace-write' || sandbox === 'danger-full-access' ? sandbox : 'read-only'),
@@ -327,11 +328,15 @@ export function resolveCodexBinary(): string | null {
 
   const platformPkg = tryResolve('@openai/codex-linux-x64/package.json');
   if (platformPkg) {
-    candidates.push(path.join(path.dirname(platformPkg), 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex'));
+    candidates.push(
+      path.join(path.dirname(platformPkg), 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex'),
+    );
   }
   const shimPkg = tryResolve('@openai/codex/package.json');
   if (shimPkg) {
-    candidates.push(path.join(path.dirname(shimPkg), 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex'));
+    candidates.push(
+      path.join(path.dirname(shimPkg), 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex'),
+    );
   }
 
   const bunRoot = path.join(process.cwd(), 'node_modules', '.bun');
