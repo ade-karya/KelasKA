@@ -257,7 +257,8 @@ export function WorkbenchAuthDialog() {
                   Log in
                 </Button>
                 <p className="text-xs text-muted-foreground">
-                  Or run <code>codex login</code> on the server for browser/device auth.
+                  Recommended: an OpenAI API key. Device code (below) requires enabling device-code
+                  sign-in in your ChatGPT Security Settings.
                 </p>
               </div>
             )}
@@ -265,15 +266,21 @@ export function WorkbenchAuthDialog() {
               <div className="space-y-2 border-t pt-3">
                 <p className="text-sm font-medium">Login with ChatGPT (device code)</p>
                 {device.status === 'idle' ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => void startDevice()}
-                    disabled={saving}
-                    className="w-full"
-                  >
-                    Start device login
-                  </Button>
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void startDevice()}
+                      disabled={saving}
+                      className="w-full"
+                    >
+                      Start device login
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Requires device-code sign-in enabled in your ChatGPT Security Settings. If it
+                      is disabled, use the API key above instead.
+                    </p>
+                  </>
                 ) : null}
                 {device.status === 'pending' ? (
                   <div className="space-y-2">
@@ -308,7 +315,13 @@ export function WorkbenchAuthDialog() {
                   <p className="text-sm text-green-600">{device.message}</p>
                 ) : null}
                 {device.status === 'failed' ? (
-                  <p className="text-sm text-red-600">{device.message}</p>
+                  <div className="space-y-1">
+                    <p className="text-sm text-red-600">{device.message}</p>
+                    <p className="text-xs text-muted-foreground">
+                      If device-code sign-in is disabled for your account, enable it in ChatGPT
+                      Security Settings, or use the API key method above.
+                    </p>
+                  </div>
                 ) : null}
               </div>
             ) : null}
