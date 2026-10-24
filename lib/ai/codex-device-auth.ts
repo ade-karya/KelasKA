@@ -27,9 +27,14 @@ interface ActiveSession {
 
 let active: ActiveSession | null = null;
 
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1b\][^\x07]*\x07/g, '');
+}
+
 function parseOutput(output: string): { url: string | null; code: string | null } {
-  const urlMatch = output.match(URL_RE);
-  const codeMatch = output.match(CODE_RE);
+  const clean = stripAnsi(output);
+  const urlMatch = clean.match(URL_RE);
+  const codeMatch = clean.match(CODE_RE);
   return {
     url: urlMatch ? urlMatch[0].replace(/[)\].,]+$/, '') : null,
     code: codeMatch ? codeMatch[1] : null,
@@ -84,7 +89,7 @@ export async function codexDeviceAuthStart(): Promise<DeviceAuthStartResult> {
 
   session.promise = new Promise<void>((resolve) => {
     const collect = (chunk: Buffer) => {
-      session.output += chunk.toString();
+      session.output += stripAnsi(chunk.toString());
       const parsed = parseOutput(session.output);
       if (parsed.url) session.url = parsed.url;
       if (parsed.code) session.code = parsed.code;

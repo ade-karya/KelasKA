@@ -339,21 +339,30 @@ export function resolveCodexBinary(): string | null {
     );
   }
 
-  const bunRoot = path.join(process.cwd(), 'node_modules', '.bun');
-  try {
-    for (const entry of readdirSync(bunRoot)) {
-      if (!entry.startsWith('@openai+codex@')) continue;
-      const vendorDir = path.join(bunRoot, entry, 'node_modules', '@openai', 'codex', 'vendor');
-      try {
-        for (const triple of readdirSync(vendorDir)) {
-          candidates.push(path.join(vendorDir, triple, 'bin', 'codex'));
+  // bun cache fallback (and parent dirs for standalone builds).
+  const roots = [process.cwd(), path.join(process.cwd(), '..'), path.join(process.cwd(), '..', '..')];
+  for (const root of roots) {
+    const bunRoot = path.join(root, 'node_modules', '.bun');
+    try {
+      for (const entry of readdirSync(bunRoot)) {
+        if (!entry.startsWith('@openai+codex@')) continue;
+        const vendorDir = path.join(bunRoot, entry, 'node_modules', '@openai', 'codex', 'vendor');
+        try {
+          for (const triple of readdirSync(vendorDir)) {
+            candidates.push(path.join(vendorDir, triple, 'bin', 'codex'));
+          }
+        } catch {
+          // no vendor
         }
-      } catch {
-        // no vendor
       }
+    } catch {
+      // no .bun cache
     }
-  } catch {
-    // no .bun cache
+    // Hoisted platform package in this root.
+    const hoisted = path.join(root, 'node_modules', '@openai', 'codex-linux-x64', 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex');
+    candidates.push(hoisted);
+    const hoistedShim = path.join(root, 'node_modules', '@openai', 'codex', 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex');
+    candidates.push(hoistedShim);
   }
 
   candidates.push('/usr/local/bin/codex', '/usr/bin/codex', '/opt/codex/bin/codex');
