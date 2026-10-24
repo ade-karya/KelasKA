@@ -334,9 +334,8 @@ export function resetDiscoveredCodexIds(): void {
 }
 
 export function isActivatedDriverModel(provider: DriverProvider, id: string): boolean {
-  if (activatedDriverIds(provider).includes(id)) return true;
-  if (provider === CODEX_PROVIDER && discoveredCodexIds.has(id)) return true;
-  return false;
+  if (provider === CODEX_PROVIDER) return true;
+  return activatedDriverIds(provider).includes(id);
 }
 
 export function isActivatedOpencodeId(
