@@ -6,6 +6,7 @@
  * panels), so the home toolbar can use it.
  */
 import { MONO_LOGO_PROVIDERS, PROVIDERS } from '@/lib/ai/providers';
+import { HIDDEN_PROVIDER_IDS } from '@/lib/types/provider';
 import { ASR_PROVIDERS, TTS_PROVIDERS } from '@/lib/audio/constants';
 import { resolveASRProviderName, resolveTTSProviderName } from '@/lib/audio/provider-display';
 import type { SlotCapability } from '@/lib/config/model-slots';
@@ -63,7 +64,7 @@ const translated = (t: T, key: string, fallback: string) => {
 /** Each capability's built-in services: their names, logos and whether they need a key. */
 export const REGISTRY_INFO: Record<SlotCapability, RegistryInfo> = {
   chat: {
-    ids: Object.keys(PROVIDERS),
+    ids: Object.keys(PROVIDERS).filter((id) => !HIDDEN_PROVIDER_IDS.has(id)),
     name: (id, t) =>
       translated(t, `settings.providerNames.${id}`, entryOf(PROVIDERS, id)?.name ?? id),
     icon: (id) => entryOf(PROVIDERS, id)?.icon,
