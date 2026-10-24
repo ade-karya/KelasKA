@@ -59,7 +59,7 @@ export function TaskEvaluationCard({ evaluation, className }: Props) {
         {score !== undefined && (
           <span
             className="rounded-md border border-violet-200/70 bg-violet-100/90 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-violet-700 shadow-sm"
-            aria-label={`Score ${score} out of 100`}
+            aria-label={t('pbl.v2.taskEvalCard.scoreLabel', { score })}
           >
             {score} / 100
           </span>

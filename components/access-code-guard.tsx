@@ -50,6 +50,10 @@ export function AccessCodeGuard({ children }: { children: ReactNode }) {
           open={true}
           onSuccess={() => {
             setStatus((s) => ({ ...s, authenticated: true }));
+            // Wake every `auth-change` listener (home library, agent skills):
+            // pre-auth loads were skipped silently, so they must retry now
+            // that the request will be authorized.
+            window.dispatchEvent(new Event('auth-change'));
             setGrantedCount((n) => n + 1);
             // Model settings are read on mount, which on an ACCESS_CODE-gated
             // deployment is before any access cookie exists: the middleware

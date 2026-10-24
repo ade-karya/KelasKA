@@ -7,11 +7,17 @@
     "errorPrefix": "错误：",
     "loadingClassroom": "正在加载课堂...",
     "retry": "重试",
-    "close": "关闭"
+    "close": "关闭",
+    "decrease": "减少",
+    "increase": "增加"
   },
   "home": {
-    "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
-    "greetingWithName": "嗨，{{name}}"
+    "slogan": "多智能体互动教室中的生成式学习",
+    "greetingWithName": "嗨，{{name}}",
+    "vocationalTestBadge": "测试功能",
+    "vocationalTestLabel": "职教任务",
+    "vocationalTestTooltip": "从当前输入框提交职教实操训练测试",
+    "footer": "人工智能课堂"
   },
   "toolbar": {
     "pdfParser": "解析器",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "课堂聊天需要支持工具调用的模型。请在设置 → 课程模型配置中为「课堂互动」选择此类模型；如果该设置由管理员管理，请联系管理员。",
       "geminiNativeRequired": "Gemini 课堂互动需要使用 Google 原生路线。请在设置 → 模型服务中添加 Google（google 预设），再在课程模型配置中为「课堂互动」选择该模型；如果配置由管理员管理，请联系管理员。",
       "emptyAgentResponses": "智能体连续无响应,讨论已停止。请重新尝试或检查模型配置。",
-      "streamInterrupted": "数据流意外中断,讨论未能完成。请重新尝试。"
+      "streamInterrupted": "数据流意外中断,讨论未能完成。请重新尝试。",
+      "rateLimited": "模型当前请求过多,请稍后再试。",
+      "providerUnavailable": "模型服务暂时不可用,请稍后重试。"
     },
     "elementReference": {
       "whiteboardChanged": "引用的白板元素已变化或不可用，请重新选择或移除引用后再发送。",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "聚光灯",
       "laser": "激光笔",
+      "play_video": "播放",
       "wb_open": "打开白板",
       "wb_draw_text": "白板文本",
       "wb_draw_shape": "白板形状",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "白板公式",
       "wb_draw_table": "白板表格",
       "wb_draw_line": "白板线条",
+      "wb_draw_code": "代码",
+      "wb_edit_code": "编辑代码",
       "wb_clear": "清空白板",
       "wb_delete": "删除元素",
       "wb_close": "关闭白板",
@@ -296,6 +307,17 @@
       "result": "已完成",
       "error": "错误"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "切换导航栏",
+    "mute": "静音",
+    "unmute": "取消静音",
+    "playbackSpeed": "播放速度",
+    "prevScene": "上一个场景",
+    "nextScene": "下一个场景",
+    "pause": "暂停",
+    "play": "播放",
+    "toggleChat": "切换对话"
   },
   "agentBar": {
     "readyToLearn": "准备好一起学习了吗？",
@@ -506,7 +528,16 @@
       "sendBackward": "下移一层",
       "alignTop": "顶部对齐",
       "alignMiddle": "垂直居中",
-      "alignBottom": "底部对齐"
+      "alignBottom": "底部对齐",
+      "alignCenterBoth": "水平垂直居中",
+      "setLink": "设置链接",
+      "ruler": "标尺",
+      "grid": "网格线",
+      "gridNone": "无",
+      "gridSmall": "小",
+      "gridMedium": "中",
+      "gridLarge": "大",
+      "resetPage": "重置当前页"
     },
     "background": {
       "label": "背景",
@@ -747,6 +778,12 @@
     "dock": {
       "elementRefHint": "元素引用 —— 选中元素随下一条消息发给 Agent",
       "globalTools": "全局工具"
+    },
+    "color": {
+      "sampleFromScreen": "从屏幕上取色"
+    },
+    "shapeCreate": {
+      "hint": "点击绘制任意形状，闭合路径完成绘制，按 ESC 或右键取消，按回车提前完成"
     }
   },
   "classroomComplete": {
@@ -808,7 +845,11 @@
     "aiGrading": "AI 正在批改中...",
     "aiGradingWait": "请稍候，正在分析你的答案",
     "quizReport": "答题报告",
-    "retry": "重新答题"
+    "retry": "重新答题",
+    "explainOnWhiteboard": "在白板上讲解",
+    "explainAllOnWhiteboard": "在白板上逐题讲解错题",
+    "explainAllCta": "逐步讲解",
+    "explainHint": "AI 老师会打开白板，把每一步推理逐条写出来。"
   },
   "roundtable": {
     "teacher": "教师",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "本次提交点评",
         "strengths": "做得好的",
-        "improvements": "下次可以"
+        "improvements": "下次可以",
+        "scoreLabel": "得分 {{score}} / 100",
+        "ratingLabel": "评分 {{value}} / 5"
       },
       "briefing": {
         "intro": "进入情景后，准备阶段介绍的背景在这里随时可查。",
@@ -1102,6 +1145,8 @@
     "folderRenameFailed": "重命名文件夹失败",
     "folderDeleteFailed": "删除文件夹失败",
     "moveFailed": "移动课程失败",
+    "deleteFailed": "删除课程失败",
+    "persistenceUnavailable": "持久化不可用，已保存的课程无法加载。",
     "emptyFolderHint": "这个文件夹还是空的",
     "emptyLibraryHint": "还没有课程——在上方创建，或导入一个课程。",
     "folderNameEmpty": "文件夹名不能为空",
@@ -1113,6 +1158,8 @@
     "notFoundDesc": "课程不存在，或已被删除。",
     "loadUnavailable": "暂时无法加载这门课程",
     "loadUnavailableDesc": "无法获取课程，请检查访问权限或重试。",
+    "loadFailed": "课程加载失败",
+    "loadFailedWithDetail": "课程加载失败：{{detail}}",
     "backToHome": "返回首页",
     "runOutlining": "正在生成大纲…",
     "runAwaitingConfirmation": "等待确认",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "最多可上传 5 个课程材料文件",
     "courseMaterialTotalSizeLimit": "课程材料总大小需小于 150MB",
     "unsupportedCourseMaterial": "{{parser}} 不支持该文件类型，当前支持：{{formats}}",
+    "courseMaterialSizeLimit": "支持文档、演示、表格、图像、纯文本，最大 50MB（具体支持格式随所选解析器而定）",
     "unsupportedMaterialFormat": "当前解析器不支持该格式，请切换解析器或选择其他文件",
     "materialQuotaExceeded": "素材存储空间已满，请删除部分素材后重试。",
     "materialUploadFailed": "上传 {{name}} 失败，请重试。",
@@ -1353,6 +1401,7 @@
       "baidu": "百度",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "内置读取服务"
     },
     "modelCount": "个模型",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "使用 Agent 人设作为音色 prompt",
     "voxcpmUnavailable": "不可用",
     "voxcpmClone": "克隆",
+    "voxcpmPromptBadge": "提示词",
+    "voxcpmReferenceAudioFallback": "参考音频",
     "voxcpmCloneUnsupportedDetail": "当前后端不支持克隆",
     "voxcpmNoCustomVoices": "暂无自定义音色",
     "voxcpmCloneSaveOnly": "当前后端仅保存",
@@ -1833,7 +1884,11 @@
       "applyTitle": "使用该套餐的推荐配置？",
       "applyBody": "{{name}} 为以下环节推荐了自己的模型。使用它们会替换这些环节当前所用的模型，包括服务端默认值：",
       "applyKeep": "保留当前配置",
-      "applyRecommended": "使用套餐推荐配置"
+      "applyRecommended": "使用套餐推荐配置",
+      "enable": "启用",
+      "statusDisabled": "已连接（未启用）",
+      "enableThisPlan": "启用此套餐",
+      "enableThisPlanHint": "关闭后，此套餐不再出现在课程模型配置中"
     },
     "skills": {
       "nav": "技能",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "浏览器内置 TTS 不支持编辑器时间轴的音频功能（试听、重新生成、全部配音）。切换到托管 TTS 提供方即可逐句生成和管理音频。",
     "courseModels": {
-      "nav": "课程模型配置"
+      "nav": "课程模型配置",
+      "mainModel": "主线语言模型",
+      "mainModelHint": "跟随主线的环节共用此模型，点击卡片可单独指定",
+      "mainModelTooltip": "所有「跟随主线」的环节使用此模型。点击流程卡片可单独指定模型（用户级 stage 路由，优先级低于服务端 MODEL_ROUTES），细分环节在卡片检查器中展开。",
+      "noProviderHint": "尚无可用的语言模型，请先在「模型服务」中配置",
+      "followMainline": "跟随主线",
+      "followParent": "跟随上级",
+      "restoreFollow": "恢复跟随主线",
+      "stopped": "已停用",
+      "loop": "循环",
+      "parallel": "并行",
+      "visionSupported": "支持视觉输入",
+      "modelSource": "模型来源",
+      "mainlineUnset": "未指定",
+      "pickModel": "选择模型",
+      "pickProvider": "选择服务",
+      "optionInvalid": "已失效",
+      "subStagesTitle": "细分环节",
+      "subStages": {
+        "title": "标题生成",
+        "slide": "幻灯页",
+        "quiz": "测验题",
+        "interactive": "互动脚本",
+        "pbl": "PBL 剧本"
+      },
+      "servicesAndModels": "服务与模型",
+      "searchService": "搜索服务",
+      "parseService": "解析服务",
+      "asrTranscribe": "语音转写",
+      "aiIllustration": "AI 配图",
+      "aiVideo": "AI 视频",
+      "stations": {
+        "docParse": "文档解析",
+        "webResearch": "联网调研",
+        "outline": "大纲规划",
+        "agents": "角色生成",
+        "sceneContent": "场景内容",
+        "sceneActions": "讲稿动作",
+        "tts": "语音合成",
+        "media": "媒体生成",
+        "interaction": "课堂互动",
+        "desc": {
+          "doc-parse": "上传的课程资料（文档/幻灯/音视频）解析为文本；音视频自动转写。",
+          "web-research": "按课程要求联网检索补充资料；搜索词由轻量 LLM 改写。",
+          "outline": "理解需求与资料，产出课程标题与分场景大纲（可人工审阅）。",
+          "agents": "生成课堂中的师生智能体档案（人设、头像、声音）。",
+          "scene-content": "逐场景生成幻灯/测验/互动/PBL 内容，是管线中最重的 LLM 环节。",
+          "scene-actions": "为场景内容补全讲解词与教学动作，供语音合成与课堂演绎。",
+          "tts": "把讲稿合成为师生语音（逐场景、串行）。",
+          "media": "兑现内容中的图片/视频占位符，与逐场景流程并行执行。",
+          "interaction": "课程生成后的课堂运行期：多智能体对话、PBL 运行时与测验批改。"
+        }
+      },
+      "mediaEnableNeedsSetup": "请先在「模型服务」配置 API Key，或启用 Token Plan 后再开启"
     },
     "addNewModel": "新建模型",
     "addNewModelDescription": "添加新的模型配置",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "流式",
       "tools": "工具",
-      "vision": "视觉"
+      "vision": "视觉",
+      "thinking": "思考"
     },
     "claudeSearchModel": "搜索模型",
     "claudeSearchModelHint": "用于执行网络搜索并总结结果的 Claude 模型。",
@@ -1909,6 +2018,7 @@
     "defaultModel": "默认模型",
     "deleteModel": "删除",
     "deleteProvider": "删除提供方",
+    "removeModel": "移除 {{id}}",
     "deleteProviderConfirm": "确定要删除此提供方吗？",
     "documentParsingSettings": "文档解析",
     "doubaoAccessKey": "Access Key",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "服务器未确认已导入。"
       }
     },
+    "model": "模型配置",
+    "save": "保存",
+    "providerTypes": {
+      "openai": "OpenAI 协议",
+      "azure": "Azure OpenAI",
+      "anthropic": "Claude 协议",
+      "google": "Gemini 协议",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "联网搜索",
+    "addProvider": "添加",
+    "addModel": "添加",
+    "fetch": "获取",
+    "contextWindow": "上下文",
+    "outputWindow": "输出",
+    "providerNameRequired": "请输入提供方名称",
+    "providerIcon": "Provider 图标 URL",
+    "requiresApiKey": "需要 API 密钥",
+    "addCustomTTSProvider": "添加自定义语音合成",
+    "addCustomASRProvider": "添加自定义语音识别",
+    "addCustomAudioProviderDescription": "添加兼容 OpenAI 协议的音频服务",
+    "customVoices": "音色列表",
+    "voiceIdPlaceholder": "音色 ID（如 alloy）",
+    "voiceNamePlaceholder": "显示名称",
+    "addVoice": "添加",
+    "modelNamePlaceholder": "可选",
+    "defaultModelHint": "API 请求中的模型名（如 kokoro、tts-1）",
+    "noVoicesAdded": "暂无音色，请在下方添加以支持 Agent 选择不同音色。",
+    "noModelsAdded": "暂无模型，请在下方添加以支持模型选择。",
+    "noModelsWarning": "请先在下方添加至少一个模型，才能使用此服务。",
+    "cannotDeleteBuiltIn": "无法删除内置提供方",
+    "resetSuccess": "已成功重置为默认配置",
+    "saveSuccess": "配置已保存",
+    "saveFailed": "保存失败，请重试",
+    "modelIdRequired": "请输入模型 ID",
+    "modelName": "显示名称",
+    "modelCapabilities": "能力",
+    "advancedSettings": "高级设置",
+    "contextWindowLabel": "上下文窗口",
+    "contextWindowPlaceholder": "例如 128000",
+    "outputWindowLabel": "最大输出Token数",
+    "outputWindowPlaceholder": "例如 4096",
+    "enterCustomBaseUrl": "输入自定义 Base URL",
+    "voxcpmBackend": "Backend",
+    "voxcpmBaseUrlPending": "填写 Base URL 后生成",
+    "voxcpmAutoVoiceNoPreview": "自动音色会根据 Agent 人设动态生成，无法单独试听",
+    "voxcpmBaseUrlRequired": "请先填写 VoxCPM Base URL",
+    "ttsTestText": "TTS 测试文本",
+    "asrResult": "识别结果",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "百度搜索源",
+    "baiduSubSourcesDescription": "选择至少一个百度数据源参与搜索。",
+    "viewDocs": "API 文档",
+    "optional": "可选",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "启用此提供方",
+    "enableThisProviderHint": "关闭后，此提供方不再出现在课程模型配置中",
     "serverConfiguredAddOwn": "如需使用自己的凭据，请新增一个提供方。",
     "webFetchSettings": "网页抓取",
     "webFetchHint": "选择网页读取方式。托管服务只会收到会话中已获准的公开网址。结果仍是不可信数据，失败时不会切换读取服务。",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "右栏标签页",
     "courseTabClose": "关闭标签页《{{name}}》",
     "courseTabRunning": "生成中",
-    "foldersUnavailable": "此版本不支持文件夹"
+    "foldersUnavailable": "此版本不支持文件夹",
+    "modelPicker": {
+      "empty": "模型列表为空。",
+      "loadFailed": "模型列表加载失败。",
+      "selectFailed": "选择模型失败（{{status}}）",
+      "activeToast": "当前模型：{{name}}（对下一次运行生效）",
+      "selectFailedFallback": "选择模型失败",
+      "thinkingSaveFailed": "思考配置保存失败",
+      "loading": "加载中...",
+      "loadError": "模型加载失败",
+      "choose": "选择模型",
+      "ariaLabel": "选择 Pro Workbench 模型"
+    }
   },
   "profile": {
     "title": "个人资料",
@@ -2461,7 +2649,8 @@
     "provider": "服务商",
     "voice": "音色",
     "speed": "语速",
-    "language": "语言"
+    "language": "语言",
+    "model": "模型"
   },
   "accessCode": {
     "title": "请输入访问码",

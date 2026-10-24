@@ -26,6 +26,7 @@ import { runPiDirectorLoop } from '@/lib/chat/pi/director-loop';
 import type { SendEvent } from '@/lib/chat/pi/types';
 import { requestWorkspaceId } from '@/lib/server/model-config/runtime';
 import { resolveModel } from '@/lib/server/resolve-model';
+import { friendlyUpstreamChatMessage } from '@/lib/server/llm-error-response';
 import { parseUserStageRoutes } from '@/lib/server/model-routes';
 import { apiError } from '@/lib/server/api-response';
 import type { ThinkingConfig } from '@/lib/types/provider';
@@ -48,6 +49,21 @@ import {
 } from '@/lib/chat/pi/element-reference';
 
 const log = createLogger('Pi Chat API');
+
+/**
+ * Map an in-loop failure to the SSE `error` message the chat UI renders.
+ *
+ * Failures already flattened to a string upstream (e.g. pi's
+ * `director.state.errorMessage`) keep their text — the streamFn adapter maps
+ * those at the source. Anything still carrying the SDK error object (a
+ * `RetryError: Failed after N attempts...` from a child tool path) is mapped
+ * here so learners see an actionable message instead of transport details.
+ */
+export function toPiStreamErrorMessage(error: unknown): string {
+  return (
+    friendlyUpstreamChatMessage(error) ?? (error instanceof Error ? error.message : String(error))
+  );
+}
 
 export async function POST(req: NextRequest) {
   // Like every owner-resolving route, a request whose credential an owner
@@ -341,11 +357,19 @@ async function chat(req: NextRequest, principal: OwnerPrincipal): Promise<Respon
           return;
         }
 
-        log.error('Pi chat stream error:', error);
+        // Transient upstream failures (rate limit, overloaded provider) are
+        // expected under load and already stream a friendly retry hint to the
+        // chat UI. Keep them out of error-level monitors; unexpected failures
+        // keep error level.
+        if (friendlyUpstreamChatMessage(error) !== undefined) {
+          log.warn('Pi chat stream error (transient upstream):', error);
+        } else {
+          log.error('Pi chat stream error:', error);
+        }
         try {
           await send({
             type: 'error',
-            data: { message: error instanceof Error ? error.message : String(error) },
+            data: { message: toPiStreamErrorMessage(error) },
           });
           await writer.close();
         } catch {

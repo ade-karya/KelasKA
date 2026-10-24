@@ -7,11 +7,17 @@
     "errorPrefix": "エラー：",
     "loadingClassroom": "教室を読み込み中...",
     "retry": "再試行",
-    "close": "閉じる"
+    "close": "閉じる",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "マルチエージェント対話型教室で生成的に学ぶ",
-    "greetingWithName": "こんにちは、{{name}}さん"
+    "greetingWithName": "こんにちは、{{name}}さん",
+    "vocationalTestBadge": "テスト機能",
+    "vocationalTestLabel": "職業訓練タスク",
+    "vocationalTestTooltip": "現在の入力欄から職業実践トレーニングのテストを送信する",
+    "footer": "人工知能クラス"
   },
   "toolbar": {
     "pdfParser": "パーサー",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "教室チャットにはツール呼び出しに対応したモデルが必要です。設定 → コースモデル設定で教室スロットに対応モデルを選択してください。管理者が設定を管理している場合は、管理者にお問い合わせください。",
       "geminiNativeRequired": "Gemini の教室チャットには Google ネイティブが必要です。設定 → モデルサービスで Google（google プリセット）を追加し、コースモデル設定の「教室」で選択してください。管理された設定の場合は管理者にお問い合わせください。",
       "emptyAgentResponses": "エージェントが空の応答を返したため、ディスカッションを停止しました。再試行するかモデル設定をご確認ください。",
-      "streamInterrupted": "ストリームが予期せず終了し、ディスカッションが完了しませんでした。再度お試しください。"
+      "streamInterrupted": "ストリームが予期せず終了し、ディスカッションが完了しませんでした。再度お試しください。",
+      "rateLimited": "モデルへのリクエストが集中しています。しばらく待ってから再試行してください。",
+      "providerUnavailable": "モデルサービスが一時的に利用できません。しばらくしてから再試行してください。"
     },
     "elementReference": {
       "whiteboardChanged": "参照したホワイトボードの要素が変更されたか、利用できません。再選択するか、参照を削除してから送信してください。",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "スポットライト",
       "laser": "レーザーポインター",
+      "play_video": "Play",
       "wb_open": "ホワイトボードを開く",
       "wb_draw_text": "テキスト描画",
       "wb_draw_shape": "図形描画",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "数式描画",
       "wb_draw_table": "表描画",
       "wb_draw_line": "線描画",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "ホワイトボードをクリア",
       "wb_delete": "要素を削除",
       "wb_close": "ホワイトボードを閉じる",
@@ -296,6 +307,17 @@
       "result": "完了",
       "error": "エラー"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "一緒に学ぶ準備はできましたか？",
@@ -506,7 +528,16 @@
       "sendBackward": "背面へ移動",
       "alignTop": "上揃え",
       "alignMiddle": "垂直中央揃え",
-      "alignBottom": "下揃え"
+      "alignBottom": "下揃え",
+      "alignCenterBoth": "中央揃え（両軸）",
+      "setLink": "リンクを設定",
+      "ruler": "ルーラー",
+      "grid": "グリッド",
+      "gridNone": "なし",
+      "gridSmall": "小",
+      "gridMedium": "中",
+      "gridLarge": "大",
+      "resetPage": "ページをリセット"
     },
     "background": {
       "label": "背景",
@@ -591,6 +622,12 @@
         "boundary": "細かい編集はエディタで、スライドの追加・削除・並べ替えは左のナビから。",
         "comingSoon": "今後さらに機能を追加予定です。"
       },
+      "interactive": {
+        "emptyTitle": "このページの何を修正しますか？",
+        "lead": "このインタラクティブページの不具合（例：押しても反応しないボタン）を教えてください。その箇所だけを修正し、ほかはそのまま残します。",
+        "placeholder": "このインタラクティブページの不具合を入力…",
+        "boundary": "ページの不具合をピンポイントで修正します。ページ全体の作り直しはしません。シーンの切り替えは左のナビからどうぞ。"
+      },
       "cap": {
         "content": {
           "label": "スライドを再生成",
@@ -601,8 +638,8 @@
           "examples": "「もっと口語的に」「編集内容に合わせて」"
         },
         "fixHtml": {
-          "examples": "「スタートボタンを押しても何も起きない」「スマホでパネルが重なる」",
-          "label": "ページの不具合を修正"
+          "label": "ページの不具合を修正",
+          "examples": "「スタートボタンを押しても何も起きない」「スマホでパネルが重なる」"
         },
         "elements": {
           "label": "要素を微調整",
@@ -614,15 +651,9 @@
       "sessionUntitled": "無題の会話",
       "sessionDelete": "削除",
       "sessionEmpty": "履歴はありません",
+      "thinking": "考え中…",
       "reasoning": "思考プロセス",
       "thought": "思考時間",
-      "interactive": {
-        "boundary": "ページの不具合をピンポイントで修正します。ページ全体の作り直しはしません。シーンの切り替えは左のナビからどうぞ。",
-        "emptyTitle": "このページの何を修正しますか？",
-        "lead": "このインタラクティブページの不具合（例：押しても反応しないボタン）を教えてください。その箇所だけを修正し、ほかはそのまま残します。",
-        "placeholder": "このインタラクティブページの不具合を入力…"
-      },
-      "thinking": "考え中…",
       "title": "AIで編集"
     },
     "timeline": {
@@ -701,18 +732,18 @@
       "restored": "復元しました",
       "resume": "再適用"
     },
+    "fixHtml": {
+      "title": "インタラクティブページを修正",
+      "fixing": "修正中",
+      "fixed": "修正済み",
+      "notFixed": "未修正",
+      "editsCount": "{{count}} 件の修正"
+    },
     "readCard": {
       "title": "ページ内容を読み取り",
       "reading": "読み取り中",
       "done": "読み取り済み",
       "failed": "未読み取り"
-    },
-    "fixHtml": {
-      "editsCount": "{{count}} 件の修正",
-      "fixed": "修正済み",
-      "fixing": "修正中",
-      "notFixed": "未修正",
-      "title": "インタラクティブページを修正"
     },
     "editElements": {
       "title": "要素を編集",
@@ -747,6 +778,12 @@
     "dock": {
       "elementRefHint": "要素参照 — 次のメッセージと一緒に送る要素を選ぶ",
       "globalTools": "全体ツール"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -808,7 +845,11 @@
     "aiGrading": "AIが採点中...",
     "aiGradingWait": "回答を分析しています。お待ちください",
     "quizReport": "クイズレポート",
-    "retry": "やり直す"
+    "retry": "やり直す",
+    "explainOnWhiteboard": "ホワイトボードで解説",
+    "explainAllOnWhiteboard": "間違えた問題をホワイトボードで解説",
+    "explainAllCta": "ステップごとに解説",
+    "explainHint": "AI先生がホワイトボードを開き、推論の各ステップを1つずつ書きます。"
   },
   "roundtable": {
     "teacher": "教師",
@@ -819,10 +860,10 @@
     "noSpeechDetected": "音声が検出されませんでした。もう一度お試しください",
     "discussionEnded": "ディスカッションが終了しました",
     "qaEnded": "Q&Aが終了しました",
-    "softClosing": "話し合いを続ける",
     "thinking": "思考中",
     "yourTurn": "あなたの番です",
     "stopDiscussion": "ディスカッションを終了",
+    "softClosing": "話し合いを続ける",
     "autoPlay": "自動再生",
     "autoPlayOff": "自動再生を停止",
     "speed": "速度",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "今回の提出物へのフィードバック",
         "strengths": "良かった点",
-        "improvements": "次に改善できる点"
+        "improvements": "次に改善できる点",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "準備段階で説明された設定を、シーン中いつでも見返せるようにここにまとめています。",
@@ -1014,7 +1057,6 @@
         "submissionsInStage": "{{count}}件の作品を提出",
         "coreConceptGrasp": "コア概念「{{concept}}」——{{quality}}",
         "stageNoData": "このステージには記録された成果がありません。",
-        "highlightsTitle": "あなたのハイライト",
         "scenario": {
           "summary": "このシナリオの全 {{acts}} 幕を完了しました。今回のロールプレイの振り返りです。",
           "whatYouDidWell": "うまくできた点",
@@ -1038,6 +1080,7 @@
           "decisionScore": "判断スコア {{score}}",
           "castLabel": "やり取りした相手：{{names}}"
         },
+        "highlightsTitle": "あなたのハイライト",
         "highlight": {
           "independence": "{{unlocks}}/{{total}}の概念を自ら示しました——問われる前に、自分から表現できています。",
           "resilience": "「{{title}}」ステージで{{errors}}回のエラーを克服——粘り強いです。",
@@ -1102,17 +1145,21 @@
     "folderRenameFailed": "フォルダの名前変更に失敗しました",
     "folderDeleteFailed": "フォルダの削除に失敗しました",
     "moveFailed": "コースの移動に失敗しました",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "このフォルダは空です",
     "emptyLibraryHint": "まだコースがありません。上で作成するか、コースをインポートしてください。",
     "folderNameEmpty": "フォルダ名は空にできません",
     "deleteFolderOnly": "フォルダのみ削除",
     "deleteFolderAndCourses": "フォルダと {{count}} 件のコースを削除",
-    "deleteFolderConfirmRemove": "フォルダとコース（チャット履歴を含む）が削除されます。",
     "deleteFolderAndCourses_other": "フォルダと {{count}} 件のコースを削除",
+    "deleteFolderConfirmRemove": "フォルダとコース（チャット履歴を含む）が削除されます。",
     "notFound": "コースが見つかりません",
     "notFoundDesc": "このコースは存在しないか、すでに削除されています。",
     "loadUnavailable": "コースを読み込めませんでした",
     "loadUnavailableDesc": "コースを取得できませんでした。アクセス権を確認するか、もう一度お試しください。",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "ホームに戻る",
     "runOutlining": "アウトライン作成中…",
     "runAwaitingConfirmation": "確認待ち",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "教材ファイルは最大5件までアップロードできます",
     "courseMaterialTotalSizeLimit": "教材の合計サイズは150MB未満にしてください",
     "unsupportedCourseMaterial": "{{parser}} はこのファイル形式に対応していません。対応形式：{{formats}}",
+    "courseMaterialSizeLimit": "ドキュメント、スライド、表計算、画像、テキスト — 最大50MB（対応形式は選択したエクストラクタに依存）",
     "unsupportedMaterialFormat": "現在の解析器はこの形式に対応していません。解析器を切り替えるか、別のファイルを選択してください。",
     "materialQuotaExceeded": "資料の保存容量がいっぱいです。資料を削除してから再度お試しください。",
     "materialUploadFailed": "{{name}} のアップロードに失敗しました。再度お試しください。",
@@ -1353,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "組み込みリーダー"
     },
     "modelCount": "モデル",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "Agent の persona を音色プロンプトとして使用",
     "voxcpmUnavailable": "利用不可",
     "voxcpmClone": "クローン",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "現在のバックエンドはクローンに対応していません",
     "voxcpmNoCustomVoices": "カスタム音色はまだありません",
     "voxcpmCloneSaveOnly": "このバックエンドでは保存のみ可能です",
@@ -1833,7 +1884,11 @@
       "applyTitle": "このプランの推奨構成を使いますか？",
       "applyBody": "{{name}} は次の工程に独自のモデルを推奨しています。使うと、サーバー既定を含め、各工程が現在使っているモデルが置き換わります：",
       "applyKeep": "現在の構成を維持",
-      "applyRecommended": "プランの推奨構成を使う"
+      "applyRecommended": "プランの推奨構成を使う",
+      "enable": "Enable",
+      "statusDisabled": "接続済み（無効）",
+      "enableThisPlan": "このプランを有効化",
+      "enableThisPlanHint": "オフにすると、このプランはコースモデル設定に表示されなくなります。"
     },
     "skills": {
       "nav": "スキル",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "ブラウザ内蔵 TTS はエディターのタイムライン音声機能（試聴・再生成・一括音声生成）に対応していません。マネージド TTS プロバイダーに切り替えると、行ごとの音声を生成・管理できます。",
     "courseModels": {
-      "nav": "コースモデル設定"
+      "nav": "コースモデル設定",
+      "mainModel": "メインモデル",
+      "mainModelHint": "メインに追従する段階はこのモデルを共有します。カードをクリックすると段階ごとに変更できます",
+      "mainModelTooltip": "メインに追従するすべての段階がこのモデルを使用します。パイプラインのカードをクリックすると、その段階に固有のモデルを固定できます（運用者の MODEL_ROUTES より優先度が低いユーザーレベルの段階ルート）。さらに細かいサブ段階はカードのインスペクタで設定します。",
+      "noProviderHint": "言語モデルが未設定です。「モデルサービス」で設定してください",
+      "followMainline": "メインに追従",
+      "followParent": "親に追従",
+      "restoreFollow": "メイン追従に戻す",
+      "stopped": "無効",
+      "loop": "ループ",
+      "parallel": "並列",
+      "visionSupported": "画像入力対応",
+      "modelSource": "モデルソース",
+      "mainlineUnset": "未指定",
+      "pickModel": "モデルを選択",
+      "pickProvider": "サービスを選択",
+      "optionInvalid": "利用不可",
+      "subStagesTitle": "サブ段階",
+      "subStages": {
+        "title": "タイトル生成",
+        "slide": "スライド",
+        "quiz": "クイズ",
+        "interactive": "インタラクティブ台本",
+        "pbl": "PBL シナリオ"
+      },
+      "servicesAndModels": "サービスとモデル",
+      "searchService": "検索サービス",
+      "parseService": "解析サービス",
+      "asrTranscribe": "音声書き起こし",
+      "aiIllustration": "AIイラスト",
+      "aiVideo": "AI動画",
+      "stations": {
+        "docParse": "ドキュメント解析",
+        "webResearch": "ウェブ調査",
+        "outline": "アウトライン設計",
+        "agents": "エージェントプロファイル",
+        "sceneContent": "シーンコンテンツ",
+        "sceneActions": "シーンアクション",
+        "tts": "音声合成",
+        "media": "メディア生成",
+        "interaction": "授業インタラクション",
+        "desc": {
+          "doc-parse": "アップロードされたコース素材（ドキュメント／スライド／音声・動画）をテキストに解析し、音声・動画は自動で文字起こしします。",
+          "web-research": "コース要件に応じてウェブから補足資料を検索します。検索クエリは軽量な LLM によって書き換えられます。",
+          "outline": "要件と資料を理解し、コースタイトルとシーンごとのアウトラインを生成します（人による確認可）。",
+          "agents": "教師・生徒エージェントのプロファイル（人格・アバター・声）を生成します。",
+          "scene-content": "シーンごとにスライド／クイズ／インタラクション／PBL のコンテンツを生成する、パイプラインで最も重い LLM ステージです。",
+          "scene-actions": "シーンごとにナレーションと授業アクションを補完し、音声合成と授業再生に渡します。",
+          "tts": "ナレーションを教師／生徒の音声に合成します（シーンごとに直列で実行）。",
+          "media": "生成コンテンツ内の画像・動画プレースホルダーを、シーンループと並行して埋めます。",
+          "interaction": "生成後の授業ランタイム：マルチエージェント対話、PBL 実行、クイズ採点。"
+        }
+      },
+      "mediaEnableNeedsSetup": "先に「モデルサービス」で API キーを設定するか、Token Plan を有効にしてからオンにしてください。"
     },
     "addNewModel": "新しいモデル",
     "addNewModelDescription": "新しいモデル設定を追加",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "ストリーミング",
       "tools": "ツール",
-      "vision": "画像認識"
+      "vision": "画像認識",
+      "thinking": "思考"
     },
     "claudeSearchModel": "検索モデル",
     "claudeSearchModelHint": "ウェブ検索を実行し、結果を要約する Claude モデル。",
@@ -1910,6 +2019,7 @@
     "deleteModel": "削除",
     "deleteProvider": "プロバイダーを削除",
     "deleteProviderConfirm": "このプロバイダーを削除してもよろしいですか？",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "ドキュメント解析",
     "doubaoAccessKey": "アクセスキー",
     "doubaoAppId": "App ID",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "サーバーがインポートを確認しませんでした。"
       }
     },
+    "model": "モデル設定",
+    "save": "保存",
+    "providerTypes": {
+      "openai": "OpenAIプロトコル",
+      "azure": "Azure OpenAI",
+      "anthropic": "Claudeプロトコル",
+      "google": "Geminiプロトコル",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "ウェブ検索",
+    "addProvider": "追加",
+    "addModel": "追加",
+    "fetch": "取得",
+    "contextWindow": "コンテキスト",
+    "outputWindow": "出力",
+    "providerNameRequired": "プロバイダー名を入力してください",
+    "providerIcon": "プロバイダーのアイコンURL",
+    "requiresApiKey": "APIキーが必要",
+    "addCustomTTSProvider": "カスタムTTSプロバイダーを追加",
+    "addCustomASRProvider": "カスタムASRプロバイダーを追加",
+    "addCustomAudioProviderDescription": "OpenAI互換のオーディオプロバイダーを追加",
+    "customVoices": "音声リスト",
+    "voiceIdPlaceholder": "音声ID（例: alloy）",
+    "voiceNamePlaceholder": "表示名",
+    "addVoice": "追加",
+    "modelNamePlaceholder": "任意",
+    "defaultModelHint": "APIリクエストで送信されるモデル名（例: kokoro、tts-1）",
+    "noVoicesAdded": "音声がまだ追加されていません。エージェントごとの音声選択のために下で追加してください。",
+    "noModelsAdded": "モデルがまだ追加されていません。モデル選択のために下で追加してください。",
+    "noModelsWarning": "このプロバイダーを使用するには、まず下でモデルを追加してください。",
+    "cannotDeleteBuiltIn": "組み込みプロバイダーは削除できません",
+    "resetSuccess": "デフォルト設定に正常にリセットされました",
+    "saveSuccess": "設定を保存しました",
+    "saveFailed": "設定の保存に失敗しました。もう一度お試しください",
+    "modelIdRequired": "モデルIDを入力してください",
+    "modelName": "表示名",
+    "modelCapabilities": "機能",
+    "advancedSettings": "詳細設定",
+    "contextWindowLabel": "コンテキストウィンドウ",
+    "contextWindowPlaceholder": "例：128000",
+    "outputWindowLabel": "最大出力トークン数",
+    "outputWindowPlaceholder": "例：4096",
+    "enterCustomBaseUrl": "カスタムベースURLを入力",
+    "voxcpmBackend": "バックエンド",
+    "voxcpmBaseUrlPending": "Base URL を入力するとリクエスト URL が生成されます",
+    "voxcpmAutoVoiceNoPreview": "自動音色は Agent のコンテキストから生成されるため、単独では試聴できません",
+    "voxcpmBaseUrlRequired": "先に VoxCPM Base URL を入力してください",
+    "ttsTestText": "TTSテスト用テキスト",
+    "asrResult": "認識結果",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "Baidu検索ソース",
+    "baiduSubSourcesDescription": "少なくとも1つのBaiduソースを選択してください。",
+    "viewDocs": "APIドキュメント",
+    "optional": "任意",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "このプロバイダーを有効化",
+    "enableThisProviderHint": "オフにすると、このプロバイダーはコースモデル設定に表示されなくなります。",
     "serverConfiguredAddOwn": "独自の認証情報を使うには、別のプロバイダーを追加してください。",
     "webFetchSettings": "Webページ取得",
     "webFetchHint": "Webページの読み取り方法を選択します。ホスト型サービスには、セッションで許可された公開URLのみが送信されます。結果は信頼できないデータとして扱い、失敗しても別のサービスには切り替えません。",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "開いているコース",
     "courseTabClose": "タブを閉じる：{{name}}",
     "courseTabRunning": "生成中",
-    "foldersUnavailable": "このビルドではフォルダーは利用できません"
+    "foldersUnavailable": "このビルドではフォルダーは利用できません",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "プロフィール",
@@ -2461,12 +2649,8 @@
     "provider": "プロバイダー",
     "voice": "ボイス",
     "speed": "速度",
-    "language": "言語"
-  },
-  "accessCode": {
-    "title": "アクセスコードを入力",
-    "placeholder": "アクセスコード",
-    "error": "アクセスコードが正しくありません。もう一度お試しください。"
+    "language": "言語",
+    "model": "モデル"
   },
   "proMode": {
     "attach": "教材を添付",
@@ -2486,6 +2670,11 @@
     "launchPlaceholder": "作りたい学習体験を描いてください",
     "launchSend": "構築を開始",
     "mentionCourseOrMaterial": "クラスまたはナレッジベースの素材を参照"
+  },
+  "accessCode": {
+    "title": "アクセスコードを入力",
+    "placeholder": "アクセスコード",
+    "error": "アクセスコードが正しくありません。もう一度お試しください。"
   },
   "workbench": {
     "tool": {

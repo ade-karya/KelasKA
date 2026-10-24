@@ -7,11 +7,17 @@
     "errorPrefix": "Fehler: ",
     "loadingClassroom": "Klassenzimmer wird geladen ...",
     "retry": "Erneut versuchen",
-    "close": "Schließen"
+    "close": "Schließen",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "Generatives Lernen im interaktiven Lernraum mit mehreren KI-Agenten",
-    "greetingWithName": "Hallo, {{name}}"
+    "greetingWithName": "Hallo, {{name}}",
+    "vocationalTestBadge": "Testfunktion",
+    "vocationalTestLabel": "Berufsbildungsaufgabe",
+    "vocationalTestTooltip": "Einen berufsbildenden Praxistest aus dem aktuellen Eingabefeld senden",
+    "footer": "Klasse für Künstliche Intelligenz"
   },
   "toolbar": {
     "pdfParser": "Parser",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "Der Klassenzimmer-Chat benötigt ein Modell, das Tool-Aufrufe unterstützt. Wählen Sie unter Einstellungen → Kursmodell-Konfiguration ein solches Modell für „Klassenzimmer“ aus. Falls diese Einstellung administrativ verwaltet wird, wenden Sie sich an die Administration.",
       "geminiNativeRequired": "Für die Interaktion mit Gemini wird Google nativ benötigt. Fügen Sie Google (Preset google) unter Einstellungen → Modelldienste hinzu und wählen Sie es für „Klassenzimmer“ unter „Kursmodell-Konfiguration“. Bei verwalteter Konfiguration wenden Sie sich an die Administration.",
       "emptyAgentResponses": "Die Agenten haben leere Antworten zurückgegeben; die Diskussion wurde beendet. Versuche es erneut oder prüfe deine Modelleinstellungen.",
-      "streamInterrupted": "Der Stream wurde unerwartet beendet; die Diskussion konnte nicht abgeschlossen werden. Versuche es erneut."
+      "streamInterrupted": "Der Stream wurde unerwartet beendet; die Diskussion konnte nicht abgeschlossen werden. Versuche es erneut.",
+      "rateLimited": "Das Modell erhält gerade zu viele Anfragen. Bitte warte einen Moment und versuche es erneut.",
+      "providerUnavailable": "Der Modelldienst ist vorübergehend nicht verfügbar. Bitte versuche es gleich erneut."
     },
     "elementReference": {
       "whiteboardChanged": "Das referenzierte Whiteboard-Element wurde geändert oder ist nicht mehr verfügbar. Wählen Sie es erneut aus oder entfernen Sie die Referenz vor dem Senden.",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "Spotlight",
       "laser": "Laser",
+      "play_video": "Play",
       "wb_open": "Whiteboard öffnen",
       "wb_draw_text": "Whiteboard-Text",
       "wb_draw_shape": "Whiteboard-Form",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "Whiteboard-Formel",
       "wb_draw_table": "Whiteboard-Tabelle",
       "wb_draw_line": "Whiteboard-Linie",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Whiteboard leeren",
       "wb_delete": "Element löschen",
       "wb_close": "Whiteboard schließen",
@@ -296,6 +307,17 @@
       "result": "Abgeschlossen",
       "error": "Fehler"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Bereit, gemeinsam zu lernen?",
@@ -506,7 +528,16 @@
       "sendBackward": "Eine Ebene nach hinten",
       "alignTop": "Oben ausrichten",
       "alignMiddle": "Mittig ausrichten",
-      "alignBottom": "Unten ausrichten"
+      "alignBottom": "Unten ausrichten",
+      "alignCenterBoth": "Beide Achsen zentrieren",
+      "setLink": "Link festlegen",
+      "ruler": "Lineal",
+      "grid": "Raster",
+      "gridNone": "Keine",
+      "gridSmall": "Klein",
+      "gridMedium": "Mittel",
+      "gridLarge": "Groß",
+      "resetPage": "Seite zurücksetzen"
     },
     "background": {
       "label": "Hintergrund",
@@ -747,6 +778,12 @@
     "dock": {
       "elementRefHint": "Elementverweise – Elemente für die nächste Nachricht auswählen",
       "globalTools": "Globale Werkzeuge"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -808,7 +845,11 @@
     "aiGrading": "Die KI wertet aus...",
     "aiGradingWait": "Bitte warten, deine Antworten werden ausgewertet",
     "quizReport": "Quizbericht",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "explainOnWhiteboard": "An der Tafel erklären",
+    "explainAllOnWhiteboard": "Meine Fehler an der Tafel durchgehen",
+    "explainAllCta": "Schritt für Schritt erklären",
+    "explainHint": "Die KI-Lehrkraft öffnet die Tafel und schreibt jeden Denkschritt einzeln auf."
   },
   "roundtable": {
     "teacher": "LEHRKRAFT",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "Feedback zur Einreichung",
         "strengths": "Das lief gut",
-        "improvements": "Nächste Schritte"
+        "improvements": "Nächste Schritte",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "Die in der Vorbereitung vorgestellte Ausgangslage — hier gespeichert, damit du sie in der Szene jederzeit nachlesen kannst.",
@@ -1102,6 +1145,8 @@
     "folderRenameFailed": "Ordner konnte nicht umbenannt werden",
     "folderDeleteFailed": "Ordner konnte nicht gelöscht werden",
     "moveFailed": "Kurs konnte nicht verschoben werden",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "Dieser Ordner ist leer",
     "emptyLibraryHint": "Noch keine Kurse — erstelle oben einen oder importiere einen Kurs.",
     "folderNameEmpty": "Der Ordnername darf nicht leer sein",
@@ -1113,6 +1158,8 @@
     "notFoundDesc": "Dieser Kurs existiert nicht oder wurde gelöscht.",
     "loadUnavailable": "Kurs konnte nicht geladen werden",
     "loadUnavailableDesc": "Der Kurs konnte nicht abgerufen werden. Prüfen Sie Ihren Zugriff oder versuchen Sie es erneut.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Zurück zur Startseite",
     "runOutlining": "Gliederung wird erstellt…",
     "runAwaitingConfirmation": "Wartet auf Bestätigung",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "Du kannst bis zu 5 Dateien als Kursmaterial hochladen",
     "courseMaterialTotalSizeLimit": "Die Gesamtgröße der Kursmaterialien muss unter 150 MB liegen",
     "unsupportedCourseMaterial": "{{parser}} kann diesen Dateityp nicht lesen. Unterstützt: {{formats}}",
+    "courseMaterialSizeLimit": "Dokumente, Präsentationen, Tabellendateien, Bilder und Klartext – bis zu 50 MB (unterstützte Formate hängen vom gewählten Extraktor ab)",
     "unsupportedMaterialFormat": "Dieses Format wird vom aktuellen Extraktor nicht unterstützt. Wechsle den Extraktor oder wähle eine andere Datei.",
     "materialQuotaExceeded": "Dein Materialspeicher ist voll. Lösche einige Materialien und versuche es erneut.",
     "materialUploadFailed": "Hochladen von {{name}} fehlgeschlagen. Bitte versuche es erneut.",
@@ -1353,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "Integrierter Leser"
     },
     "modelCount": "Modelle",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "Agentenpersona als Stimmen-Prompt verwenden",
     "voxcpmUnavailable": "Nicht verfügbar",
     "voxcpmClone": "Klonen",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "Das aktuelle Backend unterstützt das Klonen nicht",
     "voxcpmNoCustomVoices": "Noch keine benutzerdefinierten Stimmen",
     "voxcpmCloneSaveOnly": "Nur für dieses Backend gespeichert",
@@ -1833,7 +1884,11 @@
       "applyTitle": "Empfohlene Einrichtung dieses Plans verwenden?",
       "applyBody": "{{name}} empfiehlt eigene Modelle für diese Schritte. Damit wird ersetzt, was jeder Schritt jetzt verwendet, Serverstandards eingeschlossen:",
       "applyKeep": "Aktuelle Einrichtung behalten",
-      "applyRecommended": "Empfehlung des Plans verwenden"
+      "applyRecommended": "Empfehlung des Plans verwenden",
+      "enable": "Aktivieren",
+      "statusDisabled": "Verbunden (aus)",
+      "enableThisPlan": "Dieses Paket aktivieren",
+      "enableThisPlanHint": "Deaktiviert erscheint dieses Paket nicht mehr in der Kursmodell-Konfiguration."
     },
     "skills": {
       "nav": "Skills",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "Browserintegrierte TTS unterstützt die Audiofunktionen der Editor-Zeitleiste nicht (Vorschau, erneute Generierung und Sammelvertonung). Wechsle zu einem verwalteten TTS-Anbieter, um Audio für einzelne Zeilen zu generieren und zu verwalten.",
     "courseModels": {
-      "nav": "Kursmodell-Konfiguration"
+      "nav": "Kursmodell-Konfiguration",
+      "mainModel": "Hauptmodell",
+      "mainModelHint": "Etappen, die dem Hauptmodell folgen, nutzen dieses Modell; klicke auf eine Karte, um eine Etappe einzeln festzulegen",
+      "mainModelTooltip": "Alle Etappen, die dem Hauptmodell folgen, nutzen dieses Modell. Klicke auf eine Pipeline-Karte, um für diese Etappe ein bestimmtes Modell festzulegen (eine Etappen-Route auf Benutzerebene, unterhalb der serverseitigen MODEL_ROUTES). Feinere Unteretappen findest du im Inspektor der Karte.",
+      "noProviderHint": "Noch kein Sprachmodell konfiguriert — in „Modell-Dienste“ einrichten",
+      "followMainline": "Hauptmodell folgen",
+      "followParent": "Übergeordneter Etappe folgen",
+      "restoreFollow": "Wieder dem Hauptmodell folgen",
+      "stopped": "Deaktiviert",
+      "loop": "Schleife",
+      "parallel": "parallel",
+      "visionSupported": "Bildverständnis verfügbar",
+      "modelSource": "Modellquelle",
+      "mainlineUnset": "Nicht festgelegt",
+      "pickModel": "Modell wählen",
+      "pickProvider": "Dienst wählen",
+      "optionInvalid": "Nicht verfügbar",
+      "subStagesTitle": "Unteretappen",
+      "subStages": {
+        "title": "Titelgenerierung",
+        "slide": "Folien",
+        "quiz": "Quiz",
+        "interactive": "Interaktives Skript",
+        "pbl": "PBL-Szenario"
+      },
+      "servicesAndModels": "Dienst & Modell",
+      "searchService": "Suchdienst",
+      "parseService": "Parsing-Dienst",
+      "asrTranscribe": "Sprachtranskription",
+      "aiIllustration": "KI-Illustrationen",
+      "aiVideo": "KI-Video",
+      "stations": {
+        "docParse": "Dokumentanalyse",
+        "webResearch": "Web-Recherche",
+        "outline": "Gliederungsplanung",
+        "agents": "Agentenprofile",
+        "sceneContent": "Szeneninhalt",
+        "sceneActions": "Szenenaktionen",
+        "tts": "Text-zu-Sprache",
+        "media": "Medienerzeugung",
+        "interaction": "Kursinteraktion",
+        "desc": {
+          "doc-parse": "Hochgeladene Kursmaterialien (Dokumente, Folien, Audio/Video) werden zu Text geparst; Audio und Video werden automatisch transkribiert.",
+          "web-research": "Sucht im Web nach ergänzendem Material gemäß der Kursanforderung; Suchanfragen werden von einem kleinen LLM umformuliert.",
+          "outline": "Versteht Anforderung und Material und erzeugt Kurstitel sowie Gliederungen je Szene (menschlich prüfbar).",
+          "agents": "Erzeugt die Profile der Lehrenden- und Lernenden-Agenten (Persönlichkeit, Avatar, Stimme).",
+          "scene-content": "Erzeugt Folien-, Quiz-, Interaktions- und PBL-Inhalte je Szene — die aufwendigste LLM-Stufe der Pipeline.",
+          "scene-actions": "Vervollständigt Erzähltext und Unterrichtsaktionen je Szene und versorgt Sprachsynthese und Kursablauf.",
+          "tts": "Synthetisiert Erzähltext in Lehr-/Lernstimmen (je Szene, seriell).",
+          "media": "Löst die Bild-/Videoplatzhalter im generierten Inhalt parallel zur Szenen-Schleife auf.",
+          "interaction": "Die Kursklassenlaufzeit nach der Generierung: Multi-Agenten-Chat, PBL-Laufzeit und Quiz-Bewertung."
+        }
+      },
+      "mediaEnableNeedsSetup": "Konfiguriere zuerst einen API-Key in „Modell-Dienste“ oder aktiviere einen Token-Plan."
     },
     "addNewModel": "Neues Modell",
     "addNewModelDescription": "Eine neue Modellkonfiguration hinzufügen",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "Streaming",
       "tools": "Tools",
-      "vision": "Bildverarbeitung"
+      "vision": "Bildverarbeitung",
+      "thinking": "Denken"
     },
     "claudeSearchModel": "Suchmodell",
     "claudeSearchModelHint": "Das Claude-Modell, das Websuchen ausführt und Ergebnisse zusammenfasst.",
@@ -1910,6 +2019,7 @@
     "deleteModel": "Löschen",
     "deleteProvider": "Anbieter löschen",
     "deleteProviderConfirm": "Möchtest du diesen Anbieter wirklich löschen?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Dokument-Parsing",
     "doubaoAccessKey": "Zugriffsschlüssel",
     "doubaoAppId": "App-ID",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "Der Server hat den Import nicht bestätigt."
       }
     },
+    "model": "Modellkonfiguration",
+    "save": "Speichern",
+    "providerTypes": {
+      "openai": "OpenAI-Protokoll",
+      "azure": "Azure OpenAI",
+      "anthropic": "Claude-Protokoll",
+      "google": "Gemini-Protokoll",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "Websuche",
+    "addProvider": "Hinzufügen",
+    "addModel": "Hinzufügen",
+    "fetch": "Abrufen",
+    "contextWindow": "Kontext",
+    "outputWindow": "Ausgabe",
+    "providerNameRequired": "Gib bitte einen Anbieternamen ein",
+    "providerIcon": "URL des Anbieter-Icons",
+    "requiresApiKey": "API-Schlüssel erforderlich",
+    "addCustomTTSProvider": "Benutzerdefinierten TTS-Anbieter hinzufügen",
+    "addCustomASRProvider": "Benutzerdefinierten ASR-Anbieter hinzufügen",
+    "addCustomAudioProviderDescription": "Einen OpenAI-kompatiblen benutzerdefinierten Audioanbieter hinzufügen",
+    "customVoices": "Stimmen",
+    "voiceIdPlaceholder": "Stimmen-ID (z. B. alloy)",
+    "voiceNamePlaceholder": "Anzeigename",
+    "addVoice": "Hinzufügen",
+    "modelNamePlaceholder": "Optional",
+    "defaultModelHint": "In API-Anfragen gesendeter Modellname (z. B. kokoro, tts-1)",
+    "noVoicesAdded": "Noch keine Stimmen hinzugefügt. Füge unten Stimmen für die Auswahl pro Agent hinzu.",
+    "noModelsAdded": "Noch keine Modelle hinzugefügt. Füge unten Modelle hinzu, um die Modellauswahl zu aktivieren.",
+    "noModelsWarning": "Füge bitte unten mindestens ein Modell hinzu, bevor du diesen Anbieter verwendest.",
+    "cannotDeleteBuiltIn": "Integrierter Anbieter kann nicht gelöscht werden",
+    "resetSuccess": "Standardkonfiguration erfolgreich wiederhergestellt",
+    "saveSuccess": "Einstellungen gespeichert",
+    "saveFailed": "Einstellungen konnten nicht gespeichert werden. Versuche es erneut.",
+    "modelIdRequired": "Gib bitte eine Modell-ID ein",
+    "modelName": "Anzeigename",
+    "modelCapabilities": "Funktionen",
+    "advancedSettings": "Erweiterte Einstellungen",
+    "contextWindowLabel": "Kontextfenster",
+    "contextWindowPlaceholder": "z. B. 128000",
+    "outputWindowLabel": "Max. Ausgabe-Tokens",
+    "outputWindowPlaceholder": "z. B. 4096",
+    "enterCustomBaseUrl": "Benutzerdefinierte Basis-URL eingeben",
+    "voxcpmBackend": "Backend",
+    "voxcpmBaseUrlPending": "Gib eine Basis-URL ein, um die Anfrage-URL zu erzeugen",
+    "voxcpmAutoVoiceNoPreview": "Die automatische Stimme wird aus dem Agentenkontext erzeugt und kann nicht direkt vorgehört werden",
+    "voxcpmBaseUrlRequired": "Gib zuerst eine VoxCPM-Basis-URL ein",
+    "ttsTestText": "TTS-Testtext",
+    "asrResult": "Erkennungsergebnis",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "Baidu-Suchquellen",
+    "baiduSubSourcesDescription": "Wähle mindestens eine abzufragende Baidu-Quelle aus.",
+    "viewDocs": "API-Dokumentation",
+    "optional": "Optional",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "Diesen Anbieter aktivieren",
+    "enableThisProviderHint": "Ausgeschaltet erscheint dieser Anbieter nicht mehr in der Kursmodell-Konfiguration.",
     "serverConfiguredAddOwn": "Um eigene Zugangsdaten zu verwenden, füge einen separaten Anbieter hinzu.",
     "webFetchSettings": "Webseiten abrufen",
     "webFetchHint": "Wählen Sie, wie Webseiten gelesen werden. Gehostete Dienste erhalten nur öffentliche URLs, die in der Sitzung zugelassen sind. Ergebnisse bleiben nicht vertrauenswürdig; bei Fehlern wird der Dienst nicht gewechselt.",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "Open courses",
     "courseTabClose": "Close tab: {{name}}",
     "courseTabRunning": "Generating",
-    "foldersUnavailable": "Ordner sind in dieser Version nicht verfügbar"
+    "foldersUnavailable": "Ordner sind in dieser Version nicht verfügbar",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Profil",
@@ -2461,12 +2649,8 @@
     "provider": "Anbieter",
     "voice": "Stimme",
     "speed": "Geschwindigkeit",
-    "language": "Sprache"
-  },
-  "accessCode": {
-    "title": "Zugangscode eingeben",
-    "placeholder": "Zugangscode",
-    "error": "Ungültiger Zugangscode. Bitte versuche es erneut."
+    "language": "Sprache",
+    "model": "Modell"
   },
   "proMode": {
     "attach": "Attach material",
@@ -2486,6 +2670,11 @@
     "launchPlaceholder": "Describe the learning experience you want to create",
     "launchSend": "Start build",
     "mentionCourseOrMaterial": "Auf einen Kursraum oder ein Material der Wissensbasis verweisen"
+  },
+  "accessCode": {
+    "title": "Zugangscode eingeben",
+    "placeholder": "Zugangscode",
+    "error": "Ungültiger Zugangscode. Bitte versuche es erneut."
   },
   "workbench": {
     "tool": {

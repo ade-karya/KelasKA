@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
 import { Pipette } from 'lucide-react';
+import { useI18n } from '@/lib/hooks/use-i18n';
 
 // Common slide-text colors — single tight row at the foot of the picker so they
 // stay one-click reachable without dominating the popover.
@@ -54,6 +55,7 @@ export function ColorPicker({
   onCommit,
   className = 'w-[224px]',
 }: ColorPickerProps) {
+  const { t } = useI18n();
   // Local mirror so the picker UI stays responsive while dragging without
   // round-tripping through ProseMirror + store on every tick.
   const [color, setColor] = useState(value);
@@ -117,7 +119,7 @@ export function ColorPicker({
         {EyeDropper && (
           <button
             type="button"
-            aria-label="Sample a color from the screen"
+            aria-label={t('edit.color.sampleFromScreen')}
             onMouseDown={(e) => e.preventDefault()}
             onClick={sampleScreen}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"

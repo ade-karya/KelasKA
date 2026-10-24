@@ -140,7 +140,7 @@ describe('material tool presentation', () => {
       },
     });
     expect(isWorkbenchToolFailed(node)).toBe(false);
-    const presentation = presentTool(node);
+    const presentation = presentTool(node, [], createWorkbenchTranslator('zh-CN'));
     expect(presentation).toMatchObject({ label: '检查材料', hidePayload: true });
     expect(presentation.errorText).toBeUndefined();
   });
@@ -158,7 +158,7 @@ describe('material tool presentation', () => {
     });
     for (const node of [extract, wait]) {
       expect(isWorkbenchToolFailed(node)).toBe(false);
-      const presentation = presentTool(node);
+      const presentation = presentTool(node, [], createWorkbenchTranslator('zh-CN'));
       expect(presentation.errorText).toBeUndefined();
       expect(presentation.chips).toEqual([{ label: '解析失败', tone: 'neutral' }]);
     }
@@ -171,7 +171,9 @@ describe('material tool presentation', () => {
       toolDetails: { materials: [{ materialId: 'mat_x', extraction: { status: 'failed' } }] },
     });
     expect(isWorkbenchToolFailed(node)).toBe(true);
-    expect(presentTool(node).errorText).toBe('检查材料失败');
+    expect(presentTool(node, [], createWorkbenchTranslator('zh-CN')).errorText).toBe(
+      '检查材料失败',
+    );
   });
 });
 
@@ -541,7 +543,11 @@ describe('material library rows', () => {
   });
 
   it('names the knowledge base in Chinese and hides the payload', () => {
-    const zh = presentTool(toolNode({ toolName: 'create_material_folder', toolDetails: {} }));
+    const zh = presentTool(
+      toolNode({ toolName: 'create_material_folder', toolDetails: {} }),
+      [],
+      createWorkbenchTranslator('zh-CN'),
+    );
     expect(zh.label).toBe('新建知识库文件夹');
     expect(zh.hidePayload).toBe(true);
     const refused = presentTool(

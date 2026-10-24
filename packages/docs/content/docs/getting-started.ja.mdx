@@ -7,8 +7,8 @@ OpenMAIC は自分のマシンで動かせる Next.js アプリケーション�
 
 ## 前提条件
 
-- **Node.js** 22.19.0 以上
-- **pnpm** 10.28.0（未インストールの場合は `npm install -g pnpm@10.28.0`）
+- **Node.js** 24.21.0 以上
+- **Bun** 1.3.14 以上（デフォルトのパッケージマネージャー）
 - 少なくとも 1 つの LLM プロバイダーを設定。クラウドのプロバイダーは通常 API key が必要、ローカルの Ollama や Lemonade は API key 不要
 
 ## インストール
@@ -18,7 +18,7 @@ OpenMAIC は自分のマシンで動かせる Next.js アプリケーション�
 ```bash
 git clone https://github.com/THU-MAIC/OpenMAIC.git
 cd OpenMAIC
-pnpm install
+bun install
 ```
 
 インストール中にプロジェクトで使う workspace パッケージがビルドされます。初回は少し時間がかかる場合があります。
@@ -63,7 +63,7 @@ DEFAULT_MODEL=anthropic:claude-sonnet-4-6
 授業は PostgreSQL に保存され、`DATABASE_URL` がないとサーバーは起動を拒否します。まずローカル開発用データベース（Docker 上の独立した PostgreSQL、`127.0.0.1:5432`、このマシン上のすべてのチェックアウトで共有。別のポートは `OPENMAIC_DB_PORT` で指定）を起動し、`.env.local` に `DATABASE_URL` を設定します：
 
 ```bash
-pnpm db:up
+bun run db:up
 ```
 
 ```bash title=".env.local"
@@ -73,7 +73,7 @@ DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
 開発サーバーを起動します。
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 [http://localhost:3000](http://localhost:3000) を開くと OpenMAIC の授業生成ツールが表示されます。トピックを入力するか学習資料をアップロードし、「生成」をクリックすると、AI 教師が完全なマルチシーン授業を構築します。対応する資料形式は選択したパーサーに依存し、通常は PDF、Office 文書、Markdown／プレーンテキスト、画像、一部の音声・動画を含みます。
@@ -94,8 +94,8 @@ pnpm dev
 ## 本番ビルド
 
 ```bash
-pnpm build
-DATABASE_URL=postgres://... pnpm start
+bun run build
+DATABASE_URL=postgres://... bun run start
 ```
 
 または Docker や自分のサーバーにデプロイできます。詳しくは[デプロイガイド](./deployment.mdx)を参照してください。

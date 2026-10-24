@@ -23,6 +23,10 @@ import {
 import { generateWithGrokVideo, testGrokVideoConnectivity } from './adapters/grok-video-adapter';
 import { generateWithHappyHorse, testHappyHorseConnectivity } from './adapters/happyhorse-adapter';
 import {
+  generateWithHuggingFaceWanVideo,
+  testHuggingFaceWanVideoConnectivity,
+} from './adapters/huggingface-wan-video-adapter';
+import {
   generateWithOpenRouterVideo,
   testOpenRouterVideoConnectivity,
 } from './adapters/openrouter-video-adapter';
@@ -131,6 +135,31 @@ export const VIDEO_PROVIDERS: Record<VideoProviderId, VideoProviderConfig> = {
     supportedResolutions: ['480p', '720p', '1080p'],
     maxDuration: 10,
   },
+  'huggingface-video': {
+    id: 'huggingface-video',
+    name: 'Hugging Face Video Gen',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://zerogpu-aoti-wan2-2-fp8da-aoti-faster.hf.space',
+    icon: '/logos/huggingface-c167703f.svg',
+    // Image-to-video animation (Wan 2.2 14B I2V, zerogpu-aoti/wan2-2-fp8da-aoti-faster
+    // Space, FP8 + Lightning LoRA, 4-8 steps): the source image comes from
+    // `options.sourceImageUrl` — typically a just-generated image — and the
+    // animation follows `options.prompt`, with duration/steps/guidance tunable
+    // via the generation options. Generation needs a user access token
+    // (hf_...) — the Settings panel's "Login with Hugging Face" entry point
+    // walks the user through that.
+    models: [
+      {
+        id: 'zerogpu-aoti/wan2-2-fp8da-aoti-faster',
+        name: 'Wan 2.2 14B I2V FP8 (Lightning LoRA)',
+      },
+    ],
+    supportedAspectRatios: ['16:9', '4:3', '1:1', '9:16'],
+    // Image-to-video: orchestrators generate the source still from the prompt
+    // first (the "video based on the generated image" flow) when the request
+    // carries no sourceImageUrl of its own.
+    requiresSourceImage: true,
+  },
 };
 
 export async function testVideoConnectivity(
@@ -149,6 +178,8 @@ export async function testVideoConnectivity(
       return testHappyHorseConnectivity(config);
     case 'openrouter-video':
       return testOpenRouterVideoConnectivity(config);
+    case 'huggingface-video':
+      return testHuggingFaceWanVideoConnectivity(config);
     default:
       return {
         success: false,
@@ -238,6 +269,8 @@ export async function generateVideo(
       return generateWithHappyHorse(config, options, control);
     case 'openrouter-video':
       return generateWithOpenRouterVideo(config, options, control);
+    case 'huggingface-video':
+      return generateWithHuggingFaceWanVideo(config, options, control);
     default:
       throw new Error(`Unsupported video provider: ${config.providerId}`);
   }

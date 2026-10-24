@@ -96,6 +96,7 @@ describe('Atlas Cloud provider', () => {
       defaultBaseUrl: 'https://api.atlascloud.ai/v1',
       supportsModelDiscovery: true,
       requiresApiKey: true,
+      icon: '/logos/atlascloud.svg',
     });
   });
 

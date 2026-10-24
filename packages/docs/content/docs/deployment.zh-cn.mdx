@@ -1,12 +1,12 @@
 ---
 title: 部署
-description: 用 Docker 部署 OpenMAIC，或在你自己的主机上用 pnpm start 运行。
+description: 用 Docker 部署 OpenMAIC，或在你自己的主机上用 bun run start 运行。
 ---
 
 OpenMAIC 是一个 Next.js 应用，需要一个常驻的 Node.js 进程和 PostgreSQL。课程生成在服务端进行：每次生成都作为记录保存在数据库中，由服务进程内的 worker 执行；浏览器离开页面后生成仍会继续，进程退出后由另一个进程（或重启后的同一进程）从最近完成的步骤接手。支持两种部署方式：
 
 - **Docker Compose**（推荐）：应用和 PostgreSQL 两个容器。
-- **Docker 镜像或 `pnpm start`**，搭配你自己运行的 PostgreSQL。
+- **Docker 镜像或 `bun run start`**，搭配你自己运行的 PostgreSQL。
 
 从 1.2.0 起不再支持 Vercel 等 Serverless 平台：随请求结束的函数无法运行一次生成。见下文「Vercel（1.1.x 及以前）」。
 
@@ -63,21 +63,21 @@ Docker 容器中的 `localhost` 指向容器自身。若 Ollama、Lemonade、Vox
 
 ## 自建虚拟机
 
-主机需要 Node.js `22.19.0` 或更高版本，以及 pnpm `10.28.0`。用 `pnpm` 构建并启动：
+主机需要 Bun `1.3.14` 或更高版本（默认），或 Node.js `24.21.0` 或更高版本并使用旧版 pnpm 工具链。用 Bun 构建并启动：
 
 ```bash
-pnpm install
-pnpm build
-DATABASE_URL=postgres://user:password@db-host:5432/openmaic pnpm start      # 默认监听 3000 端口
+bun install
+bun run build
+DATABASE_URL=postgres://user:password@db-host:5432/openmaic bun run start      # 默认监听 3000 端口
 ```
 
 请用进程管理器（systemd、pm2 或容器）保持服务运行并在退出后自动重启，前面套 nginx 或 Caddy 做 TLS 终止。课程和生成的课程媒体保存在 PostgreSQL（或 S3）中，因此多个实例可以共用同一个数据库，前提是它们同时共用数据目录和相同的 `OPENMAIC_SECRET_KEY`（见下文）。
 
-`pnpm start` 运行的是 `next start`，它会警告说自己不适用于 `output: standalone` 配置。这个警告可以忽略：`next start` 会从 `.next` 提供完整的构建产物。Docker 镜像运行的是 standalone 服务器（`node server.js`），但该服务器会把工作目录切换到它自己所在的目录，所以在虚拟机上请继续使用 `pnpm start`，它会从启动目录读取 `data/` 和 `openmaic.yml`。
+`bun run start` 运行的是 `next start`，它会警告说自己不适用于 `output: standalone` 配置。这个警告可以忽略：`next start` 会从 `.next` 提供完整的构建产物。Docker 镜像运行的是 standalone 服务器（`node server.js`），但该服务器会把工作目录切换到它自己所在的目录，所以在虚拟机上请继续使用 `bun run start`，它会从启动目录读取 `data/` 和 `openmaic.yml`。
 
 ## 必需配置
 
-| 配置 | Docker Compose | Docker 镜像或 `pnpm start` |
+| 配置 | Docker Compose | Docker 镜像或 `bun run start` |
 | --- | --- | --- |
 | `DATABASE_URL` | 已指向自带的 PostgreSQL | 必填；没有它服务会在启动时退出 |
 | 身份模式 | 单用户（`docker-compose.defaults.env` 中的 `OWNER_SINGLE_USER=true`） | 不设置时，每个浏览器是一个匿名所有者 |
@@ -113,7 +113,7 @@ DATABASE_URL=postgres://user:password@db-host:5432/openmaic pnpm start      # �
 
 OpenMAIC 把课程、对话历史、学习进度和生成的媒体保存在 PostgreSQL 中，**必须提供 `DATABASE_URL`**：没有它服务会输出 `[boot] Invalid server configuration; the server will not start: DATABASE_URL is not set. ...` 及修复方法，并以退出码 `1` 退出。持久化 HTTP API 内嵌在 OpenMAIC 中，不需要额外的 persistence 服务。
 
-`docker compose up` 会在应用旁启动 PostgreSQL 并为其设置 `DATABASE_URL`。本地开发时，`pnpm db:up` 以同一服务定义启动一个独立的开发数据库（单独的 Compose 项目和数据卷 `openmaic-dev-db`，本机所有检出共用，不会影响该栈的数据库），并发布到 `127.0.0.1`（端口 `OPENMAIC_DB_PORT`，默认 `5432`）；`pnpm db:down` 可将其停止。然后在 `.env.local` 中设置连接：
+`docker compose up` 会在应用旁启动 PostgreSQL 并为其设置 `DATABASE_URL`。本地开发时，`bun run db:up` 以同一服务定义启动一个独立的开发数据库（单独的 Compose 项目和数据卷 `openmaic-dev-db`，本机所有检出共用，不会影响该栈的数据库），并发布到 `127.0.0.1`（端口 `OPENMAIC_DB_PORT`，默认 `5432`）；`bun run db:down` 可将其停止。然后在 `.env.local` 中设置连接：
 
 ```bash
 DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
@@ -132,7 +132,7 @@ PostgreSQL 数据保存在 `openmaic-postgres` volume 中。`PERSISTENCE_POSTGRE
 | 部署方式 | 操作 |
 | --- | --- |
 | `docker compose` | 拉取新版本，运行 `docker compose up --build`。把模型设置迁到 `openmaic.yml` 或 **设置 → 模型**（没有 `openmaic.yml` 时，服务商环境变量仍然有效），并把 `MODEL_ROUTES` 改写为槽位：设置了它却没有 `openmaic.yml` 的服务会拒绝启动。在每个存有本地课程的浏览器中打开一次应用，完成导入。 如果 `.env.local` 设置了 `PERSISTENCE_SHARED_OWNER_ID`，还要设置 `OWNER_SINGLE_USER=false`：Compose 现在默认以单用户模式启动。此前的服务端部署中属于匿名所有者的课程不会自动合并给单用户，需要在创建它们的每个浏览器中用 `POST /api/identity/claim` 认领（打开浏览器只会导入它在本地保存的数据）。 |
-| `pnpm start` + 自己的 PostgreSQL | 停止服务，拉取新版本，运行 `pnpm install` 和 `pnpm build`，然后在同一个工作目录里用 `pnpm start` 重新启动，这样会保留 `data/`。设置 `DATABASE_URL`、身份模式；多个实例共用数据库时设置 `OPENMAIC_SECRET_KEY`，并且多个实例还需要共用同一个数据目录（见[必需配置](#必需配置)）。模型设置、`MODEL_ROUTES` 和浏览器中的课程同上一行。 |
+| `bun run start` + 自己的 PostgreSQL | 停止服务，拉取新版本，运行 `bun install` 和 `bun run build`，然后在同一个工作目录里用 `bun run start` 重新启动，这样会保留 `data/`。设置 `DATABASE_URL`、身份模式；多个实例共用数据库时设置 `OPENMAIC_SECRET_KEY`，并且多个实例还需要共用同一个数据目录（见[必需配置](#必需配置)）。模型设置、`MODEL_ROUTES` 和浏览器中的课程同上一行。 |
 | Vercel | 留在 1.1.x，或迁移到使用同一数据库的常驻主机（见下文）。 |
 | Skill / API | 按更新后的 `openmaic` skill 操作：以同一所有者上传资料、提交并轮询。 |
 

@@ -24,9 +24,9 @@ To avoid duplicate effort, please **comment on an issue** to claim it before you
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) >= 22.19.0
-- [pnpm](https://pnpm.io/) (latest)
-- [Docker](https://docs.docker.com/get-docker/) for the local PostgreSQL database (`pnpm db:up`), or any PostgreSQL 16 you can point `DATABASE_URL` at
+- [Bun](https://bun.sh/) >= 1.3.14 (default package manager)
+- [Node.js](https://nodejs.org/) >= 24.21 (for tools that still require Node)
+- [Docker](https://docs.docker.com/get-docker/) for the local PostgreSQL database (`bun run db:up`), or any PostgreSQL 18 you can point `DATABASE_URL` at
 - A copy of `.env.local` — see [`.env.example`](.env.example) for reference
 
 ## Getting Started
@@ -37,7 +37,7 @@ git clone https://github.com/THU-MAIC/OpenMAIC.git
 cd OpenMAIC
 
 # Install dependencies
-pnpm install
+bun install
 
 # Set up environment variables
 cp .env.example .env.local
@@ -48,18 +48,18 @@ cp .env.example .env.local
 # set OPENMAIC_DB_PORT for another port), then uncomment the local
 # DATABASE_URL line in .env.local:
 #   DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
-pnpm db:up
+bun run db:up
 
 # Start the development server (it refuses to start without DATABASE_URL)
-pnpm dev
+bun run dev
 ```
 
-`pnpm db:down` stops the development database and keeps its data. The E2E
-suite (`pnpm test:e2e`) also needs `DATABASE_URL`.
+`bun run db:down` stops the development database and keeps its data. The E2E
+suite (`bun run test:e2e`) also needs `DATABASE_URL`.
 
-`pnpm dev` also builds the standalone HTML player (`lib/standalone-player`,
+`bun run dev` also builds the standalone HTML player (`lib/standalone-player`,
 used by "Export as HTML") once at startup. It is not rebuilt on change: after
-editing the player, run `pnpm build:standalone-player` before exporting again.
+editing the player, run `bun run build:standalone-player` before exporting again.
 
 ## Development Workflow
 
@@ -90,10 +90,10 @@ Run the following checks locally — CI will run them too, but catching issues e
 
 ```bash
 # 1. Format code
-pnpm format
+bun run format
 
 # 2. Lint (with auto-fix)
-pnpm lint --fix
+bun run lint --fix
 
 # 3. TypeScript type checking
 npx tsc --noEmit

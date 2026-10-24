@@ -1506,6 +1506,14 @@ async function executeClaimedRun(
             owner = await currentOwnerOf(run.ownerId);
           },
           stageId: agents().stage.id,
+          courseScenes: async () => {
+            const course = await loadRunCourse({
+              ownerId: owner,
+              lease,
+              stageId: agents().stage.id,
+            });
+            return course.scenes;
+          },
           outline: outline(),
           items: mediaItems(),
           steps,

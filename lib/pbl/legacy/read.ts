@@ -320,14 +320,20 @@ function detectLegacyLanguage(config: PBLProjectConfig): string {
   return 'en-US';
 }
 
+function isIndonesianLocale(language: string): boolean {
+  return language === 'id-ID' || language.toLowerCase().startsWith('id');
+}
+
 function legacyCompletionCriteria(language: string): string {
-  return language.startsWith('zh')
-    ? '学习者完成该任务，并能解释自己的解决思路。'
-    : 'The learner completes this task and can explain their reasoning.';
+  if (language.startsWith('zh')) return '学习者完成该任务，并能解释自己的解决思路。';
+  if (isIndonesianLocale(language))
+    return 'Peserta menyelesaikan tugas ini dan dapat menjelaskan alur pemikirannya.';
+  return 'The learner completes this task and can explain their reasoning.';
 }
 
 function legacyDebrief(language: string): string {
-  return language.startsWith('zh')
-    ? '总结本任务的关键收获，并准备进入下一步。'
-    : 'Summarize the key takeaways from this task and prepare for the next step.';
+  if (language.startsWith('zh')) return '总结本任务的关键收获，并准备进入下一步。';
+  if (isIndonesianLocale(language))
+    return 'Rangkum poin-poin penting dari tugas ini dan bersiaplah untuk melangkah ke tahap berikutnya.';
+  return 'Summarize the key takeaways from this task and prepare for the next step.';
 }

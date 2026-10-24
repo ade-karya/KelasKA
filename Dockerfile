@@ -1,7 +1,11 @@
 # syntax=docker/dockerfile:1
 
+# Bun provides the dependency install for the build stages. The application
+# itself still runs on Node in the runner stage.
+FROM oven/bun:1.4.4-alpine AS bun
+
 # ---- Stage 1: Base ----
-FROM node:22-alpine AS base
+FROM node:24-alpine AS base
 
 ARG ALPINE_MIRROR=""
 ARG NPM_REGISTRY=""
@@ -9,17 +13,11 @@ ARG NPM_REGISTRY=""
 RUN if [ -n "$ALPINE_MIRROR" ]; then \
       sed -i "s|dl-cdn.alpinelinux.org|$ALPINE_MIRROR|g" /etc/apk/repositories; \
     fi && \
-    apk add --no-cache libc6-compat
+    apk add --no-cache libc6-compat libstdc++
 
-RUN npm_registry="$NPM_REGISTRY"; \
-    while [ "${npm_registry%/}" != "$npm_registry" ]; do \
-      npm_registry="${npm_registry%/}"; \
-    done; \
-    if [ -n "$npm_registry" ]; then \
-      export COREPACK_NPM_REGISTRY="$npm_registry"; \
-    fi && \
-    corepack enable && \
-    corepack prepare pnpm@10.28.0 --activate
+# The official Bun alpine image is musl-based, like node:24-alpine.
+COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun
+RUN bun --version
 
 WORKDIR /app
 
@@ -31,19 +29,18 @@ ARG NPM_REGISTRY
 # Native build tools for sharp, @napi-rs/canvas
 RUN apk add --no-cache python3 build-base g++ cairo-dev pango-dev jpeg-dev giflib-dev librsvg-dev
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json bun.lock ./
 COPY packages/ ./packages/
 COPY scripts/ ./scripts/
 
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
     npm_registry="$NPM_REGISTRY"; \
     while [ "${npm_registry%/}" != "$npm_registry" ]; do \
       npm_registry="${npm_registry%/}"; \
     done; \
-    if [ -n "$npm_registry" ]; then \
-      pnpm config set registry "$npm_registry"; \
-    fi && \
-    pnpm install --frozen-lockfile --ignore-scripts
+    set --; \
+    if [ -n "$npm_registry" ]; then set -- --registry="$npm_registry"; fi; \
+    bun install --frozen-lockfile --ignore-scripts "$@"
 
 # ---- Stage 3: Builder ----
 FROM base AS builder
@@ -76,7 +73,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
 COPY . .
 
-# Build the workspace packages (rollup + tsc) here, not inside `pnpm install`,
+# Build the workspace packages (rollup + tsc) here, not inside `bun install`,
 # so the deps stage only resolves and links dependencies. The importer's
 # rollup + terser pass is the heaviest step (see #1526). This is the same chain
 # the root `postinstall` runs locally, so local dev is unchanged.
@@ -84,12 +81,12 @@ COPY . .
 # derived from the container's memory limit; with it, this step completes under
 # a 1 GiB container limit. It bounds the JS heap only, not the step's total
 # memory, so it does not by itself prevent a host- or VM-level OOM.
-RUN NODE_OPTIONS=--max-old-space-size=1024 pnpm run build:packages
+RUN NODE_OPTIONS=--max-old-space-size=1024 bun run build:packages
 
-RUN pnpm build
+RUN bun run build
 
 # ---- Stage 4: Runner ----
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 
 ARG ALPINE_MIRROR=""
 

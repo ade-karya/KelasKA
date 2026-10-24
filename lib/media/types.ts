@@ -79,6 +79,7 @@ export type ImageProviderId =
   | 'glm-image'
   | 'comfyui-image'
   | 'openrouter-image'
+  | 'huggingface-image'
   | 'lemonade';
 // Add new image providers below (uncomment and modify):
 // | 'dall-e'
@@ -169,6 +170,18 @@ export interface ImageGenerationOptions {
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
   /** Optional artistic style (must be supported by the chosen provider) */
   style?: string;
+  /**
+   * FLUX.1-dev `/infer` parameters (Hugging Face FLUX provider only; every
+   * other provider ignores them). Defaults mirror the Space's API docs:
+   * seed 0, randomize_seed true, guidance_scale 3.5, num_inference_steps 28.
+   */
+  seed?: number;
+  /** When true (default), the Space randomizes the seed per call. */
+  randomizeSeed?: boolean;
+  /** CFG strength for the FLUX.1-dev `/infer` endpoint. */
+  guidanceScale?: number;
+  /** Denoising steps for the FLUX.1-dev `/infer` endpoint. */
+  numInferenceSteps?: number;
   /** Owning stage, for server-side attribution of a generation call. */
   stageId?: string;
   /** Cancel server-side provider I/O (agent runtime / background callers). */
@@ -218,6 +231,7 @@ export type VideoProviderId =
   | 'minimax-video'
   | 'grok-video'
   | 'openrouter-video'
+  | 'huggingface-video'
   | 'happyhorse';
 // Add new video providers below (uncomment and modify):
 // | 'runway'
@@ -239,6 +253,13 @@ export interface VideoProviderConfig {
   name: string;
   /** Whether the provider requires an API key for authentication */
   requiresApiKey: boolean;
+  /**
+   * Whether the provider animates a source still instead of dreaming motion
+   * from text (image-to-video, e.g. Hugging Face Video Gen). Callers
+   * without a `sourceImageUrl` generate the still first — the "video based
+   * on the generated image" flow — rather than failing.
+   */
+  requiresSourceImage?: boolean;
   /** Default API base URL (can be overridden in user settings) */
   defaultBaseUrl?: string;
   /** Path to provider icon asset */
@@ -297,6 +318,30 @@ export interface VideoGenerationOptions {
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16' | '3:4' | '21:9';
   /** Desired output resolution */
   resolution?: '480p' | '720p' | '1080p';
+  /**
+   * Source image to animate (image-to-video providers such as Hugging Face
+   * Video Gen): an `https:` URL or `data:` URL of a previously generated
+   * image. Text-to-video providers ignore it.
+   */
+  sourceImageUrl?: string;
+  /**
+   * Wan 2.2 `/generate_video` parameters (Hugging Face Wan provider only;
+   * every other provider ignores them). Defaults mirror the Space's
+   * `/gradio_api/info`: steps 6, the Space's default negative prompt, 3.5s
+   * duration, guidance 1/1, seed 42 with randomization on.
+   */
+  /** Denoising steps for the Wan 2.2 `/generate_video` endpoint (1–30). */
+  steps?: number;
+  /** Negative prompt for the Wan 2.2 `/generate_video` endpoint. */
+  negativePrompt?: string;
+  /** Guidance scale, high-noise stage (0–10). */
+  guidanceScale?: number;
+  /** Guidance scale, low-noise stage (0–10). */
+  guidanceScale2?: number;
+  /** Seed for the Wan 2.2 `/generate_video` endpoint. */
+  seed?: number;
+  /** When true (default), the Space randomizes the seed per call. */
+  randomizeSeed?: boolean;
   /** Owning stage, for server-side attribution of a generation call. */
   stageId?: string;
   /** Cancel server-side provider I/O (agent runtime / background callers). */
@@ -343,4 +388,10 @@ export interface MediaGenerationRequest {
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
   /** Optional artistic style hint */
   style?: string;
+  /**
+   * Optional source image for video requests (image-to-video providers):
+   * an `https:` URL or `data:` URL of a previously generated image to
+   * animate. Forwarded to `/api/generate/video` as `sourceImageUrl`.
+   */
+  sourceImageUrl?: string;
 }

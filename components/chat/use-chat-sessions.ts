@@ -346,6 +346,58 @@ export function getPiSingleRequestOutcome(
   return { type: 'completed', directorState: doneData.directorState };
 }
 
+/**
+ * Classify a flattened live-chat failure into a translated message key.
+ *
+ * Provider failures reach the client as plain strings (the SDK `RetryError`
+ * chain is flattened server-side: "Failed after 3 attempts. Last error: Too
+ * Many Requests"). Match the transport wording so learners see an actionable,
+ * translated message instead of `Error: Failed after 3 attempts...`.
+ * Returns null for unknown failures, which keep the raw `Error: ...` text.
+ */
+export function getLiveErrorMessageKey(
+  message: string,
+): 'chat.error.rateLimited' | 'chat.error.providerUnavailable' | null {
+  if (/too many requests|rate[_\s-]?limit|quota|429|try again shortly/i.test(message)) {
+    return 'chat.error.rateLimited';
+  }
+  if (
+    /temporarily unavailable|model provider|overloaded|bad gateway|gateway timeout|50[0234]/i.test(
+      message,
+    )
+  ) {
+    return 'chat.error.providerUnavailable';
+  }
+  return null;
+}
+
+/** Render a live-chat failure: translated when classified, raw `Error: ...` otherwise. */
+export function toLiveErrorMessage(error: unknown, t: (key: string) => string): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  const key = getLiveErrorMessageKey(raw);
+  return key ? t(key) : `Error: ${raw}`;
+}
+
+/**
+ * Transient upstream failures (rate limit, overloaded provider) are expected
+ * under load and already surface a translated retry hint in the chat bubble.
+ * Callers log them as warnings so console-error monitors don't file them as
+ * app bugs; unexpected failures keep error level.
+ */
+export function isTransientLiveError(error: unknown): boolean {
+  const raw = error instanceof Error ? error.message : String(error);
+  return getLiveErrorMessageKey(raw) !== null;
+}
+
+/** Log a live-chat failure at warn level when transient, error level otherwise. */
+function logLiveError(message: string, error: unknown): void {
+  if (isTransientLiveError(error)) {
+    log.warn(message, error);
+  } else {
+    log.error(message, error);
+  }
+}
+
 export async function runPiSingleRequest(
   sessionId: string,
   requestTemplate: ChatRequestTemplate & { storeState: AgentLoopStoreState },
@@ -396,6 +448,10 @@ export async function runPiSingleRequest(
   });
 
   if (!response.ok) {
+    // Read the body once: the server may already carry a friendly upstream
+    // message (e.g. rate-limit / provider-unavailable wording) that the
+    // client classifies into a translated retry hint. Fall back to the
+    // status-coded generic otherwise so 429/5xx still classify.
     const errorBody = await response.json().catch(() => null);
     if (
       reference?.kind === 'whiteboard_element' &&
@@ -403,13 +459,11 @@ export async function runPiSingleRequest(
     ) {
       throw new Error(t('chat.elementReference.whiteboardChanged'));
     }
-    if (response.status === 400 && errorBody?.reason === 'gemini_native_required') {
-      throw new Error(t('chat.error.geminiNativeRequired'));
-    }
-    if (response.status === 400 && errorBody?.reason === 'tool_calling_required') {
-      throw new Error(t('chat.error.toolCallingRequired'));
-    }
-    throw new Error(`Pi chat request failed: ${response.status}`);
+    const serverMessage =
+      typeof errorBody?.error === 'string' && errorBody.error.trim()
+        ? errorBody.error.trim()
+        : null;
+    throw new Error(serverMessage ?? `Pi chat request failed: ${response.status}`);
   }
   if (!response.body) {
     throw new Error('Pi chat response body is empty');
@@ -1094,7 +1148,13 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           },
 
           onError(message: string) {
-            log.error('[Buffer] Stream error:', message);
+            // Transient upstream failures already surface a translated retry
+            // hint in the chat bubble; keep them out of console-error monitors.
+            if (getLiveErrorMessageKey(message) !== null) {
+              log.warn('[Buffer] Stream error (transient upstream):', message);
+            } else {
+              log.error('[Buffer] Stream error:', message);
+            }
           },
 
           onSegmentSealed(
@@ -1621,11 +1681,8 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           log.info('[ChatArea] Resume aborted');
           return;
         }
-        log.error('[ChatArea] Resume error:', error);
-        clearLiveSessionAfterError(
-          sessionId,
-          `Error: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        logLiveError('[ChatArea] Resume error:', error);
+        clearLiveSessionAfterError(sessionId, toLiveErrorMessage(error, t));
       } finally {
         if (abortControllerRef.current === controller) {
           abortControllerRef.current = null;
@@ -1634,7 +1691,7 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
         }
       }
     },
-    [clearLiveSessionAfterError, runAgentLoopFn],
+    [clearLiveSessionAfterError, runAgentLoopFn, t],
   );
 
   /**
@@ -1820,11 +1877,8 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           return;
         }
 
-        log.error('[ChatArea] Error:', error);
-        clearLiveSessionAfterError(
-          sessionId!,
-          `Error: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        logLiveError('[ChatArea] Error:', error);
+        clearLiveSessionAfterError(sessionId!, toLiveErrorMessage(error, t));
       } finally {
         // Only clean up if this is still the active controller (avoid race with interrupt)
         if (abortControllerRef.current === controller) {
@@ -1941,11 +1995,8 @@ export function useChatSessions(options: UseChatSessionsOptions = {}) {
           return;
         }
 
-        log.error('[ChatArea] Discussion error:', error);
-        clearLiveSessionAfterError(
-          sessionId,
-          `Error starting discussion: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        logLiveError('[ChatArea] Discussion error:', error);
+        clearLiveSessionAfterError(sessionId, toLiveErrorMessage(error, t));
       } finally {
         // Only clean up if this is still the active controller (avoid race with interrupt)
         if (abortControllerRef.current === controller) {

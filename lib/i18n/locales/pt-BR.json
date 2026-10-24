@@ -7,11 +7,17 @@
     "errorPrefix": "Erro: ",
     "loadingClassroom": "Carregando sala de aula...",
     "retry": "Tentar novamente",
-    "close": "Fechar"
+    "close": "Fechar",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "Aprendizagem Generativa em Sala de Aula Interativa Multi-Agente",
-    "greetingWithName": "Olá, {{name}}"
+    "greetingWithName": "Olá, {{name}}",
+    "vocationalTestBadge": "Função de teste",
+    "vocationalTestLabel": "Tarefa vocacional",
+    "vocationalTestTooltip": "Enviar um teste de treinamento prático vocacional a partir da caixa de entrada atual",
+    "footer": "Turma de Inteligência Artificial"
   },
   "toolbar": {
     "pdfParser": "Analisador",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "O chat da sala de aula precisa de um modelo com suporte a chamadas de ferramentas. Selecione um para o slot da sala de aula em Configurações → Configuração de modelos do curso, ou entre em contato com o administrador se essa configuração for gerenciada.",
       "geminiNativeRequired": "A interação com Gemini requer Google nativo. Adicione Google (predefinição google) em Configurações → Serviços de modelo e selecione-o para “Sala de aula” em Configuração de modelos do curso. Se a configuração for gerenciada, entre em contato com o administrador.",
       "emptyAgentResponses": "Os agentes retornaram respostas vazias; a discussão foi interrompida. Tente novamente ou verifique as configurações do modelo.",
-      "streamInterrupted": "O fluxo de dados terminou inesperadamente; a discussão não foi concluída. Por favor, tente novamente."
+      "streamInterrupted": "O fluxo de dados terminou inesperadamente; a discussão não foi concluída. Por favor, tente novamente.",
+      "rateLimited": "O modelo está recebendo solicitações demais no momento. Aguarde um instante e tente novamente.",
+      "providerUnavailable": "O serviço do modelo está temporariamente indisponível. Tente novamente em instantes."
     },
     "elementReference": {
       "whiteboardChanged": "O elemento do quadro branco mudou ou não está mais disponível. Selecione-o novamente ou remova a referência antes de enviar.",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "Destaque",
       "laser": "Laser",
+      "play_video": "Play",
       "wb_open": "Abrir Quadro",
       "wb_draw_text": "Texto no Quadro",
       "wb_draw_shape": "Forma no Quadro",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "Fórmula no Quadro",
       "wb_draw_table": "Tabela no Quadro",
       "wb_draw_line": "Linha no Quadro",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Limpar Quadro",
       "wb_delete": "Excluir Elemento",
       "wb_close": "Fechar Quadro",
@@ -296,6 +307,17 @@
       "result": "Concluído",
       "error": "Erro"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Vamos aprender juntos?",
@@ -318,6 +340,22 @@
   "voice": {
     "startListening": "Entrada por voz",
     "stopListening": "Parar gravação"
+  },
+  "stage": {
+    "currentScene": "Cena Atual",
+    "generating": "Gerando...",
+    "paused": "Pausado",
+    "generationFailed": "Falha na geração",
+    "generationInterrupted": "A geração foi interrompida",
+    "confirmSwitchTitle": "Trocar de Cena",
+    "confirmSwitchMessage": "Há um tópico em andamento. Trocar de cena vai encerrá-lo. Tem certeza?",
+    "generatingNextPage": "A cena está sendo gerada, aguarde...",
+    "courseComplete": "Curso concluído",
+    "fullscreen": "Tela cheia",
+    "exitFullscreen": "Sair da tela cheia",
+    "editCourse": "Editar curso",
+    "doneEditing": "Concluir edição",
+    "proModeDisabledHint": "A edição não está disponível nesta página — abra um slide do curso para editar no modo Pro."
   },
   "edit": {
     "proMode": "Pro",
@@ -490,7 +528,16 @@
       "sendBackward": "Enviar para trás",
       "alignTop": "Alinhar acima",
       "alignMiddle": "Alinhar ao meio",
-      "alignBottom": "Alinhar abaixo"
+      "alignBottom": "Alinhar abaixo",
+      "alignCenterBoth": "Centralizar nos dois eixos",
+      "setLink": "Definir link",
+      "ruler": "Régua",
+      "grid": "Grade",
+      "gridNone": "Nenhuma",
+      "gridSmall": "Pequena",
+      "gridMedium": "Média",
+      "gridLarge": "Grande",
+      "resetPage": "Redefinir página"
     },
     "background": {
       "label": "Fundo",
@@ -575,6 +622,12 @@
         "boundary": "For fine-grained edits use the editor; add / delete / reorder slides from the left nav.",
         "comingSoon": "More capabilities coming soon."
       },
+      "interactive": {
+        "emptyTitle": "O que precisa ser corrigido nesta página?",
+        "lead": "Descreva um bug nesta página interativa — por exemplo, um botão que não faz nada — e eu corrijo apenas isso, mantendo o resto.",
+        "placeholder": "Descreva o bug desta página interativa…",
+        "boundary": "Faço correções pontuais na página; não recrio a página inteira. Troque de cena pela navegação à esquerda."
+      },
       "cap": {
         "content": {
           "label": "Regenerate the slide",
@@ -585,8 +638,8 @@
           "examples": "“Make it more conversational”, “Align with my canvas edits”"
         },
         "fixHtml": {
-          "examples": "\"O botão de iniciar não faz nada\", \"Os painéis se sobrepõem no celular\"",
-          "label": "Corrigir um bug na página"
+          "label": "Corrigir um bug na página",
+          "examples": "\"O botão de iniciar não faz nada\", \"Os painéis se sobrepõem no celular\""
         },
         "elements": {
           "label": "Ajustar elementos",
@@ -598,15 +651,9 @@
       "sessionUntitled": "Conversa sem título",
       "sessionDelete": "Excluir",
       "sessionEmpty": "Nenhuma conversa",
+      "thinking": "Pensando…",
       "reasoning": "Raciocínio",
       "thought": "Pensou por",
-      "interactive": {
-        "boundary": "Faço correções pontuais na página; não recrio a página inteira. Troque de cena pela navegação à esquerda.",
-        "emptyTitle": "O que precisa ser corrigido nesta página?",
-        "lead": "Descreva um bug nesta página interativa — por exemplo, um botão que não faz nada — e eu corrijo apenas isso, mantendo o resto.",
-        "placeholder": "Descreva o bug desta página interativa…"
-      },
-      "thinking": "Pensando…",
       "title": "Editar com IA"
     },
     "timeline": {
@@ -685,18 +732,18 @@
       "restored": "Restaurado",
       "resume": "Refazer"
     },
+    "fixHtml": {
+      "title": "Corrigir página interativa",
+      "fixing": "Corrigindo",
+      "fixed": "Corrigido",
+      "notFixed": "Não corrigido",
+      "editsCount": "{{count}} edição(ões)"
+    },
     "readCard": {
       "title": "Read slide content",
       "reading": "Reading",
       "done": "Read",
       "failed": "Not read"
-    },
-    "fixHtml": {
-      "editsCount": "{{count}} edição(ões)",
-      "fixed": "Corrigido",
-      "fixing": "Corrigindo",
-      "notFixed": "Não corrigido",
-      "title": "Corrigir página interativa"
     },
     "editElements": {
       "title": "Editar elementos",
@@ -731,23 +778,13 @@
     "dock": {
       "elementRefHint": "Referências de elementos — escolha elementos para enviar na próxima mensagem",
       "globalTools": "Ferramentas globais"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
-  },
-  "stage": {
-    "currentScene": "Cena Atual",
-    "generating": "Gerando...",
-    "paused": "Pausado",
-    "generationFailed": "Falha na geração",
-    "generationInterrupted": "A geração foi interrompida",
-    "confirmSwitchTitle": "Trocar de Cena",
-    "confirmSwitchMessage": "Há um tópico em andamento. Trocar de cena vai encerrá-lo. Tem certeza?",
-    "generatingNextPage": "A cena está sendo gerada, aguarde...",
-    "courseComplete": "Curso concluído",
-    "fullscreen": "Tela cheia",
-    "exitFullscreen": "Sair da tela cheia",
-    "editCourse": "Editar curso",
-    "doneEditing": "Concluir edição",
-    "proModeDisabledHint": "A edição não está disponível nesta página — abra um slide do curso para editar no modo Pro."
   },
   "classroomComplete": {
     "title": "Curso concluído",
@@ -808,7 +845,11 @@
     "aiGrading": "A IA está corrigindo...",
     "aiGradingWait": "Aguarde, analisando suas respostas",
     "quizReport": "Relatório do Questionário",
-    "retry": "Tentar novamente"
+    "retry": "Tentar novamente",
+    "explainOnWhiteboard": "Explicar no quadro",
+    "explainAllOnWhiteboard": "Revisar meus erros no quadro",
+    "explainAllCta": "Explicar passo a passo",
+    "explainHint": "O professor IA abre o quadro e escreve cada passo do raciocínio um por um."
   },
   "roundtable": {
     "teacher": "PROFESSOR",
@@ -819,10 +860,10 @@
     "noSpeechDetected": "Nenhuma fala detectada, tente novamente",
     "discussionEnded": "Discussão encerrada",
     "qaEnded": "Perguntas e respostas encerradas",
-    "softClosing": "Continuar discussão",
     "thinking": "Pensando",
     "yourTurn": "Sua vez",
     "stopDiscussion": "Encerrar Discussão",
+    "softClosing": "Continuar discussão",
     "autoPlay": "Reprodução automática",
     "autoPlayOff": "Parar reprodução automática",
     "speed": "Velocidade",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "Submission Feedback",
         "strengths": "What went well",
-        "improvements": "Next steps"
+        "improvements": "Next steps",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "A premissa apresentada na preparação fica aqui para você revisitar a qualquer momento na cena.",
@@ -1014,7 +1057,6 @@
         "submissionsInStage": "Submitted {{count}} piece(s) of work",
         "coreConceptGrasp": "Core concept \"{{concept}}\" — {{quality}}",
         "stageNoData": "No recorded output in this stage.",
-        "highlightsTitle": "Highlights",
         "scenario": {
           "summary": "Você concluiu todos os {{acts}} atos deste cenário. Veja como foi o role-play.",
           "whatYouDidWell": "O que você fez bem",
@@ -1038,6 +1080,7 @@
           "decisionScore": "Pontuação de decisão {{score}}",
           "castLabel": "Você interagiu com: {{names}}"
         },
+        "highlightsTitle": "Highlights",
         "highlight": {
           "independence": "You demonstrated {{unlocks}}/{{total}} concepts on your own — no prompting needed. Solid understanding.",
           "resilience": "In \"{{title}}\" you overcame {{errors}} errors, tackling each one — real grit.",
@@ -1102,6 +1145,8 @@
     "folderRenameFailed": "Falha ao renomear a pasta",
     "folderDeleteFailed": "Falha ao excluir a pasta",
     "moveFailed": "Falha ao mover o curso",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "Esta pasta está vazia",
     "emptyLibraryHint": "Nenhum curso ainda — crie um acima ou importe um curso.",
     "folderNameEmpty": "O nome da pasta não pode estar vazio",
@@ -1113,6 +1158,8 @@
     "notFoundDesc": "Este curso não existe ou foi excluído.",
     "loadUnavailable": "Não foi possível carregar este curso",
     "loadUnavailableDesc": "Não foi possível obter o curso. Verifique seu acesso ou tente novamente.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Voltar ao início",
     "runOutlining": "Criando o roteiro…",
     "runAwaitingConfirmation": "Aguardando confirmação",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "Você pode enviar até 5 arquivos de material do curso",
     "courseMaterialTotalSizeLimit": "O tamanho total dos materiais deve ser menor que 150 MB",
     "unsupportedCourseMaterial": "{{parser}} não suporta este tipo de arquivo. Formatos suportados: {{formats}}",
+    "courseMaterialSizeLimit": "Documentos, apresentações, planilhas, imagens e texto — até 50 MB (formatos aceitos dependem do extrator selecionado)",
     "unsupportedMaterialFormat": "O extrator atual não suporta este formato. Troque o extrator ou escolha outro arquivo.",
     "materialQuotaExceeded": "Seu armazenamento de materiais está cheio. Exclua alguns materiais e tente novamente.",
     "materialUploadFailed": "Falha ao enviar {{name}}. Tente novamente.",
@@ -1353,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "Leitor integrado"
     },
     "modelCount": "modelos",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "Usa a persona do agente como prompt de voz",
     "voxcpmUnavailable": "Indisponível",
     "voxcpmClone": "Clonar",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "O backend atual não suporta clonagem",
     "voxcpmNoCustomVoices": "Ainda não há vozes personalizadas",
     "voxcpmCloneSaveOnly": "Salva somente para este backend",
@@ -1833,7 +1884,11 @@
       "applyTitle": "Usar a configuração recomendada deste plano?",
       "applyBody": "{{name}} recomenda seus próprios modelos para estas etapas. Usá-los substitui o que cada uma usa hoje, incluindo os padrões do servidor:",
       "applyKeep": "Manter minha configuração",
-      "applyRecommended": "Usar a configuração recomendada"
+      "applyRecommended": "Usar a configuração recomendada",
+      "enable": "Enable",
+      "statusDisabled": "Conectado (desligado)",
+      "enableThisPlan": "Habilitar este plano",
+      "enableThisPlanHint": "Desativado, este plano não aparece mais na configuração de modelos do curso."
     },
     "skills": {
       "nav": "Skills",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "O TTS nativo do navegador não suporta os recursos de áudio da linha do tempo do editor (pré-visualizar, regenerar e narração em lote). Mude para um provedor de TTS gerenciado para gerar e gerenciar o áudio de cada linha.",
     "courseModels": {
-      "nav": "Configuração de modelos do curso"
+      "nav": "Configuração de modelos do curso",
+      "mainModel": "Modelo principal",
+      "mainModelHint": "As etapas que seguem o modelo principal compartilham este modelo; clique em um cartão para personalizar uma etapa",
+      "mainModelTooltip": "Todas as etapas que seguem o modelo principal usam este modelo. Clique em um cartão do pipeline para fixar um modelo específico para aquela etapa (uma rota de etapa em nível de usuário, abaixo do MODEL_ROUTES do operador). Subetapas mais finas ficam no inspetor do cartão.",
+      "noProviderHint": "Nenhum modelo de linguagem configurado — configure um em Serviços de modelos",
+      "followMainline": "Seguir o principal",
+      "followParent": "Seguir o superior",
+      "restoreFollow": "Restaurar seguimento do principal",
+      "stopped": "Desativado",
+      "loop": "laço",
+      "parallel": "em paralelo",
+      "visionSupported": "Suporta visão",
+      "modelSource": "Origem do modelo",
+      "mainlineUnset": "Não especificado",
+      "pickModel": "Escolher modelo",
+      "pickProvider": "Escolher serviço",
+      "optionInvalid": "Indisponível",
+      "subStagesTitle": "Subetapas",
+      "subStages": {
+        "title": "Geração de título",
+        "slide": "Slides",
+        "quiz": "Quiz",
+        "interactive": "Roteiro interativo",
+        "pbl": "Cenário PBL"
+      },
+      "servicesAndModels": "Serviço e modelo",
+      "searchService": "Serviço de busca",
+      "parseService": "Serviço de análise",
+      "asrTranscribe": "Transcrição de fala",
+      "aiIllustration": "Ilustrações com IA",
+      "aiVideo": "Vídeo com IA",
+      "stations": {
+        "docParse": "Análise de documentos",
+        "webResearch": "Pesquisa na web",
+        "outline": "Planejamento do roteiro",
+        "agents": "Perfis de agentes",
+        "sceneContent": "Conteúdo da cena",
+        "sceneActions": "Ações da cena",
+        "tts": "Síntese de voz",
+        "media": "Geração de mídia",
+        "interaction": "Interação em sala",
+        "desc": {
+          "doc-parse": "Os materiais do curso enviados (documentos, slides, áudio/vídeo) são convertidos em texto; áudio e vídeo são transcritos automaticamente.",
+          "web-research": "Pesquisa na web por material complementar de acordo com a solicitação do curso; as consultas são reescritas por um LLM leve.",
+          "outline": "Entende a solicitação e os materiais para produzir o título do curso e o roteiro por cena (revisável por humanos).",
+          "agents": "Gera os perfis dos agentes professor e aluno (personalidade, avatar e voz).",
+          "scene-content": "Gera slides, quizzes, interações e conteúdo PBL por cena — a etapa LLM mais pesada do fluxo.",
+          "scene-actions": "Completa a narração e as ações didáticas de cada cena para alimentar a síntese de voz e a execução em sala.",
+          "tts": "Sintetiza a narração nas vozes do professor/aluno (por cena, em série).",
+          "media": "Preenche os placeholders de imagem/vídeo do conteúdo gerado, em paralelo com o laço por cena.",
+          "interaction": "O runtime da sala após a geração: chat multiagente, runtime de PBL e correção de quizzes."
+        }
+      },
+      "mediaEnableNeedsSetup": "Configure primeiro uma chave de API em Serviços de modelos ou ative um Token Plan."
     },
     "addNewModel": "Novo Modelo",
     "addNewModelDescription": "Adicionar uma nova configuração de modelo",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "Streaming",
       "tools": "Ferramentas",
-      "vision": "Visão"
+      "vision": "Visão",
+      "thinking": "Raciocínio"
     },
     "claudeSearchModel": "Modelo de busca",
     "claudeSearchModelHint": "O modelo Claude que realiza as buscas na web e resume os resultados.",
@@ -1910,6 +2019,7 @@
     "deleteModel": "Excluir",
     "deleteProvider": "Excluir Provedor",
     "deleteProviderConfirm": "Tem certeza que deseja excluir este provedor?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Análise de Documentos",
     "doubaoAccessKey": "Access Key",
     "doubaoAppId": "App ID",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "O servidor não confirmou a importação."
       }
     },
+    "model": "Configuração do Modelo",
+    "save": "Salvar",
+    "providerTypes": {
+      "openai": "Protocolo OpenAI",
+      "azure": "Azure OpenAI",
+      "anthropic": "Protocolo Claude",
+      "google": "Protocolo Gemini",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "Busca na Web",
+    "addProvider": "Adicionar",
+    "addModel": "Adicionar",
+    "fetch": "Buscar",
+    "contextWindow": "Contexto",
+    "outputWindow": "Saída",
+    "providerNameRequired": "Digite o nome do provedor",
+    "providerIcon": "URL do Ícone do Provedor",
+    "requiresApiKey": "Requer Chave de API",
+    "addCustomTTSProvider": "Adicionar Provedor TTS Personalizado",
+    "addCustomASRProvider": "Adicionar Provedor ASR Personalizado",
+    "addCustomAudioProviderDescription": "Adicione um provedor de áudio personalizado compatível com OpenAI",
+    "customVoices": "Vozes",
+    "voiceIdPlaceholder": "ID da Voz (ex.: alloy)",
+    "voiceNamePlaceholder": "Nome de Exibição",
+    "addVoice": "Adicionar",
+    "modelNamePlaceholder": "Opcional",
+    "defaultModelHint": "Nome do modelo enviado nas requisições à API (ex.: kokoro, tts-1)",
+    "noVoicesAdded": "Nenhuma voz adicionada ainda. Adicione vozes abaixo para seleção por agente.",
+    "noModelsAdded": "Nenhum modelo adicionado ainda. Adicione modelos abaixo para habilitar a seleção.",
+    "noModelsWarning": "Adicione pelo menos um modelo abaixo antes de usar este provedor.",
+    "cannotDeleteBuiltIn": "Não é possível excluir provedor nativo",
+    "resetSuccess": "Restauração para padrão bem-sucedida",
+    "saveSuccess": "Configurações salvas",
+    "saveFailed": "Falha ao salvar configurações, tente novamente",
+    "modelIdRequired": "Digite o ID do modelo",
+    "modelName": "Nome de Exibição",
+    "modelCapabilities": "Capacidades",
+    "advancedSettings": "Configurações Avançadas",
+    "contextWindowLabel": "Janela de Contexto",
+    "contextWindowPlaceholder": "ex.: 128000",
+    "outputWindowLabel": "Tokens Máx. de Saída",
+    "outputWindowPlaceholder": "ex.: 4096",
+    "enterCustomBaseUrl": "Digite uma URL base personalizada",
+    "voxcpmBackend": "Backend",
+    "voxcpmBaseUrlPending": "Digite uma URL base para gerar a URL da requisição",
+    "voxcpmAutoVoiceNoPreview": "A Voz Automática é gerada a partir do contexto do agente e não pode ser pré-visualizada diretamente",
+    "voxcpmBaseUrlRequired": "Digite uma URL base do VoxCPM primeiro",
+    "ttsTestText": "Texto de Teste TTS",
+    "asrResult": "Resultado do Reconhecimento",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "Fontes do Baidu",
+    "baiduSubSourcesDescription": "Escolha pelo menos uma fonte do Baidu para consultar.",
+    "viewDocs": "Documentação da API",
+    "optional": "Opcional",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "Habilitar este provedor",
+    "enableThisProviderHint": "Desativado, este provedor não aparece mais na configuração de modelos do curso.",
     "serverConfiguredAddOwn": "Para usar suas próprias credenciais, adicione um provedor separado.",
     "webFetchSettings": "Buscar páginas web",
     "webFetchHint": "Escolha como ler as páginas web. Os serviços hospedados recebem URLs públicas autorizadas na sessão. Os resultados continuam sendo dados não confiáveis, e falhas não mudam o leitor.",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "Cursos abertos",
     "courseTabClose": "Fechar aba: {{name}}",
     "courseTabRunning": "Gerando",
-    "foldersUnavailable": "As pastas não estão disponíveis nesta versão"
+    "foldersUnavailable": "As pastas não estão disponíveis nesta versão",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Perfil",
@@ -2461,12 +2649,8 @@
     "provider": "Provedor",
     "voice": "Voz",
     "speed": "Velocidade",
-    "language": "Idioma"
-  },
-  "accessCode": {
-    "title": "Digite o Código de Acesso",
-    "placeholder": "Código de acesso",
-    "error": "Código inválido. Tente novamente."
+    "language": "Idioma",
+    "model": "Modelo"
   },
   "proMode": {
     "attach": "Anexar material",
@@ -2486,6 +2670,11 @@
     "launchPlaceholder": "Descreva a experiência de aprendizagem que você quer criar",
     "launchSend": "Iniciar construção",
     "mentionCourseOrMaterial": "Mencionar uma sala ou um material da base de conhecimento"
+  },
+  "accessCode": {
+    "title": "Digite o Código de Acesso",
+    "placeholder": "Código de acesso",
+    "error": "Código inválido. Tente novamente."
   },
   "workbench": {
     "tool": {

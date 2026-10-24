@@ -88,17 +88,17 @@ https://github.com/user-attachments/assets/8f3f1e5f-1468-4e93-8054-afeeea683a61
 
 ### Prerequisites
 
-- **Node.js** >= 22.19
-- **pnpm** >= 10
-- **PostgreSQL** 16 — courses are stored on the server. For local development
-  `pnpm db:up` starts one in Docker for you.
+- **Bun** >= 1.3.14 (default package manager and runtime used by `install.sh`; pinned by `packageManager` in `package.json`)
+- **Node.js** >= 24.21 only for the legacy Node/pnpm toolchain (the Bun installer does not install it)
+- **PostgreSQL** 18 — courses are stored on the server. For local development
+  `bun run db:up` starts one in Docker for you.
 
 ### 1. Clone & Install
 
 ```bash
 git clone https://github.com/THU-MAIC/OpenMAIC.git
 cd OpenMAIC
-pnpm install
+bun install
 ```
 
 ### 2. Configure
@@ -213,7 +213,7 @@ Bedrock uses AWS environment credentials or the AWS SDK credential provider chai
 ### 3. Start the database
 
 ```bash
-pnpm db:up
+bun run db:up
 ```
 
 Then uncomment the local `DATABASE_URL` line in `.env.local`:
@@ -222,12 +222,12 @@ Then uncomment the local `DATABASE_URL` line in `.env.local`:
 DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
 ```
 
-`pnpm db:up` starts a development PostgreSQL on `127.0.0.1:5432` (set `OPENMAIC_DB_PORT` for another port). It is its own Compose project, `openmaic-dev-db`, shared by every checkout on this machine, with its own container and volume, so it never touches the database of a `docker compose up` stack. `pnpm db:down` stops it and keeps the data. Any other PostgreSQL works too.
+`bun run db:up` starts a development PostgreSQL on `127.0.0.1:5432` (set `OPENMAIC_DB_PORT` for another port). It is its own Compose project, `openmaic-dev-db`, shared by every checkout on this machine, with its own container and volume, so it never touches the database of a `docker compose up` stack. `bun run db:down` stops it and keeps the data. Any other PostgreSQL works too.
 
 ### 4. Run
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 Open **http://localhost:3000** and start learning! Without a `DATABASE_URL` the
@@ -237,12 +237,14 @@ server refuses to start and tells you how to provide one (see
 ### 5. Build for Production
 
 ```bash
-pnpm build && DATABASE_URL=postgres://... pnpm start
+bun run build && DATABASE_URL=postgres://... bun run start
 ```
 
 Keep the server running as a long-running process (a process manager or a
 container): course generation runs inside it and continues after the browser
-leaves the page. See the
+leaves the page. Without Docker, run the standalone build under PM2:
+`pm2 startOrReload ecosystem.config.cjs && pm2 save` (see
+[Server install](#server-install-installsh)). See the
 [Deployment guide](packages/docs/content/docs/deployment.mdx) for the required
 configuration and for upgrading from 1.1.x.
 
@@ -303,19 +305,124 @@ docker build \
 ```
 
 These arguments do not accelerate Docker Hub pulls, including the Dockerfile
-frontend and the `node:22-alpine` base image. Configure a Docker daemon registry
-mirror separately if those pulls are slow. The pnpm store cache is reused by the
+frontend and the `node:24-alpine` base image. Configure a Docker daemon registry
+mirror separately if those pulls are slow. The Bun install cache is reused by the
 same BuildKit builder across builds, subject to normal cache garbage collection;
 the cache only improves performance and is not required for a correct build.
 
 </details>
+
+### Server Install (install.sh)
+
+On Ubuntu/Debian, `install.sh` provisions a full server stack from scratch
+with the Bun runtime: Bun (>= 1.3.14), PostgreSQL 18 when `DATABASE_URL` is
+not already configured, `.env.local` (with a random `ACCESS_CODE` and
+`OPENMAIC_SECRET_KEY`), plus optional PM2 and Playwright. The installer does
+not install Node.js or pnpm; the legacy installer is kept as `install-node.sh`.
+
+```bash
+sudo ./install.sh --yes            # base stack
+sudo ./install.sh --yes --with-pm2 # + production build, served via PM2
+sudo ./install.sh --colab          # Colab preset (= --yes --with-pm2)
+```
+
+The installer is idempotent — re-running it is safe and preserves non-empty
+values in `.env.local`. Other useful flags: `--build` (prove the production
+build), `--with-playwright` (e2e browser), `--with-postgres` / `--no-postgres`,
+`--pg-major=N`, `--pg-password=...`, and `--bun-version=X`. See
+`./install.sh --help` for all options.
+
+Manage the production process with PM2 (the Bun ecosystem file runs the
+Next.js standalone server with Bun):
+
+```bash
+pm2 startOrReload ecosystem.bun.config.cjs --update-env  # start/reload + env
+pm2 save                                                  # persist process list
+pm2 logs kelaska                                          # follow logs
+pm2 reload kelaska                                        # zero-downtime reload
+pm2 stop kelaska                                          # stop
+```
+
+A new `PORT` in `.env.local` only needs
+`pm2 startOrReload ecosystem.bun.config.cjs --update-env` (no rebuild), but
+`NEXT_PUBLIC_*` values are baked in at build time: rebuild
+(`bun --bun run build`), re-sync the standalone assets (see
+`ecosystem.bun.config.cjs`), then run the same command.
+
+#### Google Colab
+
+The `--colab` preset is tuned for Colab's root, systemd-less, non-interactive
+runtimes: it runs non-interactively, builds production, and serves via PM2.
+If `DATABASE_URL` is not set, it also installs a local PostgreSQL instance
+for the session. One cell runs the whole install:
+
+```bash
+%%bash
+cd /content/KelasKA
+./install.sh --colab
+```
+
+Then expose the app to your browser from a Python cell:
+
+```python
+from google.colab import output
+output.serve_kernel_port_as_window(3000)
+```
+
+To keep the Colab runtime from going idle (which would kill the machine), run a
+keep-alive loop that simulates browser interaction. In the notebook, run the
+**Keep Colab Alive (Anti-Idle)** cell (or paste this into a Python cell and leave
+it running):
+
+```python
+from IPython.display import display, Javascript
+import threading, time
+
+display(Javascript("""
+(function() {
+  if (window.__openmaicKeepAlive) return;
+  window.__openmaicKeepAlive = true;
+  function tick() {
+    try {
+      const x = Math.floor(Math.random() * window.innerWidth);
+      const y = Math.floor(Math.random() * window.innerHeight);
+      ['mousemove','mousedown','mouseup','click'].forEach(function(t){
+        document.dispatchEvent(new MouseEvent(t, {bubbles:true, clientX:x, clientY:y}));
+        window.dispatchEvent(new MouseEvent(t, {bubbles:true, clientX:x, clientY:y}));
+      });
+      window.scrollBy(0, 1); window.scrollBy(0, -1);
+      document.querySelectorAll('colab-connect-button, colab-toolbar-button, button[aria-label*="Connect" i], button[aria-label*="Reconnect" i]')
+        .forEach(function(el){ if (el && !el.disabled) try { el.click(); } catch(e){} });
+      fetch('http://localhost:3000/api/health', {mode:'no-cors'}).catch(function(){});
+      console.log('[keep-alive] tick', new Date().toISOString());
+    } catch (e) { console.warn('[keep-alive] err', e); }
+  }
+  tick();
+  setInterval(tick, 30000);
+})();
+"""))
+
+def _heartbeat():
+    while True:
+        print('[keep-alive] kernel heartbeat', time.strftime('%H:%M:%S'), flush=True)
+        time.sleep(120)
+threading.Thread(target=_heartbeat, daemon=True).start()
+```
+
+Notes: a Colab runtime is ephemeral — `data/`, the local database, and
+`.env.local` disappear when it is recycled, so back up `.env.local` and
+`data/` (or use an external `DATABASE_URL`) before closing. Keep the tab open
+during the install (system packages plus the production build typically take
+about 10–15 minutes on a 2-vCPU runtime; re-runs with unchanged sources finish
+in under a minute). This installer does not create
+`openmaic.yml`; configure providers in Settings or copy `openmaic.example.yml`.
 
 ### Vercel Deployment (up to 1.1.x)
 
 Serverless deployment is supported up to OpenMAIC 1.1.x. From 1.2.0, course
 generation runs on the server in a process that outlives requests, so OpenMAIC
 needs a long-running Node.js process with PostgreSQL (the
-[Docker deployment](#docker-deployment) or `pnpm start`); Vercel and other
+[Docker deployment](#docker-deployment) or `bun run start`); Vercel and other
 serverless hosts are not supported, and the repository no longer ships a
 `vercel.json`. To deploy 1.1.x on Vercel:
 
@@ -335,7 +442,7 @@ for every kind of deployment.
 
 OpenMAIC keeps courses on the server. Course documents, folders, chat history, learner sessions and generated media live in PostgreSQL (media optionally in S3), served by the app itself at `/api/persistence`. The browser keeps only what belongs to the device, such as settings, playback position and caches; **Settings → Clear Local Cache** never touches the server.
 
-- **`DATABASE_URL` is required.** Without it the server prints the fix and exits with code `1`. Compose sets it for you; for development, [`pnpm db:up`](#3-start-the-database) starts a database.
+- **`DATABASE_URL` is required.** Without it the server prints the fix and exits with code `1`. Compose sets it for you; for development, [`bun run db:up`](#3-start-the-database) starts a database.
 - **Courses an older build kept in the browser** are imported once per browser, automatically, the first time it opens the upgraded app. The browser copy is left untouched.
 - **Invalid settings stop the server** at startup with a one-line `[boot]` reason instead of a server that answers every request with `500`.
 
@@ -827,7 +934,7 @@ Or, in other agent workbenches such as Codex, DeepSeek, or WorkBuddy, import the
 | Phase | What the skill does |
 |------|-------------|
 | **Clone** | Detect an existing checkout or ask before cloning/installing |
-| **Startup** | Choose between `pnpm dev`, `pnpm build && pnpm start`, or Docker |
+| **Startup** | Choose between `bun run dev`, `bun run build && bun run start`, or Docker |
 | **Provider Keys** | Recommend a provider path; you edit `.env.local` yourself |
 | **Generation** | Submit an async generation job and poll until it completes |
 

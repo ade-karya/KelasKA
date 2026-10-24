@@ -101,8 +101,8 @@ describe('create_skill tool card', () => {
     await act(async () => {});
 
     expect(host.textContent).toContain('已保存 Skill「复盘方法」');
-    expect(host.textContent).toContain('Skill 正文加载失败');
-    expect(host.textContent).not.toContain('Skill 列表加载失败');
+    expect(host.textContent).toContain('Gagal memuat isi lengkap Skill');
+    expect(host.textContent).not.toContain('Gagal memuat daftar Skill');
   });
 
   it('keeps the durable receipt visible while historical content is still loading', async () => {
@@ -123,7 +123,7 @@ describe('create_skill tool card', () => {
     await act(async () => host.querySelector('button')!.click());
 
     expect(host.textContent).toContain('已保存 Skill「慢请求」');
-    expect(host.textContent).toContain('加载中');
+    expect(host.textContent).toContain('Memuat');
   });
 });
 
@@ -166,7 +166,7 @@ describe('tool output renders fenced, as data', () => {
     });
     // The collapsed row shows the labelled form: the source is named as outside
     // the session, and the fetched body is not echoed in the summary.
-    expect(host.textContent).toContain('来源不在本会话内');
+    expect(host.textContent).toContain('Sumber di luar sesi ini');
     expect(host.textContent).not.toContain('fetched body must stay fenced');
   });
 });

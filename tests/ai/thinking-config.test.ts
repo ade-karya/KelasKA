@@ -68,7 +68,7 @@ describe('thinking config metadata', () => {
     });
   });
 
-  it('keeps the curated model catalog current', () => {
+  it('removes deprecated and legacy models from the built-in catalog', () => {
     const openaiModels = getProvider('openai')?.models.map((item) => item.id);
     const glmModels = getProvider('glm')?.models.map((item) => item.id);
     const googleModels = getProvider('google')?.models.map((item) => item.id);
@@ -93,8 +93,9 @@ describe('thinking config metadata', () => {
     expect(googleModels).toContain('gemini-3.1-pro-preview');
     expect(googleModels).not.toContain('gemini-3-pro-preview');
     expect(deepseekModels).toEqual(['deepseek-v4-pro', 'deepseek-flash']);
-    // Pin the vision model's capabilities so a regression to vision: false
-    // (silently dropping document images during generation) fails this test.
+    // Pin the flash model's capabilities (live /v1/models: input text+image)
+    // so a regression to vision: false (silently dropping document images
+    // during generation) fails this test.
     const visionModel = getProvider('deepseek')?.models.find((m) => m.id === 'deepseek-flash');
     expect(visionModel?.capabilities).toMatchObject({
       streaming: true,

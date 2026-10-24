@@ -109,16 +109,17 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
   } = useBrowserTTS({
     rate: ttsSpeed,
     onEnd: () => {
-      if (currentProviderRef.current !== 'browser-native-tts' || !isPlayingRef.current) return;
-      currentItemRef.current = null;
-      currentProviderRef.current = null;
-      isPlayingRef.current = false;
-      segmentDoneCounterRef.current++;
-      onAudioStateChangeRef.current?.(null, 'idle');
-      // Don't advance queue while paused — resume() will kick-start it
-      if (!pausedRef.current) {
-        processQueueRef.current();
+      finishBrowserLineRef.current();
+    },
+    onError: (error) => {
+      // Cancels of our own (cleanup, speak pre-cancel) surface as
+      // 'canceled'/'interrupted' — recover quietly. Anything else is a real
+      // synthesis failure worth one warning; either way the line must release
+      // so narration never stalls with the loader spinning.
+      if (error !== 'canceled' && error !== 'interrupted') {
+        console.warn('[DiscussionTTS] Browser speech failed, advancing:', error);
       }
+      finishBrowserLineRef.current();
     },
   });
   const browserCancelRef = useRef(browserCancel);
@@ -130,6 +131,70 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
   const browserResumeRef = useRef(browserResume);
   browserResumeRef.current = browserResume;
 
+  // Watchdog for a browser utterance that produces neither `end` nor `error`
+  // (Chrome background-tab throttle / long-text freeze). Without it the TTS
+  // hold in StreamBuffer never releases and narration stalls forever.
+  const browserWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ttsSpeedRef = useRef(ttsSpeed);
+  ttsSpeedRef.current = ttsSpeed > 0 ? ttsSpeed : 1;
+
+  const clearBrowserWatchdog = useCallback(() => {
+    if (browserWatchdogRef.current) {
+      clearTimeout(browserWatchdogRef.current);
+      browserWatchdogRef.current = null;
+    }
+  }, []);
+
+  /**
+   * Release one browser-native line: the shared recovery for utterance `end`
+   * AND utterance `error`. Chrome reports a cancelled/interrupted utterance
+   * with `error` (never `end`); without the error path a single failed
+   * utterance leaves isPlaying true forever, the TTS hold never releases,
+   * and discussion narration stalls with the loader spinning. Whiteboard
+   * turns seal many short segments around draw actions, so they hit
+   * speak/cancel cycling (and long explanation utterances) far more often.
+   * Idempotent: a late duplicate event finds isPlaying false and no-ops.
+   */
+  const finishBrowserLine = useCallback(() => {
+    clearBrowserWatchdog();
+    if (currentProviderRef.current !== 'browser-native-tts' || !isPlayingRef.current) return;
+    currentItemRef.current = null;
+    currentProviderRef.current = null;
+    isPlayingRef.current = false;
+    segmentDoneCounterRef.current++;
+    onAudioStateChangeRef.current?.(null, 'idle');
+    // Don't advance queue while paused — resume() will kick-start it
+    if (!pausedRef.current) {
+      processQueueRef.current();
+    }
+  }, [clearBrowserWatchdog]);
+  const finishBrowserLineRef = useRef(finishBrowserLine);
+  finishBrowserLineRef.current = finishBrowserLine;
+
+  /** Bounded wait for one browser utterance; cancels stuck speech instead of holding forever. */
+  const armBrowserWatchdog = useCallback(
+    (text: string) => {
+      clearBrowserWatchdog();
+      const charsPerSecond = 14 * ttsSpeedRef.current;
+      const ms = Math.min(
+        300000,
+        Math.max(30000, (text.length / charsPerSecond) * 1000 * 2.5 + 15000),
+      );
+      browserWatchdogRef.current = setTimeout(() => {
+        browserWatchdogRef.current = null;
+        if (
+          currentProviderRef.current === 'browser-native-tts' &&
+          isPlayingRef.current &&
+          currentItemRef.current
+        ) {
+          browserCancelRef.current();
+          finishBrowserLine();
+        }
+      }, ms);
+    },
+    [clearBrowserWatchdog, finishBrowserLine],
+  );
+
   // Build agent index map for deterministic voice resolution
   const agentIndexMap = useRef<Map<string, number>>(new Map());
   useEffect(() => {
@@ -140,13 +205,22 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
 
   // Browser-native voices (dynamic, client-only) — same source the AgentBar
   // picker uses, so discussion resolution and the picker stay in sync.
+  // Poll briefly: Chrome exposes voices async via voiceschanged.
   const [browserVoices, setBrowserVoices] = useState<SpeechSynthesisVoice[]>([]);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const load = () => setBrowserVoices(window.speechSynthesis.getVoices());
+    const synth = window.speechSynthesis;
+    const load = () => {
+      const voices = synth.getVoices();
+      if (voices.length > 0) setBrowserVoices(voices);
+    };
     load();
-    window.speechSynthesis.addEventListener('voiceschanged', load);
-    return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
+    const timers = [250, 750, 1500].map((ms) => window.setTimeout(load, ms));
+    synth.addEventListener('voiceschanged', load);
+    return () => {
+      timers.forEach((id) => window.clearTimeout(id));
+      synth.removeEventListener('voiceschanged', load);
+    };
   }, []);
 
   const resolveVoiceForAgent = useCallback(
@@ -155,10 +229,12 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
       // server/custom providers + opt-in browser-native. Students resolve against
       // it (fixes the #665 student-silence bug); the teacher uses the global
       // lecture voice (below).
+      const browserSupported = typeof window !== 'undefined' && !!window.speechSynthesis;
       const providers = getSelectableProvidersWithVoices(
         ttsProvidersConfig,
         voiceProfiles,
         browserVoices,
+        browserSupported,
       );
       const firstVoice = (): ResolvedVoice | null =>
         providers.length > 0
@@ -317,6 +393,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
       currentProviderRef.current = item.providerId;
       onAudioStateChangeRef.current?.(item.agentId, 'playing');
       browserSpeakRef.current(item.text, item.voiceId);
+      armBrowserWatchdog(item.text);
       prefetchNextRef.current();
       return;
     }
@@ -427,7 +504,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
         queueMicrotask(() => processQueueRef.current());
       }
     }
-  }, [enabled, t, ttsMuted, generateAudio]);
+  }, [enabled, t, ttsMuted, generateAudio, armBrowserWatchdog]);
 
   processQueueRef.current = processQueue;
 
@@ -491,6 +568,7 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
 
   const cleanup = useCallback(() => {
     pausedRef.current = false;
+    clearBrowserWatchdog();
     currentProviderRef.current = null;
     currentItemRef.current = null;
     finishAudioRef.current = null;
@@ -517,12 +595,15 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
   const pause = useCallback(() => {
     if (pausedRef.current) return;
     pausedRef.current = true;
+    // A paused utterance makes no progress: drop its watchdog so it cannot
+    // fire mid-pause; resume() re-arms it.
+    clearBrowserWatchdog();
     if (currentProviderRef.current === 'browser-native-tts') {
       browserPauseRef.current();
     } else if (audioRef.current && !audioRef.current.paused) {
       audioRef.current.pause();
     }
-  }, []);
+  }, [clearBrowserWatchdog]);
 
   /** Resume TTS audio. If the previous utterance already ended while paused, advance the queue. */
   const resume = useCallback(() => {
@@ -530,6 +611,9 @@ export function useDiscussionTTS({ enabled, agents, onAudioStateChange }: Discus
     pausedRef.current = false;
     if (currentProviderRef.current === 'browser-native-tts') {
       browserResumeRef.current();
+      // Re-arm the stuck-speech watchdog for the line that is still playing.
+      const current = currentItemRef.current;
+      if (isPlayingRef.current && current) armBrowserWatchdog(current.text);
     } else if (audioRef.current && audioRef.current.paused) {
       const audio = audioRef.current;
       // Take this line's own finish closure: it carries the line's token, so a

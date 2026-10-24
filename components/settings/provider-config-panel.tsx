@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,6 +67,11 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
   const [fetchStatus, setFetchStatus] = useState<'idle' | 'fetching' | 'success' | 'error'>('idle');
   const [fetchMessage, setFetchMessage] = useState('');
   const [editing, setEditing] = useState<{ index: number | null; id: string } | null>(null);
+  // Fresh human labels from the last probe (`id` → `displayName`), so a
+  // fetched Gemini/OpenRouter model shows its probed name instead of the
+  // catalogue's old one (or a bare id). Replaced on every Gemini/OpenRouter
+  // fetch so stale labels disappear with the models they named.
+  const [fetchedNames, setFetchedNames] = useState<Record<string, string>>({});
 
   const models: CatalogueModel[] = useMemo(
     () => provider?.capabilities.chat?.models ?? entry.preset?.capabilities.chat?.models ?? [],
@@ -83,6 +88,14 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
   );
 
   const saveModels = (ids: string[] | null) => save({ models: ids && ids.length ? ids : null });
+
+  // A different service reuses this panel: its fresh labels must not leak
+  // into the new service's list (the old display goes away on switch).
+  useEffect(() => {
+    setFetchedNames({});
+    setFetchStatus('idle');
+    setFetchMessage('');
+  }, [entry.id]);
 
   const handleTestApi = useCallback(async () => {
     setTestStatus('testing');
@@ -108,7 +121,11 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
   }, [entry.id, models, t]);
 
   // Ask the provider which models it serves (on the server, with its stored
-  // key) and add them to its list.
+  // key) and add them to its list. Gemini and OpenRouter probes return
+  // newest-first (Gemini version desc, OpenRouter `created` desc) with fresh
+  // `displayName`s: the list is replaced by the probe (stale models and their
+  // old labels go away) instead of merged, and the fresh labels are shown
+  // until the server view reloads.
   const handleFetchModels = useCallback(async () => {
     setFetchStatus('fetching');
     setFetchMessage('');
@@ -120,16 +137,47 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        const ids: string[] = (data.models || []).map((m: { id: string }) => m.id);
+        const probed: Array<{ id: string; displayName?: string }> = data.models || [];
+        const ids: string[] = probed.map((m) => m.id).filter(Boolean);
         const current = models.map((model) => model.id);
         const additions = ids.filter((id) => !current.includes(id));
+        const isNewestFirst =
+          entry.registryId === 'google' ||
+          entry.registryId === 'openrouter' ||
+          entry.id === 'google' ||
+          entry.id === 'openrouter';
+        // Fresh labels for this fetch only: ignore a label that merely
+        // repeats the id (the old display).
+        const freshNames: Record<string, string> = {};
+        for (const m of probed) {
+          const label = m.displayName?.trim();
+          if (label && label !== m.id) freshNames[m.id] = label;
+        }
+        // Gemini/OpenRouter: the probe is authoritative — replace the list
+        // (probe order, already newest-first) so models it no longer serves
+        // disappear instead of lingering with their old display. Other
+        // providers keep the merge behaviour (append additions).
+        const nextIds = isNewestFirst ? [...ids] : [...current, ...additions];
+        if (isNewestFirst) {
+          // The old display goes away with the old list: replace, don't merge.
+          setFetchedNames(freshNames);
+        } else if (Object.keys(freshNames).length) {
+          setFetchedNames((prev) => ({ ...prev, ...freshNames }));
+        }
         // Report models as added only once the server saved them; a refused
         // or lost write leaves a failure the user can retry.
-        if (additions.length && !(await saveModels([...current, ...additions]))) {
+        const needsSave = isNewestFirst
+          ? ids.length > 0 &&
+            (nextIds.length !== current.length || nextIds.some((id, i) => id !== current[i]))
+          : additions.length > 0;
+        if (needsSave && !(await saveModels(nextIds))) {
           setFetchStatus('error');
           setFetchMessage(t('settings.serverConfig.fetchNotSaved'));
           return;
         }
+        // An empty Gemini/OpenRouter probe keeps the current list (nothing
+        // authoritative to replace it with); the stale labels are still gone
+        // above so the next successful fetch starts clean.
         setFetchStatus('success');
         setFetchMessage(
           t('settings.fetchModelsResult')
@@ -151,7 +199,7 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
       setFetchMessage(t('settings.fetchModelsFailed'));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry.id, models, t]);
+  }, [entry.id, entry.registryId, models, t]);
 
   const commitBaseUrl = (value: string) => {
     const next = value.trim();
@@ -397,13 +445,24 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
 
         <div className="space-y-1.5">
           {models.map((model, index) => {
+            // Fresh probed label wins over the catalogue's old one (or a bare
+            // id); when it differs from the id, the id stays as a muted
+            // subtitle so the two are never confused.
+            const freshName = fetchedNames[model.id];
+            const label = freshName ?? model.name;
+            const showId = label !== model.id;
             return (
               <div
                 key={model.id}
                 className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card"
               >
-                <div className="flex-1">
-                  <div className="font-mono text-sm font-medium mb-1.5">{model.name}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium mb-0.5 truncate">{label}</div>
+                  {showId && (
+                    <div className="font-mono text-xs text-muted-foreground mb-1.5 truncate">
+                      {model.id}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     {/* Capabilities */}
                     <div className="flex items-center gap-1">
@@ -461,11 +520,18 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
                       variant="outline"
                       size="sm"
                       className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() =>
+                      onClick={() => {
+                        // The label goes away with the model (no orphaned old display).
+                        setFetchedNames((prev) => {
+                          if (!Object.hasOwn(prev, model.id)) return prev;
+                          const next = { ...prev };
+                          delete next[model.id];
+                          return next;
+                        });
                         void saveModels(
                           models.map((entryModel) => entryModel.id).filter((_, i) => i !== index),
-                        )
-                      }
+                        );
+                      }}
                       title={t('settings.deleteModel')}
                       aria-label={`${t('settings.deleteModel')} ${model.id}`}
                     >
@@ -510,6 +576,8 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
             <AlertDialogAction
               onClick={() => {
                 setShowResetDialog(false);
+                // Back to the catalogue: no probed labels remain (old display cleared).
+                setFetchedNames({});
                 void saveModels(null);
               }}
             >

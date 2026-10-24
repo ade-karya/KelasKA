@@ -37,7 +37,7 @@ export interface EvalPromptPair {
 }
 
 function resolveLanguage(project: PBLProjectV2): string {
-  return project.languageDirective || project.language || 'en-US';
+  return project.languageDirective || project.language || 'id-ID';
 }
 
 function laterMicrotasksInMilestone(milestone: PBLMilestone, task: PBLMicrotask): PBLMicrotask[] {

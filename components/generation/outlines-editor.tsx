@@ -1438,6 +1438,7 @@ function Stepper({
   max: number;
   onChange: (next: number) => void;
 }) {
+  const { t } = useI18n();
   const dec = () => onChange(Math.max(min, value - 1));
   const inc = () => onChange(Math.min(max, value + 1));
   return (
@@ -1446,7 +1447,7 @@ function Stepper({
         type="button"
         onClick={dec}
         disabled={value <= min}
-        aria-label="Decrease"
+        aria-label={t('common.decrease')}
         className="flex size-7 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Minus className="size-3.5" />
@@ -1456,7 +1457,7 @@ function Stepper({
         type="button"
         onClick={inc}
         disabled={value >= max}
-        aria-label="Increase"
+        aria-label={t('common.increase')}
         className="flex size-7 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
       >
         <Plus className="size-3.5" />

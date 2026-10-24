@@ -75,6 +75,7 @@ import {
   getSlideElementTypeLabel,
 } from '@/components/canvas/slide-element-pick-overlay';
 import { shouldClearDraftElementReference } from '@/components/chat/element-reference-receipt';
+import { QUIZ_WHITEBOARD_EXPLAIN_EVENT } from '@/lib/quiz/whiteboard-explain';
 
 type DraftElementReference = {
   reference: ElementReference;
@@ -341,6 +342,48 @@ export const PlaybackChromeRoot = forwardRef<PlaybackChromeRootHandle, PlaybackC
       },
       [setDraftElementReference],
     );
+
+    // Quiz whiteboard remediation: QuizView (reviewing) dispatches
+    // `kelaska:quiz-whiteboard-explain` with a ready-to-send chat message.
+    // Forward it into the classroom chat so the teacher explains the wrong
+    // answer(s) step-by-step on the whiteboard. Mirrors the Roundtable
+    // onMessageSend path (interrupt playback when live, else plain send).
+    useEffect(() => {
+      const handler = (event: Event) => {
+        const detail = (event as CustomEvent<{ message?: unknown }>).detail;
+        const message = typeof detail?.message === 'string' ? detail.message.trim() : '';
+        if (!message) return;
+        setIsDiscussionPaused(false);
+        chatAreaRef.current?.resumeActiveLiveBuffer();
+        discussionTTS.cleanup();
+        if (isTopicPending) {
+          setIsTopicPending(false);
+          setLiveSpeech(null);
+          setSpeakingAgentId(null);
+        }
+        setChatIsSoftClosing(false);
+        if (
+          engineRef.current &&
+          (engineMode === 'playing' || engineMode === 'live' || engineMode === 'paused')
+        ) {
+          try {
+            engineRef.current.handleUserInterrupt(message);
+          } catch {
+            void sendMessageWithElementReference(message, undefined);
+          }
+        } else {
+          void sendMessageWithElementReference(message, undefined);
+        }
+        chatAreaRef.current?.switchToTab('chat');
+        setIsCueUser(false);
+        setChatIsStreaming(true);
+        setChatSessionType((prev) => prev || 'qa');
+        setThinkingState({ stage: 'director' });
+      };
+      window.addEventListener(QUIZ_WHITEBOARD_EXPLAIN_EVENT, handler as EventListener);
+      return () =>
+        window.removeEventListener(QUIZ_WHITEBOARD_EXPLAIN_EVENT, handler as EventListener);
+    }, [discussionTTS, engineMode, isTopicPending, sendMessageWithElementReference]);
 
     const updateCurrentPlaybackActionIndex = useCallback((actionIndex: number | null) => {
       currentPlaybackActionIndexRef.current = actionIndex;

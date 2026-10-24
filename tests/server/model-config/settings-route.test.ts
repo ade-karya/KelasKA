@@ -168,6 +168,17 @@ describe('/api/model-config', () => {
     expect(resolved).toMatchObject({ providerId: 'openai', modelId: 'gpt-5.6', apiKey: SECRET });
   });
 
+  it('refuses provider options through PUT: they are the deployment\u2019s (openmaic.yml)', async () => {
+    const response = await put('bob', null, {
+      kind: 'provider',
+      id: 'mine',
+      preset: 'openai',
+      apiKey: SECRET,
+      options: { guidanceScale: 3.5 },
+    });
+    expect(response.status).toBe(400);
+  });
+
   it('keeps each workspace to its own settings', async () => {
     await put('alice', null, { kind: 'slots', set: { image: null } });
     const bob = await (await get('bob')).json();

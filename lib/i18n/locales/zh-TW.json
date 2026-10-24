@@ -7,11 +7,17 @@
     "errorPrefix": "错误：",
     "loadingClassroom": "正在加载课堂...",
     "retry": "重试",
-    "close": "關閉"
+    "close": "關閉",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "多智能體互動課室中的生成式學習",
-    "greetingWithName": "嗨，{{name}}"
+    "greetingWithName": "嗨，{{name}}",
+    "vocationalTestBadge": "測試功能",
+    "vocationalTestLabel": "職教任務",
+    "vocationalTestTooltip": "從目前輸入框提交職教實操訓練測試",
+    "footer": "人工智慧課堂"
   },
   "toolbar": {
     "pdfParser": "解析器",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "課堂聊天需要支援工具呼叫的模型。請在設定 → 課程模型配置中為「課堂互動」選擇此類模型；如果此設定由管理員管理，請聯絡管理員。",
       "geminiNativeRequired": "Gemini 課堂互動需要使用 Google 原生路線。請在設定 → 模型服務中新增 Google（google 預設），再在課程模型配置中為「課堂互動」選擇該模型；如果配置由管理員管理，請聯絡管理員。",
       "emptyAgentResponses": "智能體連續無回應,討論已停止。請重新嘗試或檢查模型設定。",
-      "streamInterrupted": "資料串流意外中斷,討論未能完成。請重新嘗試。"
+      "streamInterrupted": "資料串流意外中斷,討論未能完成。請重新嘗試。",
+      "rateLimited": "模型目前收到過多請求,請稍後再試。",
+      "providerUnavailable": "模型服務暫時無法使用,請稍後重試。"
     },
     "elementReference": {
       "whiteboardChanged": "引用的白板元素已變更或無法使用，請重新選擇或移除引用後再傳送。",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "聚光燈",
       "laser": "雷射筆",
+      "play_video": "Play",
       "wb_open": "開啟白板",
       "wb_draw_text": "白板文字",
       "wb_draw_shape": "白板形狀",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "白板公式",
       "wb_draw_table": "白板表格",
       "wb_draw_line": "白板線條",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "清空白板",
       "wb_delete": "刪除元素",
       "wb_close": "關閉白板",
@@ -296,6 +307,17 @@
       "result": "已完成",
       "error": "錯誤"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "準備好一起學習了嗎？",
@@ -350,6 +372,7 @@
       "pbl": "PBL"
     },
     "text": {
+      "toolbar": "文字工具列",
       "label": "文字",
       "font": "字型",
       "fontDefault": "預設",
@@ -364,21 +387,31 @@
       "alignCenter": "置中對齊",
       "alignRight": "靠右對齊",
       "bullet": "項目符號",
-      "toolbar": "文字工具列",
       "colorHex": "顏色值"
     },
+    "line": {
+      "toolbar": "線條工具列",
+      "kind": "線條類型",
+      "color": "線條顏色",
+      "width": "線寬",
+      "style": "線條樣式",
+      "start": "起點樣式",
+      "end": "終點樣式",
+      "straight": "直線",
+      "broken": "折線",
+      "broken2": "雙折線",
+      "curve": "曲線",
+      "cubic": "三次曲線",
+      "solid": "實線",
+      "dashed": "虛線",
+      "dotted": "點線",
+      "none": "無",
+      "arrow": "箭頭",
+      "dot": "圓點"
+    },
     "insert": {
-      "textBox": "文字框",
-      "dragToolbar": "移動插入工具",
-      "dragToolbarKeyboard": "移動插入工具：按 Enter 或 Space，然後使用方向鍵",
-      "collapseToolbar": "收合插入工具",
-      "expandToolbar": "展開插入工具",
-      "image": "圖片",
-      "imageDrop": "拖曳圖片或按一下選擇檔案",
-      "imageOr": "或貼上圖片網址",
-      "imageUrlPlaceholder": "https://…",
-      "imageInsert": "插入",
       "toolbar": "插入工具列",
+      "textBox": "文字框",
       "line": "線條",
       "linePresets": {
         "straight": "直線",
@@ -398,6 +431,15 @@
       "chartLine": "折線圖",
       "chartPie": "圓餅圖",
       "tableDimensions": "{{rows}} x {{columns}} 表格",
+      "dragToolbar": "移動插入工具",
+      "dragToolbarKeyboard": "移動插入工具：按 Enter 或 Space，然後使用方向鍵",
+      "collapseToolbar": "收合插入工具",
+      "expandToolbar": "展開插入工具",
+      "image": "圖片",
+      "imageDrop": "拖曳圖片或按一下選擇檔案",
+      "imageOr": "或貼上圖片網址",
+      "imageUrlPlaceholder": "https://…",
+      "imageInsert": "插入",
       "video": "影片",
       "videoDrop": "拖曳影片或點按選擇檔案",
       "videoOr": "或貼上影片網址",
@@ -408,6 +450,37 @@
       "audioOr": "或貼上音訊網址",
       "audioUrlPlaceholder": "https://…",
       "audioInsert": "插入"
+    },
+    "asset": {
+      "drop": "拖入檔案或點擊選擇",
+      "orUrl": "或貼上檔案 URL",
+      "urlPlaceholder": "https://…",
+      "insert": "插入",
+      "invalidType": "不支援此檔案類型",
+      "readFailed": "無法讀取檔案"
+    },
+    "latex": {
+      "toolbar": "公式工具列",
+      "editFormula": "編輯公式",
+      "dialog": "公式編輯器",
+      "source": "LaTeX 原始碼",
+      "preview": "預覽",
+      "symbols": "常用符號",
+      "presets": "預設公式",
+      "invalidSource": "LaTeX 原始碼無效。"
+    },
+    "video": {
+      "toolbar": "影片工具列",
+      "poster": "設定封面"
+    },
+    "audio": {
+      "toolbar": "音訊工具列",
+      "preview": "試聽音訊",
+      "pause": "暫停試聽",
+      "loop": "循環播放"
+    },
+    "table": {
+      "doubleClickToEdit": "雙擊編輯"
     },
     "nav": {
       "addSlide": "新增投影片",
@@ -434,17 +507,47 @@
       "toBack": "移至最下層"
     },
     "image": {
+      "toolbar": "圖片工具列",
       "replace": "取代圖片",
       "flipH": "水平翻轉",
       "flipV": "垂直翻轉",
-      "toolbar": "圖片工具列",
       "crop": "裁剪圖片"
+    },
+    "contextMenu": {
+      "horizontalAlignment": "水平對齊",
+      "verticalAlignment": "垂直對齊",
+      "selectAll": "全選",
+      "copy": "複製",
+      "cut": "剪下",
+      "paste": "貼上",
+      "unlock": "解鎖",
+      "lock": "鎖定",
+      "group": "群組",
+      "ungroup": "取消群組",
+      "bringForward": "上移一層",
+      "sendBackward": "下移一層",
+      "alignTop": "頂端對齊",
+      "alignMiddle": "垂直置中",
+      "alignBottom": "底端對齊",
+      "alignCenterBoth": "水平垂直置中",
+      "setLink": "設定連結",
+      "ruler": "尺規",
+      "grid": "格線",
+      "gridNone": "無",
+      "gridSmall": "小",
+      "gridMedium": "中",
+      "gridLarge": "大",
+      "resetPage": "重設目前頁面"
     },
     "background": {
       "label": "背景",
       "solid": "純色",
       "image": "圖片",
       "color": "顏色"
+    },
+    "common": {
+      "cancel": "取消",
+      "confirm": "確定"
     },
     "quiz": {
       "addQuestion": "新增題目",
@@ -494,6 +597,7 @@
       "discussion": "討論"
     },
     "element": {
+      "toolbar": "元素工具列",
       "text": "文字",
       "image": "圖片",
       "shape": "形狀",
@@ -503,8 +607,7 @@
       "latex": "公式",
       "video": "影片",
       "audio": "音訊",
-      "code": "程式碼",
-      "toolbar": "元素工具列"
+      "code": "程式碼"
     },
     "agent": {
       "expand": "展開 AI 助理",
@@ -666,78 +769,6 @@
       "addRole": "新增角色",
       "shortTitle": "陣容"
     },
-    "line": {
-      "toolbar": "線條工具列",
-      "kind": "線條類型",
-      "color": "線條顏色",
-      "width": "線寬",
-      "style": "線條樣式",
-      "start": "起點樣式",
-      "end": "終點樣式",
-      "straight": "直線",
-      "broken": "折線",
-      "broken2": "雙折線",
-      "curve": "曲線",
-      "cubic": "三次曲線",
-      "solid": "實線",
-      "dashed": "虛線",
-      "dotted": "點線",
-      "none": "無",
-      "arrow": "箭頭",
-      "dot": "圓點"
-    },
-    "asset": {
-      "drop": "拖入檔案或點擊選擇",
-      "orUrl": "或貼上檔案 URL",
-      "urlPlaceholder": "https://…",
-      "insert": "插入",
-      "invalidType": "不支援此檔案類型",
-      "readFailed": "無法讀取檔案"
-    },
-    "latex": {
-      "toolbar": "公式工具列",
-      "editFormula": "編輯公式",
-      "dialog": "公式編輯器",
-      "source": "LaTeX 原始碼",
-      "preview": "預覽",
-      "symbols": "常用符號",
-      "presets": "預設公式",
-      "invalidSource": "LaTeX 原始碼無效。"
-    },
-    "video": {
-      "toolbar": "影片工具列",
-      "poster": "設定封面"
-    },
-    "audio": {
-      "toolbar": "音訊工具列",
-      "preview": "試聽音訊",
-      "pause": "暫停試聽",
-      "loop": "循環播放"
-    },
-    "table": {
-      "doubleClickToEdit": "雙擊編輯"
-    },
-    "contextMenu": {
-      "horizontalAlignment": "水平對齊",
-      "verticalAlignment": "垂直對齊",
-      "selectAll": "全選",
-      "copy": "複製",
-      "cut": "剪下",
-      "paste": "貼上",
-      "unlock": "解鎖",
-      "lock": "鎖定",
-      "group": "群組",
-      "ungroup": "取消群組",
-      "bringForward": "上移一層",
-      "sendBackward": "下移一層",
-      "alignTop": "頂端對齊",
-      "alignMiddle": "垂直置中",
-      "alignBottom": "底端對齊"
-    },
-    "common": {
-      "cancel": "取消",
-      "confirm": "確定"
-    },
     "elementRef": {
       "remove": "移除引用 {{label}}",
       "counts": "已引用 {{count}}/{{max}}",
@@ -747,6 +778,27 @@
     "dock": {
       "elementRefHint": "元素引用 —— 選取元素隨下一則訊息發給 Agent",
       "globalTools": "全域工具"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
+    }
+  },
+  "classroomComplete": {
+    "title": "課程完成",
+    "trailLabels": {
+      "slide": "頁面",
+      "quiz": "測驗",
+      "interactive": "互動",
+      "pbl": "專題"
+    },
+    "quizScoreLabel": "{{correct}} / {{total}} 正確",
+    "encouragement": {
+      "high": "太棒了，你答對了！",
+      "mid": "做得好，繼續保持！",
+      "low": "不錯的開始，回顧一下再試一次。"
     }
   },
   "whiteboard": {
@@ -793,7 +845,11 @@
     "aiGrading": "AI 正在批改中...",
     "aiGradingWait": "請稍候，正在分析你的答案",
     "quizReport": "答題報告",
-    "retry": "重新答題"
+    "retry": "重新答題",
+    "explainOnWhiteboard": "在白板上講解",
+    "explainAllOnWhiteboard": "在白板上逐題講解錯題",
+    "explainAllCta": "逐步講解",
+    "explainHint": "AI 老師會打開白板，把每一步推理逐條寫出來。"
   },
   "roundtable": {
     "teacher": "教師",
@@ -917,7 +973,9 @@
       "taskEvalCard": {
         "title": "本次提交點評",
         "strengths": "做得好的",
-        "improvements": "下次可以"
+        "improvements": "下次可以",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "進入情景後，準備階段介紹的背景都可在此隨時查看。",
@@ -1087,17 +1145,21 @@
     "folderRenameFailed": "重新命名資料夾失敗",
     "folderDeleteFailed": "刪除資料夾失敗",
     "moveFailed": "移動課程失敗",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "這個資料夾是空的",
     "emptyLibraryHint": "還沒有課程——在上方建立，或匯入一個課程。",
     "folderNameEmpty": "資料夾名稱不能為空",
     "deleteFolderOnly": "僅刪除資料夾",
     "deleteFolderAndCourses": "刪除資料夾和 {{count}} 門課程",
-    "deleteFolderConfirmRemove": "將刪除資料夾及其課程（含聊天記錄），無法復原。",
     "deleteFolderAndCourses_other": "刪除資料夾和 {{count}} 門課程",
+    "deleteFolderConfirmRemove": "將刪除資料夾及其課程（含聊天記錄），無法復原。",
     "notFound": "找不到這門課程",
     "notFoundDesc": "課程不存在，或已被刪除。",
     "loadUnavailable": "暫時無法載入這門課程",
     "loadUnavailableDesc": "無法取得課程，請檢查存取權限或重試。",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "返回首頁",
     "runOutlining": "正在生成大綱…",
     "runAwaitingConfirmation": "等待確認",
@@ -1115,6 +1177,7 @@
     "courseMaterialCountLimit": "最多可上傳 5 個課程材料檔案",
     "courseMaterialTotalSizeLimit": "課程材料總大小需小於 150MB",
     "unsupportedCourseMaterial": "{{parser}} 不支援此檔案類型，目前支援：{{formats}}",
+    "courseMaterialSizeLimit": "支援文件、簡報、表格、圖像、純文字，最大 50MB（實際支援格式依所選解析器而定）",
     "unsupportedMaterialFormat": "目前的解析器不支援此格式，請切換解析器或選擇其他檔案",
     "materialQuotaExceeded": "素材儲存空間已滿，請刪除部分素材後重試。",
     "materialUploadFailed": "上傳 {{name}} 失敗，請重試。",
@@ -1338,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "內建讀取服務"
     },
     "modelCount": "個模型",
@@ -1416,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "使用 AI 代理人設作為音色提示詞",
     "voxcpmUnavailable": "無法使用",
     "voxcpmClone": "複製",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "目前後端不支援複製功能",
     "voxcpmNoCustomVoices": "尚無自訂聲音",
     "voxcpmCloneSaveOnly": "僅為此後端儲存",
@@ -1456,8 +1522,8 @@
     "qwenCloneDiscussionUnavailable": "指定音色不可用，討論將改用其他可用音色。",
     "providerOpenAIWhisper": "OpenAI ASR (gpt-4o-mini-transcribe)",
     "providerBrowserNative": "瀏覽器原生 ASR",
-    "providerFunASRASR": "FunASR（本機）",
     "providerQwenASR": "Qwen ASR（阿里雲百煉）",
+    "providerFunASRASR": "FunASR（本機）",
     "providerLemonadeASR": "Lemonade ASR（本機）",
     "providerAzureASR": "Azure STT（語音轉文字）",
     "providerUnpdf": "unpdf（內建）",
@@ -1818,7 +1884,11 @@
       "applyTitle": "使用此方案的推薦設定？",
       "applyBody": "{{name}} 為以下環節推薦了自己的模型。使用它們會取代這些環節目前所用的模型，包括伺服器預設值：",
       "applyKeep": "保留目前設定",
-      "applyRecommended": "使用方案推薦設定"
+      "applyRecommended": "使用方案推薦設定",
+      "enable": "啟用",
+      "statusDisabled": "已連接（未啟用）",
+      "enableThisPlan": "啟用此套餐",
+      "enableThisPlanHint": "關閉後，此套餐不再出現在課程模型設定中"
     },
     "skills": {
       "nav": "技能",
@@ -1849,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "瀏覽器內建 TTS 不支援編輯器時間軸的音訊功能（試聽、重新生成、全部配音）。切換到受管 TTS 供應商即可逐句生成和管理音訊。",
     "courseModels": {
-      "nav": "課程模型配置"
+      "nav": "課程模型配置",
+      "mainModel": "主線語言模型",
+      "mainModelHint": "跟隨主線的環節共用此模型，點擊卡片可單獨指定",
+      "mainModelTooltip": "所有「跟隨主線」的環節使用此模型。點擊流程卡片可單獨指定模型（用戶級 stage 路由，優先級低於服務端 MODEL_ROUTES），細分環節在卡片檢查器中展開。",
+      "noProviderHint": "尚無可用的語言模型，請先在「模型服務」中配置",
+      "followMainline": "跟隨主線",
+      "followParent": "跟隨上級",
+      "restoreFollow": "恢復跟隨主線",
+      "stopped": "已停用",
+      "loop": "循環",
+      "parallel": "並行",
+      "visionSupported": "支援視覺輸入",
+      "modelSource": "模型來源",
+      "mainlineUnset": "未指定",
+      "pickModel": "選擇模型",
+      "pickProvider": "選擇服務",
+      "optionInvalid": "已失效",
+      "subStagesTitle": "細分環節",
+      "subStages": {
+        "title": "標題生成",
+        "slide": "幻燈頁",
+        "quiz": "測驗題",
+        "interactive": "互動腳本",
+        "pbl": "PBL 劇本"
+      },
+      "servicesAndModels": "服務與模型",
+      "searchService": "搜尋服務",
+      "parseService": "解析服務",
+      "asrTranscribe": "語音轉寫",
+      "aiIllustration": "AI 配圖",
+      "aiVideo": "AI 影片",
+      "stations": {
+        "docParse": "文檔解析",
+        "webResearch": "聯網調研",
+        "outline": "大綱規劃",
+        "agents": "角色生成",
+        "sceneContent": "場景內容",
+        "sceneActions": "講稿動作",
+        "tts": "語音合成",
+        "media": "媒體生成",
+        "interaction": "課堂互動",
+        "desc": {
+          "doc-parse": "上傳的課程資料（文件／幻燈／音視頻）解析為文字；音視頻自動轉寫。",
+          "web-research": "按課程需求聯網檢索補充資料；搜尋詞由輕量 LLM 改寫。",
+          "outline": "理解需求與資料，產出課程標題與分場景大綱（可人工審閱）。",
+          "agents": "生成課堂中的師生智能體檔案（人設、頭像、聲音）。",
+          "scene-content": "逐場景生成幻燈／測驗／互動／PBL 內容，是管線中最重的 LLM 環節。",
+          "scene-actions": "為場景內容補全講解詞與教學動作，供語音合成與課堂演繹。",
+          "tts": "把講稿合成為師生語音（逐場景、串行）。",
+          "media": "兌現內容中的圖片／視頻佔位符，與逐場景流程並行執行。",
+          "interaction": "課程生成後的課堂運行期：多智能體對話、PBL 運行時與測驗批改。"
+        }
+      },
+      "mediaEnableNeedsSetup": "請先在「模型服務」設定 API Key，或啟用 Token Plan 後再開啟"
     },
     "addNewModel": "新增模型",
     "addNewModelDescription": "新增新的模型設定",
@@ -1875,7 +1998,8 @@
     "capabilities": {
       "streaming": "串流",
       "tools": "工具",
-      "vision": "視覺"
+      "vision": "視覺",
+      "thinking": "思考"
     },
     "claudeSearchModel": "搜尋模型",
     "claudeSearchModelHint": "用於執行網路搜尋並總結結果的 Claude 模型。",
@@ -1895,6 +2019,7 @@
     "deleteModel": "刪除",
     "deleteProvider": "刪除供應商",
     "deleteProviderConfirm": "確定要刪除此供應商嗎？",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "文件解析",
     "doubaoAccessKey": "Access Key",
     "doubaoAppId": "App ID",
@@ -2188,6 +2313,72 @@
         "unconfirmed": "伺服器未確認已匯入。"
       }
     },
+    "model": "模型設定",
+    "save": "儲存",
+    "providerTypes": {
+      "openai": "OpenAI 協定",
+      "azure": "Azure OpenAI",
+      "anthropic": "Claude 協定",
+      "google": "Gemini 協定",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "連網搜尋",
+    "addProvider": "新增",
+    "addModel": "新增",
+    "fetch": "取得",
+    "contextWindow": "上下文",
+    "outputWindow": "輸出",
+    "providerNameRequired": "請輸入供應商名稱",
+    "providerIcon": "Provider 圖示 URL",
+    "requiresApiKey": "需要 API 密鑰",
+    "addCustomTTSProvider": "新增自訂語音合成",
+    "addCustomASRProvider": "新增自訂語音辨識",
+    "addCustomAudioProviderDescription": "新增相容 OpenAI 協定的音訊服務",
+    "customVoices": "聲線清單",
+    "voiceIdPlaceholder": "聲線 ID（如 alloy）",
+    "voiceNamePlaceholder": "顯示名稱",
+    "addVoice": "新增",
+    "modelNamePlaceholder": "選填",
+    "defaultModelHint": "API 請求中的模型名（如 kokoro、tts-1）",
+    "noVoicesAdded": "暫無聲線，請在下方新增以支援 Agent 選擇不同聲線。",
+    "noModelsAdded": "暫無模型，請在下方新增以支援模型選擇。",
+    "noModelsWarning": "請先在下方新增至少一個模型，才能使用此服務。",
+    "cannotDeleteBuiltIn": "無法刪除內建供應商",
+    "resetSuccess": "已成功重設為預設設定",
+    "saveSuccess": "設定已儲存",
+    "saveFailed": "儲存失敗，請重試",
+    "modelIdRequired": "請輸入模型 ID",
+    "modelName": "顯示名稱",
+    "modelCapabilities": "能力",
+    "advancedSettings": "進階設定",
+    "contextWindowLabel": "上下文視窗",
+    "contextWindowPlaceholder": "例如 128000",
+    "outputWindowLabel": "最大輸出Token數",
+    "outputWindowPlaceholder": "例如 4096",
+    "enterCustomBaseUrl": "輸入自訂 Base URL",
+    "voxcpmBackend": "後端",
+    "voxcpmBaseUrlPending": "輸入 Base URL 以產生請求 URL",
+    "voxcpmAutoVoiceNoPreview": "自動音色會根據 AI 代理人設動態產生，無法單獨試聽",
+    "voxcpmBaseUrlRequired": "請先輸入 VoxCPM Base URL",
+    "ttsTestText": "TTS 測試文字",
+    "asrResult": "辨識結果",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "百度搜尋來源",
+    "baiduSubSourcesDescription": "選擇至少一個百度資料來源參與搜尋。",
+    "viewDocs": "API 文檔",
+    "optional": "選填",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "啟用此提供方",
+    "enableThisProviderHint": "關閉後，此提供方不再出現在課程模型設定中",
     "serverConfiguredAddOwn": "如需使用自己的憑證，請新增一個供應商。",
     "webFetchSettings": "網頁擷取",
     "webFetchHint": "選擇網頁讀取方式。託管服務只會收到工作階段中已獲准的公開網址。結果仍是不可信資料，失敗時不會切換讀取服務。",
@@ -2421,7 +2612,19 @@
     "courseTabsAria": "右欄標籤頁",
     "courseTabClose": "關閉標籤頁《{{name}}》",
     "courseTabRunning": "產生中",
-    "foldersUnavailable": "此版本不支援資料夾"
+    "foldersUnavailable": "此版本不支援資料夾",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "個人資料",
@@ -2446,27 +2649,8 @@
     "provider": "服務商",
     "voice": "聲線",
     "speed": "語速",
-    "language": "語言"
-  },
-  "accessCode": {
-    "title": "請輸入課堂碼",
-    "placeholder": "課堂碼",
-    "error": "課堂碼錯誤，請重試。"
-  },
-  "classroomComplete": {
-    "title": "課程完成",
-    "trailLabels": {
-      "slide": "頁面",
-      "quiz": "測驗",
-      "interactive": "互動",
-      "pbl": "專題"
-    },
-    "quizScoreLabel": "{{correct}} / {{total}} 正確",
-    "encouragement": {
-      "high": "太棒了，你答對了！",
-      "mid": "做得好，繼續保持！",
-      "low": "不錯的開始，回顧一下再試一次。"
-    }
+    "language": "語言",
+    "model": "模型"
   },
   "proMode": {
     "attach": "添加材料",
@@ -2486,6 +2670,11 @@
     "launchPlaceholder": "描述你想創造的學習體驗",
     "launchSend": "開始構建",
     "mentionCourseOrMaterial": "引用課堂或知識庫材料"
+  },
+  "accessCode": {
+    "title": "請輸入課堂碼",
+    "placeholder": "課堂碼",
+    "error": "課堂碼錯誤，請重試。"
   },
   "workbench": {
     "tool": {

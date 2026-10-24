@@ -121,12 +121,20 @@ const WbDrawLineParams = Type.Object({
   color: Type.Optional(Type.String()),
   width: Type.Optional(Type.Number()),
   style: Type.Optional(Type.Union([Type.Literal('solid'), Type.Literal('dashed')])),
+  // Lihat native-whiteboard.ts: Literal('') menghasilkan enum [""] yang ditolak
+  // Gemini (400 INVALID_ARGUMENT, diskusi loading lalu berhenti). Pakai string
+  // min/maxLength 0 untuk "" agar wire schema valid; validasi runtime tetap
+  // ketat (hanya "" / "arrow"). Rujukan upstream: THU-MAIC/OpenMAIC
+  // lib/chat/pi/tools/classroom-actions.ts (masih Literal('')).
   points: Type.Optional(
     Type.Union([
-      Type.Tuple([Type.Literal(''), Type.Literal('arrow')]),
-      Type.Tuple([Type.Literal('arrow'), Type.Literal('')]),
+      Type.Tuple([Type.String({ minLength: 0, maxLength: 0 }), Type.Literal('arrow')]),
+      Type.Tuple([Type.Literal('arrow'), Type.String({ minLength: 0, maxLength: 0 })]),
       Type.Tuple([Type.Literal('arrow'), Type.Literal('arrow')]),
-      Type.Tuple([Type.Literal(''), Type.Literal('')]),
+      Type.Tuple([
+        Type.String({ minLength: 0, maxLength: 0 }),
+        Type.String({ minLength: 0, maxLength: 0 }),
+      ]),
     ]),
   ),
   elementId: Type.Optional(Type.String()),

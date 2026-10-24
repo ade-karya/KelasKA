@@ -28,15 +28,16 @@ const plugins = [
   builtins(),
 ];
 
-const createConfig = (output) => ({
+// One bundle, three outputs. Rollup parses/resolves/transforms the source once
+// and only re-renders it per format; separate configs paid that cost three
+// times (minutes on a small Colab runtime) for identical input.
+export default {
   input: 'src/index.ts',
   onwarn,
-  output: { ...output, inlineDynamicImports: true },
+  output: [
+    { file: 'dist/index.umd.js', format: 'umd', name: 'pptxtojsonPro', inlineDynamicImports: true },
+    { file: 'dist/index.cjs', format: 'cjs', inlineDynamicImports: true },
+    { file: 'dist/index.js', format: 'es', inlineDynamicImports: true },
+  ],
   plugins,
-});
-
-export default [
-  createConfig({ file: 'dist/index.umd.js', format: 'umd', name: 'pptxtojsonPro' }),
-  createConfig({ file: 'dist/index.cjs', format: 'cjs' }),
-  createConfig({ file: 'dist/index.js', format: 'es' }),
-];
+};

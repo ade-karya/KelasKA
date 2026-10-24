@@ -8,6 +8,24 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 
 // Note: Window.SpeechSynthesis declaration is already in the global scope
 
+/**
+ * Best-effort UI locale for the TTS error toast, which fires from an event
+ * callback with no i18n hook in scope: stored locale, else browser language,
+ * else the default locale (id-ID).
+ */
+function browserTtsUnsupportedMessage(): string {
+  let locale = 'id-ID';
+  try {
+    locale = localStorage.getItem('locale') || navigator.language || locale;
+  } catch {
+    // Storage unavailable — keep the default.
+  }
+  const lower = locale.toLowerCase();
+  if (lower.startsWith('zh')) return '浏览器不支持 Web Speech API';
+  if (lower.startsWith('id')) return 'Browser tidak mendukung Web Speech API';
+  return 'Browser does not support the Web Speech API';
+}
+
 export interface UseBrowserTTSOptions {
   onStart?: () => void;
   onEnd?: () => void;
@@ -26,7 +44,7 @@ export function useBrowserTTS(options: UseBrowserTTSOptions = {}) {
     rate = 1.0,
     pitch = 1.0,
     volume = 1.0,
-    lang = 'zh-CN',
+    lang = 'id-ID',
   } = options;
 
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -62,7 +80,7 @@ export function useBrowserTTS(options: UseBrowserTTSOptions = {}) {
   const speak = useCallback(
     (text: string, voiceURI?: string) => {
       if (typeof window === 'undefined' || !window.speechSynthesis) {
-        onError?.('浏览器不支持 Web Speech API');
+        onError?.(browserTtsUnsupportedMessage());
         return;
       }
 

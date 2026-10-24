@@ -36,6 +36,7 @@ import {
 } from 'ai';
 import { streamLLM } from '@/lib/ai/llm';
 import { preservesReasoningForModel } from '@/lib/ai/providers';
+import { friendlyUpstreamChatMessage } from '@/lib/server/llm-error-response';
 import { normalizeUsage } from '@/lib/usage/normalize';
 import type { ThinkingConfig } from '@/lib/types/provider';
 import {
@@ -446,7 +447,16 @@ async function pump(
   }
 }
 
+/**
+ * Upstream provider failures (quota/rate-limit 429, capacity 5xx) surface from
+ * the AI SDK as `RetryError: Failed after N attempts. Last error: ...` — a
+ * transport detail, not something a learner can act on. Map the carried HTTP
+ * status to a short actionable message before it becomes pi's errorMessage
+ * (and from there the SSE `error` event the chat UI renders).
+ */
 function errorMessage(error: unknown, fallback: string): string {
+  const friendly = friendlyUpstreamChatMessage(error);
+  if (friendly) return friendly;
   if (error instanceof Error && error.message.trim()) return error.message;
   if (typeof error === 'string' && error.trim()) return error;
   return fallback;

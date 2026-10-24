@@ -9,7 +9,7 @@
  * synchronously.
  *
  * Two locales are written here — `workbenchEn` is the shape every other locale
- * is checked against, `workbenchZh` is its Chinese twin — and the remaining ten
+ * is checked against, `workbenchZh` is its Chinese twin — and the remaining eleven
  * are JSON overlays in `workbench-locales/`, merged by `workbenchResourceFor`
  * with English (or, for `zh-TW`, Simplified) underneath. So an untranslated key
  * degrades to a readable sentence rather than to `workbench.tool.label.x`, and
@@ -19,6 +19,7 @@ import workbenchArSA from './workbench-locales/ar-SA.json' with { type: 'json' }
 import workbenchDeDE from './workbench-locales/de-DE.json' with { type: 'json' };
 import workbenchEsMX from './workbench-locales/es-MX.json' with { type: 'json' };
 import workbenchFrFR from './workbench-locales/fr-FR.json' with { type: 'json' };
+import workbenchIdID from './workbench-locales/id-ID.json' with { type: 'json' };
 import workbenchJaJP from './workbench-locales/ja-JP.json' with { type: 'json' };
 import workbenchKoKR from './workbench-locales/ko-KR.json' with { type: 'json' };
 import workbenchPtBR from './workbench-locales/pt-BR.json' with { type: 'json' };
@@ -159,6 +160,8 @@ export const workbenchEn = {
       'teacher-style-clone': 'Teacher style',
       'understanding-by-design': 'Understanding by Design (UbD)',
       vocational: 'Vocational training',
+      'tka-sd-smp-asesmen': 'TKA SD/SMP assessment framework',
+      'tka-sma-smk-asesmen': 'TKA SMA/SMK assessment framework',
       'workshop-style': 'Interactive workshop',
     },
   },
@@ -486,6 +489,8 @@ export const workbenchZh = {
       'teacher-style-clone': '名师风格',
       'understanding-by-design': '理解本位设计（UbD）',
       vocational: '职业实训',
+      'tka-sd-smp-asesmen': 'TKA 小学/初中评估框架',
+      'tka-sma-smk-asesmen': 'TKA 高中/职业高中评估框架',
       'workshop-style': '互动工作坊',
     },
   },
@@ -719,7 +724,7 @@ function readPath(value: unknown, path: readonly string[]): unknown {
 type WorkbenchResource = Record<string, unknown>;
 
 /**
- * The other ten locales.
+ * The other eleven locales.
  *
  * `workbenchEn` is the shape and `workbenchZh` is its Chinese twin; every other
  * locale is a JSON overlay on one of those two, so a key that a locale has not
@@ -733,6 +738,7 @@ const localeOverrides: Record<string, WorkbenchResource> = {
   'ko-KR': workbenchKoKR,
   'de-DE': workbenchDeDE,
   'fr-FR': workbenchFrFR,
+  'id-ID': workbenchIdID,
   'es-MX': workbenchEsMX,
   'pt-BR': workbenchPtBR,
   'ru-RU': workbenchRuRU,
@@ -782,4 +788,4 @@ export function createWorkbenchTranslator(locale: string): WorkbenchTranslator {
   };
 }
 
-export const defaultWorkbenchTranslator = createWorkbenchTranslator('zh-CN');
+export const defaultWorkbenchTranslator = createWorkbenchTranslator('id-ID');

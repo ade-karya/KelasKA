@@ -126,7 +126,7 @@ export function buildSimulatorSystemPrompt(
   microtask: PBLMicrotask | undefined,
 ): string {
   const scenario = project.scenario;
-  const language = project.language || 'the learner’s language';
+  const language = project.languageDirective || project.language || 'id-ID';
   const base = loadPBLV2Prompt('simulator-system', { language });
   if (!scenario) return base;
 
@@ -208,7 +208,7 @@ export function buildNarratorSystemPrompt(
   microtask: PBLMicrotask | undefined,
 ): string {
   const scenario = project.scenario;
-  const language = project.language || 'the learner’s language';
+  const language = project.languageDirective || project.language || 'id-ID';
   const base = loadPBLV2Prompt('simulator-narrator-system', { language });
   if (!scenario) return base;
 

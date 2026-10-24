@@ -547,7 +547,7 @@ export function buildInstructorRuntimeBrief(
  *  persona, which historically happened (see commit history for the
  *  "I'm Claude, here's what I can do" bug). */
 function buildHardRulesBlock(project: PBLProjectV2): string {
-  const langFallback = project.language || 'en-US';
+  const langFallback = project.language || 'id-ID';
   const langRule = project.languageDirective
     ? `follow this content-language policy: \`${project.languageDirective}\` (fallback BCP-47 locale: \`${langFallback}\`). If the directive contains nuanced instruction (e.g. "keep technical terms in English"), follow it literally.`
     : `reply ONLY in \`${langFallback}\`.`;
@@ -603,13 +603,15 @@ export function buildFirstTaskWorkspaceOrientationBlock(args: {
  *  request to respond in English. Falls back to English for any
  *  locale we haven't translated yet. */
 function syntheticPlatformOpener(phase: 'greeting' | 'setup', language: string): string {
-  const lang = language || 'en-US';
+  const lang = language || 'id-ID';
   if (phase === 'greeting') {
     const m: Record<string, string> = {
       'zh-CN':
         '【平台】学习者刚刚进入项目。请用你（导师人设）的口吻欢迎他们，并自然引入第一个微任务。',
       'zh-TW':
         '【平台】學習者剛剛進入專案。請以你（導師人設）的口吻歡迎他們，並自然引入第一個微任務。',
+      'id-ID':
+        '[Platform] Pelajar baru saja membuka proyek. Sapa mereka sebagai mentor dan antar mereka ke microtask pertama secara natural.',
       'ja-JP':
         '【プラットフォーム】学習者がプロジェクトに入りました。あなた（講師）として歓迎し、最初のマイクロタスクへ自然に案内してください。',
       'ru-RU':
@@ -625,6 +627,8 @@ function syntheticPlatformOpener(phase: 'greeting' | 'setup', language: string):
       '【平台】学习者刚刚激活了这个微任务。请只开启当前这个新微任务：如果这是新阶段的第一个任务，先用一两句话介绍整个新阶段的目标和意义；不要再总结上一个任务；然后明确说明现在要做的具体动作。',
     'zh-TW':
       '【平台】學習者剛剛啟動了這個微任務。請只開啟目前這個新微任務：如果這是新階段的第一個任務，先用一兩句話介紹整個新階段的目標和意義；不要再總結上一個任務；然後明確說明現在要做的具體動作。',
+    'id-ID':
+      '[Platform] Pelajar baru saja mengaktifkan microtask ini. Buka hanya microtask baru yang aktif ini: jika ini tugas pertama dari milestone baru, perkenalkan dulu tujuan dan makna keseluruhan milestone baru dalam 1-2 kalimat singkat; jangan merangkum ulang tugas sebelumnya, lalu sampaikan langkah konkret yang harus dilakukan sekarang.',
     'ja-JP':
       '【プラットフォーム】学習者がこのマイクロタスクをアクティブにしました。現在の新しいマイクロタスクだけを開いてください。これが新しいマイルストーンの最初のタスクなら、まず新しい段階全体の目標と意味を1〜2文で紹介してください。前のタスクを再評価せず、その後で今やる具体的な行動を伝えてください。',
     'ru-RU':
@@ -646,21 +650,66 @@ function syntheticPlatformOpener(phase: 'greeting' | 'setup', language: string):
  *  Placed AFTER the runtime brief for maximum recency so it overrides
  *  the base teaching rhythm ("one idea per turn", questioning discipline)
  *  for this one cell. */
-function buildStageSynthesisBlock(milestone: PBLMilestone): string {
+function buildStageSynthesisBlock(milestone: PBLMilestone, language?: string): string {
   const concept = milestone.synthesisCheck?.coreConcept ?? '';
+  const lang = (language || 'id-ID').toLowerCase();
+  const isId = lang === 'id-id' || lang.startsWith('id');
+  const isZh = lang.startsWith('zh');
+  const bonusExample = isId
+    ? '"Tantangan bonus: kalau melihat seluruh tahap ini, kenapa konsep inti ini penting / masalah apa yang ia selesaikan?"'
+    : isZh
+      ? '"加分小挑战：回头看整个阶段，这个核心点为什么重要 / 它解决了什么问题？"'
+      : '"Bonus challenge: looking back at this whole stage, why does this core idea matter / what problem does it solve?"';
   return [
     '## Optional stage synthesis challenge — core-knowledge stage',
     '',
     `This stage carries the project's core concept: **${concept}**. The active microtask is the LAST one of this core stage, so you may offer ONE short integrative reverse-question about the WHOLE stage / this concept — NOT about this microtask alone.`,
     'Frame it explicitly as an optional bonus challenge / extra reflection, not as a requirement for completing the task or moving on.',
+    "Write the bonus question in the learner's project language (same language as your reply) — the example below is only illustrative, do NOT copy its language if the project language differs.",
     '',
     'Your job this turn:',
-    '1. If it fits the conversation and the learner is not asking for something else, ask exactly ONE optional bonus question — e.g. "加分小挑战：回头看整个阶段，这个核心点为什么重要 / 它解决了什么问题？". Ask it once, then stop and wait. Do not ask a second question, and do not answer it for them.',
+    `1. If it fits the conversation and the learner is not asking for something else, ask exactly ONE optional bonus question — e.g. ${bonusExample}. Ask it once, then stop and wait. Do not ask a second question, and do not answer it for them.`,
     '2. If the learner has ALREADY articulated this whole-stage concept on their own this session, do not make them repeat it — simply acknowledge it.',
     '3. If the platform has already said the task is complete or the learner is ready to move on, do not imply this challenge blocks progress.',
     '',
     'You do not record or advance anything yourself. Keep this turn to the single optional challenge (or a brief acknowledgement if it was already answered).',
   ].join('\n');
+}
+
+/** Locale-aware separators/labels for the scenario cast line in the
+ *  Instructor system prompt. Chinese keeps the original CJK punctuation
+ *  (byte-identical for zh projects); every other locale uses neutral
+ *  separators so the prompt doesn't bias the model toward Chinese
+ *  punctuation or leak a Chinese label into the learner-visible briefing. */
+function scenarioCastLocale(language: string | undefined): {
+  situationLabel: string;
+  partSeparator: string;
+  nameSeparator: string;
+  quoteTitle: (title: string) => string;
+} {
+  const lang = language || 'id-ID';
+  if (lang.startsWith('zh')) {
+    return {
+      situationLabel: '当下处境：',
+      partSeparator: '；',
+      nameSeparator: '、',
+      quoteTitle: (title) => `「${title}」`,
+    };
+  }
+  if (lang === 'id-ID' || lang.toLowerCase().startsWith('id')) {
+    return {
+      situationLabel: 'Situasi saat ini: ',
+      partSeparator: '; ',
+      nameSeparator: ', ',
+      quoteTitle: (title) => `"${title}"`,
+    };
+  }
+  return {
+    situationLabel: 'Current situation: ',
+    partSeparator: '; ',
+    nameSeparator: ', ',
+    quoteTitle: (title) => `"${title}"`,
+  };
 }
 
 /** SCENARIO ONLY. Awareness block injected into the Instructor system
@@ -691,6 +740,7 @@ export function buildScenarioAwarenessBlock(args: {
   if (characters.length === 0) return '';
   const roleplayMilestones = args.project.milestones.filter((m) => m.scenarioStage === 'roleplay');
   if (roleplayMilestones.length === 0) return '';
+  const castLocale = scenarioCastLocale(args.project.language);
 
   const cast = characters
     .map((c) => {
@@ -698,14 +748,19 @@ export function buildScenarioAwarenessBlock(args: {
       const situation = trimmedPBLText(c.situation);
       const personaShort = persona.length > 140 ? persona.slice(0, 140) + '…' : persona;
       const situationShort = situation.length > 160 ? situation.slice(0, 160) + '…' : situation;
-      const parts = [personaShort, situationShort ? `当下处境：${situationShort}` : '']
+      const parts = [
+        personaShort,
+        situationShort ? `${castLocale.situationLabel}${situationShort}` : '',
+      ]
         .filter(Boolean)
-        .join('；');
+        .join(castLocale.partSeparator);
       return `**${c.name}**${parts ? ` — ${parts}` : ''}`;
     })
     .join('\n  · ');
-  const names = characters.map((c) => c.name).join('、');
-  const roleplayTitles = roleplayMilestones.map((m) => `「${m.title}」`).join('、');
+  const names = characters.map((c) => c.name).join(castLocale.nameSeparator);
+  const roleplayTitles = roleplayMilestones
+    .map((m) => castLocale.quoteTitle(m.title))
+    .join(castLocale.nameSeparator);
   const stage = args.milestone.scenarioStage;
 
   const lines: string[] = [
@@ -834,7 +889,12 @@ function buildSystemPrompt(args: {
   const synthesisOwed =
     args.phase === 'instructing' &&
     stageSynthesisOwed(args.project, args.milestone, args.microtask);
-  const synthesisBlock = synthesisOwed ? buildStageSynthesisBlock(args.milestone) : '';
+  const synthesisBlock = synthesisOwed
+    ? buildStageSynthesisBlock(
+        args.milestone,
+        args.project.languageDirective || args.project.language,
+      )
+    : '';
   const phaseBlock = PHASE_BLOCKS[args.phase];
   const firstTaskWorkspaceOrientationBlock = buildFirstTaskWorkspaceOrientationBlock(args);
   // SCENARIO ONLY. Empty for ordinary projects → no prompt change. Makes
@@ -1250,6 +1310,22 @@ export function stripPrematureNextTaskSetup(
 }
 
 /**
+ * Trilingual empty-output retry hint, following the quiz-grade
+ * isZh / isId / en pattern. Shown when a turn produced nothing the
+ * learner can perceive. Falls back to English for locales we haven't
+ * translated yet (same fallback as the platform openers below).
+ */
+function emptyLlmOutputMessage(language: string | undefined): string {
+  const lang = language || 'id-ID';
+  const isZh = lang === 'zh-CN' || lang === 'zh-TW' || lang.startsWith('zh');
+  const isId = lang === 'id-ID' || lang.toLowerCase().startsWith('id');
+  if (isZh) return '导师本轮没有产生新的内容。请稍后再试，或者把你的问题再说得具体一些。';
+  if (isId)
+    return 'Mentor tidak menghasilkan konten baru pada putaran ini. Silakan coba lagi nanti, atau jelaskan pertanyaanmu dengan lebih spesifik.';
+  return 'The mentor did not produce new content this turn. Please try again later, or describe your question in more detail.';
+}
+
+/**
  * Neutral, TIER-AGNOSTIC acknowledgment committed when the learner asked to
  * change difficulty (the model called `adjust_difficulty`) but wrote no text of
  * its own. The proficiency tier itself is underlying by design and is NEVER
@@ -1262,6 +1338,8 @@ function difficultyAdjustAck(language: string | undefined): string {
       return '好的，我来调整一下讲解的方式。';
     case 'zh-TW':
       return '好的，我來調整一下講解的方式。';
+    case 'id-ID':
+      return 'Baik, saya sesuaikan cara menjelaskannya.';
     case 'ja-JP':
       return 'わかりました。説明の仕方を調整しますね。';
     case 'ru-RU':
@@ -1661,7 +1739,7 @@ export async function* runInstructorTurn(
     yield {
       type: 'error',
       code: 'EMPTY_LLM_OUTPUT',
-      message: '导师本轮没有产生新的内容。请稍后再试，或者把你的问题再说得具体一些。',
+      message: emptyLlmOutputMessage(project.language),
     };
   }
 

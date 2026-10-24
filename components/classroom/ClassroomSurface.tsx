@@ -36,6 +36,7 @@ import { useNarrationAdoption } from '@/lib/audio/use-narration-adoption';
 import { createLogger } from '@/lib/logger';
 import { MediaStageProvider } from '@/lib/contexts/media-stage-context';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { getClientTranslation } from '@/lib/i18n';
 import { FileQuestion, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useAgentRegistry } from '@/lib/orchestration/registry/store';
@@ -153,7 +154,16 @@ export function ClassroomSurface({
         log.error('Failed to load classroom:', error);
         if (isCurrent()) {
           setLoadUnavailable(false);
-          setError(error instanceof Error ? error.message : 'Failed to load classroom');
+          // Store the raw detail only; the error view wraps it in a
+          // localized message so raw provider/fetch text never renders bare.
+          // NOTE: stable module translation, not the `t` hook: `t` must stay
+          // out of this callback's deps (an unstable `t` re-creates the
+          // loader every render and the load effect loops forever).
+          setError(
+            error instanceof Error && error.message
+              ? error.message
+              : getClientTranslation('classroom.loadFailed'),
+          );
           setLoading(false);
         }
         return isCurrent() ? 'failed' : 'cancelled';
@@ -345,10 +355,7 @@ export function ClassroomSurface({
                   {loadUnavailable ? (
                     t('classroom.loadUnavailable')
                   ) : (
-                    <>
-                      {t('common.errorPrefix')}
-                      {error}
-                    </>
+                    <>{t('classroom.loadFailedWithDetail', { detail: error })}</>
                   )}
                 </p>
                 {loadUnavailable ? (

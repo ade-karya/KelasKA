@@ -12,6 +12,16 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/*': [
       'lib/server/agent-runtime/import-pptx-worker.mjs',
+      // @openmaic/generation reads these Markdown prompts at runtime via
+      // readFileSync with a computed path (packages' prompts-pbl/loader.ts),
+      // so the tracer never sees them. Without this, standalone builds ship
+      // without PBL planner prompts and EVERY PBL scene fails with ENOENT
+      // (2026-10-08: run run-nEW-x01TrGcMu6yD paused 9x on scene:4:content).
+      // templates/ + snippets/ are traced today, but keep them listed here
+      // too so a tracer change cannot silently break slide generation either.
+      'packages/@openmaic/generation/prompts-pbl/**',
+      'packages/@openmaic/generation/templates/**',
+      'packages/@openmaic/generation/snippets/**',
       'skills/openmaic/**',
       'skills/agent-runtime/**',
       // Loaded through a runtime-only `import('undici')` (see the LLM
@@ -55,6 +65,14 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: '200mb',
   },
+  allowedDevOrigins: ['kelaska.riau.ai'],
+  async rewrites() {
+    return [
+      // public/ files are served as-is, so `/wireframes/` has no directory
+      // index. Map the folder URL to the standalone document explicitly.
+      { source: '/wireframes', destination: '/wireframes/index.html' },
+    ];
+  },
   async headers() {
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
     const frameAncestors = extraAncestors ? `'self' ${extraAncestors}` : "'self'";
@@ -83,7 +101,9 @@ const nextConfig: NextConfig = {
         // Provider logos are drawn wherever services are listed, and each tab
         // switch mounts a fresh set of them. With Next's default `max-age=0`
         // every one is revalidated first and stays blank until the server
-        // answers. They are not content-hashed, so cache for a day, not forever.
+        // answers. Most are not content-hashed, so cache for a day, not
+        // forever (deepseek carries a content hash in its filename, so a new
+        // whale is a new URL on every cache layer).
         source: '/logos/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },

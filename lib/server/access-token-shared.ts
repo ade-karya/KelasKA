@@ -1,7 +1,7 @@
 /**
  * Edge-safe access-token constants and timestamp validation.
  *
- * Both the Node verifier (`lib/server/access-token.ts`) and the Edge middleware
+ * Both the Node verifier (`lib/server/access-token.ts`) and the Edge proxy
  * verifier import this module, so it must stay dependency-free: no `node:*`
  * built-ins and no `crypto` import. Keeping the lifetime policy here means the
  * two verifiers cannot drift apart.

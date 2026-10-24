@@ -91,6 +91,8 @@ export const LLM_ENV_MAP: Record<string, string> = {
   XIAOMI: 'xiaomi',
   MIMO: 'xiaomi',
   TOKENDANCE: 'tokendance',
+  OPENCODE: 'opencode',
+  OPENCODE_GO: 'opencode-go',
   OLLAMA: 'ollama',
   LEMONADE: 'lemonade',
   BEDROCK: 'bedrock',
@@ -133,6 +135,7 @@ const IMAGE_ENV_MAP: Record<string, string> = {
   IMAGE_GLM: 'glm-image',
   IMAGE_LEMONADE: 'lemonade',
   IMAGE_OPENROUTER: 'openrouter-image',
+  IMAGE_HUGGINGFACE: 'huggingface-image',
 };
 
 const VIDEO_ENV_MAP: Record<string, string> = {
@@ -141,6 +144,7 @@ const VIDEO_ENV_MAP: Record<string, string> = {
   VIDEO_MINIMAX: 'minimax-video',
   VIDEO_GROK: 'grok-video',
   VIDEO_HAPPYHORSE: 'happyhorse',
+  VIDEO_HUGGINGFACE: 'huggingface-video',
   VIDEO_OPENROUTER: 'openrouter-video',
 };
 
@@ -226,7 +230,7 @@ type YamlData = Partial<{
 
 function loadYamlFile(filename: string): YamlData {
   try {
-    const filePath = path.join(process.cwd(), filename);
+    const filePath = path.join(/*turbopackIgnore: true*/ process.cwd(), filename);
     if (!fs.existsSync(filePath)) return {};
     const raw = fs.readFileSync(filePath, 'utf-8');
     const parsed = yaml.load(raw) as Record<string, unknown> | null;

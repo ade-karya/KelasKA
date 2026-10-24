@@ -866,7 +866,7 @@ DeepSeek 也透過 `deepseek` 預設提供託管 Markdown 擷取，共用對話�
 
 ## 互動場景依賴函式庫
 
-互動場景從部署本身載入 KaTeX、Three.js（含 addons）、Chart.js 和 Tailwind v4 瀏覽器執行環境，而不是從公開 CDN 載入。`pnpm install`、`pnpm dev` 和 `pnpm build` 會把已安裝套件中的固定版本複製到 `public/vendor/interactive`，並透過 `/vendor/interactive` 提供。只有包含數學公式的頁面才會載入 KaTeX。
+互動場景從部署本身載入 KaTeX、Three.js（含 addons）、Chart.js 和 Tailwind v4 瀏覽器執行環境，而不是從公開 CDN 載入。`bun install`、`bun run dev` 和 `bun run build` 會把已安裝套件中的固定版本複製到 `public/vendor/interactive`，並透過 `/vendor/interactive` 提供。只有包含數學公式的頁面才會載入 KaTeX。
 
 `INTERACTIVE_ASSET_BASE_URL` 是公開的建置時設定。如需從自己的 CDN 或物件儲存提供這些檔案，請複製 `public/vendor/interactive` 並保留其中的套件名稱/版本路徑，把此變數設為新的基礎位址（例如 `https://assets.example.com/interactive`）後重新建置；Docker 建置透過 `--build-arg` 傳入。互動場景在沙箱 iframe 中執行，因此該主機必須以正確的 MIME 類型提供 JavaScript、CSS 和字型檔案，並回傳 `Access-Control-Allow-Origin: *`。
 

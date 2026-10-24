@@ -27,7 +27,7 @@ NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI=true
 | `OPENMAIC_ENABLE_VOCATIONAL`          | Allows the server to use vocational task planning and procedural content generation. | At runtime; restart the application after changing its process environment. |
 | `NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI` | Shows the experimental vocational switch on the home page.                           | At build time; rebuild the production application after changing it.        |
 
-Both flags accept `true` or `1`; unset values leave them disabled. Restart `pnpm dev` after editing local development configuration. For production, set the public flag before `pnpm build`, and provide the server flag when starting the application. These flags belong to the OpenMAIC application, not the documentation server. See [Configuration](./configuration.mdx#feature-flags).
+Both flags accept `true` or `1`; unset values leave them disabled. Restart `bun run dev` after editing local development configuration. For production, set the public flag before `bun run build`, and provide the server flag when starting the application. These flags belong to the OpenMAIC application, not the documentation server. See [Configuration](./configuration.mdx#feature-flags).
 
 Showing the switch does not enable the server path by itself. Vocational generation requires both the server flag and `requirements.taskEngineMode` from the generation request. When the server flag is off, the request follows the ordinary standard or interactive generation path.
 

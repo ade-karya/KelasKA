@@ -1,5 +1,8 @@
+'use client';
+
 import { useMemo, useRef, useState, useEffect } from 'react';
 import type { InteractiveContent } from '@/lib/types/stage';
+import { useI18n } from '@/lib/hooks/use-i18n';
 import { patchHtmlForIframe } from '@/lib/utils/iframe';
 
 interface ThumbnailInteractiveProps {
@@ -25,6 +28,7 @@ export function ThumbnailInteractive({
 }: ThumbnailInteractiveProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const { t } = useI18n();
 
   // Intersection observer for lazy loading
   useEffect(() => {
@@ -67,7 +71,7 @@ export function ThumbnailInteractive({
       {!isVisible ? (
         // Placeholder when not visible
         <div className="w-full h-full flex justify-center items-center bg-gray-100 dark:bg-gray-800 text-gray-400 text-xs">
-          Interactive
+          {t('export.placeholder.interactiveLabel')}
         </div>
       ) : (
         <div
@@ -83,7 +87,7 @@ export function ThumbnailInteractive({
             srcDoc={patchedHtml}
             src={patchedHtml ? undefined : content.url}
             className="w-full h-full border-0"
-            title="Interactive Preview"
+            title={t('export.placeholder.interactiveLabel')}
             sandbox="allow-scripts allow-forms allow-popups"
           />
         </div>

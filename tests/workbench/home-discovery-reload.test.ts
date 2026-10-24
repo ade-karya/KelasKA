@@ -19,7 +19,7 @@ vi.mock('@/lib/hooks/use-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key }),
 }));
 vi.mock('@/lib/logger', () => ({
-  createLogger: () => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn() }),
+  createLogger: () => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() }),
 }));
 vi.mock('@/lib/store/media-generation', () => ({
   useMediaGenerationStore: {
@@ -37,6 +37,14 @@ vi.mock('@/lib/utils/stage-storage', () => ({
   renameFolder: vi.fn(),
   deleteFolder: vi.fn(),
   FolderNameError: class FolderNameError extends Error {},
+  AccessCodeRequiredError: class AccessCodeRequiredError extends Error {
+    constructor(message = 'Access code required') {
+      super(message);
+      this.name = 'AccessCodeRequiredError';
+    }
+  },
+  isAccessCodeRequiredError: (error: unknown) =>
+    error instanceof Error && error.name === 'AccessCodeRequiredError',
 }));
 vi.mock('@/lib/utils/folder-name-validation', () => ({
   displayNameWidth: (value: string) => value.length,

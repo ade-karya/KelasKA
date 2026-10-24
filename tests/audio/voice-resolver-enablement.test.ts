@@ -110,8 +110,17 @@ describe('getSelectableProvidersWithVoices (unified picker + discussion source)'
     expect(ids).toContain('browser-native-tts');
   });
 
-  it('omits browser-native when the browser exposes no voices (e.g. headless)', () => {
-    const ids = getSelectableProvidersWithVoices(cfg, [], []).map((p) => p.providerId);
+  it('shows browser-native placeholder when supported but voices not yet loaded', () => {
+    const providers = getSelectableProvidersWithVoices(cfg, [], [], true);
+    const ids = providers.map((p) => p.providerId);
+    expect(ids).toContain('qwen-tts');
+    expect(ids).toContain('browser-native-tts');
+    const bnProvider = providers.find((p) => p.providerId === 'browser-native-tts');
+    expect(bnProvider?.voices.length).toBeGreaterThan(0);
+  });
+
+  it('omits browser-native when the browser has no Web Speech API', () => {
+    const ids = getSelectableProvidersWithVoices(cfg, [], [], false).map((p) => p.providerId);
     expect(ids).toContain('qwen-tts');
     expect(ids).not.toContain('browser-native-tts');
   });

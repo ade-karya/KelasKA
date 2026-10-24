@@ -7,11 +7,17 @@
     "errorPrefix": "Erreur : ",
     "loadingClassroom": "Chargement de la classe…",
     "retry": "Réessayer",
-    "close": "Fermer"
+    "close": "Fermer",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "L’apprentissage génératif en classe interactive multi-agents",
-    "greetingWithName": "Bonjour, {{name}}"
+    "greetingWithName": "Bonjour, {{name}}",
+    "vocationalTestBadge": "Fonction de test",
+    "vocationalTestLabel": "Tâche professionnelle",
+    "vocationalTestTooltip": "Envoyer un test de formation pratique professionnelle depuis le champ de saisie actuel",
+    "footer": "Classe d'Intelligence Artificielle"
   },
   "toolbar": {
     "pdfParser": "Analyseur",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "Le chat de la classe nécessite un modèle prenant en charge les appels d’outils. Sélectionnez-en un pour « Classe » dans Paramètres → Configuration des modèles de cours, ou contactez votre administrateur si ce paramètre est géré par celui-ci.",
       "geminiNativeRequired": "L’interaction avec Gemini nécessite Google natif. Ajoutez Google (préréglage google) dans Paramètres → Services de modèles, puis sélectionnez-le pour « Classe » dans Configuration des modèles de cours. Si la configuration est gérée, contactez votre administrateur.",
       "emptyAgentResponses": "Les agents n’ont renvoyé aucune réponse ; la discussion s’est arrêtée. Réessayez ou vérifiez les paramètres de votre modèle.",
-      "streamInterrupted": "Le flux s’est interrompu de façon inattendue ; la discussion n’a pas abouti. Veuillez réessayer."
+      "streamInterrupted": "Le flux s’est interrompu de façon inattendue ; la discussion n’a pas abouti. Veuillez réessayer.",
+      "rateLimited": "Le modèle reçoit trop de requêtes en ce moment. Veuillez patienter un instant puis réessayer.",
+      "providerUnavailable": "Le service de modèle est temporairement indisponible. Veuillez réessayer dans un instant."
     },
     "elementReference": {
       "whiteboardChanged": "L’élément du tableau blanc a changé ou n’est plus disponible. Sélectionnez-le à nouveau ou retirez la référence avant d’envoyer.",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "Mise en lumière",
       "laser": "Laser",
+      "play_video": "Play",
       "wb_open": "Ouvrir le tableau blanc",
       "wb_draw_text": "Texte au tableau",
       "wb_draw_shape": "Forme au tableau",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "Formule au tableau",
       "wb_draw_table": "Tableau de données",
       "wb_draw_line": "Trait au tableau",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Effacer le tableau blanc",
       "wb_delete": "Supprimer l’élément",
       "wb_close": "Fermer le tableau blanc",
@@ -296,6 +307,17 @@
       "result": "Terminé",
       "error": "Erreur"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Sommes-nous prêts à apprendre ensemble ?",
@@ -506,7 +528,16 @@
       "sendBackward": "Reculer",
       "alignTop": "Aligner en haut",
       "alignMiddle": "Aligner au milieu",
-      "alignBottom": "Aligner en bas"
+      "alignBottom": "Aligner en bas",
+      "alignCenterBoth": "Centrer (les deux axes)",
+      "setLink": "Définir le lien",
+      "ruler": "Règle",
+      "grid": "Grille",
+      "gridNone": "Aucune",
+      "gridSmall": "Petite",
+      "gridMedium": "Moyenne",
+      "gridLarge": "Grande",
+      "resetPage": "Réinitialiser la page"
     },
     "background": {
       "label": "Arrière-plan",
@@ -747,6 +778,12 @@
     "dock": {
       "elementRefHint": "Références d’éléments — choisissez les éléments à joindre au prochain message",
       "globalTools": "Outils globaux"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -808,7 +845,11 @@
     "aiGrading": "Correction par l’IA…",
     "aiGradingWait": "Veuillez patienter, analyse de vos réponses en cours",
     "quizReport": "Bilan du quiz",
-    "retry": "Recommencer"
+    "retry": "Recommencer",
+    "explainOnWhiteboard": "Expliquer au tableau",
+    "explainAllOnWhiteboard": "Revoir mes erreurs au tableau",
+    "explainAllCta": "Expliquer pas à pas",
+    "explainHint": "L’enseignant IA ouvre le tableau et écrit chaque étape du raisonnement une par une."
   },
   "roundtable": {
     "teacher": "PROFESSEUR",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "Retour sur le rendu",
         "strengths": "Ce qui a bien marché",
-        "improvements": "Pistes d’amélioration"
+        "improvements": "Pistes d’amélioration",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "Le contexte présenté pendant la préparation, conservé ici pour que vous puissiez le relire à tout moment pendant la scène.",
@@ -1079,40 +1122,44 @@
     "searchAriaLabel": "Rechercher un cours",
     "clearSearch": "Effacer",
     "searchEmpty": "Aucun cours ne correspond à votre recherche",
+    "newFolderTitle": "Nouveau dossier",
+    "newFolderDesc": "Organisez les cours par sujet pour un accès plus facile.",
+    "newFolderInline": "Nouveau dossier",
+    "folderNameLabel": "Nom du dossier",
+    "folderNamePlaceholder": "Ex : Mathématiques, Anglais, Cours principaux",
+    "folderNameHint": "Caractères larges et étroits acceptés ; les espaces comptent.",
+    "folderNameExists": "Un dossier avec ce nom existe déjà.",
+    "folderCountLimit": "Limite de dossiers atteinte.",
+    "folderWidth": "Largeur {{width}}/{{max}}",
+    "folderCreate": "Créer",
+    "folderBadge": "Dossier",
+    "folderCourseCountUnit": "cours",
+    "deleteFolderTitle": "Supprimer le dossier « {{name}} »",
+    "deleteFolderEmptyDesc": "Ce dossier est vide. La suppression est irréversible.",
     "deleteFolderUngroupDesc": "Les cours restent dans « Mes cours », simplement non classés.",
+    "moveToFolder": "Déplacer vers un dossier",
+    "moveToFolderLabel": "Déplacer vers un dossier",
+    "ungrouped": "Non classés",
+    "searchResults": "Résultats de recherche",
+    "folderCreateFailed": "Échec de la création du dossier",
+    "folderRenameFailed": "Échec du renommage du dossier",
+    "folderDeleteFailed": "Échec de la suppression du dossier",
+    "moveFailed": "Échec du déplacement du cours",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
+    "emptyFolderHint": "Ce dossier est vide",
+    "emptyLibraryHint": "Aucun cours pour le moment — créez-en un ci-dessus, ou importez un cours.",
+    "folderNameEmpty": "Le nom du dossier ne peut pas être vide",
+    "deleteFolderOnly": "Supprimer le dossier uniquement",
     "deleteFolderAndCourses": "Supprimer le dossier et {{count}} cours",
     "deleteFolderAndCourses_other": "Supprimer le dossier et {{count}} cours",
     "deleteFolderConfirmRemove": "Cela supprime le dossier et ses cours, y compris l'historique des discussions.",
-    "deleteFolderEmptyDesc": "Ce dossier est vide. La suppression est irréversible.",
-    "deleteFolderOnly": "Supprimer le dossier uniquement",
-    "deleteFolderTitle": "Supprimer le dossier « {{name}} »",
-    "emptyFolderHint": "Ce dossier est vide",
-    "emptyLibraryHint": "Aucun cours pour le moment — créez-en un ci-dessus, ou importez un cours.",
-    "folderBadge": "Dossier",
-    "folderCountLimit": "Limite de dossiers atteinte.",
-    "folderCourseCountUnit": "cours",
-    "folderCreate": "Créer",
-    "folderCreateFailed": "Échec de la création du dossier",
-    "folderDeleteFailed": "Échec de la suppression du dossier",
-    "folderNameEmpty": "Le nom du dossier ne peut pas être vide",
-    "folderNameExists": "Un dossier avec ce nom existe déjà.",
-    "folderNameHint": "Caractères larges et étroits acceptés ; les espaces comptent.",
-    "folderNameLabel": "Nom du dossier",
-    "folderNamePlaceholder": "Ex : Mathématiques, Anglais, Cours principaux",
-    "folderRenameFailed": "Échec du renommage du dossier",
-    "folderWidth": "Largeur {{width}}/{{max}}",
-    "moveFailed": "Échec du déplacement du cours",
-    "moveToFolder": "Déplacer vers un dossier",
-    "moveToFolderLabel": "Déplacer vers un dossier",
-    "newFolderDesc": "Organisez les cours par sujet pour un accès plus facile.",
-    "newFolderInline": "Nouveau dossier",
-    "newFolderTitle": "Nouveau dossier",
-    "searchResults": "Résultats de recherche",
-    "ungrouped": "Non classés",
     "notFound": "Cours introuvable",
     "notFoundDesc": "Ce cours n’existe pas ou a été supprimé.",
     "loadUnavailable": "Impossible de charger ce cours",
     "loadUnavailableDesc": "Le cours n'a pas pu être récupéré. Vérifiez votre accès ou réessayez.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Retour à l’accueil",
     "runOutlining": "Création du plan…",
     "runAwaitingConfirmation": "En attente de confirmation",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "Vous pouvez envoyer jusqu’à 5 supports de cours",
     "courseMaterialTotalSizeLimit": "La taille totale des supports de cours doit rester sous 150 Mo",
     "unsupportedCourseMaterial": "{{parser}} ne prend pas en charge ce type de fichier. Formats pris en charge : {{formats}}",
+    "courseMaterialSizeLimit": "Documents, présentations, tableurs, images et texte brut, jusqu’à 50 Mo (les formats acceptés dépendent de l’extracteur choisi)",
     "unsupportedMaterialFormat": "Ce format n’est pas pris en charge par l’extracteur actuel. Changez d’extracteur ou choisissez un autre fichier.",
     "materialQuotaExceeded": "Votre espace de stockage des supports est plein. Supprimez des supports et réessayez.",
     "materialUploadFailed": "Échec de l'envoi de {{name}}. Veuillez réessayer.",
@@ -1353,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "Lecteur intégré"
     },
     "modelCount": "modèles",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "Utiliser la personnalité de l’agent comme consigne de voix",
     "voxcpmUnavailable": "Indisponible",
     "voxcpmClone": "Cloner",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "Le moteur actuel ne prend pas en charge le clonage",
     "voxcpmNoCustomVoices": "Aucune voix personnalisée pour l’instant",
     "voxcpmCloneSaveOnly": "Enregistrée uniquement pour ce moteur",
@@ -1833,7 +1884,11 @@
       "applyTitle": "Utiliser la configuration recommandée de cette offre ?",
       "applyBody": "{{name}} recommande ses propres modèles pour ces étapes. Les utiliser remplace ce que chacune utilise actuellement, défauts du serveur compris :",
       "applyKeep": "Garder ma configuration",
-      "applyRecommended": "Utiliser la configuration recommandée"
+      "applyRecommended": "Utiliser la configuration recommandée",
+      "enable": "Activer",
+      "statusDisabled": "Connecté (désactivé)",
+      "enableThisPlan": "Activer ce forfait",
+      "enableThisPlanHint": "Désactivé, ce forfait n'apparaît plus dans la configuration des modèles de cours."
     },
     "skills": {
       "nav": "Skills",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "La synthèse vocale native du navigateur ne prend pas en charge les fonctions audio de la piste de l’éditeur (écoute, régénération et sonorisation groupée). Choisissez un fournisseur de synthèse vocale géré pour produire et gérer l’audio réplique par réplique.",
     "courseModels": {
-      "nav": "Configuration des modèles de cours"
+      "nav": "Configuration des modèles de cours",
+      "mainModel": "Modèle principal",
+      "mainModelHint": "Les étapes qui suivent le modèle principal partagent ce modèle ; cliquez sur une carte pour personnaliser une étape",
+      "mainModelTooltip": "Toutes les étapes qui suivent le modèle principal utilisent ce modèle. Cliquez sur une carte du pipeline pour épingler un modèle spécifique pour cette étape (une route d'étape au niveau utilisateur, en dessous du MODEL_ROUTES de l'opérateur). Les sous-étapes plus fines se règlent dans l'inspecteur de la carte.",
+      "noProviderHint": "Aucun modèle de langue configuré — configurez-en un dans Services de modèles",
+      "followMainline": "Suivre le principal",
+      "followParent": "Suivre le parent",
+      "restoreFollow": "Restaurer le suivi du principal",
+      "stopped": "Désactivé",
+      "loop": "boucle",
+      "parallel": "parallèle",
+      "visionSupported": "Vision prise en charge",
+      "modelSource": "Source du modèle",
+      "mainlineUnset": "Non spécifié",
+      "pickModel": "Choisir un modèle",
+      "pickProvider": "Choisir un service",
+      "optionInvalid": "Indisponible",
+      "subStagesTitle": "Sous-étapes",
+      "subStages": {
+        "title": "Génération du titre",
+        "slide": "Diapositives",
+        "quiz": "Quiz",
+        "interactive": "Script interactif",
+        "pbl": "Scénario PBL"
+      },
+      "servicesAndModels": "Service et modèle",
+      "searchService": "Service de recherche",
+      "parseService": "Service d'analyse",
+      "asrTranscribe": "Transcription vocale",
+      "aiIllustration": "Illustrations IA",
+      "aiVideo": "Vidéo IA",
+      "stations": {
+        "docParse": "Analyse des documents",
+        "webResearch": "Recherche web",
+        "outline": "Planification du plan",
+        "agents": "Profils d'agents",
+        "sceneContent": "Contenu de la scène",
+        "sceneActions": "Actions de la scène",
+        "tts": "Synthèse vocale",
+        "media": "Génération de médias",
+        "interaction": "Interaction en classe",
+        "desc": {
+          "doc-parse": "Les supports du cours téléversés (documents, diapositives, audio/vidéo) sont analysés en texte ; l'audio et la vidéo sont transcrits automatiquement.",
+          "web-research": "Recherche sur le web du matériel complémentaire selon la demande du cours ; les requêtes sont reformulées par un petit LLM.",
+          "outline": "Comprend la demande et les supports pour produire le titre du cours et les plans par scène (revus par un humain).",
+          "agents": "Génère les profils des agents enseignant et élève (personnalité, avatar, voix).",
+          "scene-content": "Génère le contenu diapositives, quiz, interactions et PBL par scène — l'étape LLM la plus lourde du pipeline.",
+          "scene-actions": "Complète la narration et les actions pédagogiques de chaque scène pour alimenter la synthèse vocale et le déroulé en classe.",
+          "tts": "Synthétise la narration en voix d'enseignant/élève (par scène, en série).",
+          "media": "Résout les emplacements image/vidéo du contenu généré, en parallèle de la boucle par scène.",
+          "interaction": "Le runtime de la classe après génération : chat multi-agent, runtime PBL et notation des quiz."
+        }
+      },
+      "mediaEnableNeedsSetup": "Configurez d'abord une clé API dans Services de modèles ou activez un Token Plan."
     },
     "addNewModel": "Nouveau modèle",
     "addNewModelDescription": "Ajouter une nouvelle configuration de modèle",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "Diffusion en continu",
       "tools": "Outils",
-      "vision": "Vision"
+      "vision": "Vision",
+      "thinking": "Réflexion"
     },
     "claudeSearchModel": "Modèle de recherche",
     "claudeSearchModelHint": "Le modèle Claude qui effectue les recherches web et résume les résultats.",
@@ -1910,6 +2019,7 @@
     "deleteModel": "Supprimer",
     "deleteProvider": "Supprimer le fournisseur",
     "deleteProviderConfirm": "Voulez-vous vraiment supprimer ce fournisseur ?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Analyse des documents",
     "doubaoAccessKey": "Clé d’accès",
     "doubaoAppId": "Identifiant d’application",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "Le serveur n'a pas confirmé l'importation."
       }
     },
+    "model": "Configuration du modèle",
+    "save": "Enregistrer",
+    "providerTypes": {
+      "openai": "Protocole OpenAI",
+      "azure": "Azure OpenAI",
+      "anthropic": "Protocole Claude",
+      "google": "Protocole Gemini",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "Recherche web",
+    "addProvider": "Ajouter",
+    "addModel": "Ajouter",
+    "fetch": "Récupérer",
+    "contextWindow": "Contexte",
+    "outputWindow": "Sortie",
+    "providerNameRequired": "Veuillez saisir le nom du fournisseur",
+    "providerIcon": "URL de l’icône du fournisseur",
+    "requiresApiKey": "Nécessite une clé d’API",
+    "addCustomTTSProvider": "Ajouter un fournisseur de synthèse vocale personnalisé",
+    "addCustomASRProvider": "Ajouter un fournisseur de reconnaissance vocale personnalisé",
+    "addCustomAudioProviderDescription": "Ajouter un fournisseur audio personnalisé compatible OpenAI",
+    "customVoices": "Voix",
+    "voiceIdPlaceholder": "Identifiant de la voix (par exemple alloy)",
+    "voiceNamePlaceholder": "Nom affiché",
+    "addVoice": "Ajouter",
+    "modelNamePlaceholder": "Facultatif",
+    "defaultModelHint": "Nom du modèle envoyé dans les requêtes API (par exemple kokoro, tts-1)",
+    "noVoicesAdded": "Aucune voix ajoutée pour l’instant. Ajoutez-en ci-dessous pour pouvoir en attribuer une à chaque agent.",
+    "noModelsAdded": "Aucun modèle ajouté pour l’instant. Ajoutez-en ci-dessous pour activer la sélection de modèle.",
+    "noModelsWarning": "Veuillez ajouter au moins un modèle ci-dessous avant d’utiliser ce fournisseur.",
+    "cannotDeleteBuiltIn": "Impossible de supprimer un fournisseur intégré",
+    "resetSuccess": "Configuration par défaut rétablie",
+    "saveSuccess": "Paramètres enregistrés",
+    "saveFailed": "Échec de l’enregistrement des paramètres, veuillez réessayer",
+    "modelIdRequired": "Veuillez saisir l’identifiant du modèle",
+    "modelName": "Nom affiché",
+    "modelCapabilities": "Capacités",
+    "advancedSettings": "Paramètres avancés",
+    "contextWindowLabel": "Fenêtre de contexte",
+    "contextWindowPlaceholder": "par exemple, 128000",
+    "outputWindowLabel": "Jetons de sortie maximum",
+    "outputWindowPlaceholder": "par exemple, 4096",
+    "enterCustomBaseUrl": "Saisissez une URL de base personnalisée",
+    "voxcpmBackend": "Moteur",
+    "voxcpmBaseUrlPending": "Saisissez une URL de base pour générer l’URL de la requête",
+    "voxcpmAutoVoiceNoPreview": "La voix automatique est générée à partir du contexte de l’agent et ne peut pas être écoutée directement",
+    "voxcpmBaseUrlRequired": "Saisissez d’abord une URL de base VoxCPM",
+    "ttsTestText": "Texte de test de la synthèse vocale",
+    "asrResult": "Résultat de la reconnaissance",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "Sources de recherche Baidu",
+    "baiduSubSourcesDescription": "Choisissez au moins une source Baidu à interroger.",
+    "viewDocs": "Documentation de l’API",
+    "optional": "Facultatif",
+    "alidocmindAccessKeyId": "Identifiant de clé d’accès",
+    "alidocmindAccessKeySecret": "Secret de clé d’accès",
+    "enableThisProvider": "Activer ce service",
+    "enableThisProviderHint": "Désactivé, ce service n'apparaît plus dans la configuration des modèles de cours.",
     "serverConfiguredAddOwn": "Pour utiliser vos propres identifiants, ajoutez un fournisseur distinct.",
     "webFetchSettings": "Récupération web",
     "webFetchHint": "Choisissez comment lire les pages web. Les services hébergés reçoivent les URL publiques autorisées dans la session. Les résultats restent non fiables et aucun autre lecteur n’est utilisé en cas d’échec.",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "Open courses",
     "courseTabClose": "Close tab: {{name}}",
     "courseTabRunning": "Generating",
-    "foldersUnavailable": "Les dossiers ne sont pas disponibles dans cette version"
+    "foldersUnavailable": "Les dossiers ne sont pas disponibles dans cette version",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Profil",
@@ -2461,12 +2649,8 @@
     "provider": "Fournisseur",
     "voice": "Voix",
     "speed": "Vitesse",
-    "language": "Langue"
-  },
-  "accessCode": {
-    "title": "Saisissez le code d’accès",
-    "placeholder": "Code d’accès",
-    "error": "Code d’accès invalide. Veuillez réessayer."
+    "language": "Langue",
+    "model": "Modèle"
   },
   "proMode": {
     "attach": "Joindre un support",
@@ -2486,6 +2670,11 @@
     "launchPlaceholder": "Décrivez l'expérience d'apprentissage que vous souhaitez créer",
     "launchSend": "Lancer la création",
     "mentionCourseOrMaterial": "Mentionner une classe ou un document de la base de connaissances"
+  },
+  "accessCode": {
+    "title": "Saisissez le code d’accès",
+    "placeholder": "Code d’accès",
+    "error": "Code d’accès invalide. Veuillez réessayer."
   },
   "workbench": {
     "tool": {

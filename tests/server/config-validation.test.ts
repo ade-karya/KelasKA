@@ -240,6 +240,32 @@ describe('parseModelString — request-derived strings never warn', () => {
     }
   });
 
+  it('normalizes CLI slash forms to provider:model (classic legacyRequest path)', async () => {
+    const { parseModelString } = await import('@/lib/ai/providers');
+
+    expect(parseModelString('opencode/muse-spark-1.3-contributor-free')).toEqual({
+      providerId: 'opencode',
+      modelId: 'muse-spark-1.3-contributor-free',
+    });
+    expect(parseModelString('opencode-go/gpt-6-luna')).toEqual({
+      providerId: 'opencode-go',
+      modelId: 'gpt-6-luna',
+    });
+    expect(parseModelString('OpenCode/Big-Pickle')).toEqual({
+      providerId: 'opencode',
+      modelId: 'Big-Pickle',
+    });
+    // Bentuk kolon tetap utama; bare id berslash milik provider lain tak tersentuh.
+    expect(parseModelString('opencode:big-pickle')).toEqual({
+      providerId: 'opencode',
+      modelId: 'big-pickle',
+    });
+    expect(parseModelString('Qwen/Qwen3-VL-32B-Instruct')).toEqual({
+      providerId: 'openai',
+      modelId: 'Qwen/Qwen3-VL-32B-Instruct',
+    });
+  });
+
   it('warnBareModelIdDeprecation dedupes per unique config-site id', async () => {
     vi.resetModules();
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});

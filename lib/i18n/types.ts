@@ -2,7 +2,7 @@ import { supportedLocales } from './locales';
 
 export type Locale = (typeof supportedLocales)[number]['code'];
 
-export const defaultLocale: Locale = 'zh-CN';
+export const defaultLocale: Locale = 'id-ID';
 
 /** A supported locale code exactly as given, or undefined for anything else. */
 export function supportedLocaleOf(value: unknown): Locale | undefined {

@@ -52,6 +52,14 @@ interface Props {
   readonly onBack?: () => void;
 }
 
+/**
+ * List separator for joined display names: the CJK enumeration comma for
+ * zh locales, ", " everywhere else (including id-ID).
+ */
+function listSeparator(locale: string): string {
+  return locale.toLowerCase().startsWith('zh') ? '、' : ', ';
+}
+
 export interface CompletionReportViewModel {
   readonly totalMicrotasks: number;
   readonly completedMicrotasks: number;
@@ -300,7 +308,7 @@ function ScenarioCompletionBody({
   readonly stats: ScenarioCompletionStats;
   readonly report: CompletionReportViewModel;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const cov = stats.goalCoverage;
   return (
     <>
@@ -394,7 +402,7 @@ function ScenarioCompletionBody({
       {stats.characterNames.length > 0 && (
         <p className="mt-3 px-1 text-xs text-slate-400">
           {t('pbl.v2.completion.scenario.castLabel', {
-            names: stats.characterNames.join('、'),
+            names: stats.characterNames.join(listSeparator(locale)),
           })}
         </p>
       )}
@@ -632,7 +640,7 @@ function StageReviewItem({
   readonly detail: StageDetail;
   readonly index: number;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const hasContent =
     detail.conceptsInStage.length > 0 || detail.submissionsInStage > 0 || detail.isCoreStage;
 
@@ -663,7 +671,7 @@ function StageReviewItem({
                     {c}
                   </span>
                   {ci < detail.conceptsInStage.length - 1 && (
-                    <span className="text-slate-500">{'、'}</span>
+                    <span className="text-slate-500">{listSeparator(locale)}</span>
                   )}
                 </span>
               ))}

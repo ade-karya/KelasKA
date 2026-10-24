@@ -13,7 +13,7 @@ import type {
   StreamTextResult,
 } from 'ai';
 import { createLogger } from '@/lib/logger';
-import { PROVIDERS } from './providers';
+import { OPENCODE_CLI_THINKING, PROVIDERS } from './providers';
 import { thinkingContext } from './thinking-context';
 import { isEmptyLlmOutput, shouldFallbackFor, logFallbackFired } from '@/lib/server/llm-fallback';
 import {
@@ -25,7 +25,7 @@ import {
   type FallbackLoader,
   type FallbackModel,
 } from '@/lib/ai/model-fallbacks';
-import { getModelMetadataKey } from './model-metadata';
+import { getModelMetadataKey, getProbedThinkingCapability } from './model-metadata';
 import { getCanonicalModelId } from './model-aliases';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 import {
@@ -162,13 +162,31 @@ function buildThinkingProviderOptions(
   const info = providerId
     ? MODEL_THINKING_MAP.get(getModelMetadataKey(providerId, lookupModelId))
     : UNIQUE_MODEL_THINKING_MAP.get(lookupModelId);
-  if (!info?.thinking) return undefined; // model has no thinking capability
-  const thinking = info.thinking;
+  // Probed (fetched) model ids are not in the static catalog map — fall back
+  // to family-pattern inference so their thinking control actually takes
+  // effect at request time, not just in the settings UI.
+  // Id CLI live yang belum terdaftar di katalog statis (installer menulisnya
+  // ke OPENCODE_MODELS dari `opencode models`, settings classic menampilkannya
+  // dengan thinking generik) memakai fallback yang sama di sini — tanpa ini
+  // varian thinking classic untuk model live baru diam-diam diabaikan saat run.
+  const thinking =
+    info?.thinking ??
+    (providerId ? getProbedThinkingCapability(providerId, lookupModelId) : undefined) ??
+    (providerId === 'opencode' || providerId === 'opencode-go' ? OPENCODE_CLI_THINKING : undefined);
+  if (!thinking) return undefined; // model has no thinking capability
   if (thinking.control === 'none') return undefined;
 
   const mode = getThinkingMode(config);
 
   switch (thinking.requestAdapter) {
+    case 'opencode': {
+      // Transport CLI tidak punya wire-param reasoning: effort diteruskan
+      // sebagai providerOptions `opencode.thinkingEffort`, dibaca
+      // OpencodeCliLanguageModel menjadi instruksi prompt (buildThinkingHints).
+      const effort = pickThinkingEffort(thinking, config);
+      return effort ? { opencode: { thinkingEffort: effort } } : undefined;
+    }
+
     case 'openai': {
       const effort = pickThinkingEffort(thinking, config);
       return effort ? { openai: { reasoningEffort: effort } } : undefined;

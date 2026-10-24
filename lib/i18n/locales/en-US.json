@@ -7,11 +7,17 @@
     "errorPrefix": "Error: ",
     "loadingClassroom": "Loading classroom...",
     "retry": "Retry",
-    "close": "Close"
+    "close": "Close",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
-    "greetingWithName": "Hi, {{name}}"
+    "greetingWithName": "Hi, {{name}}",
+    "vocationalTestBadge": "Beta",
+    "vocationalTestLabel": "Vocational task",
+    "vocationalTestTooltip": "Submit a vocational hands-on training test from the current input box",
+    "footer": "Artificial Intelligence Class"
   },
   "toolbar": {
     "pdfParser": "Parser",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "Classroom chat requires a model that supports tool calling. Select one for the classroom slot in Settings → Course Model Config, or contact your administrator if this setting is managed.",
       "geminiNativeRequired": "Gemini classroom interaction requires Google native. Add Google (google preset) in Settings → Model Services, then select it for “Classroom” in Course Model Config. If this configuration is managed, contact your administrator.",
       "emptyAgentResponses": "Agents returned empty responses; discussion stopped. Try again or check your model settings.",
-      "streamInterrupted": "Stream ended unexpectedly; discussion didn't complete. Please try again."
+      "streamInterrupted": "Stream ended unexpectedly; discussion didn't complete. Please try again.",
+      "rateLimited": "The model is getting too many requests right now. Please wait a moment and try again.",
+      "providerUnavailable": "The model service is temporarily unavailable. Please try again shortly."
     },
     "elementReference": {
       "whiteboardChanged": "The referenced whiteboard element has changed or is no longer available. Select it again or remove the reference before sending.",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "Spotlight",
       "laser": "Laser",
+      "play_video": "Play",
       "wb_open": "Open Whiteboard",
       "wb_draw_text": "Whiteboard Text",
       "wb_draw_shape": "Whiteboard Shape",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "Whiteboard Formula",
       "wb_draw_table": "Whiteboard Table",
       "wb_draw_line": "Whiteboard Line",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Clear Whiteboard",
       "wb_delete": "Delete Element",
       "wb_close": "Close Whiteboard",
@@ -296,6 +307,17 @@
       "result": "Completed",
       "error": "Error"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Ready to learn together?",
@@ -506,7 +528,16 @@
       "sendBackward": "Send backward",
       "alignTop": "Align top",
       "alignMiddle": "Align middle",
-      "alignBottom": "Align bottom"
+      "alignBottom": "Align bottom",
+      "alignCenterBoth": "Center both",
+      "setLink": "Set link",
+      "ruler": "Ruler",
+      "grid": "Grid",
+      "gridNone": "None",
+      "gridSmall": "Small",
+      "gridMedium": "Medium",
+      "gridLarge": "Large",
+      "resetPage": "Reset page"
     },
     "background": {
       "label": "Background",
@@ -747,6 +778,12 @@
     "dock": {
       "elementRefHint": "Element references — pick elements to send with your next message",
       "globalTools": "Global tools"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -808,7 +845,11 @@
     "aiGrading": "AI is grading...",
     "aiGradingWait": "Please wait, analyzing your answers",
     "quizReport": "Quiz Report",
-    "retry": "Retry"
+    "retry": "Retry",
+    "explainOnWhiteboard": "Explain on Whiteboard",
+    "explainAllOnWhiteboard": "Walk through my mistakes on the whiteboard",
+    "explainAllCta": "Explain step by step",
+    "explainHint": "The AI teacher opens the whiteboard and writes each reasoning step one by one."
   },
   "roundtable": {
     "teacher": "TEACHER",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "Submission Feedback",
         "strengths": "What went well",
-        "improvements": "Next steps"
+        "improvements": "Next steps",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "The premise introduced during prep — kept here so you can revisit it anytime in the scene.",
@@ -1102,6 +1145,8 @@
     "folderRenameFailed": "Failed to rename folder",
     "folderDeleteFailed": "Failed to delete folder",
     "moveFailed": "Failed to move course",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "This folder is empty",
     "emptyLibraryHint": "No courses yet — create one above, or import a course.",
     "folderNameEmpty": "Folder name cannot be empty",
@@ -1113,6 +1158,8 @@
     "notFoundDesc": "This course does not exist, or it has been deleted.",
     "loadUnavailable": "Couldn't load this course",
     "loadUnavailableDesc": "The course could not be retrieved. Check your access or try again.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Back to home",
     "runOutlining": "Outlining…",
     "runAwaitingConfirmation": "Waiting for confirmation",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "You can upload up to 5 course material files",
     "courseMaterialTotalSizeLimit": "Total course material size must be under 150MB",
     "unsupportedCourseMaterial": "{{parser}} can't read this file type. Supported: {{formats}}",
+    "courseMaterialSizeLimit": "Documents, slides, spreadsheets, images, and plain text — up to 50MB (accepted formats depend on the selected extractor)",
     "unsupportedMaterialFormat": "This format isn't supported by the current extractor. Switch the extractor or pick a different file.",
     "materialQuotaExceeded": "Your material storage is full. Delete some materials and try again.",
     "materialUploadFailed": "Uploading {{name}} failed. Please try again.",
@@ -1353,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "Built-in reader"
     },
     "modelCount": "models",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "Use the agent persona as the voice prompt",
     "voxcpmUnavailable": "Unavailable",
     "voxcpmClone": "Clone",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "Current backend does not support cloning",
     "voxcpmNoCustomVoices": "No custom voices yet",
     "voxcpmCloneSaveOnly": "Saved only for this backend",
@@ -1833,7 +1884,11 @@
       "applyTitle": "Use this plan’s recommended setup?",
       "applyBody": "{{name}} recommends its own models for these stages. Using them replaces what each one uses now, the server's defaults included:",
       "applyKeep": "Keep my current setup",
-      "applyRecommended": "Use plan’s recommended setup"
+      "applyRecommended": "Use plan’s recommended setup",
+      "enable": "Enable",
+      "statusDisabled": "Connected (off)",
+      "enableThisPlan": "Enable this plan",
+      "enableThisPlanHint": "When off, this plan no longer appears in course model configuration."
     },
     "skills": {
       "nav": "Skills",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "Browser-native TTS doesn't support the editor timeline's audio features (preview, regenerate, and bulk voiceover). Switch to a managed TTS provider to generate and manage per-line audio.",
     "courseModels": {
-      "nav": "Course Model Config"
+      "nav": "Course Model Config",
+      "mainModel": "Main model",
+      "mainModelHint": "Stages that follow the mainline share this model; click a card to override a stage",
+      "mainModelTooltip": "Every stage set to follow the mainline uses this model. Click a pipeline card to pin a specific model for that stage (a user-level stage route, below the server operator's MODEL_ROUTES). Finer-grained sub-stages live in the card's inspector.",
+      "noProviderHint": "No language model configured yet — set one up in Model Services",
+      "followMainline": "Follow mainline",
+      "followParent": "Follow parent",
+      "restoreFollow": "Restore follow mainline",
+      "stopped": "Disabled",
+      "loop": "loop",
+      "parallel": "parallel",
+      "visionSupported": "Vision supported",
+      "modelSource": "Model source",
+      "mainlineUnset": "Not specified",
+      "pickModel": "Pick a model",
+      "pickProvider": "Pick a service",
+      "optionInvalid": "Unavailable",
+      "subStagesTitle": "Sub-stages",
+      "subStages": {
+        "title": "Title generation",
+        "slide": "Slides",
+        "quiz": "Quiz",
+        "interactive": "Interactive script",
+        "pbl": "PBL scenario"
+      },
+      "servicesAndModels": "Service & model",
+      "searchService": "Search service",
+      "parseService": "Parsing service",
+      "asrTranscribe": "Speech transcription",
+      "aiIllustration": "AI illustrations",
+      "aiVideo": "AI video",
+      "stations": {
+        "docParse": "Document parsing",
+        "webResearch": "Web research",
+        "outline": "Outline planning",
+        "agents": "Agent profiles",
+        "sceneContent": "Scene content",
+        "sceneActions": "Scene actions",
+        "tts": "Text-to-speech",
+        "media": "Media generation",
+        "interaction": "Classroom interaction",
+        "desc": {
+          "doc-parse": "Uploaded course materials (docs, slides, audio/video) are parsed into text; audio and video are transcribed automatically.",
+          "web-research": "Searches the web for supplementary material based on the course request; search queries are rewritten by a lightweight LLM.",
+          "outline": "Understands the request and materials to produce the course title and per-scene outlines (human-reviewable).",
+          "agents": "Generates the profiles of teacher and student agents (personas, avatars, voices).",
+          "scene-content": "Generates slide, quiz, interactive and PBL content per scene — the heaviest LLM stage of the pipeline.",
+          "scene-actions": "Completes narration and teaching actions for each scene, feeding speech synthesis and classroom play.",
+          "tts": "Synthesizes narration into teacher/student voices (per scene, serial).",
+          "media": "Fulfills the image/video placeholders in the generated content, in parallel with the per-scene loop.",
+          "interaction": "The classroom runtime after generation: multi-agent chat, the PBL runtime and quiz grading."
+        }
+      },
+      "mediaEnableNeedsSetup": "Configure an API key in Model Services or enable a Token Plan first, then turn this on."
     },
     "addNewModel": "New Model",
     "addNewModelDescription": "Add a new model configuration",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "Streaming",
       "tools": "Tools",
-      "vision": "Vision"
+      "vision": "Vision",
+      "thinking": "Thinking"
     },
     "claudeSearchModel": "Search Model",
     "claudeSearchModelHint": "The Claude model that runs web searches and summarizes results.",
@@ -1910,6 +2019,7 @@
     "deleteModel": "Delete",
     "deleteProvider": "Delete Provider",
     "deleteProviderConfirm": "Are you sure you want to delete this provider?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Document Parsing",
     "doubaoAccessKey": "Access Key",
     "doubaoAppId": "App ID",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "The server did not confirm that it was imported."
       }
     },
+    "model": "Model Configuration",
+    "save": "Save",
+    "providerTypes": {
+      "openai": "OpenAI Protocol",
+      "azure": "Azure OpenAI",
+      "anthropic": "Claude Protocol",
+      "google": "Gemini Protocol",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "Web Search",
+    "addProvider": "Add",
+    "addModel": "Add",
+    "fetch": "Fetch",
+    "contextWindow": "Context",
+    "outputWindow": "Output",
+    "providerNameRequired": "Please enter provider name",
+    "providerIcon": "Provider Icon URL",
+    "requiresApiKey": "Requires API Key",
+    "addCustomTTSProvider": "Add Custom TTS Provider",
+    "addCustomASRProvider": "Add Custom ASR Provider",
+    "addCustomAudioProviderDescription": "Add a custom OpenAI-compatible audio provider",
+    "customVoices": "Voices",
+    "voiceIdPlaceholder": "Voice ID (e.g. alloy)",
+    "voiceNamePlaceholder": "Display Name",
+    "addVoice": "Add",
+    "modelNamePlaceholder": "Optional",
+    "defaultModelHint": "Model name sent in API requests (e.g. kokoro, tts-1)",
+    "noVoicesAdded": "No voices added yet. Add voices below for per-agent selection.",
+    "noModelsAdded": "No models added yet. Add models below to enable model selection.",
+    "noModelsWarning": "Please add at least one model below before using this provider.",
+    "cannotDeleteBuiltIn": "Cannot delete built-in provider",
+    "resetSuccess": "Successfully reset to default configuration",
+    "saveSuccess": "Settings saved",
+    "saveFailed": "Failed to save settings, please try again",
+    "modelIdRequired": "Please enter model ID",
+    "modelName": "Display Name",
+    "modelCapabilities": "Capabilities",
+    "advancedSettings": "Advanced Settings",
+    "contextWindowLabel": "Context Window",
+    "contextWindowPlaceholder": "e.g., 128000",
+    "outputWindowLabel": "Max Output Tokens",
+    "outputWindowPlaceholder": "e.g., 4096",
+    "enterCustomBaseUrl": "Enter custom Base URL",
+    "voxcpmBackend": "Backend",
+    "voxcpmBaseUrlPending": "Enter a Base URL to generate the request URL",
+    "voxcpmAutoVoiceNoPreview": "Auto Voice is generated from agent context and cannot be previewed directly",
+    "voxcpmBaseUrlRequired": "Enter a VoxCPM Base URL first",
+    "ttsTestText": "TTS Test Text",
+    "asrResult": "Recognition Result",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection. Free tier: ~5 GPU-min and ~3 ZeroGPU runs/day, reset 24h after first use.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video. Free tier: ~5 GPU-min and ~3 runs/day (1 video costs 2 runs: source image + animation); quota resets 24h after first use.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "Baidu Search Sources",
+    "baiduSubSourcesDescription": "Choose at least one Baidu source to query.",
+    "viewDocs": "API Docs",
+    "optional": "Optional",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "Enable this provider",
+    "enableThisProviderHint": "When off, this provider no longer appears in Course Model Config.",
     "serverConfiguredAddOwn": "To use your own credentials, add a separate provider.",
     "webFetchSettings": "Web Fetch",
     "webFetchHint": "Choose how web pages are read. Hosted readers receive session-approved public URLs. Results remain untrusted, and failures do not switch readers.",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "Open courses",
     "courseTabClose": "Close tab: {{name}}",
     "courseTabRunning": "Generating",
-    "foldersUnavailable": "Folders are not available in this build"
+    "foldersUnavailable": "Folders are not available in this build",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Profile",
@@ -2461,7 +2649,8 @@
     "provider": "Provider",
     "voice": "Voice",
     "speed": "Speed",
-    "language": "Language"
+    "language": "Language",
+    "model": "Model"
   },
   "proMode": {
     "attach": "Attach material",

@@ -7,11 +7,17 @@
     "errorPrefix": "Ошибка: ",
     "loadingClassroom": "Загрузка класса...",
     "retry": "Повторить",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
-    "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
-    "greetingWithName": "Привет, {{name}}"
+    "slogan": "Генеративное обучение в мультиагентном интерактивном классе",
+    "greetingWithName": "Привет, {{name}}",
+    "vocationalTestBadge": "Тестовая функция",
+    "vocationalTestLabel": "Учебное задание",
+    "vocationalTestTooltip": "Отправить практический тест профподготовки из текущего поля ввода",
+    "footer": "Класс искусственного интеллекта"
   },
   "toolbar": {
     "pdfParser": "Парсер",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "Для чата класса нужна модель с поддержкой вызова инструментов. Выберите такую модель для слота класса в разделе Настройки → Настройка моделей курса. Если этим параметром управляет администратор, обратитесь к нему.",
       "geminiNativeRequired": "Для общения с Gemini нужен нативный Google. Добавьте Google (пресет google) в Настройки → Сервисы моделей, затем выберите его для «Класс» в разделе «Настройка моделей курса». Если конфигурацией управляет администратор, обратитесь к нему.",
       "emptyAgentResponses": "Агенты вернули пустые ответы; обсуждение остановлено. Попробуйте ещё раз или проверьте настройки модели.",
-      "streamInterrupted": "Поток данных неожиданно прервался; обсуждение не завершено. Попробуйте ещё раз."
+      "streamInterrupted": "Поток данных неожиданно прервался; обсуждение не завершено. Попробуйте ещё раз.",
+      "rateLimited": "Модель сейчас получает слишком много запросов. Подождите немного и попробуйте ещё раз.",
+      "providerUnavailable": "Сервис модели временно недоступен. Попробуйте ещё раз чуть позже."
     },
     "elementReference": {
       "whiteboardChanged": "Элемент доски изменился или больше недоступен. Выберите его заново или удалите ссылку перед отправкой.",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "В центре внимания",
       "laser": "Указка",
+      "play_video": "Play",
       "wb_open": "Открыть доску",
       "wb_draw_text": "Текст на доске",
       "wb_draw_shape": "Фигура на доске",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "Формула на доске",
       "wb_draw_table": "Таблица на доске",
       "wb_draw_line": "Линия на доске",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Очистить доску",
       "wb_delete": "Удалить элемент",
       "wb_close": "Закрыть доску",
@@ -296,6 +307,17 @@
       "result": "Завершено",
       "error": "Ошибка"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Готовы учиться вместе?",
@@ -506,7 +528,16 @@
       "sendBackward": "Переместить назад",
       "alignTop": "Выровнять по верхнему краю",
       "alignMiddle": "Выровнять по центру",
-      "alignBottom": "Выровнять по нижнему краю"
+      "alignBottom": "Выровнять по нижнему краю",
+      "alignCenterBoth": "По центру по обеим осям",
+      "setLink": "Задать ссылку",
+      "ruler": "Линейка",
+      "grid": "Сетка",
+      "gridNone": "Нет",
+      "gridSmall": "Мелкая",
+      "gridMedium": "Средняя",
+      "gridLarge": "Крупная",
+      "resetPage": "Сбросить страницу"
     },
     "background": {
       "label": "Фон",
@@ -591,6 +622,12 @@
         "boundary": "For fine-grained edits use the editor; add / delete / reorder slides from the left nav.",
         "comingSoon": "More capabilities coming soon."
       },
+      "interactive": {
+        "emptyTitle": "Что нужно исправить на этой странице?",
+        "lead": "Опишите ошибку на этой интерактивной странице — например, кнопку, которая не реагирует, — и я исправлю только её, сохранив всё остальное.",
+        "placeholder": "Опишите ошибку на этой интерактивной странице…",
+        "boundary": "Я вношу точечные исправления на странице и не пересоздаю её целиком. Переключайте сцены через навигацию слева."
+      },
       "cap": {
         "content": {
           "label": "Regenerate the slide",
@@ -601,8 +638,8 @@
           "examples": "“Make it more conversational”, “Align with my canvas edits”"
         },
         "fixHtml": {
-          "examples": "«Кнопка запуска не работает», «Панели накладываются на мобильном»",
-          "label": "Исправить ошибку на странице"
+          "label": "Исправить ошибку на странице",
+          "examples": "«Кнопка запуска не работает», «Панели накладываются на мобильном»"
         },
         "elements": {
           "label": "Подправить элементы",
@@ -614,15 +651,9 @@
       "sessionUntitled": "Без названия",
       "sessionDelete": "Удалить",
       "sessionEmpty": "Нет истории",
+      "thinking": "Думаю…",
       "reasoning": "Рассуждение",
       "thought": "Думал",
-      "interactive": {
-        "boundary": "Я вношу точечные исправления на странице и не пересоздаю её целиком. Переключайте сцены через навигацию слева.",
-        "emptyTitle": "Что нужно исправить на этой странице?",
-        "lead": "Опишите ошибку на этой интерактивной странице — например, кнопку, которая не реагирует, — и я исправлю только её, сохранив всё остальное.",
-        "placeholder": "Опишите ошибку на этой интерактивной странице…"
-      },
-      "thinking": "Думаю…",
       "title": "Редактировать с ИИ"
     },
     "timeline": {
@@ -701,18 +732,18 @@
       "restored": "Восстановлено",
       "resume": "Вернуть"
     },
+    "fixHtml": {
+      "title": "Исправить интерактивную страницу",
+      "fixing": "Исправляю",
+      "fixed": "Исправлено",
+      "notFixed": "Не исправлено",
+      "editsCount": "Правок: {{count}}"
+    },
     "readCard": {
       "title": "Read slide content",
       "reading": "Reading",
       "done": "Read",
       "failed": "Not read"
-    },
-    "fixHtml": {
-      "editsCount": "Правок: {{count}}",
-      "fixed": "Исправлено",
-      "fixing": "Исправляю",
-      "notFixed": "Не исправлено",
-      "title": "Исправить интерактивную страницу"
     },
     "editElements": {
       "title": "Правка элементов",
@@ -747,6 +778,12 @@
     "dock": {
       "elementRefHint": "Ссылки на элементы — выберите элементы для следующего сообщения",
       "globalTools": "Общие инструменты"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -808,7 +845,11 @@
     "aiGrading": "AI проверяет...",
     "aiGradingWait": "Пожалуйста подождите, анализируем ваши ответы",
     "quizReport": "Результаты теста",
-    "retry": "Повторить"
+    "retry": "Повторить",
+    "explainOnWhiteboard": "Разобрать на доске",
+    "explainAllOnWhiteboard": "Разобрать мои ошибки на доске",
+    "explainAllCta": "Объяснить по шагам",
+    "explainHint": "ИИ-учитель открывает доску и записывает каждый шаг рассуждения по очереди."
   },
   "roundtable": {
     "teacher": "УЧИТЕЛЬ",
@@ -819,10 +860,10 @@
     "noSpeechDetected": "Речь не обнаружена, попробуйте ещё раз",
     "discussionEnded": "Обсуждение завершено",
     "qaEnded": "Вопросы и ответы завершены",
-    "softClosing": "Продолжить обсуждение",
     "thinking": "Размышляет",
     "yourTurn": "Ваша очередь",
     "stopDiscussion": "Завершить обсуждение",
+    "softClosing": "Продолжить обсуждение",
     "autoPlay": "Автовоспр.",
     "autoPlayOff": "Остановить",
     "speed": "Скорость",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "Отзыв на отправленное",
         "strengths": "Что получилось хорошо",
-        "improvements": "Над чем поработать"
+        "improvements": "Над чем поработать",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "Вводная из этапа подготовки — здесь её можно открыть в любой момент сцены.",
@@ -1014,7 +1057,6 @@
         "submissionsInStage": "Отправлено работ: {{count}}",
         "coreConceptGrasp": "Ключевая концепция «{{concept}}» — {{quality}}",
         "stageNoData": "Нет записанных результатов в этом этапе.",
-        "highlightsTitle": "Ваши достижения",
         "scenario": {
           "summary": "Вы прошли все {{acts}} акта этого сценария. Вот как прошла ролевая игра.",
           "whatYouDidWell": "Что вы сделали хорошо",
@@ -1038,6 +1080,7 @@
           "decisionScore": "Очки за решения: {{score}}",
           "castLabel": "Вы общались с: {{names}}"
         },
+        "highlightsTitle": "Ваши достижения",
         "highlight": {
           "independence": "Вы самостоятельно показали {{unlocks}}/{{total}} концепций — без подсказок. Отличное понимание.",
           "resilience": "На этапе «{{title}}» вы преодолели {{errors}} ошибок — настоящая стойкость.",
@@ -1102,6 +1145,8 @@
     "folderRenameFailed": "Не удалось переименовать папку",
     "folderDeleteFailed": "Не удалось удалить папку",
     "moveFailed": "Не удалось переместить курс",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "Эта папка пуста",
     "emptyLibraryHint": "Курсов пока нет — создайте выше или импортируйте курс.",
     "folderNameEmpty": "Название папки не может быть пустым",
@@ -1113,6 +1158,8 @@
     "notFoundDesc": "Этот курс не существует или был удалён.",
     "loadUnavailable": "Не удалось загрузить курс",
     "loadUnavailableDesc": "Не удалось получить курс. Проверьте доступ или попробуйте ещё раз.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "На главную",
     "runOutlining": "Составление плана…",
     "runAwaitingConfirmation": "Ожидает подтверждения",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "Можно загрузить до 5 файлов материалов курса",
     "courseMaterialTotalSizeLimit": "Общий размер материалов курса должен быть меньше 150 МБ",
     "unsupportedCourseMaterial": "{{parser}} не поддерживает этот тип файла. Поддерживаются: {{formats}}",
+    "courseMaterialSizeLimit": "Документы, презентации, таблицы, изображения, текст — до 50 МБ (список форматов зависит от выбранного парсера)",
     "unsupportedMaterialFormat": "Текущий парсер не поддерживает этот формат. Смените парсер или выберите другой файл.",
     "materialQuotaExceeded": "Хранилище материалов заполнено. Удалите часть материалов и повторите попытку.",
     "materialUploadFailed": "Не удалось загрузить {{name}}. Повторите попытку.",
@@ -1353,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "Встроенный сервис чтения"
     },
     "modelCount": "моделей",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "Использовать persona агента как голосовую подсказку",
     "voxcpmUnavailable": "Недоступно",
     "voxcpmClone": "Клон",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "Текущий бэкенд не поддерживает клонирование",
     "voxcpmNoCustomVoices": "Пользовательских голосов пока нет",
     "voxcpmCloneSaveOnly": "Для этого бэкенда доступно только сохранение",
@@ -1833,7 +1884,11 @@
       "applyTitle": "Использовать рекомендуемую настройку тарифа?",
       "applyBody": "{{name}} рекомендует свои модели для этих этапов. Их использование заменит то, что каждый этап использует сейчас, включая значения сервера по умолчанию:",
       "applyKeep": "Оставить мою настройку",
-      "applyRecommended": "Использовать рекомендуемую настройку"
+      "applyRecommended": "Использовать рекомендуемую настройку",
+      "enable": "Enable",
+      "statusDisabled": "Подключено (выключено)",
+      "enableThisPlan": "Включить этот тариф",
+      "enableThisPlanHint": "В выключенном состоянии тариф больше не отображается в настройке моделей курса."
     },
     "skills": {
       "nav": "Навыки",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "Встроенный в браузер TTS не поддерживает функции аудио на таймлайне редактора (прослушивание, повторная генерация и массовая озвучка). Переключитесь на управляемый TTS-провайдер, чтобы генерировать и управлять аудио для каждой строки.",
     "courseModels": {
-      "nav": "Настройка моделей курса"
+      "nav": "Настройка моделей курса",
+      "mainModel": "Основная модель",
+      "mainModelHint": "Этапы, следующие за основной моделью, используют её; нажмите на карточку, чтобы задать этап отдельно",
+      "mainModelTooltip": "Все этапы, следующие за основной моделью, используют её. Нажмите на карточку пайплайна, чтобы закрепить за этапом конкретную модель (пользовательский маршрут этапа с приоритетом ниже операторского MODEL_ROUTES). Более мелкие подэтапы настраиваются в инспекторе карточки.",
+      "noProviderHint": "Языковая модель ещё не настроена — настройте её в «Службах моделей»",
+      "followMainline": "Следовать основной",
+      "followParent": "Следовать родительскому этапу",
+      "restoreFollow": "Вернуть следование основной",
+      "stopped": "Отключено",
+      "loop": "цикл",
+      "parallel": "параллельно",
+      "visionSupported": "Поддерживает зрение",
+      "modelSource": "Источник модели",
+      "mainlineUnset": "Не указано",
+      "pickModel": "Выбрать модель",
+      "pickProvider": "Выбрать сервис",
+      "optionInvalid": "Недоступно",
+      "subStagesTitle": "Подэтапы",
+      "subStages": {
+        "title": "Генерация заголовка",
+        "slide": "Слайды",
+        "quiz": "Тест",
+        "interactive": "Интерактивный сценарий",
+        "pbl": "Сценарий PBL"
+      },
+      "servicesAndModels": "Служба и модель",
+      "searchService": "Служба поиска",
+      "parseService": "Служба разбора",
+      "asrTranscribe": "Расшифровка речи",
+      "aiIllustration": "ИИ-иллюстрации",
+      "aiVideo": "ИИ-видео",
+      "stations": {
+        "docParse": "Разбор документов",
+        "webResearch": "Веб-исследование",
+        "outline": "Планирование плана",
+        "agents": "Профили агентов",
+        "sceneContent": "Содержимое сцены",
+        "sceneActions": "Действия сцены",
+        "tts": "Синтез речи",
+        "media": "Генерация медиа",
+        "interaction": "Взаимодействие в классе",
+        "desc": {
+          "doc-parse": "Загружаемые материалы курса (документы, слайды, аудио/видео) разбираются в текст; аудио и видео транскрибируются автоматически.",
+          "web-research": "Ищет в вебе дополнительные материалы по требованиям курса; поисковые запросы переписываются лёгкой LLM.",
+          "outline": "Понимает запрос и материалы, создаёт заголовок курса и планы по сценам (с возможностью проверки человеком).",
+          "agents": "Создаёт профили агентов преподавателя и ученика (личность, аватар, голос).",
+          "scene-content": "Генерирует контент слайдов, тестов, интерактивов и PBL по сценам — самый тяжёлый LLM-этап в конвейере.",
+          "scene-actions": "Дополняет повествование и учебные действия в каждой сцене, питая синтез речи и воспроизведение занятия.",
+          "tts": "Синтезирует повествование в голоса учителя/ученика (по сценам, последовательно).",
+          "media": "Заполняет заглушки изображений/видео в сгенерированном контенте параллельно циклу по сценам.",
+          "interaction": "Рантайм класса после генерации: мультиагентный чат, рантайм PBL и проверка тестов."
+        }
+      },
+      "mediaEnableNeedsSetup": "Сначала настройте API-ключ в «Службах моделей» или включите Token Plan."
     },
     "addNewModel": "Новая модель",
     "addNewModelDescription": "Добавить конфигурацию новой модели",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "Стриминг",
       "tools": "Инструменты",
-      "vision": "Видение"
+      "vision": "Видение",
+      "thinking": "Рассуждение"
     },
     "claudeSearchModel": "Модель поиска",
     "claudeSearchModelHint": "Модель Claude, которая выполняет веб-поиск и обобщает результаты.",
@@ -1910,6 +2019,7 @@
     "deleteModel": "Удалить",
     "deleteProvider": "Удалить провайдера",
     "deleteProviderConfirm": "Вы уверены, что хотите удалить этого провайдера?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Обработка документов",
     "doubaoAccessKey": "Access Key",
     "doubaoAppId": "App ID",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "Сервер не подтвердил импорт."
       }
     },
+    "model": "Настройка модели",
+    "save": "Сохранить",
+    "providerTypes": {
+      "openai": "Протокол OpenAI",
+      "azure": "Azure OpenAI",
+      "anthropic": "Протокол Claude",
+      "google": "Протокол Gemini",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "Веб-поиск",
+    "addProvider": "Добавить",
+    "addModel": "Добавить",
+    "fetch": "Получить",
+    "contextWindow": "Контекст",
+    "outputWindow": "Вывод",
+    "providerNameRequired": "Введите название провайдера",
+    "providerIcon": "URL иконки провайдера",
+    "requiresApiKey": "Требуется API-ключ",
+    "addCustomTTSProvider": "Добавить TTS-провайдер",
+    "addCustomASRProvider": "Добавить ASR-провайдер",
+    "addCustomAudioProviderDescription": "Добавить OpenAI-совместимый аудио-провайдер",
+    "customVoices": "Голоса",
+    "voiceIdPlaceholder": "ID голоса (напр. alloy)",
+    "voiceNamePlaceholder": "Отображаемое имя",
+    "addVoice": "Добавить",
+    "modelNamePlaceholder": "Необязательно",
+    "defaultModelHint": "Имя модели в API-запросах (напр. kokoro, tts-1)",
+    "noVoicesAdded": "Голоса ещё не добавлены. Добавьте ниже для выбора в агентах.",
+    "noModelsAdded": "Модели ещё не добавлены. Добавьте ниже для выбора модели.",
+    "noModelsWarning": "Добавьте хотя бы одну модель ниже перед использованием этого провайдера.",
+    "cannotDeleteBuiltIn": "Нельзя удалить встроенного провайдера",
+    "resetSuccess": "Настройки по умолчанию восстановлены",
+    "saveSuccess": "Настройки сохранены",
+    "saveFailed": "Не удалось сохранить настройки, попробуйте снова",
+    "modelIdRequired": "Введите ID модели",
+    "modelName": "Отображаемое имя",
+    "modelCapabilities": "Возможности",
+    "advancedSettings": "Расширенные настройки",
+    "contextWindowLabel": "Контекстное окно",
+    "contextWindowPlaceholder": "напр., 128000",
+    "outputWindowLabel": "Макс. выходных токенов",
+    "outputWindowPlaceholder": "напр., 4096",
+    "enterCustomBaseUrl": "Введите пользовательский Base URL",
+    "voxcpmBackend": "Бэкенд",
+    "voxcpmBaseUrlPending": "Введите Base URL, чтобы сформировать URL запроса",
+    "voxcpmAutoVoiceNoPreview": "Автоголос формируется из контекста агента, поэтому его нельзя прослушать отдельно",
+    "voxcpmBaseUrlRequired": "Сначала введите VoxCPM Base URL",
+    "ttsTestText": "Текст для TTS-теста",
+    "asrResult": "Результат распознавания",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "Источники поиска Baidu",
+    "baiduSubSourcesDescription": "Выберите хотя бы один источник Baidu.",
+    "viewDocs": "API документация",
+    "optional": "Необязательно",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "Включить этот сервис",
+    "enableThisProviderHint": "В выключенном состоянии этот сервис больше не отображается в настройке моделей курса.",
     "serverConfiguredAddOwn": "Чтобы использовать свои учётные данные, добавьте отдельного провайдера.",
     "webFetchSettings": "Загрузка веб-страниц",
     "webFetchHint": "Выберите способ чтения веб-страниц. Размещённым сервисам передаются только публичные URL, разрешённые в сеансе. Результаты остаются недоверенными данными; при ошибке сервис не меняется.",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "Открытые курсы",
     "courseTabClose": "Закрыть вкладку: {{name}}",
     "courseTabRunning": "Генерируется",
-    "foldersUnavailable": "Папки недоступны в этой сборке"
+    "foldersUnavailable": "Папки недоступны в этой сборке",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Профиль",
@@ -2461,12 +2649,8 @@
     "provider": "Провайдер",
     "voice": "Голос",
     "speed": "Скорость",
-    "language": "Язык"
-  },
-  "accessCode": {
-    "title": "Введите код доступа",
-    "placeholder": "Код доступа",
-    "error": "Неверный код доступа. Попробуйте ещё раз."
+    "language": "Язык",
+    "model": "Модель"
   },
   "proMode": {
     "attach": "Прикрепить материал",
@@ -2486,6 +2670,11 @@
     "launchPlaceholder": "Опишите учебный опыт, который хотите создать",
     "launchSend": "Начать сборку",
     "mentionCourseOrMaterial": "Упомянуть кабинет или материал из базы знаний"
+  },
+  "accessCode": {
+    "title": "Введите код доступа",
+    "placeholder": "Код доступа",
+    "error": "Неверный код доступа. Попробуйте ещё раз."
   },
   "workbench": {
     "tool": {

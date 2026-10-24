@@ -810,3 +810,38 @@ describe('OpenAI SDK integration', () => {
     });
   });
 });
+
+describe('opencode CLI thinking adapter (prompt-level providerOptions)', () => {
+  it('memetakan effort ke providerOptions opencode.thinkingEffort', () => {
+    for (const providerId of ['opencode', 'opencode-go'] as const) {
+      const modelId = providerId === 'opencode-go' ? 'gpt-6-luna' : 'big-pickle';
+      const { model } = getModel({ providerId, modelId, apiKey: '' });
+      expect(resolveThinkingProviderOptions(model, { mode: 'enabled', effort: 'high' })).toEqual({
+        opencode: { thinkingEffort: 'high' },
+      });
+      expect(resolveThinkingProviderOptions(model, { mode: 'disabled', effort: 'none' })).toEqual({
+        opencode: { thinkingEffort: 'none' },
+      });
+    }
+  });
+
+  it('tanpa thinking config tak ada providerOptions', () => {
+    const { model } = getModel({ providerId: 'opencode', modelId: 'big-pickle', apiKey: '' });
+    expect(resolveThinkingProviderOptions(model, undefined)).toBeUndefined();
+  });
+
+  it('id CLI live di luar katalog tetap dapat effort generik (paritas picker classic)', async () => {
+    const { OPENCODE_CLI_THINKING } = await import('@/lib/ai/providers');
+    for (const providerId of ['opencode', 'opencode-go'] as const) {
+      const { model } = getModel({
+        providerId,
+        modelId: 'model-live-belum-terdaftar-xyz',
+        apiKey: '',
+      });
+      expect(resolveThinkingProviderOptions(model, { mode: 'enabled', effort: 'high' })).toEqual({
+        opencode: { thinkingEffort: 'high' },
+      });
+      expect(OPENCODE_CLI_THINKING.effortValues).toContain('high');
+    }
+  });
+});

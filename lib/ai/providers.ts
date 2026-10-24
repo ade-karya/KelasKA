@@ -47,6 +47,7 @@ import type {
   ProviderConfig,
   ModelInfo,
   ModelConfig,
+  ThinkingCapability,
   ThinkingConfig,
 } from '@/lib/types/provider';
 import { applyModelMetadata, getCatalogThinkingCapability } from './model-metadata';
@@ -60,6 +61,7 @@ import {
 import { createLogger } from '@/lib/logger';
 import { withAppAttributionInit } from '@/lib/config/app-attribution';
 import { normalizeAzureBaseUrl } from './azure';
+import { createOpencodeCliModel } from './opencode-cli';
 // NOTE: Do NOT import thinking-context.ts here — it uses node:async_hooks
 // which is server-only, and this file is also used on the client via
 // settings.ts. The thinking context is read from globalThis instead
@@ -71,7 +73,29 @@ const log = createLogger('AIProviders');
 export type { ProviderId, ProviderConfig, ModelInfo, ModelConfig };
 
 /** Provider IDs whose logos are monochrome-dark and need `dark:invert` in dark mode */
-export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set(['openai', 'openrouter', 'ollama']);
+export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set([
+  'openai',
+  'openrouter',
+  'ollama',
+  'atlascloud',
+]);
+
+/**
+ * Fallback thinking untuk id CLI live yang belum terdaftar di
+ * THINKING_CAPABILITIES (model-metadata.ts, sumber utama capability —
+ * applyModelMetadata menimpa inline di bawah). Set generik prompt-hint yang
+ * aman: disalurkan sebagai instruksi prompt oleh lib/ai/opencode-cli.ts
+ * (buildThinkingHints), tak pernah sebagai `#variant` natif.
+ */
+export const OPENCODE_CLI_THINKING: ThinkingCapability = {
+  control: 'effort',
+  requestAdapter: 'opencode',
+  effortValues: ['none', 'low', 'medium', 'high', 'max'],
+  defaultEffort: 'medium',
+  toggleable: true,
+  budgetAdjustable: false,
+  defaultEnabled: true,
+};
 
 /**
  * Provider registry
@@ -235,6 +259,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     defaultBaseUrl: 'https://api.atlascloud.ai/v1',
     supportsModelDiscovery: true,
     requiresApiKey: true,
+    icon: '/logos/atlascloud.svg',
     models: [
       {
         id: 'qwen/qwen3.5-flash',
@@ -940,7 +965,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     type: 'openai',
     defaultBaseUrl: 'https://api.deepseek.com/v1',
     requiresApiKey: true,
-    icon: '/logos/deepseek.svg',
+    icon: '/logos/deepseek-4187943a.svg',
     models: [
       {
         id: 'deepseek-v4-pro',
@@ -959,8 +984,10 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         },
       },
       {
+        // ID persis GET /v1/models platform DeepSeek (diverifikasi live):
+        // DeepSeek-V4.1-Flash — input text+image, effort low/high/max.
         id: 'deepseek-flash',
-        name: 'DeepSeek Flash',
+        name: 'DeepSeek V4.1 Flash',
         contextWindow: 1048576,
         outputWindow: 393216,
         capabilities: {
@@ -1515,6 +1542,344 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         contextWindow: 131072,
         outputWindow: 8192,
         capabilities: { streaming: true, tools: false, vision: false },
+      },
+    ],
+  },
+
+  opencode: {
+    id: 'opencode',
+    name: 'OpenCode CLI',
+    // Dieksekusi sebagai child process `opencode run` (lib/ai/opencode-cli.ts,
+    // pola nexu-io/open-design) — BUKAN HTTP. Tanpa API key: model FREE Zen
+    // (big-pickle, *-free) jalan server-side karena eksekusi terjadi di dalam
+    // klien opencode. defaultBaseUrl hanya dokumentasi gateway + dipakai
+    // konstruksi pi Model untuk agent-driver (yang tetap butuh HTTP/key).
+    // Default app (space-bunny-free) adalah model FREE: jalan tanpa credential.
+    // Model BERBAYAR butuh `opencode auth login` untuk jalur CLI, atau
+    // OPENCODE_API_KEY untuk jalur HTTP langsung.
+    //
+    // PENTING: id di daftar ini harus BENAR-benar ada di katalog opencode.
+    // Model yang tidak terdaftar ditolak CLI dengan `provider.no-route`
+    // ("Model unavailable"), bukan dengan error auth.
+    type: 'opencode',
+    defaultBaseUrl: 'https://opencode.ai/zen/v1',
+    requiresApiKey: false,
+    icon: '/logos/opencode.svg',
+    models: [
+      {
+        id: 'space-bunny-free',
+        name: 'Space Bunny Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'muse-spark-1.3-contributor-free',
+        name: 'Muse Spark 1.3 Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'big-pickle',
+        name: 'Big Pickle (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'longcat-2.5-preview-free',
+        name: 'LongCat 2.5 Preview Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.6-flash-free',
+        name: 'MiMo V2.6 Flash Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'ling-3.1-flash-free',
+        name: 'Ling 3.1 Flash Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'nemotron-3-ultra-free',
+        name: 'Nemotron 3 Ultra Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'nemotron-3.5-lightning-free',
+        name: 'Nemotron 3.5 Lightning Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'step-5-preview-free',
+        name: 'Step 5 Preview Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      // Gelombang baru katalog `opencode models` (Okt 2026).
+      {
+        id: 'beam-free',
+        name: 'Beam Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek-v4.1-flash-free',
+        name: 'DeepSeek V4.1 Flash Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'glm-5.3-flash-free',
+        name: 'GLM 5.3 Flash Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'nemotron-3.5-super-vl-free',
+        name: 'Nemotron 3.5 Super VL Free (Zen)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+    ],
+  },
+
+  'opencode-go': {
+    id: 'opencode-go',
+    name: 'OpenCode Go',
+    // Slug provider CLI `opencode-go/*` (terbukti via `opencode models`, mis.
+    // opencode-go/gpt-6-luna). Dieksekusi sebagai child process `opencode run`
+    // seperti provider `opencode` — BUKAN HTTP. Auth via `opencode auth login`
+    // / `/connect` TUI (tersimpan di CLI, tanpa API key di UI).
+    // Jalur HTTP langsung (driver agen) memakai baseUrl Go + OPENCODE_GO_API_KEY.
+    type: 'opencode',
+    defaultBaseUrl: 'https://opencode.ai/zen/go/v1',
+    requiresApiKey: false,
+    icon: '/logos/opencode.svg',
+    models: [
+      // Daftar cermin `opencode models` (provider opencode-go/*). Angka
+      // konteks = cermin model Zen seinduk, hanya estimasi kompaksi internal
+      // driver; tidak dikirim sebagai batas API. Thinking per model via
+      // OPENCODE_CLI_THINKING (prompt-level, lihat atas).
+      {
+        id: 'deepseek-v4-flash',
+        name: 'DeepSeek V4 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek-v4-flash-vision-exp',
+        name: 'DeepSeek V4 Flash Vision Exp (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek-v4-pro',
+        name: 'DeepSeek V4 Pro (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'deepseek-v4.1-flash',
+        name: 'DeepSeek V4.1 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'glm-5.2',
+        name: 'GLM 5.2 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'glm-5.3',
+        name: 'GLM 5.3 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'glm-5.3-flash',
+        name: 'GLM 5.3 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'gpt-5.6-luna',
+        name: 'GPT 5.6 Luna (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'gpt-6-luna',
+        name: 'GPT 6 Luna (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'grok-4.6',
+        name: 'Grok 4.6 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'grok-4.7',
+        name: 'Grok 4.7 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'hy3',
+        name: 'Hy3 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'hy4-preview',
+        name: 'Hy4 Preview (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'kimi-k2.7-code',
+        name: 'Kimi K2.7 Code (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'kimi-k3',
+        name: 'Kimi K3 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'longcat-2.0',
+        name: 'LongCat 2.0 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'longcat-2.5-preview-free',
+        name: 'LongCat 2.5 Preview Free (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.5',
+        name: 'MiMo V2.5 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.5-pro',
+        name: 'MiMo V2.5 Pro (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.6-flash',
+        name: 'MiMo V2.6 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'mimo-v2.6-pro',
+        name: 'MiMo V2.6 Pro (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'minimax-m2.7',
+        name: 'MiniMax M2.7 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'minimax-m3',
+        name: 'MiniMax M3 (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'muse-spark-1.2-contributor',
+        name: 'Muse Spark 1.2 Contributor (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'muse-spark-1.3-contributor',
+        name: 'Muse Spark 1.3 Contributor (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'qwen3.7-plus',
+        name: 'Qwen3.7 Plus (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'qwen3.8-flash',
+        name: 'Qwen3.8 Flash (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'qwen3.8-max',
+        name: 'Qwen3.8 Max (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
+      {
+        id: 'space-bunny-free',
+        name: 'Space Bunny Free (Go)',
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
       },
     ],
   },
@@ -2540,6 +2905,15 @@ export function getModel(config: ModelConfig): ModelWithInfo {
       break;
     }
 
+    case 'opencode': {
+      // Eksekusi CLI lokal (tanpa HTTP/API key): model = child process
+      // `opencode run --format json`. baseUrl/key diabaikan di jalur ini.
+      // providerId diteruskan agar slug CLI benar (`opencode/*` vs
+      // `opencode-go/*`).
+      model = createOpencodeCliModel(config.modelId, config.providerId);
+      break;
+    }
+
     default:
       throw new Error(`Unsupported provider type: ${providerType}`);
   }
@@ -2579,6 +2953,11 @@ export function warnBareModelIdDeprecation(bareModelId: string, where?: string):
 
 /**
  * Parse model string in format "providerId:modelId" or just "modelId" (defaults to OpenAI)
+ *
+ * Bentuk slash CLI (`opencode/<id>`, `opencode-go/<id>` — bentuk flag `-m`
+ * `opencode run`) juga diterima untuk kedua provider CLI dan dinormalisasi ke
+ * `provider:model`: tanpa ini request classic yang membawa bentuk slash
+ * jatuh ke default `openai` dengan modelId mentah `opencode/...`.
  */
 export function parseModelString(modelString: string): {
   providerId: ProviderId;
@@ -2591,6 +2970,24 @@ export function parseModelString(modelString: string): {
     return {
       providerId: modelString.slice(0, colonIndex) as ProviderId,
       modelId: modelString.slice(colonIndex + 1),
+    };
+  }
+
+  // Bentuk slash hanya untuk provider CLI (prefix eksak, case-insensitive).
+  // Model id provider lain yang mengandung slash (mis.
+  // `openrouter:deepseek/...` memakai kolon; bare id berslash tetap milik
+  // default openai seperti sebelumnya) tidak tersentuh.
+  const lower = modelString.toLowerCase();
+  if (lower.startsWith('opencode-go/')) {
+    return {
+      providerId: 'opencode-go',
+      modelId: modelString.slice('opencode-go/'.length),
+    };
+  }
+  if (lower.startsWith('opencode/')) {
+    return {
+      providerId: 'opencode',
+      modelId: modelString.slice('opencode/'.length),
     };
   }
 

@@ -170,4 +170,34 @@ describe.skipIf(!contractUrl)('agent event NOTIFY delivery', () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(sessionWake).toHaveBeenCalledTimes(before);
   });
+
+  it('keeps a connect whose socket is up across a stalled event loop', async () => {
+    // The dev-boot failure this pins: compiling the runtime modules blocks the
+    // loop for longer than the connect budget, so a wall-clock connect timer
+    // fires the instant the loop is free and destroys a connection whose socket
+    // already answered — a `timeout expired` error plus a reconnect on every
+    // `next dev` boot. The stall must cost latency, never the connection.
+    const bus = await import('@/lib/server/agent-runtime/event-notify-bus');
+    const before = sessionWake.mock.calls.length;
+    await stopBus();
+    // Restart the bus against the contract database the pool writes to.
+    process.env.DATABASE_URL = databaseUrl(url, CONTRACT_DB);
+    const handle = bus.startAgentEventNotifyBus();
+
+    // Block the loop for well past the 10s connect budget, mid-handshake.
+    const stallUntil = Date.now() + 12_000;
+    while (Date.now() < stallUntil) {
+      /* hold the loop */
+    }
+
+    await handle.connecting;
+    // Still delivering: the bus kept the connection a wall-clock timer would
+    // have thrown away, and never had to reconnect for the lost wakeups.
+    await store.appendControlEvent('session-notify', {
+      ts: Date.now(),
+      type: 'message_update',
+      data: { text: 'after the stall' },
+    });
+    await waitForWake(sessionWake, before + 1);
+  }, 60_000);
 });

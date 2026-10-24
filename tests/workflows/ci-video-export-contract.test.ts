@@ -42,7 +42,7 @@ const EXPECTED_HYPERFRAMES_LINT = `
 set -euo pipefail
 for sample in quiz pbl-v2 pbl-legacy pbl-dense mixed arabic interactive-static; do
 dir="$HF_E2E_DIR/$sample"
-if output="$(pnpm exec hyperframes lint "$dir" 2>&1)"; then
+if output="$(bun x hyperframes lint "$dir" 2>&1)"; then
 status=0
 else
 status=$?
@@ -108,7 +108,7 @@ function assertHyperframesGateContract(workflow: Workflow): void {
   expect(materialize.if).toBeUndefined();
   expect(materialize['continue-on-error']).toBeUndefined();
   expect(materialize.env).toMatchObject({ HF_E2E_DIR });
-  expect(materialize.run).toBe('pnpm exec vitest run tests/video-export/e2e-materialize.test.ts');
+  expect(materialize.run).toBe('bun x vitest run tests/video-export/e2e-materialize.test.ts');
   assertHyperframesLintContract(workflow);
 }
 
@@ -169,9 +169,7 @@ describe('CI video-export workflow contract', () => {
   it('keeps the forced Chromium cover-card guard required', () => {
     const guard = step(parseWorkflow(), 'e2e', 'Cover-card layout guardrail');
 
-    expect(guard.run).toBe(
-      'pnpm exec vitest run tests/video-export/cover-card-layout.browser.test.ts',
-    );
+    expect(guard.run).toBe('bun x vitest run tests/video-export/cover-card-layout.browser.test.ts');
     expect(guard.env).toEqual({ COVER_LAYOUT_BROWSER: '1' });
     expect(guard.if).toBeUndefined();
     expect(guard['continue-on-error']).toBeUndefined();
@@ -181,7 +179,7 @@ describe('CI video-export workflow contract', () => {
     const guard = step(parseWorkflow(), 'e2e', 'Interactive static HTML Chromium smoke');
 
     expect(guard.run).toBe(
-      'pnpm exec vitest run tests/video-export/interactive-static-html.browser.test.ts tests/video-export/interactive-self-hosted.browser.test.ts',
+      'bun x vitest run tests/video-export/interactive-static-html.browser.test.ts tests/video-export/interactive-self-hosted.browser.test.ts',
     );
     expect(guard.env).toEqual({ INTERACTIVE_STATIC_BROWSER: '1' });
     expect(guard.if).toBeUndefined();

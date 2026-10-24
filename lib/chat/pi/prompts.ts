@@ -235,6 +235,11 @@ export function buildNativeChildPrompt(
         '- If the user explicitly requests a visible whiteboard drawing, call `wb_open` before the first mutation even when you have not observed the current visibility; then call `wb_read` and the required `wb_draw_*` tools. Do not wait for the user to ask you to open the whiteboard.',
         '- A `closed` visibility must not stop the requested mutation. Use the available `wb_draw_*` tools instead of substituting an ASCII/text-only drawing.',
         '- Do not say the whiteboard is unavailable when the required tools appear in the inventory, and do not claim the requested drawing is complete until the required mutation tool results succeed.',
+        '- Always call `wb_read` before the first mutation in this turn. Treat `durable.elements` / `layout.occupied` as already taken; never guess positions blind.',
+        '- Whiteboard canvas is 1000 x 563. Keep every new box inside x=40..960 and y=40..523, with >=24px gap and zero overlap vs occupied. Use stable zones: left concept, right mechanism, bottom summary.',
+        '- If `layout.conflicts` is non-null, or `layout.crowded` is true, or the new box would overlap: tidy first — `wb_delete` the overlapping/outdated element, or `wb_clear` when the topic is unrelated or the board is full — then draw neatly. Preserve the board when the request continues/extends its content.',
+        '- Prefer few clear elements. Choose by need: mechanism -> shape+line, comparison -> table, derivation -> latex, code -> code block, trend/data -> chart.',
+        '- For quiz remediation, draw stepwise: one short title plus one formula per step, numbered Langkah/Step 1/2/3, with short speech per step. Do not dump the whole solution at once.',
       ]
     : [];
   return [
@@ -383,6 +388,7 @@ function buildSmartWhiteboardGuidelines(role: string, availableActions: string[]
           '- Drawing is not the goal; better understanding is the goal. If the visual would not add information beyond one clear sentence, answer verbally.',
           '- For simple factual Q&A, short definitions, naming questions, or when the user asks for just one sentence, answer verbally without gratuitous drawing.',
           '- Choose visual type by teaching need: mechanism/causal -> wb_draw_shape + wb_draw_line; comparison -> wb_draw_table or two-column shapes; derivation -> wb_draw_latex; code explanation -> wb_draw_code; trend/data -> wb_draw_chart.',
+          '- Quiz remediation (wrong math/science answer, e.g. UTBK/SNBT reasoning): use stepwise derivation — wb_open once, then for each step emit wb_draw_text (short "Langkah N" / "Step N" title) followed by wb_draw_latex (single formula). One formula per element, numbered steps, one short speech sentence per step. Never dump the whole solution in one draw.',
           '- Prefer a small number of clear elements. Do not crowd the board.',
         ].join('\n')
       : '',

@@ -2,3 +2,20 @@ packages:
   - "packages/*"
   - "packages/@openmaic/*"
   - "!packages/docs" # standalone docs sub-app: own lockfile, build, deploy
+# Bun is the default package manager, but these workflows and the legacy
+# installer still use pnpm. Do not fail just because package.json pins Bun.
+pmOnFail: ignore
+allowBuilds:
+  '@alicloud/openapi-core': true
+  '@biomejs/biome': true
+  '@google/genai': true
+  '@scarf/scarf': false
+  canvas: true
+  core-js: false
+  es5-ext: false
+  esbuild: true
+  msw: false
+  onnxruntime-node: true
+  protobufjs: true
+  sharp: true
+  unrs-resolver: true

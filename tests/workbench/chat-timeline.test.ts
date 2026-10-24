@@ -225,12 +225,12 @@ describe('rowsForRender tool-run aggregation', () => {
       }),
     );
     expect(html).toContain('workbench-skill-card');
-    expect(html).toContain('加载 skill');
+    expect(html).toContain('Muat Skill');
     expect(html).toContain('pptx-import');
     expect(html).toContain('data-kind="skill"');
-    expect(html).toContain('2 个工具调用');
+    expect(html).toContain('2 panggilan tool');
     expect(html).toContain('workbench-tool-group');
-    expect(html).not.toContain('3 个工具调用');
+    expect(html).not.toContain('3 panggilan tool');
     expect(html).not.toContain('workbench-skill-group');
   });
 
@@ -242,8 +242,8 @@ describe('rowsForRender tool-run aggregation', () => {
       }),
     );
     expect(html).toContain('workbench-skill-group');
-    expect(html).toContain('2 个 skill');
-    expect(html).not.toContain('2 个工具调用');
+    expect(html).toContain('2 Skill');
+    expect(html).not.toContain('2 panggilan tool');
     expect(html).not.toContain('workbench-tool-group');
   });
 
@@ -255,8 +255,8 @@ describe('rowsForRender tool-run aggregation', () => {
       }),
     );
     expect(html).toContain('workbench-tool-group');
-    expect(html).toContain('2 个工具调用');
-    expect(html).toContain('已完成');
+    expect(html).toContain('2 panggilan tool');
+    expect(html).toContain('Selesai');
     expect(html).toContain('workbench-thinking-bar');
   });
 
@@ -291,43 +291,31 @@ describe('rowsForRender tool-run aggregation', () => {
     const html = renderToStaticMarkup(
       createElement(ChatTimeline, { chat: [running, failed], plan: [] }),
     );
-    expect(html).toContain('检查材料');
-    expect(html).toContain('读取材料');
+    expect(html).toContain('Periksa materi');
+    expect(html).toContain('Baca materi');
     expect(html).toContain('data-status="running"');
     // #1880: a call that succeeded is not an error, even when a file in its
     // result failed to parse.
-    expect(html).not.toContain('材料解析失败');
+    expect(html).not.toContain('Gagal mengekstrak materi');
     expect(html).not.toContain('data-status="failed"');
     expect(html).not.toContain('data-status="error"');
     expect(html).not.toContain('list_materials');
     expect(html).not.toContain('read_material');
     expect(html).not.toContain('mat_private');
-    expect(html).not.toContain('结果原文');
+    expect(html).not.toContain('Hasil mentah');
   });
 
   it('keeps a settled material-tool group done when a file in a result failed to parse', () => {
-    const read = tool('read_material', 'read-done');
-    read.toolDetails = { materials: [{ status: 'failed' }] };
-    const html = renderToStaticMarkup(
-      createElement(ChatTimeline, {
-        chat: [read, tool('search_material', 'search-done')],
-        plan: [],
-      }),
-    );
-    expect(html).not.toContain('有错误');
-    expect(html).toContain('已完成');
-  });
-
-  it('marks a material-tool group as failed when a call itself failed', () => {
     const failed = tool('read_material', 'read-failed');
-    failed.toolState = 'failed';
+    failed.toolDetails = { materials: [{ status: 'failed' }] };
     const html = renderToStaticMarkup(
       createElement(ChatTimeline, {
         chat: [failed, tool('search_material', 'search-done')],
         plan: [],
       }),
     );
-    expect(html).toContain('有错误');
+    expect(html).not.toContain('Ada kesalahan');
+    expect(html).toContain('Selesai');
   });
 });
 

@@ -100,7 +100,7 @@ Each entry under `providers` declares one provider. The key is its id, which slo
 | `models` | For server-managed credentials | Authorized model ids. Deployment slot defaults/fallbacks for the capability are also authorized; catalogues and workspace assignments do not grant additional models. |
 | `proxy` | No | HTTP proxy URL for this provider's requests. |
 | `credentials` | Some presets | Key pairs for services that do not use one key. AliDocMind takes `accessKeyId` and `accessKeySecret`. |
-| `options` | No | Non-secret, provider-specific settings, such as `backend` for `voxcpm-tts`. Names are letters, digits, `_` and `-`; values are strings, numbers or booleans (no nested maps or lists), and `${VAR}` works. The model settings show options, so never put a key in them. Deployment only: the model settings cannot set them. |
+| `options` | No | Non-secret, provider-specific settings, such as `backend` for `voxcpm-tts` or the FLUX.1-dev `/infer` fields (`seed`, `randomizeSeed`, `width`, `height`, `guidanceScale`, `numInferenceSteps`) for a Hugging Face image provider. Names are letters, digits, `_` and `-`; values are strings, numbers or booleans (no nested maps or lists), and `${VAR}` works. The model settings show deployment options read-only (the FLUX panel, for example), so never put a key in them. Deployment only: workspace edits cannot set them. A configured provider's options win over the request's. |
 | `voices` | No | TTS presets only. Replaces the built-in catalogue with a non-empty list of entries: required `id` and `name`, optional `language` and `gender` (`male`, `female`, `neutral`). IDs must be unique and cannot contain the reserved binding delimiter `::`. User voice profiles remain available; Qwen clones keep their clone model. Omitting this field preserves the built-in catalogue. |
 | `options.defaultVoice` | No | Provider-local default voice ID; must be a nonblank string. Requires a non-empty `voices` list containing this ID. With `voices` alone, its first entry is used. An explicit valid selection takes precedence. Without either override, existing defaults apply. |
 
@@ -866,7 +866,7 @@ The session URL gate, strict URL normalization and all local DNS address checks 
 
 ## Interactive scene libraries
 
-Interactive scenes load KaTeX, Three.js (with its addons), Chart.js and the Tailwind v4 browser runtime from the deployment instead of a public CDN. `pnpm install`, `pnpm dev` and `pnpm build` copy the pinned versions from the installed packages into `public/vendor/interactive`, which is served at `/vendor/interactive`. KaTeX loads only on pages that contain math.
+Interactive scenes load KaTeX, Three.js (with its addons), Chart.js and the Tailwind v4 browser runtime from the deployment instead of a public CDN. `bun install`, `bun run dev` and `bun run build` copy the pinned versions from the installed packages into `public/vendor/interactive`, which is served at `/vendor/interactive`. KaTeX loads only on pages that contain math.
 
 `INTERACTIVE_ASSET_BASE_URL` is a public, build-time setting. To serve these files from your own CDN or object storage, copy `public/vendor/interactive` with its package/version paths intact, set the variable to the new base URL (for example `https://assets.example.com/interactive`) and rebuild; for Docker, pass it with `--build-arg`. Because interactive scenes run in sandboxed iframes, the host must serve JavaScript, CSS and fonts with their correct MIME types and send `Access-Control-Allow-Origin: *`.
 

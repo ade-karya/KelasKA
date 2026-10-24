@@ -1047,7 +1047,14 @@ export const PromptInputSpeechButton = ({
 
       speechRecognition.continuous = true;
       speechRecognition.interimResults = true;
-      speechRecognition.lang = 'en-US';
+      // No i18n hook in scope here: stored UI locale, else browser language, else id-ID default.
+      let speechLang = 'id-ID';
+      try {
+        speechLang = localStorage.getItem('locale') || navigator.language || 'id-ID';
+      } catch {
+        // Storage unavailable — keep default.
+      }
+      speechRecognition.lang = speechLang;
 
       speechRecognition.onstart = () => {
         setIsListening(true);

@@ -20,7 +20,10 @@
  * hacks, no duplicate glyphs.
  */
 
+'use client';
+
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/hooks/use-i18n';
 
 interface Props {
   /** 0-5 in 0.5 increments. Out-of-range values are clamped at
@@ -33,11 +36,14 @@ interface Props {
 }
 
 export function StarRating({ value, showDenominator, size = 16, className }: Props) {
+  const { t } = useI18n();
   const safe = Number.isFinite(value) ? Math.max(0, Math.min(5, value)) : 0;
   return (
     <span
       role="img"
-      aria-label={`Rating ${safe.toFixed(safe % 1 === 0 ? 0 : 1)} out of 5`}
+      aria-label={t('pbl.v2.taskEvalCard.ratingLabel', {
+        value: safe.toFixed(safe % 1 === 0 ? 0 : 1),
+      })}
       className={cn('inline-flex items-center gap-0.5', className)}
     >
       {[0, 1, 2, 3, 4].map((i) => {

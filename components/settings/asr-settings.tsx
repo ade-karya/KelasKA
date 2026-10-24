@@ -98,7 +98,7 @@ export function ASRSettings({ view, apply, entry }: ServicePanelProps) {
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Vendor-prefixed API without standard typings
       const recognition = new (SpeechRecognitionCtor as new () => any)();
-      recognition.lang = effectiveLanguage || 'zh-CN';
+      recognition.lang = effectiveLanguage || 'id-ID';
       recognition.onresult = (event: {
         results: { [index: number]: { [index: number]: { transcript: string } } };
       }) => {

@@ -7,8 +7,8 @@ OpenMAIC is a Next.js application that runs on your own machine. You need to con
 
 ## Prerequisites
 
-- **Node.js** 22.19.0 or later
-- **pnpm** 10.28.0 (if needed, run `npm install -g pnpm@10.28.0`)
+- **Bun** 1.3.14 or later (default package manager)
+- **Node.js** 24.21.0 or later for tools that still require Node
 - At least one LLM provider; cloud providers usually require an API key, while local Ollama or Lemonade does not
 
 ## Install
@@ -18,7 +18,7 @@ Clone the repository and install dependencies:
 ```bash
 git clone https://github.com/THU-MAIC/OpenMAIC.git
 cd OpenMAIC
-pnpm install
+bun install
 ```
 
 Installation builds the workspace packages required by the project, so the first install may take some time.
@@ -63,7 +63,7 @@ See [Configuration](./configuration.mdx) for complete provider, image/video gene
 Courses are stored in PostgreSQL, and the server refuses to start without `DATABASE_URL`. Start a local development database (a separate PostgreSQL in Docker on `127.0.0.1:5432`, shared by every checkout on this machine; set `OPENMAIC_DB_PORT` for another port) and set `DATABASE_URL` in `.env.local`:
 
 ```bash
-pnpm db:up
+bun run db:up
 ```
 
 ```bash title=".env.local"
@@ -73,7 +73,7 @@ DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
 Start the development server:
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000). You should see the OpenMAIC classroom generator. Enter a topic or upload learning material, then click Generate; the AI teachers will build a complete, multi-scene classroom. Supported material formats depend on the selected parser and typically include PDF, Office documents, Markdown/plain text, images, and some audio/video formats. Consult the parser's supported formats for the exact range.
@@ -94,8 +94,8 @@ The exported HTML file needs a web browser with JavaScript. On a phone, open it 
 ## Build for production
 
 ```bash
-pnpm build
-DATABASE_URL=postgres://... pnpm start
+bun run build
+DATABASE_URL=postgres://... bun run start
 ```
 
 Or deploy with Docker or on your own server—see the [Deployment guide](./deployment.mdx).

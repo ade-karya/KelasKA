@@ -16,6 +16,7 @@ export const IMAGE_PROVIDER_NAMES: Record<ImageProviderId, string> = {
   'glm-image': 'providerGlmImage',
   'comfyui-image': 'providerComfyUIImage',
   'openrouter-image': 'providerOpenRouterImage',
+  'huggingface-image': 'providerHuggingFaceImage',
   lemonade: 'providerLemonadeImage',
 };
 
@@ -25,5 +26,6 @@ export const VIDEO_PROVIDER_NAMES: Record<VideoProviderId, string> = {
   'minimax-video': 'providerMiniMaxVideo',
   'grok-video': 'providerGrokVideo',
   'openrouter-video': 'providerOpenRouterVideo',
+  'huggingface-video': 'providerHuggingFaceVideo',
   happyhorse: 'providerHappyHorse',
 };

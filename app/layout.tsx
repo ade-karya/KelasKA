@@ -42,9 +42,14 @@ import '@fontsource-variable/inter';
 const THEME_INIT_SCRIPT = `try{var t=localStorage.getItem('theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}`;
 
 export const metadata: Metadata = {
-  title: 'OpenMAIC',
+  title: 'Kelas KA',
   description:
-    'The open-source AI interactive classroom. Upload a PDF to instantly generate an immersive, multi-agent learning experience.',
+    'Platform pembelajaran interaktif berbasis AI Kelas KA. Unggah PDF untuk menghasilkan pengalaman belajar imersif secara instan.',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
 };
 
 export default async function RootLayout({

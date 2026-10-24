@@ -1,4 +1,5 @@
 import { APICallError, RetryError } from 'ai';
+import { apiError } from '@/lib/server/api-response';
 
 import { ProviderQuotaExhaustedError } from '@/lib/server/provider-quota';
 
@@ -50,6 +51,49 @@ function statusFromError(error: unknown, seen = new Set<unknown>()): number | un
   if (status !== undefined) return status;
 
   return statusFromError(error.cause, seen) ?? statusFromError(error.lastError, seen);
+}
+
+function messageForStatus(status: number): string {
+  if (status === 401 || status === 403) {
+    return 'Upstream authentication or authorization failed.';
+  }
+  if (status === 404) return 'Upstream endpoint not found.';
+  if (status === 429) return 'Upstream rate limit reached. Please try again shortly.';
+  if (status >= 500) return 'Upstream model provider is temporarily unavailable. Please try again.';
+  return 'Upstream provider rejected the request.';
+}
+
+/**
+ * Short actionable message for a live-chat stream failure that still carries
+ * the SDK error object (e.g. `RetryError: Failed after N attempts...`).
+ * Returns undefined when the error carries no upstream HTTP status, so callers
+ * keep the original message.
+ */
+export function friendlyUpstreamChatMessage(error: unknown): string | undefined {
+  const status = statusFromError(error);
+  if (status === 429) return 'Upstream rate limit reached. Please try again shortly.';
+  if (status !== undefined && status >= 500)
+    return 'Upstream model provider is temporarily unavailable. Please try again.';
+  if (status === 401 || status === 403)
+    return 'Upstream authentication failed. Please check the model configuration.';
+  return undefined;
+}
+
+/**
+ * Preserve a provider's HTTP semantics for client retry classification without
+ * exposing provider response bodies, URLs, or credential-adjacent details.
+ */
+export function llmApiError(error: unknown) {
+  const status = statusFromError(error);
+  if (status === undefined) {
+    return apiError('INTERNAL_ERROR', 500, 'Scene generation failed. Please try again.');
+  }
+
+  return apiError(
+    status === 429 ? 'RATE_LIMITED' : 'UPSTREAM_ERROR',
+    status,
+    messageForStatus(status),
+  );
 }
 
 // Explicit billing/quota codes of the OpenAI-compatible wire format, not a

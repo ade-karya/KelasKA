@@ -35,6 +35,7 @@ const LOADERS: Record<Locale, () => Promise<{ default: typeof enUS }>> = {
   'fr-FR': () => import('@/lib/i18n/locales/fr-FR.json'),
   'vi-VN': () => import('@/lib/i18n/locales/vi-VN.json'),
   'de-DE': () => import('@/lib/i18n/locales/de-DE.json'),
+  'id-ID': () => import('@/lib/i18n/locales/id-ID.json'),
 };
 
 /** Read-only copy per locale, loaded once; nothing here is a current language. */

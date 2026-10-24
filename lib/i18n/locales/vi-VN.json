@@ -7,11 +7,17 @@
     "errorPrefix": "Lỗi: ",
     "loadingClassroom": "Đang tải lớp học...",
     "retry": "Thử lại",
-    "close": "Đóng"
+    "close": "Đóng",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "Học tập sinh tạo trong lớp học tương tác đa tác nhân",
-    "greetingWithName": "Chào {{name}}"
+    "greetingWithName": "Chào {{name}}",
+    "vocationalTestBadge": "Tính năng thử nghiệm",
+    "vocationalTestLabel": "Nhiệm vụ giáo dục nghề nghiệp",
+    "vocationalTestTooltip": "Gửi bài kiểm tra thực hành nghề nghiệp từ ô nhập hiện tại",
+    "footer": "Lớp Trí tuệ Nhân tạo"
   },
   "toolbar": {
     "pdfParser": "Bộ đọc PDF",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "Trò chuyện trong lớp cần mô hình hỗ trợ gọi công cụ. Hãy chọn mô hình đó cho ô lớp học trong Cài đặt → Cấu hình mô hình khóa học, hoặc liên hệ quản trị viên nếu cài đặt này do quản trị viên quản lý.",
       "geminiNativeRequired": "Tương tác với Gemini cần Google gốc. Thêm Google (cấu hình sẵn google) trong Cài đặt → Dịch vụ mô hình, rồi chọn cho “Lớp học” trong Cấu hình mô hình khóa học. Nếu cấu hình do quản trị viên quản lý, hãy liên hệ quản trị viên.",
       "emptyAgentResponses": "Các tác nhân trả về nội dung rỗng nên thảo luận đã dừng. Hãy thử lại hoặc kiểm tra cài đặt model.",
-      "streamInterrupted": "Luồng dữ liệu dừng bất ngờ, thảo luận chưa hoàn tất. Vui lòng thử lại."
+      "streamInterrupted": "Luồng dữ liệu dừng bất ngờ, thảo luận chưa hoàn tất. Vui lòng thử lại.",
+      "rateLimited": "Mô hình đang nhận quá nhiều yêu cầu. Vui lòng đợi một lát rồi thử lại.",
+      "providerUnavailable": "Dịch vụ mô hình tạm thời không khả dụng. Vui lòng thử lại sau."
     },
     "elementReference": {
       "whiteboardChanged": "Phần tử bảng trắng đã thay đổi hoặc không còn khả dụng. Hãy chọn lại hoặc xóa tham chiếu trước khi gửi.",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "Đèn rọi",
       "laser": "Bút laser",
+      "play_video": "Play",
       "wb_open": "Mở bảng",
       "wb_draw_text": "Viết chữ lên bảng",
       "wb_draw_shape": "Vẽ hình lên bảng",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "Viết công thức lên bảng",
       "wb_draw_table": "Vẽ bảng biểu",
       "wb_draw_line": "Vẽ đường thẳng",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Xóa bảng",
       "wb_delete": "Xóa phần tử",
       "wb_close": "Đóng bảng",
@@ -296,6 +307,17 @@
       "result": "Đã xong",
       "error": "Lỗi"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "Cùng học nhé?",
@@ -506,7 +528,16 @@
       "sendBackward": "Đưa xuống dưới",
       "alignTop": "Căn trên",
       "alignMiddle": "Căn giữa",
-      "alignBottom": "Căn dưới"
+      "alignBottom": "Căn dưới",
+      "alignCenterBoth": "Căn giữa cả hai trục",
+      "setLink": "Đặt liên kết",
+      "ruler": "Thước",
+      "grid": "Lưới",
+      "gridNone": "Không",
+      "gridSmall": "Nhỏ",
+      "gridMedium": "Vừa",
+      "gridLarge": "Lớn",
+      "resetPage": "Đặt lại trang"
     },
     "background": {
       "label": "Nền",
@@ -747,6 +778,12 @@
     "dock": {
       "elementRefHint": "Tham chiếu phần tử — chọn phần tử để gửi kèm tin nhắn tiếp theo",
       "globalTools": "Công cụ chung"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -808,7 +845,11 @@
     "aiGrading": "AI đang chấm…",
     "aiGradingWait": "Vui lòng đợi, đang phân tích câu trả lời của bạn",
     "quizReport": "Báo cáo kết quả",
-    "retry": "Làm lại"
+    "retry": "Làm lại",
+    "explainOnWhiteboard": "Giảng trên bảng",
+    "explainAllOnWhiteboard": "Chữa câu sai trên bảng",
+    "explainAllCta": "Giảng từng bước",
+    "explainHint": "Giáo viên AI mở bảng và viết từng bước suy luận một."
   },
   "roundtable": {
     "teacher": "GIẢNG VIÊN",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "Nhận xét bài nộp",
         "strengths": "Điểm làm tốt",
-        "improvements": "Việc nên làm tiếp"
+        "improvements": "Việc nên làm tiếp",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "Bối cảnh đã giới thiệu ở phần chuẩn bị — giữ lại đây để bạn xem lại bất cứ lúc nào trong tình huống.",
@@ -1102,6 +1145,8 @@
     "folderRenameFailed": "Không đổi được tên thư mục",
     "folderDeleteFailed": "Không xóa được thư mục",
     "moveFailed": "Không chuyển được bài học",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "Thư mục này đang trống",
     "emptyLibraryHint": "Chưa có bài học nào — tạo mới ở trên hoặc nhập một bài học vào.",
     "folderNameEmpty": "Tên thư mục không được để trống",
@@ -1113,6 +1158,8 @@
     "notFoundDesc": "Khóa học này không tồn tại hoặc đã bị xóa.",
     "loadUnavailable": "Không tải được khóa học này",
     "loadUnavailableDesc": "Không thể truy xuất khóa học. Hãy kiểm tra quyền truy cập hoặc thử lại.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Về trang chủ",
     "runOutlining": "Đang lập dàn ý…",
     "runAwaitingConfirmation": "Đang chờ xác nhận",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "Bạn chỉ tải lên được tối đa 5 tệp tài liệu",
     "courseMaterialTotalSizeLimit": "Tổng dung lượng tài liệu phải dưới 150MB",
     "unsupportedCourseMaterial": "{{parser}} không hỗ trợ loại tệp này. Định dạng được hỗ trợ: {{formats}}",
+    "courseMaterialSizeLimit": "Tài liệu, slide, bảng tính, ảnh và văn bản thuần — tối đa 50MB (định dạng được nhận tùy vào bộ bóc tách đang chọn)",
     "unsupportedMaterialFormat": "Bộ bóc tách hiện tại không hỗ trợ định dạng này. Hãy đổi bộ bóc tách hoặc chọn tệp khác.",
     "materialQuotaExceeded": "Bộ nhớ tài liệu đã đầy. Hãy xóa bớt tài liệu rồi thử lại.",
     "materialUploadFailed": "Tải lên {{name}} thất bại. Vui lòng thử lại.",
@@ -1353,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "Trình đọc tích hợp"
     },
     "modelCount": "model",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "Dùng mô tả nhân vật làm gợi ý cho giọng đọc",
     "voxcpmUnavailable": "Không khả dụng",
     "voxcpmClone": "Nhân bản",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "Máy chủ hiện tại không hỗ trợ nhân bản giọng",
     "voxcpmNoCustomVoices": "Chưa có giọng tùy chỉnh nào",
     "voxcpmCloneSaveOnly": "Chỉ lưu cho máy chủ này",
@@ -1833,7 +1884,11 @@
       "applyTitle": "Dùng cấu hình đề xuất của gói này?",
       "applyBody": "{{name}} đề xuất mô hình riêng cho các bước sau. Dùng chúng sẽ thay thế mô hình mỗi bước đang dùng, kể cả mặc định của máy chủ:",
       "applyKeep": "Giữ cấu hình hiện tại",
-      "applyRecommended": "Dùng cấu hình đề xuất của gói"
+      "applyRecommended": "Dùng cấu hình đề xuất của gói",
+      "enable": "Bật",
+      "statusDisabled": "Đã kết nối (đang tắt)",
+      "enableThisPlan": "Bật gói này",
+      "enableThisPlanHint": "Khi tắt, gói này sẽ không còn xuất hiện trong Cấu hình mô hình khóa học."
     },
     "skills": {
       "nav": "Skill",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "Giọng đọc của trình duyệt không hỗ trợ các chức năng âm thanh trên dòng thời gian của trình sửa (nghe thử, tạo lại, lồng tiếng hàng loạt). Hãy chuyển sang một nhà cung cấp giọng đọc có quản lý để tạo và quản lý âm thanh theo từng dòng.",
     "courseModels": {
-      "nav": "Cấu hình mô hình khóa học"
+      "nav": "Cấu hình mô hình khóa học",
+      "mainModel": "Mô hình chính",
+      "mainModelHint": "Các giai đoạn theo mô hình chính dùng chung mô hình này; nhấn vào một thẻ để tùy chỉnh riêng giai đoạn đó",
+      "mainModelTooltip": "Mọi giai đoạn đặt theo mô hình chính đều dùng mô hình này. Nhấn vào thẻ pipeline để ghim một mô hình riêng cho giai đoạn đó (route cấp người dùng, dưới MODEL_ROUTES của vận hành viên). Các giai đoạn con chi tiết hơn nằm trong trình kiểm tra của thẻ.",
+      "noProviderHint": "Chưa cấu hình mô hình ngôn ngữ — hãy thiết lập trong Dịch vụ mô hình",
+      "followMainline": "Theo mô hình chính",
+      "followParent": "Theo cấp trên",
+      "restoreFollow": "Khôi phục theo mô hình chính",
+      "stopped": "Đã tắt",
+      "loop": "vòng lặp",
+      "parallel": "song song",
+      "visionSupported": "Hỗ trợ thị giác",
+      "modelSource": "Nguồn mô hình",
+      "mainlineUnset": "Chưa chỉ định",
+      "pickModel": "Chọn mô hình",
+      "pickProvider": "Chọn dịch vụ",
+      "optionInvalid": "Không khả dụng",
+      "subStagesTitle": "Giai đoạn con",
+      "subStages": {
+        "title": "Tạo tiêu đề",
+        "slide": "Trang chiếu",
+        "quiz": "Trắc nghiệm",
+        "interactive": "Kịch bản tương tác",
+        "pbl": "Kịch bản PBL"
+      },
+      "servicesAndModels": "Dịch vụ & mô hình",
+      "searchService": "Dịch vụ tìm kiếm",
+      "parseService": "Dịch vụ phân tích",
+      "asrTranscribe": "Chuyển giọng nói thành văn bản",
+      "aiIllustration": "Minh họa bằng AI",
+      "aiVideo": "Video AI",
+      "stations": {
+        "docParse": "Phân tích tài liệu",
+        "webResearch": "Nghiên cứu web",
+        "outline": "Lập dàn ý",
+        "agents": "Hồ sơ tác nhân",
+        "sceneContent": "Nội dung cảnh",
+        "sceneActions": "Hành động cảnh",
+        "tts": "Tổng hợp giọng nói",
+        "media": "Tạo phương tiện",
+        "interaction": "Tương tác lớp học",
+        "desc": {
+          "doc-parse": "Các tài liệu khóa học đã tải lên (tài liệu, slide, âm thanh/video) được phân tích thành văn bản; âm thanh và video được tự động chuyển thành chữ.",
+          "web-research": "Tìm kiếm trên web các tài liệu bổ sung theo yêu cầu khóa học; truy vấn tìm kiếm được viết lại bởi một LLM nhẹ.",
+          "outline": "Hiểu yêu cầu và tài liệu để tạo tiêu đề khóa học và dàn ý theo từng cảnh (con người có thể xem lại).",
+          "agents": "Tạo hồ sơ tác nhân giáo viên và học viên (tính cách, ảnh đại diện, giọng nói).",
+          "scene-content": "Tạo nội dung slide, trắc nghiệm, tương tác và PBL cho từng cảnh — giai đoạn LLM nặng nhất của quy trình.",
+          "scene-actions": "Hoàn thiện lời dẫn và hành động giảng dạy cho từng cảnh, cấp cho tổng hợp giọng nói và trình chiếu lớp học.",
+          "tts": "Tổng hợp lời dẫn thành giọng giáo viên/học viên (theo từng cảnh, tuần tự).",
+          "media": "Điền các chỗ giữ chỗ ảnh/video trong nội dung đã tạo, song song với vòng lặp theo cảnh.",
+          "interaction": "Thời gian chạy lớp học sau khi tạo: chat đa tác nhân, thời gian chạy PBL và chấm trắc nghiệm."
+        }
+      },
+      "mediaEnableNeedsSetup": "Hãy cấu hình API key trong «Dịch vụ mô hình» hoặc bật Token Plan trước."
     },
     "addNewModel": "Model mới",
     "addNewModelDescription": "Thêm một cấu hình model mới",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "Truyền liên tục",
       "tools": "Công cụ",
-      "vision": "Đọc ảnh"
+      "vision": "Đọc ảnh",
+      "thinking": "Suy luận"
     },
     "claudeSearchModel": "Mô hình tìm kiếm",
     "claudeSearchModelHint": "Mô hình Claude dùng để tìm kiếm trên web và tóm tắt kết quả.",
@@ -1910,6 +2019,7 @@
     "deleteModel": "Xóa",
     "deleteProvider": "Xóa nhà cung cấp",
     "deleteProviderConfirm": "Bạn có chắc muốn xóa nhà cung cấp này?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Bóc tách tài liệu",
     "doubaoAccessKey": "Khóa truy cập",
     "doubaoAppId": "Mã ứng dụng",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "Máy chủ không xác nhận đã nhập."
       }
     },
+    "model": "Cấu hình model",
+    "save": "Lưu",
+    "providerTypes": {
+      "openai": "Giao thức OpenAI",
+      "azure": "Azure OpenAI",
+      "anthropic": "Giao thức Claude",
+      "google": "Giao thức Gemini",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "Tìm trên web",
+    "addProvider": "Thêm",
+    "addModel": "Thêm",
+    "fetch": "Lấy",
+    "contextWindow": "Ngữ cảnh",
+    "outputWindow": "Đầu ra",
+    "providerNameRequired": "Vui lòng nhập tên nhà cung cấp",
+    "providerIcon": "URL biểu tượng nhà cung cấp",
+    "requiresApiKey": "Cần khóa API",
+    "addCustomTTSProvider": "Thêm nhà cung cấp giọng đọc riêng",
+    "addCustomASRProvider": "Thêm nhà cung cấp nhận dạng giọng nói riêng",
+    "addCustomAudioProviderDescription": "Thêm một nhà cung cấp âm thanh tương thích OpenAI",
+    "customVoices": "Giọng đọc",
+    "voiceIdPlaceholder": "Mã giọng (ví dụ: alloy)",
+    "voiceNamePlaceholder": "Tên hiển thị",
+    "addVoice": "Thêm",
+    "modelNamePlaceholder": "Không bắt buộc",
+    "defaultModelHint": "Tên model gửi trong yêu cầu API (ví dụ kokoro, tts-1)",
+    "noVoicesAdded": "Chưa thêm giọng nào. Hãy thêm giọng bên dưới để chọn riêng cho từng tác nhân.",
+    "noModelsAdded": "Chưa thêm model nào. Hãy thêm model bên dưới để có thể chọn model.",
+    "noModelsWarning": "Vui lòng thêm ít nhất một model bên dưới trước khi dùng nhà cung cấp này.",
+    "cannotDeleteBuiltIn": "Không xóa được nhà cung cấp có sẵn",
+    "resetSuccess": "Đã đặt lại về cấu hình mặc định",
+    "saveSuccess": "Đã lưu cài đặt",
+    "saveFailed": "Không lưu được cài đặt, vui lòng thử lại",
+    "modelIdRequired": "Vui lòng nhập mã model",
+    "modelName": "Tên hiển thị",
+    "modelCapabilities": "Khả năng",
+    "advancedSettings": "Cài đặt nâng cao",
+    "contextWindowLabel": "Cửa sổ ngữ cảnh",
+    "contextWindowPlaceholder": "ví dụ: 128000",
+    "outputWindowLabel": "Số token đầu ra tối đa",
+    "outputWindowPlaceholder": "ví dụ: 4096",
+    "enterCustomBaseUrl": "Nhập địa chỉ gốc tùy chỉnh",
+    "voxcpmBackend": "Máy chủ xử lý",
+    "voxcpmBaseUrlPending": "Nhập địa chỉ gốc để sinh ra địa chỉ yêu cầu",
+    "voxcpmAutoVoiceNoPreview": "Giọng tự động được tạo từ ngữ cảnh nhân vật nên không nghe thử trực tiếp được",
+    "voxcpmBaseUrlRequired": "Hãy nhập địa chỉ gốc VoxCPM trước",
+    "ttsTestText": "Văn bản kiểm tra giọng đọc",
+    "asrResult": "Kết quả nhận dạng",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "Nguồn tìm kiếm Baidu",
+    "baiduSubSourcesDescription": "Hãy chọn ít nhất một nguồn Baidu để truy vấn.",
+    "viewDocs": "Tài liệu API",
+    "optional": "Không bắt buộc",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "Bật nhà cung cấp này",
+    "enableThisProviderHint": "Khi tắt, nhà cung cấp này sẽ không còn xuất hiện trong Cấu hình mô hình khóa học.",
     "serverConfiguredAddOwn": "Muốn dùng thông tin đăng nhập riêng, hãy thêm một nhà cung cấp khác.",
     "webFetchSettings": "Lấy trang web",
     "webFetchHint": "Chọn cách đọc trang web. Dịch vụ lưu trữ chỉ nhận URL công khai được cho phép trong phiên. Kết quả vẫn là dữ liệu không đáng tin cậy và lỗi không làm chuyển sang dịch vụ khác.",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "Open courses",
     "courseTabClose": "Close tab: {{name}}",
     "courseTabRunning": "Generating",
-    "foldersUnavailable": "Thư mục không khả dụng trong bản này"
+    "foldersUnavailable": "Thư mục không khả dụng trong bản này",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Trang cá nhân",
@@ -2461,12 +2649,8 @@
     "provider": "Nhà cung cấp",
     "voice": "Giọng đọc",
     "speed": "Tốc độ",
-    "language": "Ngôn ngữ"
-  },
-  "accessCode": {
-    "title": "Nhập mã truy cập",
-    "placeholder": "Mã truy cập",
-    "error": "Mã truy cập không đúng. Vui lòng thử lại."
+    "language": "Ngôn ngữ",
+    "model": "Mô hình"
   },
   "proMode": {
     "attach": "Đính kèm tài liệu",
@@ -2486,6 +2670,11 @@
     "launchPlaceholder": "Mô tả trải nghiệm học tập bạn muốn tạo",
     "launchSend": "Bắt đầu tạo",
     "mentionCourseOrMaterial": "Nhắc đến một lớp học hoặc tài liệu trong kho kiến thức"
+  },
+  "accessCode": {
+    "title": "Nhập mã truy cập",
+    "placeholder": "Mã truy cập",
+    "error": "Mã truy cập không đúng. Vui lòng thử lại."
   },
   "workbench": {
     "tool": {

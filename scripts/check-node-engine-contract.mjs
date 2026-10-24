@@ -39,7 +39,7 @@ for (const dependency of Object.keys(rootManifest.dependencies ?? {}).sort()) {
   } catch (error) {
     failures.push(
       `cannot read installed manifest for ${dependency} at ${manifestPath}: ${String(error)}. ` +
-        'Run pnpm install before this check.',
+        'Run bun install before this check.',
     );
     continue;
   }

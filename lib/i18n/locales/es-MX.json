@@ -7,11 +7,17 @@
     "errorPrefix": "Error: ",
     "loadingClassroom": "Cargando el aula...",
     "retry": "Reintentar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "Aprendizaje generativo en un aula interactiva multiagente",
-    "greetingWithName": "Hola, {{name}}"
+    "greetingWithName": "Hola, {{name}}",
+    "vocationalTestBadge": "Función de prueba",
+    "vocationalTestLabel": "Tarea vocacional",
+    "vocationalTestTooltip": "Enviar una prueba de formación práctica vocacional desde el cuadro de entrada actual",
+    "footer": "Clase de Inteligencia Artificial"
   },
   "toolbar": {
     "pdfParser": "Analizador",
@@ -229,7 +235,9 @@
       "toolCallingRequired": "El chat del aula necesita un modelo que admita llamadas a herramientas. Selecciona uno para el espacio del aula en Configuración → Configuración de modelos del curso, o contacta al administrador si esta opción está administrada.",
       "geminiNativeRequired": "La interacción con Gemini requiere Google nativo. Agrega Google (preajuste google) en Configuración → Servicios de modelos y selecciónalo para “Aula” en Configuración de modelos del curso. Si la configuración está administrada, contacta al administrador.",
       "emptyAgentResponses": "Los agentes devolvieron respuestas vacías; el debate se detuvo. Inténtalo de nuevo o revisa la configuración de tu modelo.",
-      "streamInterrupted": "El streaming terminó inesperadamente; el debate no se completó. Inténtalo de nuevo."
+      "streamInterrupted": "El streaming terminó inesperadamente; el debate no se completó. Inténtalo de nuevo.",
+      "rateLimited": "El modelo está recibiendo demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
+      "providerUnavailable": "El servicio del modelo no está disponible temporalmente. Inténtalo de nuevo en un momento."
     },
     "elementReference": {
       "whiteboardChanged": "El elemento del pizarrón cambió o ya no está disponible. Vuelve a seleccionarlo o quita la referencia antes de enviar.",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "Foco",
       "laser": "Láser",
+      "play_video": "Play",
       "wb_open": "Abrir pizarrón",
       "wb_draw_text": "Texto en pizarrón",
       "wb_draw_shape": "Figura en pizarrón",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "Fórmula en pizarrón",
       "wb_draw_table": "Tabla en pizarrón",
       "wb_draw_line": "Línea en pizarrón",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "Limpiar pizarrón",
       "wb_delete": "Eliminar elemento",
       "wb_close": "Cerrar pizarrón",
@@ -296,6 +307,17 @@
       "result": "Completado",
       "error": "Error"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "¿Aprendemos juntos?",
@@ -506,7 +528,16 @@
       "sendBackward": "Enviar atrás",
       "alignTop": "Alinear arriba",
       "alignMiddle": "Alinear al medio",
-      "alignBottom": "Alinear abajo"
+      "alignBottom": "Alinear abajo",
+      "alignCenterBoth": "Centrar en ambos ejes",
+      "setLink": "Definir enlace",
+      "ruler": "Regla",
+      "grid": "Cuadrícula",
+      "gridNone": "Ninguna",
+      "gridSmall": "Pequeña",
+      "gridMedium": "Mediana",
+      "gridLarge": "Grande",
+      "resetPage": "Restablecer página"
     },
     "background": {
       "label": "Fondo",
@@ -747,6 +778,12 @@
     "dock": {
       "elementRefHint": "Referencias de elementos: elige elementos para enviar con tu próximo mensaje",
       "globalTools": "Herramientas globales"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -808,7 +845,11 @@
     "aiGrading": "La IA está calificando...",
     "aiGradingWait": "Espera un momento, analizando tus respuestas",
     "quizReport": "Reporte del cuestionario",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "explainOnWhiteboard": "Explicar en el pizarrón",
+    "explainAllOnWhiteboard": "Repasa mis errores en el pizarrón",
+    "explainAllCta": "Explicar paso a paso",
+    "explainHint": "El docente IA abre el pizarrón y escribe cada paso de razonamiento uno por uno."
   },
   "roundtable": {
     "teacher": "DOCENTE",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "Retroalimentación de la entrega",
         "strengths": "Lo que salió bien",
-        "improvements": "Siguientes pasos"
+        "improvements": "Siguientes pasos",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "La premisa presentada durante la preparación — la dejamos aquí para que la consultes en cualquier momento durante la escena.",
@@ -1102,6 +1145,8 @@
     "folderRenameFailed": "Error al renombrar la carpeta",
     "folderDeleteFailed": "Error al eliminar la carpeta",
     "moveFailed": "Error al mover el curso",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "Esta carpeta está vacía",
     "emptyLibraryHint": "Aún no hay cursos — crea uno arriba o importa un curso.",
     "folderNameEmpty": "El nombre de la carpeta no puede estar vacío",
@@ -1113,6 +1158,8 @@
     "notFoundDesc": "Este curso no existe o ha sido eliminado.",
     "loadUnavailable": "No se pudo cargar este curso",
     "loadUnavailableDesc": "No se pudo obtener el curso. Comprueba tu acceso o inténtalo de nuevo.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "Volver al inicio",
     "runOutlining": "Creando el esquema…",
     "runAwaitingConfirmation": "Esperando confirmación",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "Puedes subir hasta 5 archivos de material del curso",
     "courseMaterialTotalSizeLimit": "El tamaño total del material del curso debe ser menor a 150 MB",
     "unsupportedCourseMaterial": "{{parser}} no admite este tipo de archivo. Formatos admitidos: {{formats}}",
+    "courseMaterialSizeLimit": "Documentos, diapositivas, hojas de cálculo, imágenes y texto plano — hasta 50 MB (los formatos aceptados dependen del extractor seleccionado)",
     "unsupportedMaterialFormat": "El extractor actual no admite este formato. Cambia de extractor o elige otro archivo.",
     "materialQuotaExceeded": "Tu almacenamiento de materiales está lleno. Elimina algunos materiales e inténtalo de nuevo.",
     "materialUploadFailed": "No se pudo subir {{name}}. Inténtalo de nuevo.",
@@ -1353,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "Lector integrado"
     },
     "modelCount": "modelos",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "Usa la persona del agente como prompt de voz",
     "voxcpmUnavailable": "No disponible",
     "voxcpmClone": "Clonar",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "El backend actual no admite clonación",
     "voxcpmNoCustomVoices": "Aún no hay voces personalizadas",
     "voxcpmCloneSaveOnly": "Se guarda solo para este backend",
@@ -1833,7 +1884,11 @@
       "applyTitle": "¿Usar la configuración recomendada de este plan?",
       "applyBody": "{{name}} recomienda sus propios modelos para estas etapas. Usarlos reemplaza lo que cada una usa ahora, incluidos los predeterminados del servidor:",
       "applyKeep": "Mantener mi configuración",
-      "applyRecommended": "Usar la configuración recomendada"
+      "applyRecommended": "Usar la configuración recomendada",
+      "enable": "Habilitar",
+      "statusDisabled": "Conectado (apagado)",
+      "enableThisPlan": "Habilitar este plan",
+      "enableThisPlanHint": "Desactivado, este plan ya no aparece en la configuración de modelos del curso."
     },
     "skills": {
       "nav": "Skills",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "El TTS nativo del navegador no admite las funciones de audio de la línea de tiempo del editor (vista previa, regenerar y voz en off masiva). Cambia a un proveedor de TTS administrado para generar y administrar el audio por línea.",
     "courseModels": {
-      "nav": "Configuración de modelos del curso"
+      "nav": "Configuración de modelos del curso",
+      "mainModel": "Modelo principal",
+      "mainModelHint": "Las etapas que siguen el modelo principal comparten este modelo; haz clic en una tarjeta para personalizar una etapa",
+      "mainModelTooltip": "Todas las etapas que siguen el modelo principal usan este modelo. Haz clic en una tarjeta del pipeline para fijar un modelo específico para esa etapa (una ruta de etapa a nivel de usuario, por debajo del MODEL_ROUTES del operador). Las subetapas más finas se configuran en el inspector de la tarjeta.",
+      "noProviderHint": "Aún no hay un modelo de lenguaje configurado: configúralo en Servicios de modelos",
+      "followMainline": "Seguir el principal",
+      "followParent": "Seguir al superior",
+      "restoreFollow": "Restaurar seguimiento del principal",
+      "stopped": "Desactivado",
+      "loop": "bucle",
+      "parallel": "en paralelo",
+      "visionSupported": "Admite visión",
+      "modelSource": "Origen del modelo",
+      "mainlineUnset": "Sin especificar",
+      "pickModel": "Elegir modelo",
+      "pickProvider": "Elegir servicio",
+      "optionInvalid": "No disponible",
+      "subStagesTitle": "Subetapas",
+      "subStages": {
+        "title": "Generación de título",
+        "slide": "Diapositivas",
+        "quiz": "Cuestionario",
+        "interactive": "Guion interactivo",
+        "pbl": "Escenario PBL"
+      },
+      "servicesAndModels": "Servicio y modelo",
+      "searchService": "Servicio de búsqueda",
+      "parseService": "Servicio de análisis",
+      "asrTranscribe": "Transcripción de voz",
+      "aiIllustration": "Ilustraciones con IA",
+      "aiVideo": "Video con IA",
+      "stations": {
+        "docParse": "Análisis de documentos",
+        "webResearch": "Investigación en la web",
+        "outline": "Planeación del esquema",
+        "agents": "Perfiles de agentes",
+        "sceneContent": "Contenido de la escena",
+        "sceneActions": "Acciones de la escena",
+        "tts": "Síntesis de voz",
+        "media": "Generación de medios",
+        "interaction": "Interacción en clase",
+        "desc": {
+          "doc-parse": "Los materiales del curso subidos (documentos, diapositivas, audio/video) se convierten en texto; el audio y el video se transcriben automáticamente.",
+          "web-research": "Busca material complementario en la web según la solicitud del curso; las consultas son reescritas por un LLM ligero.",
+          "outline": "Comprende la solicitud y los materiales para producir el título del curso y los esquemas por escena (revisables por humanos).",
+          "agents": "Genera los perfiles de los agentes docente y estudiante (personalidad, avatar y voz).",
+          "scene-content": "Genera contenido de diapositivas, cuestionarios, interacciones y PBL por escena: la etapa LLM más pesada del flujo.",
+          "scene-actions": "Completa la narración y las acciones didácticas de cada escena para alimentar la síntesis de voz y la reproducción en clase.",
+          "tts": "Sintetiza la narración en voces de docente/estudiante (por escena, en serie).",
+          "media": "Resuelve los marcadores de imagen/video en el contenido generado, en paralelo con el bucle por escena.",
+          "interaction": "El tiempo de ejecución del aula tras la generación: chat multiagente, ejecución de PBL y calificación de cuestionarios."
+        }
+      },
+      "mediaEnableNeedsSetup": "Configura primero una clave de API en Servicios de modelos o activa un Token Plan."
     },
     "addNewModel": "Nuevo modelo",
     "addNewModelDescription": "Agrega una nueva configuración de modelo",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "Streaming",
       "tools": "Herramientas",
-      "vision": "Visión"
+      "vision": "Visión",
+      "thinking": "Razonamiento"
     },
     "claudeSearchModel": "Modelo de búsqueda",
     "claudeSearchModelHint": "El modelo de Claude que realiza las búsquedas web y resume los resultados.",
@@ -1910,6 +2019,7 @@
     "deleteModel": "Eliminar",
     "deleteProvider": "Eliminar proveedor",
     "deleteProviderConfirm": "¿Seguro que deseas eliminar este proveedor?",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "Análisis de documentos",
     "doubaoAccessKey": "Clave de acceso",
     "doubaoAppId": "App ID",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "El servidor no confirmó que se importara."
       }
     },
+    "model": "Configuración de modelos",
+    "save": "Guardar",
+    "providerTypes": {
+      "openai": "Protocolo OpenAI",
+      "azure": "Azure OpenAI",
+      "anthropic": "Protocolo Claude",
+      "google": "Protocolo Gemini",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "Búsqueda web",
+    "addProvider": "Agregar",
+    "addModel": "Agregar",
+    "fetch": "Obtener",
+    "contextWindow": "Contexto",
+    "outputWindow": "Salida",
+    "providerNameRequired": "Ingresa el nombre del proveedor",
+    "providerIcon": "URL del ícono del proveedor",
+    "requiresApiKey": "Requiere clave API",
+    "addCustomTTSProvider": "Agregar proveedor TTS personalizado",
+    "addCustomASRProvider": "Agregar proveedor ASR personalizado",
+    "addCustomAudioProviderDescription": "Agrega un proveedor de audio personalizado compatible con OpenAI",
+    "customVoices": "Voces",
+    "voiceIdPlaceholder": "ID de voz (p. ej. alloy)",
+    "voiceNamePlaceholder": "Nombre para mostrar",
+    "addVoice": "Agregar",
+    "modelNamePlaceholder": "Opcional",
+    "defaultModelHint": "Nombre del modelo enviado en las solicitudes a la API (p. ej. kokoro, tts-1)",
+    "noVoicesAdded": "Aún no hay voces agregadas. Agrega voces abajo para seleccionarlas por agente.",
+    "noModelsAdded": "Aún no hay modelos agregados. Agrega modelos abajo para habilitar la selección de modelo.",
+    "noModelsWarning": "Agrega al menos un modelo abajo antes de usar este proveedor.",
+    "cannotDeleteBuiltIn": "No se puede eliminar un proveedor integrado",
+    "resetSuccess": "Se restableció la configuración predeterminada",
+    "saveSuccess": "Configuración guardada",
+    "saveFailed": "No se pudo guardar la configuración, inténtalo de nuevo",
+    "modelIdRequired": "Ingresa el ID del modelo",
+    "modelName": "Nombre para mostrar",
+    "modelCapabilities": "Capacidades",
+    "advancedSettings": "Configuración avanzada",
+    "contextWindowLabel": "Ventana de contexto",
+    "contextWindowPlaceholder": "p. ej., 128000",
+    "outputWindowLabel": "Máximo de tokens de salida",
+    "outputWindowPlaceholder": "p. ej., 4096",
+    "enterCustomBaseUrl": "Ingresa una URL base personalizada",
+    "voxcpmBackend": "Backend",
+    "voxcpmBaseUrlPending": "Ingresa una URL base para generar la URL de solicitud",
+    "voxcpmAutoVoiceNoPreview": "La voz automática se genera a partir del contexto del agente y no se puede previsualizar directamente",
+    "voxcpmBaseUrlRequired": "Primero ingresa una URL base de VoxCPM",
+    "ttsTestText": "Texto de prueba TTS",
+    "asrResult": "Resultado del reconocimiento",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "Fuentes de búsqueda de Baidu",
+    "baiduSubSourcesDescription": "Elige al menos una fuente de Baidu para consultar.",
+    "viewDocs": "Docs de la API",
+    "optional": "Opcional",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "Habilitar este proveedor",
+    "enableThisProviderHint": "Desactivado, este proveedor ya no aparece en la configuración de modelos del curso.",
     "serverConfiguredAddOwn": "Para usar tus propias credenciales, agrega un proveedor aparte.",
     "webFetchSettings": "Obtener páginas web",
     "webFetchHint": "Elige cómo leer las páginas web. Los servicios alojados reciben URL públicas autorizadas en la sesión. Los resultados siguen siendo datos no confiables y los errores no cambian el lector.",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "Cursos abiertos",
     "courseTabClose": "Cerrar pestaña: {{name}}",
     "courseTabRunning": "Generando",
-    "foldersUnavailable": "Las carpetas no están disponibles en esta versión"
+    "foldersUnavailable": "Las carpetas no están disponibles en esta versión",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "Perfil",
@@ -2461,12 +2649,8 @@
     "provider": "Proveedor",
     "voice": "Voz",
     "speed": "Velocidad",
-    "language": "Idioma"
-  },
-  "accessCode": {
-    "title": "Ingresa el código de acceso",
-    "placeholder": "Código de acceso",
-    "error": "Código de acceso no válido. Inténtalo de nuevo."
+    "language": "Idioma",
+    "model": "Modelo"
   },
   "proMode": {
     "attach": "Adjuntar material",
@@ -2486,6 +2670,11 @@
     "launchPlaceholder": "Describe la experiencia de aprendizaje que quieres crear",
     "launchSend": "Iniciar construcción",
     "mentionCourseOrMaterial": "Mencionar un aula o un material de la base de conocimientos"
+  },
+  "accessCode": {
+    "title": "Ingresa el código de acceso",
+    "placeholder": "Código de acceso",
+    "error": "Código de acceso no válido. Inténtalo de nuevo."
   },
   "workbench": {
     "tool": {

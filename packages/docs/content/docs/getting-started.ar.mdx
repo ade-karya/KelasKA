@@ -7,8 +7,8 @@ OpenMAIC هو تطبيق Next.js يمكن تشغيله على جهازك الخ�
 
 ## المتطلبات المسبقة
 
-- **Node.js** 22.19.0 أو أحدث
-- **pnpm** 10.28.0 (إذا لم يكن مثبتًا، نفذ `npm install -g pnpm@10.28.0`)
+- **Node.js** 24.21.0 أو أحدث
+- **Bun** 1.3.14 أو أحدث (مدير الحزم الافتراضي)
 - إعداد مزود LLM واحد على الأقل؛ عادةً ما تتطلب المزودات السحابية مفتاح API، أما Ollama أو Lemonade المحليان فلا يحتاجان إلى مفتاح API
 
 ## التثبيت
@@ -18,7 +18,7 @@ OpenMAIC هو تطبيق Next.js يمكن تشغيله على جهازك الخ�
 ```bash
 git clone https://github.com/THU-MAIC/OpenMAIC.git
 cd OpenMAIC
-pnpm install
+bun install
 ```
 
 أثناء التثبيت، سيتم بناء حزم workspace اللازمة للمشروع، وقد يستغرق التثبيت الأول بعض الوقت.
@@ -63,7 +63,7 @@ DEFAULT_MODEL=anthropic:claude-sonnet-4-6
 تُحفظ الدروس في PostgreSQL، ويرفض الخادم البدء بدون `DATABASE_URL`. ابدأ قاعدة بيانات تطوير محلية (PostgreSQL منفصل في Docker على `127.0.0.1:5432`، مشترك بين كل النسخ على هذا الجهاز؛ استخدم `OPENMAIC_DB_PORT` لمنفذ آخر) واضبط `DATABASE_URL` في `.env.local`:
 
 ```bash
-pnpm db:up
+bun run db:up
 ```
 
 ```bash title=".env.local"
@@ -73,7 +73,7 @@ DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
 شغّل خادم التطوير:
 
 ```bash
-pnpm dev
+bun run dev
 ```
 
 افتح [http://localhost:3000](http://localhost:3000)، وسترى منشئ الدروس في OpenMAIC. أدخل موضوعًا أو ارفع مواد تعليمية، ثم اضغط على "Generate". سيقوم المعلم الذكي ببناء درس كامل متعدد المشاهد. تعتمد صيغ المواد المدعومة على المحلل المختار، وتشمل عادةً PDF، ومستندات Office، وMarkdown/نص عادي، وصور، وبعض ملفات الصوت/الفيديو؛ ويعتمد ذلك على دعم المحلل.
@@ -94,8 +94,8 @@ pnpm dev
 ## بناء الإنتاج
 
 ```bash
-pnpm build
-DATABASE_URL=postgres://... pnpm start
+bun run build
+DATABASE_URL=postgres://... bun run start
 ```
 
 يمكنك أيضًا النشر باستخدام Docker أو على خادمك الخاص — راجع [دليل النشر](./deployment.mdx).

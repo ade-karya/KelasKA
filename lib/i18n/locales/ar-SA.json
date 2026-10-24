@@ -7,11 +7,17 @@
     "errorPrefix": "خطأ: ",
     "loadingClassroom": "جارٍ تحميل الفصل...",
     "retry": "إعادة المحاولة",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "home": {
     "slogan": "التعلّم التوليدي في فصل تفاعلي متعدد الوكلاء",
-    "greetingWithName": "مرحبًا، {{name}}"
+    "greetingWithName": "مرحبًا، {{name}}",
+    "vocationalTestBadge": "ميزة تجريبية",
+    "vocationalTestLabel": "مهمة التعليم المهني",
+    "vocationalTestTooltip": "إرسال اختبار تدريب عملي مهني من مربع الإدخال الحالي",
+    "footer": "فصل الذكاء الاصطناعي"
   },
   "toolbar": {
     "pdfParser": "محلل PDF",
@@ -30,8 +36,6 @@
     "selectProvider": "اختر المزوّد",
     "configureProvider": "إعداد المزوّد",
     "configureProviderHint": "قم بتكوين مزوّد نماذج واحد على الأقل لتوليد المقررات",
-    "interactiveModeHint": "تفعيل وضع التفاعل_first للمحتوى العملي",
-    "interactiveModeLabel": "وضع التفاعل",
     "enterClassroom": "دخول الفصل",
     "advancedSettings": "إعدادات متقدمة",
     "thinking": "التفكير",
@@ -45,6 +49,8 @@
     "ttsHint": "اختر صوتًا للمعلم الذكي",
     "ttsPreview": "معاينة",
     "ttsPreviewing": "جارٍ التشغيل...",
+    "interactiveModeHint": "تفعيل وضع التفاعل_first للمحتوى العملي",
+    "interactiveModeLabel": "وضع التفاعل",
     "modelChangeFailed": "تعذّر تغيير النموذج: {{message}}",
     "pickModel": "اختر نموذجًا",
     "defaultModelNote": "يغيّر النموذج الافتراضي؛ تحتفظ المراحل المضبوطة بشكل منفصل بنماذجها.",
@@ -67,6 +73,9 @@
     "slidesOnlyDesc": "مشاهد الشرائح فقط",
     "packWithPlaceholders": "PPTX مع شرائح بديلة + صفحات تفاعلية (موصى به)",
     "packSlidesOnly": "PPTX بالشرائح فقط + صفحات تفاعلية",
+    "exporting": "جارٍ التصدير...",
+    "exportSuccess": "تم التصدير بنجاح",
+    "exportFailed": "فشل التصدير",
     "classroomZip": "تصدير ملف الفصل ZIP",
     "classroomZipDesc": "هيكل المقرر + ملفات الوسائط",
     "html": "تصدير بتنسيق HTML",
@@ -133,9 +142,6 @@
     "slideFallback": "الشريحة {{order}}",
     "textOnly": "تصدير النص",
     "mediaPending": "في انتظار انتهاء إنشاء الوسائط",
-    "exporting": "جارٍ التصدير...",
-    "exportSuccess": "تم التصدير بنجاح",
-    "exportFailed": "فشل التصدير",
     "inlinePartial": "تعذّر تضمين {{count}} من الموارد الخارجية؛ قد لا يتم عرض الدورة بشكل صحيح دون اتصال بالإنترنت.",
     "narrationMissing": "تعذّر تضمين {{count}} من مقاطع التعليق الصوتي؛ ستُعرض هذه الأسطر بحسب زمن القراءة.",
     "video": "تصدير الفيديو",
@@ -202,8 +208,8 @@
     "parsing": "جارٍ تحليل ملف ZIP...",
     "parsingPptx": "جارٍ تحليل ملف PPTX...",
     "validating": "جارٍ التحقق من البيانات...",
-    "writingCourse": "جارٍ كتابة بيانات المقرر...",
     "writingMedia": "جارٍ كتابة ملفات الوسائط...",
+    "writingCourse": "جارٍ كتابة بيانات المقرر...",
     "success": "تم استيراد الفصل بنجاح",
     "pptxSuccess": "تم تحليل PPTX بنجاح ({{count}} شرائح، تم طباعة الإخراج في وحدة التحكم)",
     "error": {
@@ -229,7 +235,9 @@
       "toolCallingRequired": "تحتاج دردشة الصف إلى نموذج يدعم استدعاء الأدوات. اختر نموذجًا مناسبًا لـ «الصف» في الإعدادات ← إعداد نماذج المقرر، أو تواصل مع المسؤول إذا كان هو من يدير هذا الإعداد.",
       "geminiNativeRequired": "يتطلب التفاعل مع Gemini استخدام Google الأصلي. أضف Google (الإعداد المسبق google) في الإعدادات ← خدمات النماذج، ثم اختره لـ «الصف» في «إعداد نماذج المقرر». إذا كان المسؤول يدير هذه الإعدادات، فتواصل معه.",
       "emptyAgentResponses": "أعاد الوكلاء استجابات فارغة; توقف النقاش. حاول مرة أخرى أو راجع إعدادات النموذج.",
-      "streamInterrupted": "انتهى تدفق البيانات بشكل غير متوقع; لم يكتمل النقاش. يرجى المحاولة مرة أخرى."
+      "streamInterrupted": "انتهى تدفق البيانات بشكل غير متوقع; لم يكتمل النقاش. يرجى المحاولة مرة أخرى.",
+      "rateLimited": "يتلقى النموذج عددًا كبيرًا من الطلبات حاليًا. يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.",
+      "providerUnavailable": "خدمة النموذج غير متاحة مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل."
     },
     "elementReference": {
       "whiteboardChanged": "تغيّر عنصر السبورة المشار إليه أو لم يعد متاحًا. اختره مجددًا أو أزل الإشارة قبل الإرسال.",
@@ -274,6 +282,7 @@
     "names": {
       "spotlight": "تسليط الضوء",
       "laser": "مؤشر ليزر",
+      "play_video": "Play",
       "wb_open": "فتح السبورة",
       "wb_draw_text": "نص على السبورة",
       "wb_draw_shape": "شكل على السبورة",
@@ -281,6 +290,8 @@
       "wb_draw_latex": "معادلة على السبورة",
       "wb_draw_table": "جدول على السبورة",
       "wb_draw_line": "خط على السبورة",
+      "wb_draw_code": "Code",
+      "wb_edit_code": "Edit Code",
       "wb_clear": "مسح السبورة",
       "wb_delete": "حذف العنصر",
       "wb_close": "إغلاق السبورة",
@@ -296,6 +307,17 @@
       "result": "مكتمل",
       "error": "خطأ"
     }
+  },
+  "canvas": {
+    "toggleSidebar": "Toggle sidebar",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "playbackSpeed": "Playback speed",
+    "prevScene": "Previous scene",
+    "nextScene": "Next scene",
+    "pause": "Pause",
+    "play": "Play",
+    "toggleChat": "Toggle chat"
   },
   "agentBar": {
     "readyToLearn": "هل أنت مستعد للتعلّم معنا؟",
@@ -506,7 +528,16 @@
       "sendBackward": "إرسال إلى الخلف",
       "alignTop": "محاذاة للأعلى",
       "alignMiddle": "محاذاة للوسط",
-      "alignBottom": "محاذاة للأسفل"
+      "alignBottom": "محاذاة للأسفل",
+      "alignCenterBoth": "توسيط على المحورين",
+      "setLink": "تعيين الرابط",
+      "ruler": "المسطرة",
+      "grid": "الشبكة",
+      "gridNone": "بلا",
+      "gridSmall": "صغيرة",
+      "gridMedium": "متوسطة",
+      "gridLarge": "كبيرة",
+      "resetPage": "إعادة تعيين الصفحة"
     },
     "background": {
       "label": "الخلفية",
@@ -591,6 +622,12 @@
         "boundary": "For fine-grained edits use the editor; add / delete / reorder slides from the left nav.",
         "comingSoon": "More capabilities coming soon."
       },
+      "interactive": {
+        "emptyTitle": "ما الذي يحتاج إلى إصلاح في هذه الصفحة؟",
+        "lead": "صِف خطأً في هذه الصفحة التفاعلية — مثل زر لا يفعل شيئًا — وسأُصلح ذلك فقط مع الإبقاء على كل شيء آخر.",
+        "placeholder": "صِف الخطأ في هذه الصفحة التفاعلية…",
+        "boundary": "أُجري إصلاحات محدّدة على الصفحة، ولا أعيد بناء الصفحة بالكامل. بدّل المشاهد من شريط التنقّل على اليسار."
+      },
       "cap": {
         "content": {
           "label": "Regenerate the slide",
@@ -601,8 +638,8 @@
           "examples": "“Make it more conversational”, “Align with my canvas edits”"
         },
         "fixHtml": {
-          "examples": "«زر البدء لا يفعل شيئًا»، «تتداخل اللوحات على الجوال»",
-          "label": "إصلاح خطأ في الصفحة"
+          "label": "إصلاح خطأ في الصفحة",
+          "examples": "«زر البدء لا يفعل شيئًا»، «تتداخل اللوحات على الجوال»"
         },
         "elements": {
           "label": "تعديل العناصر",
@@ -614,15 +651,9 @@
       "sessionUntitled": "محادثة بلا عنوان",
       "sessionDelete": "حذف",
       "sessionEmpty": "لا توجد محادثات",
+      "thinking": "جارٍ التفكير…",
       "reasoning": "الاستدلال",
       "thought": "فكّر لمدة",
-      "interactive": {
-        "boundary": "أُجري إصلاحات محدّدة على الصفحة، ولا أعيد بناء الصفحة بالكامل. بدّل المشاهد من شريط التنقّل على اليسار.",
-        "emptyTitle": "ما الذي يحتاج إلى إصلاح في هذه الصفحة؟",
-        "lead": "صِف خطأً في هذه الصفحة التفاعلية — مثل زر لا يفعل شيئًا — وسأُصلح ذلك فقط مع الإبقاء على كل شيء آخر.",
-        "placeholder": "صِف الخطأ في هذه الصفحة التفاعلية…"
-      },
-      "thinking": "جارٍ التفكير…",
       "title": "التحرير باستخدام الذكاء الاصطناعي"
     },
     "timeline": {
@@ -701,18 +732,18 @@
       "restored": "تمت الاستعادة",
       "resume": "إعادة"
     },
+    "fixHtml": {
+      "title": "إصلاح الصفحة التفاعلية",
+      "fixing": "جارٍ الإصلاح",
+      "fixed": "تم الإصلاح",
+      "notFixed": "لم يُصلَح",
+      "editsCount": "{{count}} تعديل"
+    },
     "readCard": {
       "title": "Read slide content",
       "reading": "Reading",
       "done": "Read",
       "failed": "Not read"
-    },
-    "fixHtml": {
-      "editsCount": "{{count}} تعديل",
-      "fixed": "تم الإصلاح",
-      "fixing": "جارٍ الإصلاح",
-      "notFixed": "لم يُصلَح",
-      "title": "إصلاح الصفحة التفاعلية"
     },
     "editElements": {
       "title": "تحرير العناصر",
@@ -747,6 +778,12 @@
     "dock": {
       "elementRefHint": "مراجع العناصر — اختر عناصر لإرسالها مع رسالتك التالية",
       "globalTools": "أدوات عامة"
+    },
+    "color": {
+      "sampleFromScreen": "Sample a color from the screen"
+    },
+    "shapeCreate": {
+      "hint": "Click to draw any shape, close the path to finish, press ESC or right-click to cancel, press ENTER to finish early"
     }
   },
   "classroomComplete": {
@@ -808,7 +845,11 @@
     "aiGrading": "الذكاء الاصطناعي يصحح...",
     "aiGradingWait": "يرجى الانتظار، جارٍ تحليل إجاباتك",
     "quizReport": "تقرير الاختبار",
-    "retry": "إعادة المحاولة"
+    "retry": "إعادة المحاولة",
+    "explainOnWhiteboard": "اشرح على السبورة",
+    "explainAllOnWhiteboard": "اشرح أخطائي على السبورة خطوة بخطوة",
+    "explainAllCta": "اشرح خطوة بخطوة",
+    "explainHint": "يفتح معلم الذكاء الاصطناعي السبورة ويكتب كل خطوة استدلال واحدة تلو الأخرى."
   },
   "roundtable": {
     "teacher": "المعلم",
@@ -819,10 +860,10 @@
     "noSpeechDetected": "لم يتم اكتشاف كلام، يرجى المحاولة مرة أخرى",
     "discussionEnded": "انتهى النقاش",
     "qaEnded": "انتهت الأسئلة والأجوبة",
-    "softClosing": "متابعة النقاش",
     "thinking": "يفكر",
     "yourTurn": "دورك",
     "stopDiscussion": "إيقاف النقاش",
+    "softClosing": "متابعة النقاش",
     "autoPlay": "تشغيل تلقائي",
     "autoPlayOff": "إيقاف التشغيل التلقائي",
     "speed": "السرعة",
@@ -932,7 +973,9 @@
       "taskEvalCard": {
         "title": "ملاحظات على ما قدمته",
         "strengths": "نقاط القوة",
-        "improvements": "مجالات التحسين"
+        "improvements": "مجالات التحسين",
+        "scoreLabel": "Score {{score}} out of 100",
+        "ratingLabel": "Rating {{value}} out of 5"
       },
       "briefing": {
         "intro": "الخلفية التي قُدّمت في مرحلة التحضير محفوظة هنا لمراجعتها في أي وقت أثناء المشهد.",
@@ -1014,7 +1057,6 @@
         "submissionsInStage": "تم تقديم {{count}} عمل",
         "coreConceptGrasp": "المفهوم الأساسي «{{concept}}» — {{quality}}",
         "stageNoData": "لا توجد مخرجات مسجلة في هذه المرحلة.",
-        "highlightsTitle": "أبرز نقاطك",
         "scenario": {
           "summary": "أتممت كل فصول هذا السيناريو البالغة {{acts}}. إليك كيف سار تمثيل الأدوار.",
           "whatYouDidWell": "ما أحسنت فعله",
@@ -1038,6 +1080,7 @@
           "decisionScore": "نقاط القرار {{score}}",
           "castLabel": "تفاعلت مع: {{names}}"
         },
+        "highlightsTitle": "أبرز نقاطك",
         "highlight": {
           "independence": "أظهرت {{unlocks}}/{{total}} مفهومًا بنفسك — دون الحاجة للتوجيه. فهم متين.",
           "resilience": "في مرحلة «{{title}}» تغلبت على {{errors}} خطأ — إصرار حقيقي.",
@@ -1102,17 +1145,21 @@
     "folderRenameFailed": "فشلت إعادة تسمية المجلد",
     "folderDeleteFailed": "فشل حذف المجلد",
     "moveFailed": "فشل نقل الدورة",
+    "deleteFailed": "Failed to delete classroom",
+    "persistenceUnavailable": "Persistence is unavailable. Saved classrooms could not be loaded.",
     "emptyFolderHint": "هذا المجلد فارغ",
     "emptyLibraryHint": "لا توجد دورات بعد — أنشئ واحدة بالأعلى أو استورد دورة.",
     "folderNameEmpty": "لا يمكن أن يكون اسم المجلد فارغًا",
     "deleteFolderOnly": "حذف المجلد فقط",
     "deleteFolderAndCourses": "حذف المجلد و {{count}} دورة",
-    "deleteFolderConfirmRemove": "سيؤدي هذا إلى حذف المجلد ودوراته، بما في ذلك سجل الدردشة.",
     "deleteFolderAndCourses_other": "حذف المجلد و {{count}} دورة",
+    "deleteFolderConfirmRemove": "سيؤدي هذا إلى حذف المجلد ودوراته، بما في ذلك سجل الدردشة.",
     "notFound": "لم يتم العثور على الدورة",
     "notFoundDesc": "هذه الدورة غير موجودة أو تم حذفها.",
     "loadUnavailable": "تعذر تحميل هذه الدورة",
     "loadUnavailableDesc": "تعذر استرداد الدورة. تحقق من صلاحية الوصول أو حاول مرة أخرى.",
+    "loadFailed": "Failed to load classroom",
+    "loadFailedWithDetail": "Failed to load classroom: {{detail}}",
     "backToHome": "العودة إلى الصفحة الرئيسية",
     "runOutlining": "جارٍ إعداد المخطط…",
     "runAwaitingConfirmation": "بانتظار التأكيد",
@@ -1130,6 +1177,7 @@
     "courseMaterialCountLimit": "يمكنك رفع ما يصل إلى 5 ملفات لمواد المقرر",
     "courseMaterialTotalSizeLimit": "يجب أن يكون الحجم الإجمالي لمواد المقرر أقل من 150 ميغابايت",
     "unsupportedCourseMaterial": "لا يدعم {{parser}} نوع الملف هذا. الصيغ المدعومة: {{formats}}",
+    "courseMaterialSizeLimit": "المستندات والعروض التقديمية وجداول البيانات والصور والنصوص العادية — حتى 50 ميغابايت (تعتمد الصيغ المقبولة على المستخرج المحدد)",
     "unsupportedMaterialFormat": "المستخرج الحالي لا يدعم هذه الصيغة. غيّر المستخرج أو اختر ملفًا آخر.",
     "materialQuotaExceeded": "مساحة تخزين المواد ممتلئة. احذف بعض المواد ثم حاول مرة أخرى.",
     "materialUploadFailed": "فشل رفع {{name}}. يرجى المحاولة مرة أخرى.",
@@ -1353,6 +1401,7 @@
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
+      "opencode": "OpenCode CLI",
       "builtin": "القارئ المدمج"
     },
     "modelCount": "نماذج",
@@ -1431,6 +1480,8 @@
     "voxcpmAutoVoiceDescription": "استخدام persona الخاصة بالـ Agent كموجّه للصوت",
     "voxcpmUnavailable": "غير متاح",
     "voxcpmClone": "استنساخ",
+    "voxcpmPromptBadge": "Prompt",
+    "voxcpmReferenceAudioFallback": "reference audio",
     "voxcpmCloneUnsupportedDetail": "الخلفية الحالية لا تدعم الاستنساخ",
     "voxcpmNoCustomVoices": "لا توجد أصوات مخصصة بعد",
     "voxcpmCloneSaveOnly": "متاح للحفظ فقط مع هذه الخلفية",
@@ -1833,7 +1884,11 @@
       "applyTitle": "هل تريد استخدام الإعداد الموصى به لهذه الخطة؟",
       "applyBody": "توصي {{name}} بنماذجها الخاصة لهذه المراحل. استخدامها يستبدل ما تستخدمه كل مرحلة الآن، بما في ذلك قيم الخادم الافتراضية:",
       "applyKeep": "الإبقاء على إعدادي الحالي",
-      "applyRecommended": "استخدام الإعداد الموصى به للخطة"
+      "applyRecommended": "استخدام الإعداد الموصى به للخطة",
+      "enable": "Enable",
+      "statusDisabled": "متصل (متوقف)",
+      "enableThisPlan": "تفعيل هذه الباقة",
+      "enableThisPlanHint": "عند الإيقاف لن تظهر هذه الباقة في إعداد نماذج المقرر."
     },
     "skills": {
       "nav": "المهارات",
@@ -1864,7 +1919,60 @@
     },
     "ttsBrowserNativeTimelineNotice": "لا يدعم تحويل النص إلى كلام المدمج في المتصفح ميزات الصوت في الخط الزمني للمحرر (المعاينة وإعادة التوليد والتعليق الصوتي الجماعي). بدّل إلى مزود TTS مُدار لتوليد صوت كل سطر وإدارته.",
     "courseModels": {
-      "nav": "إعداد نماذج المقرر"
+      "nav": "إعداد نماذج المقرر",
+      "mainModel": "النموذج الرئيسي",
+      "mainModelHint": "المراحل التي تتبع النموذج الرئيسي تشارك هذا النموذج؛ اضغط على بطاقة لتخصيص مرحلة معينة",
+      "mainModelTooltip": "كل مرحلة مضبوطة لتتبع النموذج الرئيسي تستخدم هذا النموذج. اضغط على بطاقة في خط الأنابيب لتثبيت نموذج محدد لتلك المرحلة (مسار مرحلة على مستوى المستخدم، بأسبقية أدنى من MODEL_ROUTES لدى المشغّل). المراحل الفرعية الأدق تُضبط في فاحص البطاقة.",
+      "noProviderHint": "لم يتم إعداد نموذج لغوي بعد — أعدّه في «خدمات النماذج»",
+      "followMainline": "اتباع الرئيسي",
+      "followParent": "اتباع الأصل",
+      "restoreFollow": "استعادة اتباع الرئيسي",
+      "stopped": "معطّل",
+      "loop": "حلقة",
+      "parallel": "بالتوازي",
+      "visionSupported": "يدعم الرؤية",
+      "modelSource": "مصدر النموذج",
+      "mainlineUnset": "غير محدد",
+      "pickModel": "اختر نموذجًا",
+      "pickProvider": "اختر خدمة",
+      "optionInvalid": "غير متاح",
+      "subStagesTitle": "مراحل فرعية",
+      "subStages": {
+        "title": "إنشاء العنوان",
+        "slide": "الشرائح",
+        "quiz": "الاختبار",
+        "interactive": "سيناريو تفاعلي",
+        "pbl": "سيناريو التعلم بالمشاريع"
+      },
+      "servicesAndModels": "الخدمة والنموذج",
+      "searchService": "خدمة البحث",
+      "parseService": "خدمة التحليل",
+      "asrTranscribe": "تحويل الكلام إلى نص",
+      "aiIllustration": "رسوم توضيحية بالذكاء الاصطناعي",
+      "aiVideo": "فيديو بالذكاء الاصطناعي",
+      "stations": {
+        "docParse": "تحليل المستندات",
+        "webResearch": "البحث على الإنترنت",
+        "outline": "تخطيط المخطط",
+        "agents": "ملفات الوكلاء",
+        "sceneContent": "محتوى المشهد",
+        "sceneActions": "إجراءات المشهد",
+        "tts": "تحويل النص إلى كلام",
+        "media": "توليد الوسائط",
+        "interaction": "التفاعل في الفصل",
+        "desc": {
+          "doc-parse": "يتم تحليل مواد المقرر المرفوعة (المستندات والشرائح والصوت/الفيديو) إلى نص، مع نسخ الصوت والفيديو تلقائيًا.",
+          "web-research": "البحث في الويب عن مواد مكمّلة بناءً على متطلبات المقرر، مع إعادة صياغة استعلامات البحث بواسطة نموذج لغوي خفيف.",
+          "outline": "يفهم المتطلبات والمواد لإنتاج عنوان المقرر ومخططات كل مشهد (قابلة للمراجعة البشرية).",
+          "agents": "يولّد ملفات وكلاء المعلم والطالب (الشخصيات والصور الرمزية والأصوات).",
+          "scene-content": "يولّد محتوى الشرائح والاختبارات والتفاعلات وسيناريو PBL لكل مشهد، وهو أثقل مرحلة تعتمد على النموذج اللغوي في المسار.",
+          "scene-actions": "يكمل السرد والإجراءات التعليمية لكل مشهد لتغذية توليد الكلام وتشغيل الفصل.",
+          "tts": "يحوّل السرد إلى صوت المعلم/الطالب (لكل مشهد، بشكل متتابع).",
+          "media": "يعالج العناصر النائبة للصور/الفيديو في المحتوى المُنشأ بالتوازي مع دورة المشاهد.",
+          "interaction": "وقت تشغيل الفصل بعد التوليد: محادثة الوكلاء المتعددين، وتشغيل PBL، وتصحيح الاختبارات."
+        }
+      },
+      "mediaEnableNeedsSetup": "هيّئ مفتاح API في «خدمات النماذج» أو فعّل Token Plan أولاً."
     },
     "addNewModel": "نموذج جديد",
     "addNewModelDescription": "إضافة تكوين نموذج جديد",
@@ -1890,7 +1998,8 @@
     "capabilities": {
       "streaming": "التدفق",
       "tools": "الأدوات",
-      "vision": "الرؤية"
+      "vision": "الرؤية",
+      "thinking": "التفكير"
     },
     "claudeSearchModel": "نموذج البحث",
     "claudeSearchModelHint": "نموذج Claude الذي يقوم بالبحث في الويب وتلخيص النتائج.",
@@ -1910,6 +2019,7 @@
     "deleteModel": "حذف",
     "deleteProvider": "حذف المزوّد",
     "deleteProviderConfirm": "هل أنت متأكد من حذف هذا المزوّد؟",
+    "removeModel": "Remove {{id}}",
     "documentParsingSettings": "تحليل المستندات",
     "doubaoAccessKey": "مفتاح الوصول",
     "doubaoAppId": "معرّف التطبيق",
@@ -2203,6 +2313,72 @@
         "unconfirmed": "لم يؤكد الخادم أنه تم استيراده."
       }
     },
+    "model": "تكوين النموذج",
+    "save": "حفظ",
+    "providerTypes": {
+      "openai": "بروتوكول OpenAI",
+      "azure": "Azure OpenAI",
+      "anthropic": "بروتوكول Claude",
+      "google": "بروتوكول Gemini",
+      "bedrock": "Amazon Bedrock",
+      "opencode": "OpenCode CLI"
+    },
+    "webSearch": "بحث الإنترنت",
+    "addProvider": "إضافة",
+    "addModel": "جديد",
+    "fetch": "جلب",
+    "contextWindow": "السياق",
+    "outputWindow": "المخرجات",
+    "providerNameRequired": "يرجى إدخال اسم المزوّد",
+    "providerIcon": "رابط أيقونة المزوّد",
+    "requiresApiKey": "يتطلب مفتاح API",
+    "addCustomTTSProvider": "إضافة مزوّد TTS مخصص",
+    "addCustomASRProvider": "إضافة مزوّد ASR مخصص",
+    "addCustomAudioProviderDescription": "إضافة مزوّد صوتي مخصص متوافق مع OpenAI",
+    "customVoices": "الأصوات",
+    "voiceIdPlaceholder": "معرّف الصوت (مثلاً alloy)",
+    "voiceNamePlaceholder": "اسم العرض",
+    "addVoice": "إضافة",
+    "modelNamePlaceholder": "اختياري",
+    "defaultModelHint": "اسم النموذج المُرسل في طلبات API (مثلاً kokoro, tts-1)",
+    "noVoicesAdded": "لم تتم إضافة أصوات بعد. أضف أصواتًا أدناه لاختيار صوت لكل وكيل.",
+    "noModelsAdded": "لم تتم إضافة نماذج بعد. أضف نماذج أدناه لتمكين اختيار النموذج.",
+    "noModelsWarning": "يرجى إضافة نموذج واحد على الأقل أدناه قبل استخدام هذا المزوّد.",
+    "cannotDeleteBuiltIn": "لا يمكن حذف المزوّد المُدمج",
+    "resetSuccess": "تمت إعادة التعيين للتكوين الافتراضي بنجاح",
+    "saveSuccess": "تم حفظ الإعدادات",
+    "saveFailed": "فشل حفظ الإعدادات، يرجى المحاولة مرة أخرى",
+    "modelIdRequired": "يرجى إدخال معرّف النموذج",
+    "modelName": "اسم العرض",
+    "modelCapabilities": "القدرات",
+    "advancedSettings": "إعدادات متقدمة",
+    "contextWindowLabel": "نافذة السياق",
+    "contextWindowPlaceholder": "مثلاً، 128000",
+    "outputWindowLabel": "الحد الأقصى لرموز المخرجات",
+    "outputWindowPlaceholder": "مثلاً، 4096",
+    "enterCustomBaseUrl": "أدخل عنوانًا أساسيًا مخصصًا",
+    "voxcpmBackend": "الخلفية",
+    "voxcpmBaseUrlPending": "أدخل Base URL لإنشاء عنوان الطلب",
+    "voxcpmAutoVoiceNoPreview": "يتم إنشاء الصوت التلقائي من سياق Agent، لذلك لا يمكن معاينته منفردًا",
+    "voxcpmBaseUrlRequired": "أدخل VoxCPM Base URL أولًا",
+    "ttsTestText": "نص اختبار TTS",
+    "asrResult": "نتيجة التعرف",
+    "providerHuggingFaceImage": "Hugging Face Image Gen",
+    "huggingfaceLogin": "Login with Hugging Face",
+    "huggingfaceGetToken": "Get a token",
+    "huggingfaceAcceptLicense": "Accept the model license",
+    "huggingfaceTokenHint": "Paste a Hugging Face access token (hf_...) into API Key below. FLUX.1-dev is a gated model — accept the license on its model page first, then test the connection.",
+    "providerHuggingFaceVideo": "Hugging Face Video Gen",
+    "huggingfaceVideoHint": "Paste a Hugging Face access token (hf_...) into API Key below. Video Gen animates a source image — generate an image first, then pass its URL as sourceImageUrl when calling /api/generate/video.",
+    "huggingfaceOpenSpace": "Open the Video Gen Space",
+    "baiduSubSources": "مصادر بحث Baidu",
+    "baiduSubSourcesDescription": "اختر مصدر Baidu واحدًا على الأقل.",
+    "viewDocs": "مستندات API",
+    "optional": "اختياري",
+    "alidocmindAccessKeyId": "AccessKey ID",
+    "alidocmindAccessKeySecret": "AccessKey Secret",
+    "enableThisProvider": "تمكين هذا المزوّد",
+    "enableThisProviderHint": "عند الإيقاف لن يظهر هذا المزوّد في إعداد نماذج المقرر.",
     "serverConfiguredAddOwn": "لاستخدام بيانات الاعتماد الخاصة بك، أضِف مزوّدًا منفصلاً.",
     "webFetchSettings": "جلب صفحات الويب",
     "webFetchHint": "اختر طريقة قراءة صفحات الويب. تتلقى الخدمات المستضافة روابط عامة مسموحًا بها في الجلسة. تظل النتائج غير موثوقة، ولا يؤدي الفشل إلى تبديل القارئ.",
@@ -2436,7 +2612,19 @@
     "courseTabsAria": "الدورات المفتوحة",
     "courseTabClose": "إغلاق التبويب: {{name}}",
     "courseTabRunning": "قيد التوليد",
-    "foldersUnavailable": "المجلدات غير متوفرة في هذا الإصدار"
+    "foldersUnavailable": "المجلدات غير متوفرة في هذا الإصدار",
+    "modelPicker": {
+      "empty": "Model list is empty.",
+      "loadFailed": "Failed to load the model list.",
+      "selectFailed": "Failed to select model ({{status}})",
+      "activeToast": "Active model: {{name}} (applies to the next run)",
+      "selectFailedFallback": "Failed to select model",
+      "thinkingSaveFailed": "Failed to save thinking variant",
+      "loading": "Loading…",
+      "loadError": "Failed to load models",
+      "choose": "Choose model",
+      "ariaLabel": "Choose a Pro Workbench model"
+    }
   },
   "profile": {
     "title": "الملف الشخصي",
@@ -2461,12 +2649,8 @@
     "provider": "المزوّد",
     "voice": "الصوت",
     "speed": "السرعة",
-    "language": "اللغة"
-  },
-  "accessCode": {
-    "title": "أدخل رمز الوصول",
-    "placeholder": "رمز الوصول",
-    "error": "رمز الوصول غير صالح. يرجى المحاولة مرة أخرى."
+    "language": "اللغة",
+    "model": "النموذج"
   },
   "proMode": {
     "attach": "إرفاق مواد",
@@ -2486,6 +2670,11 @@
     "launchPlaceholder": "صِف تجربة التعلم التي تريد إنشاءها",
     "launchSend": "بدء الإنشاء",
     "mentionCourseOrMaterial": "الإشارة إلى فصل أو مادة من قاعدة المعرفة"
+  },
+  "accessCode": {
+    "title": "أدخل رمز الوصول",
+    "placeholder": "رمز الوصول",
+    "error": "رمز الوصول غير صالح. يرجى المحاولة مرة أخرى."
   },
   "workbench": {
     "tool": {
