@@ -26,6 +26,7 @@ export type BuiltInProviderId =
   | 'tokendance'
   | 'opencode'
   | 'opencode-go'
+  | 'codex'
   | 'lemonade'
   | 'ollama';
 
@@ -38,7 +39,14 @@ export type ProviderId = BuiltInProviderId | `custom-${string}`;
 /**
  * Provider API types
  */
-export type ProviderType = 'openai' | 'azure' | 'anthropic' | 'bedrock' | 'google' | 'opencode';
+export type ProviderType =
+  | 'openai'
+  | 'azure'
+  | 'anthropic'
+  | 'bedrock'
+  | 'google'
+  | 'opencode'
+  | 'codex';
 
 export type ThinkingControlType =
   | 'none'
@@ -216,5 +224,11 @@ export interface ModelConfig {
  *
  * Semua varian opencode disembunyikan (`opencode`, `opencode-go`): keduanya
  * auth-nya via CLI/TUI (`opencode auth login`), bukan via API key di UI.
+ * `codex` (transport SDK Codex lokal) juga disembunyikan: auth-nya sesi
+ * `codex login` di server atau CODEX_API_KEY, bukan API key di UI.
  */
-export const HIDDEN_PROVIDER_IDS: ReadonlySet<string> = new Set(['opencode', 'opencode-go']);
+export const HIDDEN_PROVIDER_IDS: ReadonlySet<string> = new Set([
+  'opencode',
+  'opencode-go',
+  'codex',
+]);

@@ -46,6 +46,16 @@ providers:
   #   preset: anthropic
   #   apiKey: ${ANTHROPIC_API_KEY}
 
+  # The Pro workbench can answer its turns through a local Codex agent instead
+  # of an HTTP endpoint. No key here: authenticate with `codex login` on the
+  # server or set CODEX_API_KEY. models lists the ids passed to
+  # `codex exec --model`; CODEX_MODELS feeds the workbench picker, and
+  # CODEX_PATH points at a codex binary when the SDK's platform package is
+  # absent.
+  # codex:
+  #   preset: codex
+  #   models: [gpt-5.6-codex]
+
   # Web search.
   # tavily:
   #   preset: tavily
@@ -115,11 +125,18 @@ slots:
   #   fallback: openai:gpt-5.4-mini
 
   # The Pro workbench agent needs a model with tool calling. It may set
-  # thinking.mode but not thinking.effort; an effort set on llm is dropped
-  # for the agent.
+  # thinking.mode but not thinking.effort on an HTTP transport; an effort set
+  # on llm is dropped for the agent. A local transport carries the effort as a
+  # prompt instruction or CLI flag, so it may set one.
   # agent:
   #   model: openai:gpt-5.5
   #   api: openai-completions
+
+  # The same slot through the local Codex SDK (provider above):
+  # agent:
+  #   model: codex:gpt-5.6-codex
+  #   api: codex-sdk
+  #   thinking: { effort: high }
 
   # A provider id alone means that provider's default model (search and
   # document services mostly have none to pick).

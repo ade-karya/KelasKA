@@ -98,6 +98,22 @@ export const OPENCODE_CLI_THINKING: ThinkingCapability = {
 };
 
 /**
+ * Thinking capability of the Codex SDK transport (`provider: "codex"`,
+ * `api: "codex-sdk"`). The picker's effort becomes the turn's
+ * `model_reasoning_effort` (lib/agent/runtime/codex-stream-fn.ts); `none` sends
+ * no effort at all so the Codex CLI keeps the model default.
+ */
+export const CODEX_SDK_THINKING: ThinkingCapability = {
+  control: 'effort',
+  requestAdapter: 'openai',
+  effortValues: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+  defaultEffort: 'medium',
+  toggleable: true,
+  budgetAdjustable: false,
+  defaultEnabled: true,
+};
+
+/**
  * Provider registry
  */
 export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
@@ -1884,6 +1900,37 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     ],
   },
 
+  codex: {
+    id: 'codex',
+    name: 'Codex SDK',
+    // Transport SDK Codex LOKAL (lib/ai/codex-sdk.ts +
+    // lib/agent/runtime/codex-stream-fn.ts) — BUKAN endpoint HTTP. Auth lewat
+    // sesi `codex login` di server atau CODEX_API_KEY / OPENAI_API_KEY, jadi
+    // tidak ada API key di UI (lihat HIDDEN_PROVIDER_IDS). Model id diteruskan
+    // apa adanya ke `codex exec --model`; operator bisa memperluas daftar lewat
+    // CODEX_MODELS / openmaic.yml. Angka konteks hanya estimasi kompaksi
+    // internal driver, tidak dikirim sebagai batas API.
+    type: 'codex',
+    requiresApiKey: false,
+    icon: '/logos/openai.svg',
+    models: [
+      {
+        id: 'gpt-5.6-codex',
+        name: 'GPT-5.6 Codex',
+        contextWindow: 400000,
+        outputWindow: 128000,
+        capabilities: { streaming: true, tools: true, vision: false, thinking: CODEX_SDK_THINKING },
+      },
+      {
+        id: 'gpt-5.5-codex',
+        name: 'GPT-5.5 Codex',
+        contextWindow: 400000,
+        outputWindow: 128000,
+        capabilities: { streaming: true, tools: true, vision: false, thinking: CODEX_SDK_THINKING },
+      },
+    ],
+  },
+
   lemonade: {
     id: 'lemonade',
     name: 'Lemonade',
@@ -2529,6 +2576,30 @@ export function isProviderKeyRequired(providerId: string): boolean {
 }
 
 /**
+ * The `codex` provider is a *transport*, not an HTTP endpoint: the Pro Workbench
+ * agent driver answers its turns through the local Codex SDK
+ * (lib/agent/runtime/codex-stream-fn.ts) and never calls `model`. Resolution
+ * still needs a model object, so this placeholder fails loudly for any other
+ * consumer instead of pretending an endpoint exists.
+ */
+function createCodexSdkPlaceholderModel(modelId: string): LanguageModel {
+  const unsupported = (): never => {
+    throw new Error(
+      `The "codex" provider is only available as the Pro Workbench agent driver ` +
+        `(api "codex-sdk"); ${modelId} cannot be called over HTTP.`,
+    );
+  };
+  return {
+    specificationVersion: 'v3',
+    provider: 'codex',
+    modelId,
+    supportedUrls: {},
+    doGenerate: unsupported,
+    doStream: unsupported,
+  } as unknown as LanguageModel;
+}
+
+/**
  * Get a configured language model instance with its info
  * Accepts individual parameters for flexibility and security
  */
@@ -2911,6 +2982,14 @@ export function getModel(config: ModelConfig): ModelWithInfo {
       // providerId diteruskan agar slug CLI benar (`opencode/*` vs
       // `opencode-go/*`).
       model = createOpencodeCliModel(config.modelId, config.providerId);
+      break;
+    }
+
+    case 'codex': {
+      // Transport SDK Codex lokal (tanpa HTTP/API key). Driver agen memakai
+      // lib/agent/runtime/codex-stream-fn.ts dan tidak pernah memanggil model
+      // ini; placeholder-nya gagal keras bila ada konsumen lain.
+      model = createCodexSdkPlaceholderModel(config.modelId);
       break;
     }
 

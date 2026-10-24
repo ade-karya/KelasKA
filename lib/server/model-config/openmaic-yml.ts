@@ -20,6 +20,7 @@ import { z } from 'zod';
 import {
   getSlot,
   isSlotId,
+  LOCAL_AGENT_TRANSPORT_APIS,
   slotRefusesThinkingEffort,
   type SlotId,
 } from '@/lib/config/model-slots';
@@ -295,6 +296,11 @@ export function parseModelRef(ref: string): { providerId: string; modelId?: stri
 export function thinkingEffortIssue(slot: SlotId, assignment: SlotAssignment): string | undefined {
   if (!assignment || typeof assignment === 'string') return undefined;
   if (assignment.thinking?.effort === undefined || !slotRefusesThinkingEffort(slot)) {
+    return undefined;
+  }
+  // A local agent transport turns the effort into a prompt instruction or CLI
+  // flag instead of a wire parameter, so it can carry one.
+  if (slot === 'agent' && assignment.api && LOCAL_AGENT_TRANSPORT_APIS.has(assignment.api)) {
     return undefined;
   }
   return (

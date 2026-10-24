@@ -19,6 +19,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
     process.env.DATABASE_URL = 'postgres://openmaic:pw@localhost:5432/openmaic';
     process.env.OPENCODE_MODELS = 'space-bunny-free,muse-spark-1.3-contributor-free,big-pickle';
     process.env.OPENCODE_GO_MODELS = 'gpt-6-luna';
+    delete process.env.CODEX_MODELS;
     process.env.MODEL_ROUTES = JSON.stringify({
       'maic-agent-driver': {
         model: 'opencode:muse-spark-1.3-contributor-free',
@@ -32,7 +33,36 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
     delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
     delete process.env.OPENCODE_MODELS;
     delete process.env.OPENCODE_GO_MODELS;
+    delete process.env.CODEX_MODELS;
     delete process.env.MODEL_ROUTES;
+  });
+
+  it('POST memilih model codex beserta varian thinking (api codex-sdk)', async () => {
+    const { GET, POST } = await import('@/app/api/agent/models/route');
+    const req = new NextRequest('http://localhost/api/agent/models', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'codex:gpt-5.6-codex', thinking: { effort: 'high' } }),
+    });
+    const postRes = await POST(req as unknown as Request);
+    expect(postRes.status).toBe(200);
+    const postBody = (await postRes.json()) as { active: string; thinking: { effort: string } };
+    expect(postBody.active).toBe('codex:gpt-5.6-codex');
+    expect(postBody.thinking).toMatchObject({ effort: 'high' });
+
+    const getRes = await GET();
+    const getBody = (await getRes.json()) as {
+      active: string;
+      source: string;
+      thinking: { effort: string };
+    };
+    expect(getBody.active).toBe('codex:gpt-5.6-codex');
+    expect(getBody.source).toBe('workbench-override');
+    expect(getBody.thinking).toMatchObject({ effort: 'high' });
+    expect(JSON.parse(fs.readFileSync(file, 'utf8'))).toMatchObject({
+      model: 'codex:gpt-5.6-codex',
+      api: 'codex-sdk',
+    });
   });
 
   it('GET mengembalikan semua model aktif kedua provider + model driver saat ini', async () => {
@@ -49,9 +79,12 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
       'opencode:muse-spark-1.3-contributor-free',
       'opencode:big-pickle',
       'opencode-go:gpt-6-luna',
+      'codex:gpt-5.6-codex',
+      'codex:gpt-5.5-codex',
     ]);
     expect(body.models[0].provider).toBe('opencode');
     expect(body.models[3].provider).toBe('opencode-go');
+    expect(body.models[4].provider).toBe('codex');
     // Setiap model membawa capability thinking untuk kontrol varian.
     for (const m of body.models) {
       expect(m.thinking).toMatchObject({ control: 'effort' });
@@ -123,6 +156,7 @@ describe('grup Go disembunyikan bila belum login (OPENCODE_GO_MODELS kosong)', (
     });
     process.env.OPENCODE_MODELS = 'big-pickle';
     process.env.OPENCODE_GO_MODELS = '';
+    process.env.CODEX_MODELS = '';
   });
 
   afterEach(() => {
@@ -144,5 +178,12 @@ describe('grup Go disembunyikan bila belum login (OPENCODE_GO_MODELS kosong)', (
       body: JSON.stringify({ model: 'opencode-go:gpt-6-luna' }),
     });
     expect((await POST(req as unknown as Request)).status).toBe(400);
+
+    const codexReq = new NextRequest('http://localhost/api/agent/models', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'codex:gpt-5.6-codex' }),
+    });
+    expect((await POST(codexReq as unknown as Request)).status).toBe(400);
   });
 });

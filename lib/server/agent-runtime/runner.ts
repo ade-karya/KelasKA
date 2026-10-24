@@ -19,6 +19,7 @@ import {
 } from '@openmaic/storage';
 
 import { buildAgent } from '@/lib/agent/runtime/build-agent';
+import { createCodexStreamFn } from '@/lib/agent/runtime/codex-stream-fn';
 import { createCallLlmStreamFn } from '@/lib/agent/runtime/stream-fn';
 import { HOST_AGENT_LIFECYCLE as LIFECYCLE } from '@/lib/agent-runtime/lifecycle';
 import { createLogger } from '@/lib/logger';
@@ -27,6 +28,7 @@ import { parseElementRefs, type ElementRef } from '@/lib/workbench/element-refs'
 import type { Scene, SlideContent } from '@/lib/types/stage';
 
 import { resolveAgentDriverModel } from './agent-driver-model';
+import { assertCodexSdkReady, codexSdkStreamFnOptions } from './agent-driver-codex';
 import { opencodeCliStreamFnOptions } from './agent-driver-opencode';
 import { buildAskUserTool } from './ask-user';
 import { agentRuntimeConfig as config } from './config';
@@ -1369,23 +1371,43 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
     }
 
     const driver = await resolveAgentDriverModel(await backgroundWorkspaceId(meta.ownerId));
-    if (driver.isCliDriver) {
+    let streamFn: ReturnType<typeof createCallLlmStreamFn>;
+    if (driver.driverTransport === 'codex-sdk') {
+      // Local Codex SDK turn: the harness keeps the loop, the SDK answers one
+      // structured turn (lib/agent/runtime/codex-stream-fn.ts). Probe the host
+      // before the session starts so a missing binary fails loud here.
       log.info(
-        `session ${id}: CLI driver ${driver.connection.modelString} via ${driver.driverApi ?? 'opencode-cli'} (envelope tools, no key)`,
+        `session ${id}: Codex SDK driver ${driver.connection.modelString} (structured turn, local codex)`,
       );
+      await assertCodexSdkReady();
+      const codexOpts = codexSdkStreamFnOptions(driver);
+      streamFn = createCodexStreamFn({
+        modelId: driver.connection.modelId,
+        ...(driver.connection.thinkingConfig
+          ? { thinkingConfig: driver.connection.thinkingConfig }
+          : {}),
+        abortSignal: abort.signal,
+        source: codexOpts.source,
+      });
+    } else {
+      if (driver.isCliDriver) {
+        log.info(
+          `session ${id}: CLI driver ${driver.connection.modelString} via ${driver.driverApi ?? 'opencode-cli'} (envelope tools, no key)`,
+        );
+      }
+      const cliOpts = driver.isCliDriver ? opencodeCliStreamFnOptions(driver) : null;
+      streamFn = createCallLlmStreamFn({
+        languageModel: driver.connection.model,
+        supportsToolImages: driver.connection.modelInfo?.capabilities?.vision,
+        maxOutputTokens: cliOpts ? cliOpts.maxOutputTokens : driver.wireMaxOutputTokens,
+        omitMaxOutputTokens: cliOpts
+          ? cliOpts.omitMaxOutputTokens
+          : driver.wireMaxOutputTokens === undefined,
+        thinkingConfig: driver.connection.thinkingConfig,
+        source: cliOpts ? cliOpts.source : 'agent-runtime',
+        abortSignal: abort.signal,
+      });
     }
-    const cliOpts = driver.isCliDriver ? opencodeCliStreamFnOptions(driver) : null;
-    const streamFn = createCallLlmStreamFn({
-      languageModel: driver.connection.model,
-      supportsToolImages: driver.connection.modelInfo?.capabilities?.vision,
-      maxOutputTokens: cliOpts ? cliOpts.maxOutputTokens : driver.wireMaxOutputTokens,
-      omitMaxOutputTokens: cliOpts
-        ? cliOpts.omitMaxOutputTokens
-        : driver.wireMaxOutputTokens === undefined,
-      thinkingConfig: driver.connection.thinkingConfig,
-      source: cliOpts ? cliOpts.source : 'agent-runtime',
-      abortSignal: abort.signal,
-    });
     let questionEmitted = false;
     const askUserTool = buildAskUserTool({
       onUserQuestion: (question) => {

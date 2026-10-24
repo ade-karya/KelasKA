@@ -39,94 +39,14 @@ import { preservesReasoningForModel } from '@/lib/ai/providers';
 import { friendlyUpstreamChatMessage } from '@/lib/server/llm-error-response';
 import { normalizeUsage } from '@/lib/usage/normalize';
 import type { ThinkingConfig } from '@/lib/types/provider';
+import { combineAbortSignals } from './abort-signals';
+import { AssistantEventStream, EMPTY_USAGE } from './assistant-event-stream';
 import {
   captureToolCallMetadata,
   emitToolCallProviderOptions,
   type ToolCallProviderMetadata,
 } from './provider-metadata';
 import { replayToolCallArguments, toolCallArguments } from './tool-call-arguments';
-
-/**
- * Local re-implementation of pi-ai's `AssistantMessageEventStream` queue. pi
- * exports the class as a *type* only (the `createAssistantMessageEventStream`
- * factory is not re-exported from the package root), so we build a structurally
- * identical event stream here and cast. Mirrors pi-ai utils/event-stream.ts.
- */
-class LocalAssistantEventStream {
-  private queue: AssistantMessageEvent[] = [];
-  private waiting: ((r: IteratorResult<AssistantMessageEvent>) => void)[] = [];
-  private done = false;
-  private started = false;
-  private resolveFinal!: (m: AssistantMessage) => void;
-  private finalPromise: Promise<AssistantMessage>;
-
-  constructor() {
-    this.finalPromise = new Promise((resolve) => {
-      this.resolveFinal = resolve;
-    });
-  }
-
-  push(event: AssistantMessageEvent): void {
-    if (this.done) return;
-    if (event.type === 'start') this.started = true;
-    if (event.type === 'done') {
-      this.done = true;
-      this.resolveFinal(event.message);
-    } else if (event.type === 'error') {
-      this.done = true;
-      this.resolveFinal(event.error);
-    }
-    const waiter = this.waiting.shift();
-    if (waiter) waiter({ value: event, done: false });
-    else this.queue.push(event);
-  }
-
-  fail(error: unknown): void {
-    if (this.done) return;
-    const message: AssistantMessage = {
-      role: 'assistant',
-      content: [],
-      api: 'unknown' as AssistantMessage['api'],
-      provider: 'unknown' as AssistantMessage['provider'],
-      model: 'maic-connector',
-      usage: { ...EMPTY_USAGE },
-      stopReason: 'error',
-      errorMessage: errorMessage(error, 'LLM stream error'),
-      timestamp: Date.now(),
-    };
-    if (!this.started) this.push({ type: 'start', partial: message });
-    this.push({ type: 'error', reason: 'error', error: message });
-  }
-
-  async *[Symbol.asyncIterator](): AsyncIterator<AssistantMessageEvent> {
-    for (;;) {
-      if (this.queue.length > 0) {
-        yield this.queue.shift()!;
-      } else if (this.done) {
-        return;
-      } else {
-        const r = await new Promise<IteratorResult<AssistantMessageEvent>>((resolve) =>
-          this.waiting.push(resolve),
-        );
-        if (r.done) return;
-        yield r.value;
-      }
-    }
-  }
-
-  result(): Promise<AssistantMessage> {
-    return this.finalPromise;
-  }
-}
-
-const EMPTY_USAGE = {
-  input: 0,
-  output: 0,
-  cacheRead: 0,
-  cacheWrite: 0,
-  totalTokens: 0,
-  cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-};
 
 const lengthToolCallMessages = new WeakSet<AssistantMessage>();
 
@@ -255,14 +175,14 @@ export function createPartMapper(
 /** Build a pi `StreamFn` that calls OpenMAIC's connector instead of pi-ai providers. */
 export function createCallLlmStreamFn(opts: CallLlmStreamFnOptions): StreamFn {
   return ((_piModel, context: PiContext, streamOptions?: SimpleStreamOptions) => {
-    const stream = new LocalAssistantEventStream();
+    const stream = new AssistantEventStream();
     void pump(stream, context, opts, streamOptions).catch((error) => stream.fail(error));
     return stream as unknown as AssistantMessageEventStream;
   }) as StreamFn;
 }
 
 async function pump(
-  stream: LocalAssistantEventStream,
+  stream: AssistantEventStream,
   context: PiContext,
   opts: CallLlmStreamFnOptions,
   streamOptions?: SimpleStreamOptions,
@@ -462,33 +382,6 @@ function errorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim()) return error.message;
   if (typeof error === 'string' && error.trim()) return error;
   return fallback;
-}
-
-function combineAbortSignals(signals: AbortSignal[]): {
-  signal: AbortSignal | undefined;
-  cleanup: () => void;
-} {
-  if (signals.length === 0) return { signal: undefined, cleanup: () => {} };
-
-  const controller = new AbortController();
-  const listeners: Array<{ signal: AbortSignal; listener: () => void }> = [];
-  for (const signal of signals) {
-    const listener = () => {
-      if (!controller.signal.aborted) controller.abort(signal.reason);
-    };
-    listeners.push({ signal, listener });
-    signal.addEventListener('abort', listener, { once: true });
-    if (signal.aborted) listener();
-  }
-
-  return {
-    signal: controller.signal,
-    cleanup: () => {
-      for (const { signal, listener } of listeners) {
-        signal.removeEventListener('abort', listener);
-      }
-    },
-  };
 }
 
 /** pi Message[] -> AI SDK ModelMessage[]. */

@@ -3,7 +3,7 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { lookupSlot } from '@/lib/server/model-config/runtime';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 import {
-  activatedOpencodeModels,
+  activatedDriverModels,
   defaultTier3ModelString,
   readActiveModelOverride,
   writeActiveModelOverride,
@@ -22,15 +22,15 @@ export interface AgentModelItem {
 }
 
 /**
- * Daftar + pilihan model CLI OpenCode untuk Pro Workbench (provider
- * `opencode` dan `opencode-go`, dua grup di pemilih).
+ * Daftar + pilihan model transport lokal untuk Pro Workbench (provider
+ * `opencode`, `opencode-go` dan `codex` — tiga grup di pemilih).
  *
  *   GET /api/agent/models
  *     -> { active, driverApi, thinking, source,
  *          models: [{provider, id, modelString, name, thinking, ...}] }
  *
- *   POST /api/agent/models { model: "opencode:xxx" | "opencode-go:yyy" | "xxx",
- *                            thinking?: {...} }
+ *   POST /api/agent/models { model: "opencode:xxx" | "opencode-go:yyy" |
+ *                                   "codex:zzz" | "xxx", thinking?: {...} }
  *     -> memilih model aktif global + varian thinking per model
  *        (data/agent-driver-model.json). Berlaku untuk run berikutnya
  *        tanpa restart.
@@ -38,14 +38,14 @@ export interface AgentModelItem {
  * `active` = override tombol bila ada, else slot `agent` (openmaic.yml /
  * model settings), else default tier3. `thinking` = varian thinking aktif
  * (override, else slot; tanpa default suntikan). `models` = SEMUA model yang
- * diaktifkan installer di OPENCODE_MODELS / OPENCODE_GO_MODELS
+ * diaktifkan installer di OPENCODE_MODELS / OPENCODE_GO_MODELS / CODEX_MODELS
  * (fallback katalog).
  */
 export async function GET() {
   if (!isAgentRuntimeConfigured()) {
     return new Response('Not found', { status: 404 });
   }
-  const models = activatedOpencodeModels();
+  const models = activatedDriverModels();
   const override = readActiveModelOverride();
   // Slot `agent` owns the driver model now (MODEL_ROUTES is gone upstream).
   // Unassigned/disabled -> fall through to the tier-3 default.
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
         active: saved.modelString,
         driverApi: saved.api,
         ...(saved.thinking ? { thinking: saved.thinking } : {}),
-        models: activatedOpencodeModels(),
+        models: activatedDriverModels(),
       },
       200,
     );

@@ -1,21 +1,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PROVIDERS, OPENCODE_CLI_THINKING } from '@/lib/ai/providers';
+import { PROVIDERS, CODEX_SDK_THINKING, OPENCODE_CLI_THINKING } from '@/lib/ai/providers';
 import { getDefaultThinkingConfig, normalizeThinkingConfig } from '@/lib/ai/thinking-config';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 
 /**
- * Daftar model CLI OpenCode yang diaktifkan installer untuk Pro Workbench.
+ * Daftar model transport lokal yang diaktifkan installer untuk Pro Workbench.
  *
- * Dua provider CLI (`opencode` dan `opencode-go`, keduanya dieksekusi lokal
- * via `opencode run`, pola nexu-io/open-design):
+ * Tiga provider (`opencode` dan `opencode-go` via `opencode run`, plus `codex`
+ * via native `@openai/codex-sdk`), pola nexu-io/open-design:
  * - install.sh mengambil SEMUA model `opencode/*` + `opencode-go/*` via
  *   `opencode models` (login-aware untuk `opencode/`, live untuk
  *   `opencode-go/`) lalu mengaktifkan masing-masing di OPENCODE_MODELS /
  *   OPENCODE_GO_MODELS (comma-separated, bare id tanpa prefix). Bila pemilik
  *   sesi belum login, OPENCODE_GO_MODELS ditulis KOSONG sehingga grup Go
  *   disembunyikan dari pemilih (login lalu jalankan ulang installer untuk
- *   memunculkannya).
+ *   memunculkannya). Codex memakai CODEX_MODELS dengan aturan yang sama.
  * - Tombol pemilih model di Pro Workbench (/workspace) membaca daftar ini via
  *   GET /api/agent/models dan memilih aktif (+ varian thinking per model)
  *   via POST (tersimpan di data/agent-driver-model.json, dipakai run
@@ -24,6 +24,11 @@ import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 
 export const OPENCODE_CLI_PROVIDERS = ['opencode', 'opencode-go'] as const;
 export type OpencodeCliProvider = (typeof OPENCODE_CLI_PROVIDERS)[number];
+
+/** Provider transport lokal yang bisa dipilih dari tombol Pro Workbench. */
+export const CODEX_PROVIDER = 'codex' as const;
+export const DRIVER_PROVIDERS = [...OPENCODE_CLI_PROVIDERS, CODEX_PROVIDER] as const;
+export type DriverProvider = (typeof DRIVER_PROVIDERS)[number];
 
 export const OPENCODE_FREE_FALLBACK_IDS = [
   'space-bunny-free',
@@ -42,6 +47,8 @@ export const OPENCODE_FREE_FALLBACK_IDS = [
 ] as const;
 
 export const OPENCODE_DRIVER_API = 'opencode-cli' as const;
+/** Route api of the native Codex SDK transport (lib/ai/codex-sdk.ts). */
+export const CODEX_DRIVER_API = 'codex-sdk' as const;
 export const OPENCODE_ACTIVE_MODEL_FILE = 'agent-driver-model.json';
 
 function dataDir(): string {
@@ -57,7 +64,7 @@ export function activeModelFilePath(): string {
   return path.join(dataDir(), OPENCODE_ACTIVE_MODEL_FILE);
 }
 
-function splitIds(raw: string | undefined, provider: OpencodeCliProvider): string[] {
+function splitIds(raw: string | undefined, provider: DriverProvider): string[] {
   if (!raw) return [];
   const prefix = new RegExp(`^${provider}[/:]`, 'i');
   return raw
@@ -77,18 +84,24 @@ function dedupe(ids: string[]): string[] {
   return out;
 }
 
-function envVarFor(provider: OpencodeCliProvider): string {
+function envVarFor(provider: DriverProvider): string {
+  if (provider === 'codex') return 'CODEX_MODELS';
   return provider === 'opencode-go' ? 'OPENCODE_GO_MODELS' : 'OPENCODE_MODELS';
 }
 
-/** Katalog statis provider CLI (lib/ai/providers.ts). */
-export function catalogOpencodeIds(provider: OpencodeCliProvider = 'opencode'): string[] {
+/** Katalog statis satu provider transport (lib/ai/providers.ts). */
+export function catalogDriverIds(provider: DriverProvider): string[] {
   try {
     const models = PROVIDERS?.[provider]?.models ?? [];
     return models.map((m) => m.id).filter(Boolean);
   } catch {
-    return [...OPENCODE_FREE_FALLBACK_IDS];
+    return provider === CODEX_PROVIDER ? [] : [...OPENCODE_FREE_FALLBACK_IDS];
   }
+}
+
+/** Katalog statis provider CLI (lib/ai/providers.ts). */
+export function catalogOpencodeIds(provider: OpencodeCliProvider = 'opencode'): string[] {
+  return catalogDriverIds(provider);
 }
 
 /**
@@ -102,16 +115,20 @@ export function catalogOpencodeIds(provider: OpencodeCliProvider = 'opencode'): 
  * sesi belum `opencode auth login`. Bedakan dari variabel TAK ADA (unset)
  * yang berarti fallback katalog (instalasi manual / dev tanpa installer).
  */
-export function activatedOpencodeIds(provider: OpencodeCliProvider = 'opencode'): string[] {
+export function activatedDriverIds(provider: DriverProvider): string[] {
   const raw = process.env[envVarFor(provider)];
   if (raw !== undefined && raw.trim() === '') return [];
   const fromEnv = dedupe(splitIds(raw, provider));
   if (fromEnv.length > 0) return fromEnv;
-  return dedupe(catalogOpencodeIds(provider));
+  return dedupe(catalogDriverIds(provider));
 }
 
-export interface ActivatedOpencodeModel {
-  provider: OpencodeCliProvider;
+export function activatedOpencodeIds(provider: OpencodeCliProvider = 'opencode'): string[] {
+  return activatedDriverIds(provider);
+}
+
+export interface ActivatedDriverModel {
+  provider: DriverProvider;
   id: string;
   modelString: string;
   name: string;
@@ -120,25 +137,28 @@ export interface ActivatedOpencodeModel {
   outputWindow?: number;
 }
 
-function modelEntry(provider: OpencodeCliProvider, id: string): ActivatedOpencodeModel | null {
+/** @deprecated Nama lama; model kini mencakup transport Codex juga. */
+export type ActivatedOpencodeModel = ActivatedDriverModel;
+
+function modelEntry(provider: DriverProvider, id: string): ActivatedDriverModel | null {
   if (!id) return null;
   const catalog = PROVIDERS?.[provider]?.models ?? [];
   const info = catalog.find((m) => m.id === id);
-  const item: ActivatedOpencodeModel = {
+  const item: ActivatedDriverModel = {
     provider,
     id,
     modelString: `${provider}:${id}`,
     name: info?.name ?? id,
   };
   if (info?.capabilities?.thinking) item.thinking = info.capabilities.thinking;
-  else item.thinking = OPENCODE_CLI_THINKING;
+  else item.thinking = provider === CODEX_PROVIDER ? CODEX_SDK_THINKING : OPENCODE_CLI_THINKING;
   if (info?.contextWindow) item.contextWindow = info.contextWindow;
   if (info?.outputWindow) item.outputWindow = info.outputWindow;
   return item;
 }
 
-/** SEMUA model aktif kedua provider (urutan: opencode dulu, lalu opencode-go). */
-export function activatedOpencodeModels(): ActivatedOpencodeModel[] {
+/** SEMUA model aktif kedua provider CLI (urutan: opencode dulu, lalu opencode-go). */
+export function activatedOpencodeModels(): ActivatedDriverModel[] {
   const out: ActivatedOpencodeModel[] = [];
   for (const provider of OPENCODE_CLI_PROVIDERS) {
     for (const id of activatedOpencodeIds(provider)) {
@@ -149,17 +169,38 @@ export function activatedOpencodeModels(): ActivatedOpencodeModel[] {
   return out;
 }
 
+/** Model Codex aktif (CODEX_MODELS, fallback katalog provider `codex`). */
+export function activatedCodexModels(): ActivatedDriverModel[] {
+  return activatedDriverIds(CODEX_PROVIDER)
+    .map((id) => modelEntry(CODEX_PROVIDER, id))
+    .filter((item): item is ActivatedDriverModel => item !== null);
+}
+
+/** SEMUA model transport lokal untuk tombol pemilih Pro Workbench. */
+export function activatedDriverModels(): ActivatedDriverModel[] {
+  return [...activatedOpencodeModels(), ...activatedCodexModels()];
+}
+
+/** Capability thinking satu model transport (fallback: varian transport standar). */
+export function driverThinkingCapability(
+  provider: DriverProvider,
+  id: string,
+): ThinkingCapability | undefined {
+  const fallback = provider === CODEX_PROVIDER ? CODEX_SDK_THINKING : OPENCODE_CLI_THINKING;
+  try {
+    const models = PROVIDERS?.[provider]?.models ?? [];
+    return models.find((m) => m.id === id)?.capabilities?.thinking ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /** Capability thinking satu model CLI (fallback: varian CLI standar). */
 export function opencodeThinkingCapability(
   provider: OpencodeCliProvider,
   id: string,
 ): ThinkingCapability | undefined {
-  try {
-    const models = PROVIDERS?.[provider]?.models ?? [];
-    return models.find((m) => m.id === id)?.capabilities?.thinking ?? OPENCODE_CLI_THINKING;
-  } catch {
-    return OPENCODE_CLI_THINKING;
-  }
+  return driverThinkingCapability(provider, id);
 }
 
 /** Thinking default satu model CLI (dipakai saat override/route tak menyebutnya). */
@@ -167,32 +208,44 @@ export function defaultOpencodeThinking(
   provider: OpencodeCliProvider,
   id: string,
 ): ThinkingConfig | undefined {
-  return getDefaultThinkingConfig(opencodeThinkingCapability(provider, id));
+  return getDefaultThinkingConfig(driverThinkingCapability(provider, id));
 }
 
-export interface ParsedOpencodeModel {
-  provider: OpencodeCliProvider;
+export interface ParsedDriverModel {
+  provider: DriverProvider;
   bare: string;
   modelString: string;
 }
 
+/** @deprecated Nama lama; parse kini mencakup transport Codex juga. */
+export type ParsedOpencodeModel = ParsedDriverModel;
+
 /**
- * Parse input model CLI: `opencode:x`, `opencode/x`, `opencode-go:x`,
- * `opencode-go/x`, atau bare `x` (= provider `opencode`, kompatibel lama).
- * Null bila kosong / mengandung karakter terlarang.
+ * Parse input model transport: `opencode:x`, `opencode/x`, `opencode-go:x`,
+ * `opencode-go/x`, `codex:x`, `codex/x`, atau bare `x` (= provider `opencode`,
+ * kompatibel lama). Null bila kosong / mengandung karakter terlarang.
  */
-export function parseOpencodeModelInput(raw: string): ParsedOpencodeModel | null {
+export function parseDriverModelInput(raw: string): ParsedDriverModel | null {
   const trimmed = (raw ?? '').trim();
   if (!trimmed || /[\s"{}]/.test(trimmed)) return null;
   const lower = trimmed.toLowerCase();
-  if (lower.startsWith('opencode-go:') || lower.startsWith('opencode-go/')) {
-    const bare = trimmed.slice('opencode-go:'.length).trim();
-    if (!bare || /[\s"{}]/.test(bare)) return null;
-    return { provider: 'opencode-go', bare, modelString: `opencode-go:${bare}` };
+  for (const provider of DRIVER_PROVIDERS) {
+    if (provider === 'opencode') continue;
+    if (lower.startsWith(`${provider}:`) || lower.startsWith(`${provider}/`)) {
+      const bare = trimmed.slice(provider.length + 1).trim();
+      if (!bare || /[\s"{}]/.test(bare)) return null;
+      return { provider, bare, modelString: `${provider}:${bare}` };
+    }
   }
   const bare = trimmed.replace(/^opencode[/:]/i, '').trim();
   if (!bare || /[\s"{}]/.test(bare)) return null;
   return { provider: 'opencode', bare, modelString: `opencode:${bare}` };
+}
+
+/** Parse input provider CLI OpenCode saja (kompatibel lama). */
+export function parseOpencodeModelInput(raw: string): ParsedOpencodeModel | null {
+  const parsed = parseDriverModelInput(raw);
+  return parsed && parsed.provider !== CODEX_PROVIDER ? parsed : null;
 }
 
 /**
@@ -208,11 +261,20 @@ export function normalizeOpencodeModelInput(raw: string): string | null {
   return bare;
 }
 
+export function isActivatedDriverModel(provider: DriverProvider, id: string): boolean {
+  return activatedDriverIds(provider).includes(id);
+}
+
 export function isActivatedOpencodeId(
   id: string,
   provider: OpencodeCliProvider = 'opencode',
 ): boolean {
-  return activatedOpencodeIds(provider).includes(id);
+  return isActivatedDriverModel(provider, id);
+}
+
+/** Route `api` for a driver provider (both are local, non-HTTP transports). */
+export function driverApiFor(provider: DriverProvider): string {
+  return provider === CODEX_PROVIDER ? CODEX_DRIVER_API : OPENCODE_DRIVER_API;
 }
 
 interface ActiveModelFile {
@@ -234,13 +296,13 @@ export function readActiveModelOverride(): {
     const parsed = JSON.parse(
       fs.readFileSync(/*turbopackIgnore: true*/ file, 'utf8'),
     ) as ActiveModelFile;
-    const input = parseOpencodeModelInput(parsed.model ?? '');
-    if (!input || !isActivatedOpencodeId(input.bare, input.provider)) return null;
+    const input = parseDriverModelInput(parsed.model ?? '');
+    if (!input || !isActivatedDriverModel(input.provider, input.bare)) return null;
     const out: { modelString: string; api: string; thinking?: ThinkingConfig } = {
       modelString: input.modelString,
-      api: parsed.api || OPENCODE_DRIVER_API,
+      api: parsed.api || driverApiFor(input.provider),
     };
-    const capability = opencodeThinkingCapability(input.provider, input.bare);
+    const capability = driverThinkingCapability(input.provider, input.bare);
     const thinking =
       parsed.thinking && typeof parsed.thinking === 'object'
         ? (normalizeThinkingConfig(capability, parsed.thinking) ?? undefined)
@@ -261,15 +323,17 @@ export function writeActiveModelOverride(
   rawModel: string,
   rawThinking?: unknown,
 ): { modelString: string; api: string; thinking?: ThinkingConfig } {
-  const input = parseOpencodeModelInput(rawModel);
+  const input = parseDriverModelInput(rawModel);
   if (!input)
-    throw new Error('Model tidak valid (contoh: opencode:muse-spark-1.3-contributor-free).');
-  if (!isActivatedOpencodeId(input.bare, input.provider)) {
+    throw new Error(
+      'Model tidak valid (contoh: opencode:muse-spark-1.3-contributor-free, codex:gpt-5.6-codex).',
+    );
+  if (!isActivatedDriverModel(input.provider, input.bare)) {
     throw new Error(
       `Model "${input.bare}" tidak ada di daftar aktif (${envVarFor(input.provider)}). Pilih dari tombol pemilih model.`,
     );
   }
-  const capability = opencodeThinkingCapability(input.provider, input.bare);
+  const capability = driverThinkingCapability(input.provider, input.bare);
   const thinking =
     rawThinking && typeof rawThinking === 'object'
       ? (normalizeThinkingConfig(capability, rawThinking as ThinkingConfig) ?? undefined)
@@ -278,7 +342,7 @@ export function writeActiveModelOverride(
   fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
   const payload: ActiveModelFile = {
     model: input.modelString,
-    api: OPENCODE_DRIVER_API,
+    api: driverApiFor(input.provider),
     ...(thinking ? { thinking } : {}),
     updatedAt: Date.now(),
   };

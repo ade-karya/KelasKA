@@ -275,9 +275,15 @@ function maskKey(key: string): string {
   return key.length >= 12 ? `…${key.slice(-4)}` : '…';
 }
 
-/** Registry OpenCode CLI — hanya Pro Workbench (GET /api/agent/models). */
-function isOpencodeRegistryId(registryId: string): registryId is OpencodeCliProvider {
-  return registryId === 'opencode' || registryId === 'opencode-go';
+/**
+ * Registry transport lokal (OpenCode CLI + Codex SDK) — hanya Pro Workbench
+ * (GET /api/agent/models), bukan provider HTTP yang bisa ditambah dari settings
+ * classic.
+ */
+function isWorkbenchOnlyRegistryId(
+  registryId: string,
+): registryId is OpencodeCliProvider | 'codex' {
+  return registryId === 'opencode' || registryId === 'opencode-go' || registryId === 'codex';
 }
 
 /**
@@ -321,8 +327,9 @@ function capabilityModels(
     // A provider the operator switched off for this capability is not offered.
     const registryId = preset.capabilities[capability]?.registryId;
     if (registryId && isForceDisabled(capability, registryId)) continue;
-    // OpenCode CLI hanya untuk Pro Workbench: lewati di view classic.
-    if (registryId && isOpencodeRegistryId(registryId)) continue;
+    // Transport lokal (OpenCode CLI / Codex SDK) hanya untuk Pro Workbench:
+    // lewati di view classic.
+    if (registryId && isWorkbenchOnlyRegistryId(registryId)) continue;
     const offered = preset.trustsModelCatalogue === false ? [] : presetModels(preset, capability);
     // A provider's own model list narrows (or names) the chat models it serves.
     // Server-managed credentials enforce deployment authorization (strictModels).
@@ -379,12 +386,11 @@ function officialEndpointOf(provider: Pick<Provider, 'preset' | 'baseUrl'>): str
 }
 
 function workspacePresetProblem(preset: ProviderPreset): string | undefined {
-  // OpenCode CLI hanya untuk Pro Workbench: preset tak bisa ditambah dari settings classic.
-  if (
-    preset.capabilities.chat?.registryId === 'opencode' ||
-    preset.capabilities.chat?.registryId === 'opencode-go'
-  ) {
-    return 'OpenCode CLI models are only available in Pro Workbench';
+  // Transport lokal hanya untuk Pro Workbench: preset tak bisa ditambah dari
+  // settings classic.
+  const registryId = preset.capabilities.chat?.registryId;
+  if (registryId && isWorkbenchOnlyRegistryId(registryId)) {
+    return 'Local CLI transports (OpenCode, Codex SDK) are only available in Pro Workbench';
   }
   if (preset.capabilities.chat?.registryId === 'bedrock') {
     return 'Amazon Bedrock can only be configured by the deployment (openmaic.yml)';

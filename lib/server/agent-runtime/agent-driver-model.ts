@@ -8,8 +8,9 @@ import {
 } from '@/lib/server/model-config/runtime';
 import { resolveModel, type ResolvedModel } from '@/lib/server/resolve-model';
 import {
-  isActivatedOpencodeId,
-  parseOpencodeModelInput,
+  driverApiFor,
+  isActivatedDriverModel,
+  parseDriverModelInput,
   readActiveModelOverride,
 } from './opencode-models';
 
@@ -39,6 +40,22 @@ const DEFAULT_DRIVER_API: Api = 'openai-completions';
 /** Route `api` values that select the local CLI transport instead of HTTP. */
 export const OPENCODE_CLI_APIS = new Set(['opencode-cli', 'cli', 'opencode']);
 
+/** Route `api` values that select the local Codex SDK transport instead of HTTP. */
+export const CODEX_SDK_APIS = new Set(['codex-sdk', 'codex']);
+// Both sets are the agent-slot view of LOCAL_AGENT_TRANSPORT_APIS in
+// lib/config/model-slots.ts (which the YAML/settings validator reads).
+
+/** Provider executed through the local Codex SDK (no key, no HTTP). */
+export const CODEX_SDK_PROVIDER = 'codex';
+
+/**
+ * How one driver turn actually reaches a model:
+ * - `http` — the keyed Vercel AI SDK path (lib/ai/providers.ts);
+ * - `opencode-cli` — `opencode run` child process (tier-3 free);
+ * - `codex-sdk` — native `@openai/codex-sdk` turn (local Codex agent).
+ */
+export type AgentDriverTransport = 'http' | 'opencode-cli' | 'codex-sdk';
+
 /** Providers executed locally via CLI (no key, no HTTP). */
 export function isOpencodeCliProvider(providerId: string): boolean {
   return providerId === 'opencode' || providerId === 'opencode-go';
@@ -47,6 +64,30 @@ export function isOpencodeCliProvider(providerId: string): boolean {
 /** True when the route explicitly selects the CLI transport. */
 export function isOpencodeCliApi(api: string | undefined): boolean {
   return !!api && OPENCODE_CLI_APIS.has(api);
+}
+
+/** True when the route explicitly selects the Codex SDK transport. */
+export function isCodexSdkApi(api: string | undefined): boolean {
+  return !!api && CODEX_SDK_APIS.has(api);
+}
+
+/** True when the provider can only run through the Codex SDK transport. */
+export function isCodexSdkProvider(providerId: string): boolean {
+  return providerId === CODEX_SDK_PROVIDER;
+}
+
+/**
+ * The transport a resolved route asks for. The api value wins; a codex
+ * provider reference without one still means the SDK transport, because that
+ * provider has no HTTP endpoint to fall back to.
+ */
+export function driverTransportFor(
+  api: string | undefined,
+  providerId: string,
+): AgentDriverTransport {
+  if (isCodexSdkApi(api) || isCodexSdkProvider(providerId)) return 'codex-sdk';
+  if (isOpencodeCliApi(api) || isOpencodeCliProvider(providerId)) return 'opencode-cli';
+  return 'http';
 }
 
 export function buildPiDriverModel(
@@ -61,9 +102,16 @@ export function buildPiDriverModel(
         `but model provider is "${connection.providerId}" (expected "opencode" or "opencode-go").`,
     );
   }
-  // Effective pi api: the CLI aliases collapse onto the OpenAI-completions
+  const codexTransport = isCodexSdkApi(configuredApi);
+  if (codexTransport && !isCodexSdkProvider(connection.providerId)) {
+    throw new Error(
+      `The agent slot uses Codex api ${JSON.stringify(configuredApi)} ` +
+        `but model provider is "${connection.providerId}" (expected "codex").`,
+    );
+  }
+  // Effective pi api: both local transports collapse onto the OpenAI-completions
   // shim — pi metadata only, never an HTTP transport selector here.
-  const effectiveApi = cliTransport ? 'openai-completions' : configuredApi;
+  const effectiveApi = cliTransport || codexTransport ? 'openai-completions' : configuredApi;
   if (!effectiveApi || !OPENAI_PI_APIS.has(effectiveApi)) {
     throw new Error(
       `The agent slot has unsupported pi api/dialect ` +
@@ -105,9 +153,11 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
   wireMaxOutputTokens?: number;
   /** Internal compaction output-space estimate; never used as a conversation API limit. */
   reservedOutputTokens: number;
-  /** True when the route selects the local CLI transport (tier-3 free). */
+  /** True for any non-HTTP transport (CLI or Codex SDK). */
   isCliDriver: boolean;
-  /** Raw `api` value from the route (e.g. "opencode-cli" vs "openai-completions"). */
+  /** Which transport answers the turns (see {@link AgentDriverTransport}). */
+  driverTransport: AgentDriverTransport;
+  /** Raw `api` value from the route (e.g. "opencode-cli", "codex-sdk"). */
   driverApi?: string;
 }> {
   const resolution = await lookupSlot('agent', workspaceId);
@@ -118,12 +168,13 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
       `The agent model ${resolution.modelId} does not support tool calling; choose another model for the agent.`,
     );
   }
-  // Transport CLI menyalurkan thinking sebagai instruksi prompt (bukan
-  // wire-param reasoning), jadi thinking.effort legal di sini. Untuk transport
-  // HTTP, effort + function tools tetap dilarang (kontrak slot).
-  const slotIsCliTransport =
-    isOpencodeCliApi(resolution.api) || isOpencodeCliProvider(resolution.providerId);
-  if (resolution.thinking?.effort !== undefined && !slotIsCliTransport) {
+  // Transport lokal (CLI/SDK) menyalurkan thinking sebagai instruksi prompt
+  // atau flag CLI (bukan wire-param reasoning), jadi thinking.effort legal di
+  // sini. Untuk transport HTTP, effort + function tools tetap dilarang
+  // (kontrak slot).
+  const slotTransport = driverTransportFor(resolution.api, resolution.providerId);
+  const slotIsLocalTransport = slotTransport !== 'http';
+  if (resolution.thinking?.effort !== undefined && !slotIsLocalTransport) {
     throw new Error(
       `The agent slot must not set thinking.effort because ${resolution.modelId} ` +
         `cannot combine reasoning_effort with function tools on this transport. ` +
@@ -131,43 +182,43 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
     );
   }
   // Tombol pemilih model Pro Workbench (/workspace -> POST /api/agent/models)
-  // menyimpan override global di data/agent-driver-model.json: model
-  // `opencode:*` / `opencode-go:*` + varian thinking per model. Override
-  // berlaku bila slot menunjuk transport CLI yang gratis (provider
-  // `opencode`/`opencode-go` atau api CLI) ATAU bila model itu dipilih
-  // workspace sendiri: pilihan pemilih model adalah pilihan user yang sama,
-  // jadi jangan tampilkan DeepSeek di toolbar sementara run memakai model
-  // ber-key lain dari settings workspace. Pilihan operator (deployment/locked)
-  // tetap tidak dibajak; override di luar allowlist juga diabaikan.
+  // menyimpan override global di data/agent-driver-model.json: model transport
+  // lokal (`opencode:*`, `opencode-go:*`, `codex:*`) + varian thinking per
+  // model. Override berlaku bila slot menunjuk transport lokal yang gratis
+  // (provider/api lokal) ATAU bila model itu dipilih workspace sendiri:
+  // pilihan pemilih model adalah pilihan user yang sama, jadi jangan tampilkan
+  // DeepSeek di toolbar sementara run memakai model ber-key lain dari settings
+  // workspace. Pilihan operator (deployment/locked) tetap tidak dibajak;
+  // override di luar allowlist juga diabaikan.
   const override = readActiveModelOverride();
   if (override) {
-    const input = parseOpencodeModelInput(override.modelString);
-    const overrideMayApply = slotIsCliTransport || resolution.source === 'workspace';
-    if (input && isActivatedOpencodeId(input.bare, input.provider) && overrideMayApply) {
+    const input = parseDriverModelInput(override.modelString);
+    const overrideMayApply = slotIsLocalTransport || resolution.source === 'workspace';
+    if (input && isActivatedDriverModel(input.provider, input.bare) && overrideMayApply) {
       const connection = await resolveModel({
         modelString: override.modelString,
         // Varian thinking tombol workbench menang; bila tak diset, pakai
         // thinking slot operator (bila ada) agar default operator ikut.
         thinkingConfig: override.thinking ?? resolution.thinking,
       });
-      const driverApi = override.api || 'opencode-cli';
-      const isCliDriver = true;
+      const driverApi = override.api || driverApiFor(input.provider);
       return {
         connection,
         piModel: buildPiDriverModel(connection, driverApi, undefined),
         wireMaxOutputTokens: undefined,
         reservedOutputTokens:
           connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
-        isCliDriver,
+        isCliDriver: true,
+        driverTransport: driverTransportFor(driverApi, connection.providerId),
         driverApi,
       };
     }
   }
   const connection = await slotLanguageModel(resolution);
-  // CLI memetakan batas sampling ke instruksi prompt (bukan cap wire), jadi
-  // wire tidak pernah membawa max_tokens untuk transport CLI. HTTP memakai
-  // jendela output katalog sebagai batas API.
-  const isCliDriver = slotIsCliTransport;
+  // Transport lokal memetakan batas sampling ke instruksi prompt/flag CLI
+  // (bukan cap wire), jadi wire tidak pernah membawa max_tokens untuk mereka.
+  // HTTP memakai jendela output katalog sebagai batas API.
+  const isCliDriver = slotIsLocalTransport;
   const wireMaxOutputTokens = isCliDriver ? undefined : connection.modelInfo?.outputWindow;
   return {
     connection,
@@ -180,6 +231,7 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
     reservedOutputTokens:
       connection.modelInfo?.outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
     isCliDriver,
+    driverTransport: slotTransport,
     driverApi: resolution.api,
   };
 }

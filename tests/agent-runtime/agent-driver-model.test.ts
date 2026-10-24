@@ -59,6 +59,7 @@ const providers = {
   ac: { preset: 'atlascloud', apiKey: 'sk' },
   opencode: { preset: 'opencode', apiKey: 'sk' },
   'opencode-go': { preset: 'opencode-go', apiKey: 'sk' },
+  codex: { preset: 'codex' },
 };
 
 async function configure(
@@ -437,6 +438,118 @@ describe('agent driver CLI dua provider + thinking varian', () => {
     } finally {
       if (fs.existsSync(file)) fs.rmSync(file, { force: true });
       delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
+    }
+  });
+});
+
+describe('agent driver Codex SDK (transport lokal)', () => {
+  beforeEach(() => {
+    vi.resetModules();
+    mocks.resolveModel.mockReset();
+    mocks.streamLLM.mockReset();
+    mocks.modelInfo = { contextWindow: 400_000, outputWindow: 128_000 };
+    mocks.workspaceReads.length = 0;
+    delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
+    delete process.env.CODEX_MODELS;
+  });
+
+  afterEach(async () => {
+    const runtime = await import('@/lib/server/model-config/runtime');
+    runtime.setDeploymentConfigForTests();
+    runtime.setWorkspaceLayerLoaderForTests();
+    delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
+    delete process.env.CODEX_MODELS;
+  });
+
+  it('maps api/provider combinations to the transport', async () => {
+    const { driverTransportFor } = await import('@/lib/server/agent-runtime/agent-driver-model');
+    expect(driverTransportFor('codex-sdk', 'codex')).toBe('codex-sdk');
+    expect(driverTransportFor('codex', 'codex')).toBe('codex-sdk');
+    // A codex provider has no HTTP endpoint, so the transport follows it.
+    expect(driverTransportFor(undefined, 'codex')).toBe('codex-sdk');
+    expect(driverTransportFor('opencode-cli', 'opencode')).toBe('opencode-cli');
+    expect(driverTransportFor('openai-responses', 'openai')).toBe('http');
+    expect(driverTransportFor(undefined, 'openai')).toBe('http');
+  });
+
+  it('refuses a codex api on a provider that is not codex', async () => {
+    const { buildPiDriverModel } = await import('@/lib/server/agent-runtime/agent-driver-model');
+    expect(() =>
+      buildPiDriverModel(
+        { providerId: 'openai', modelId: 'gpt-5.6', modelString: 'openai:gpt-5.6' } as never,
+        'codex-sdk',
+      ),
+    ).toThrow('expected "codex"');
+  });
+
+  it('resolves a codex slot onto the SDK transport with prompt-level effort', async () => {
+    const os = await import('node:os');
+    const path = await import('node:path');
+    process.env.OPENCODE_ACTIVE_MODEL_FILE = path.join(
+      os.tmpdir(),
+      `openmaic-test-codex-slot-${process.pid}-${Math.random().toString(36).slice(2)}.json`,
+    );
+    const resolve = await configure({
+      model: 'codex:gpt-5.6-codex',
+      api: 'codex-sdk',
+      thinking: { effort: 'high' },
+    });
+    const resolved = await resolve();
+    expect(resolved).toMatchObject({
+      isCliDriver: true,
+      driverTransport: 'codex-sdk',
+      driverApi: 'codex-sdk',
+    });
+    expect(resolved.piModel).toMatchObject({
+      id: 'gpt-5.6-codex',
+      provider: 'codex',
+      api: 'openai-completions',
+    });
+    // Local transports never carry a wire max_tokens.
+    expect(resolved.wireMaxOutputTokens).toBeUndefined();
+  });
+
+  it('applies a codex override written by the workbench picker', async () => {
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const file = path.join(
+      os.tmpdir(),
+      `openmaic-test-codex-override-${process.pid}-${Math.random().toString(36).slice(2)}.json`,
+    );
+    process.env.OPENCODE_ACTIVE_MODEL_FILE = file;
+    process.env.CODEX_MODELS = 'gpt-5.6-codex';
+    // Slot menunjuk transport lokal lain: override tombol tetap berlaku.
+    const resolve = await configure({ model: 'opencode:big-pickle', api: 'opencode-cli' });
+    try {
+      const models = await import('@/lib/server/agent-runtime/opencode-models');
+      const saved = models.writeActiveModelOverride('codex:gpt-5.6-codex', { effort: 'low' });
+      expect(saved).toMatchObject({ modelString: 'codex:gpt-5.6-codex', api: 'codex-sdk' });
+      mocks.resolveModel.mockResolvedValue({
+        model: {},
+        modelInfo: { contextWindow: 400_000, outputWindow: 128_000 },
+        modelString: 'codex:gpt-5.6-codex',
+        providerId: 'codex',
+        modelId: 'gpt-5.6-codex',
+        apiKey: '',
+        baseUrl: undefined,
+        thinkingConfig: { mode: 'enabled', effort: 'low' },
+      });
+      const resolved = await resolve();
+      expect(mocks.resolveModel).toHaveBeenCalledWith({
+        modelString: 'codex:gpt-5.6-codex',
+        thinkingConfig: { mode: 'enabled', effort: 'low' },
+      });
+      expect(resolved).toMatchObject({
+        isCliDriver: true,
+        driverTransport: 'codex-sdk',
+        driverApi: 'codex-sdk',
+      });
+      expect(resolved.piModel).toMatchObject({ id: 'gpt-5.6-codex', provider: 'codex' });
+    } finally {
+      if (fs.existsSync(file)) fs.rmSync(file, { force: true });
+      delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
+      delete process.env.CODEX_MODELS;
     }
   });
 });

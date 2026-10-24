@@ -63,6 +63,41 @@ describe('openmaic.yml examples', () => {
     expect(readmes.length).toBeGreaterThan(0);
   });
 
+  it('allows a thinking effort on the agent slot only through a local transport', () => {
+    const config = (agent: string) =>
+      [
+        'providers:',
+        '  openai:',
+        '    preset: openai',
+        '    apiKey: ${OPENAI_API_KEY}',
+        '    models: [gpt-5.5]',
+        '  codex:',
+        '    preset: codex',
+        '    models: [gpt-5.6-codex]',
+        'slots:',
+        '  agent:',
+        agent,
+      ].join('\n');
+
+    // An HTTP transport cannot combine reasoning effort with function tools.
+    expect(() =>
+      parseModelConfig(config('    model: openai:gpt-5.5\n    thinking: { effort: high }'), {
+        file: 'inline',
+        env: { OPENAI_API_KEY: 'set' },
+      }),
+    ).toThrow(/cannot set a thinking effort/);
+
+    // A local transport carries the effort as a prompt instruction/CLI flag.
+    expect(() =>
+      parseModelConfig(
+        config(
+          '    model: codex:gpt-5.6-codex\n    api: codex-sdk\n    thinking: { effort: high }',
+        ),
+        { file: 'inline', env: { OPENAI_API_KEY: 'set' } },
+      ),
+    ).not.toThrow();
+  });
+
   it.each([...docs, ...readmes].map((block) => [block.where, block.text]))(
     '%s parses with the schema',
     (where, text) => {
