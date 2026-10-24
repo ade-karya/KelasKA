@@ -76,6 +76,7 @@
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@mozilla/readability": "^0.6.0",
     "@napi-rs/canvas": "^0.1.88",
+    "@openai/codex": "0.164.0",
     "@openai/codex-sdk": "^0.164.0",
     "@opencode/sdk": "^2.1.4",
     "@openmaic/dsl": "workspace:*",
