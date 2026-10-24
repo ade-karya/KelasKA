@@ -4,6 +4,7 @@ import { lookupSlot } from '@/lib/server/model-config/runtime';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 import {
   activatedDriverModels,
+  activatedDriverModelsDynamic,
   defaultTier3ModelString,
   readActiveModelOverride,
   writeActiveModelOverride,
@@ -45,7 +46,7 @@ export async function GET() {
   if (!isAgentRuntimeConfigured()) {
     return new Response('Not found', { status: 404 });
   }
-  const models = activatedDriverModels();
+  const models = await activatedDriverModelsDynamic();
   const override = readActiveModelOverride();
   // Slot `agent` owns the driver model now (MODEL_ROUTES is gone upstream).
   // Unassigned/disabled -> fall through to the tier-3 default.
@@ -104,7 +105,7 @@ export async function POST(req: Request) {
         active: saved.modelString,
         driverApi: saved.api,
         ...(saved.thinking ? { thinking: saved.thinking } : {}),
-        models: activatedDriverModels(),
+        models: await activatedDriverModelsDynamic(),
       },
       200,
     );

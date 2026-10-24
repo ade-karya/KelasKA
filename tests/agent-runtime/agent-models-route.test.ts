@@ -4,6 +4,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { NextRequest } from 'next/server';
 
+vi.mock('@/lib/ai/codex-app-server', () => ({
+  listCodexModels: async () => [],
+  invalidateCodexModelCache: () => {},
+}));
+
 describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
   let file = '';
 

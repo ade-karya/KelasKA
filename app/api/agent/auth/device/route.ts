@@ -5,11 +5,17 @@ import {
   codexDeviceAuthPoll,
   codexDeviceAuthStart,
 } from '@/lib/ai/codex-device-auth';
+import { invalidateCodexModelCache } from '@/lib/ai/codex-app-server';
+import { resetDiscoveredCodexIds } from '@/lib/server/agent-runtime/opencode-models';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 export async function GET() {
   try {
     const result = codexDeviceAuthPoll();
+    if (result.status === 'success') {
+      invalidateCodexModelCache();
+      resetDiscoveredCodexIds();
+    }
     return apiSuccess(result as unknown as Record<string, unknown>);
   } catch (error) {
     return apiError(

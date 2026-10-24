@@ -1,8 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { PROVIDERS, CODEX_SDK_THINKING, OPENCODE_CLI_THINKING } from '@/lib/ai/providers';
+import { listCodexModels } from '@/lib/ai/codex-app-server';
 import { getDefaultThinkingConfig, normalizeThinkingConfig } from '@/lib/ai/thinking-config';
-import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
+import type { ThinkingCapability, ThinkingConfig, ThinkingEffort } from '@/lib/types/provider';
+
+const discoveredCodexIds = new Set<string>();
+const discoveredCodexModels = new Map<string, { reasoningEfforts: string[]; defaultReasoningEffort: string | null }>();
 
 /**
  * Daftar model transport lokal yang diaktifkan installer untuk Pro Workbench.
@@ -176,6 +180,53 @@ export function activatedCodexModels(): ActivatedDriverModel[] {
     .filter((item): item is ActivatedDriverModel => item !== null);
 }
 
+/** Model Codex yang tersedia untuk akun yang login (via app-server model/list). */
+export async function activatedCodexModelsDynamic(): Promise<ActivatedDriverModel[]> {
+  try {
+    const discovered = await listCodexModels();
+    if (discovered.length > 0) {
+      discovered.forEach((m) => {
+        discoveredCodexIds.add(m.id);
+        discoveredCodexModels.set(m.id, {
+          reasoningEfforts: m.reasoningEfforts,
+          defaultReasoningEffort: m.defaultReasoningEffort,
+        });
+      });
+      return discovered.map((m) => {
+        const efforts =
+          m.reasoningEfforts.length > 0
+            ? m.reasoningEfforts
+            : CODEX_SDK_THINKING.effortValues ?? [];
+        const thinking: ThinkingCapability = {
+          ...CODEX_SDK_THINKING,
+          effortValues: efforts as ThinkingEffort[],
+          defaultEffort:
+            (m.defaultReasoningEffort as ThinkingCapability['defaultEffort']) ??
+            CODEX_SDK_THINKING.defaultEffort,
+        };
+        const item: ActivatedDriverModel = {
+          provider: CODEX_PROVIDER,
+          id: m.id,
+          modelString: `${CODEX_PROVIDER}:${m.id}`,
+          name: m.displayName || m.id,
+          thinking,
+        };
+        return item;
+      });
+    }
+  } catch {
+    // fall through to static
+  }
+  return activatedCodexModels();
+}
+
+/** SEMUA model transport lokal, dengan codex yang ditemukan secara dinamis. */
+export async function activatedDriverModelsDynamic(): Promise<ActivatedDriverModel[]> {
+  const opencode = activatedOpencodeModels();
+  const codex = await activatedCodexModelsDynamic();
+  return [...opencode, ...codex];
+}
+
 /** SEMUA model transport lokal untuk tombol pemilih Pro Workbench. */
 export function activatedDriverModels(): ActivatedDriverModel[] {
   return [...activatedOpencodeModels(), ...activatedCodexModels()];
@@ -187,6 +238,22 @@ export function driverThinkingCapability(
   id: string,
 ): ThinkingCapability | undefined {
   const fallback = provider === CODEX_PROVIDER ? CODEX_SDK_THINKING : OPENCODE_CLI_THINKING;
+  if (provider === CODEX_PROVIDER) {
+    const discovered = discoveredCodexModels.get(id);
+    if (discovered) {
+      const efforts =
+        discovered.reasoningEfforts.length > 0
+          ? discovered.reasoningEfforts
+          : CODEX_SDK_THINKING.effortValues ?? [];
+      return {
+        ...CODEX_SDK_THINKING,
+        effortValues: efforts as ThinkingEffort[],
+        defaultEffort:
+          (discovered.defaultReasoningEffort as ThinkingCapability['defaultEffort']) ??
+          CODEX_SDK_THINKING.defaultEffort,
+      };
+    }
+  }
   try {
     const models = PROVIDERS?.[provider]?.models ?? [];
     return models.find((m) => m.id === id)?.capabilities?.thinking ?? fallback;
@@ -261,8 +328,15 @@ export function normalizeOpencodeModelInput(raw: string): string | null {
   return bare;
 }
 
+export function resetDiscoveredCodexIds(): void {
+  discoveredCodexIds.clear();
+  discoveredCodexModels.clear();
+}
+
 export function isActivatedDriverModel(provider: DriverProvider, id: string): boolean {
-  return activatedDriverIds(provider).includes(id);
+  if (activatedDriverIds(provider).includes(id)) return true;
+  if (provider === CODEX_PROVIDER && discoveredCodexIds.has(id)) return true;
+  return false;
 }
 
 export function isActivatedOpencodeId(
