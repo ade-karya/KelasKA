@@ -20,6 +20,13 @@ interface CodexAuthStatus {
   message: string;
 }
 
+interface DeviceAuthState {
+  url: string | null;
+  code: string | null;
+  status: 'idle' | 'pending' | 'success' | 'failed';
+  message: string;
+}
+
 export function WorkbenchAuthDialog() {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -27,6 +34,12 @@ export function WorkbenchAuthDialog() {
   const [loading, setLoading] = useState(false);
   const [key, setKey] = useState('');
   const [saving, setSaving] = useState(false);
+  const [device, setDevice] = useState<DeviceAuthState>({
+    url: null,
+    code: null,
+    status: 'idle',
+    message: '',
+  });
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -90,6 +103,88 @@ export function WorkbenchAuthDialog() {
       setSaving(false);
     }
   }, []);
+
+  const startDevice = useCallback(async () => {
+    setSaving(true);
+    setDevice({ url: null, code: null, status: 'pending', message: 'Starting…' });
+    try {
+      const res = await fetch('/api/agent/auth/device', { method: 'POST', credentials: 'include' });
+      const body = (await res.json().catch(() => ({}))) as {
+        url?: string | null;
+        code?: string | null;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(body.message || body.error || `HTTP ${res.status}`);
+      setDevice({
+        url: body.url ?? null,
+        code: body.code ?? null,
+        status: 'pending',
+        message: body.message || 'Open the link and enter the code.',
+      });
+    } catch (err) {
+      setDevice({
+        url: null,
+        code: null,
+        status: 'failed',
+        message: err instanceof Error ? err.message : 'Failed.',
+      });
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
+  const cancelDevice = useCallback(async () => {
+    await fetch('/api/agent/auth/device', { method: 'DELETE', credentials: 'include' }).catch(
+      () => {},
+    );
+    setDevice({ url: null, code: null, status: 'idle', message: '' });
+  }, []);
+
+  useEffect(() => {
+    if (device.status !== 'pending') return;
+    const timer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/agent/auth/device', { credentials: 'include' });
+        const body = (await res.json().catch(() => ({}))) as {
+          status?: string;
+          message?: string;
+          url?: string | null;
+          code?: string | null;
+        };
+        if (body.status === 'success') {
+          setDevice({
+            url: null,
+            code: null,
+            status: 'success',
+            message: body.message || 'Logged in.',
+          });
+          void refresh();
+          void (async () => {
+            const r = await fetch('/api/agent/auth', { credentials: 'include' });
+            const b = (await r.json().catch(() => ({}))) as { codex?: CodexAuthStatus };
+            if (b.codex) setStatus(b.codex);
+          })();
+        } else if (body.status === 'failed') {
+          setDevice({
+            url: null,
+            code: null,
+            status: 'failed',
+            message: body.message || 'Login failed.',
+          });
+        } else if (body.url || body.code) {
+          setDevice((prev) => ({
+            ...prev,
+            url: body.url ?? prev.url,
+            code: body.code ?? prev.code,
+          }));
+        }
+      } catch {
+        // ignore transient
+      }
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [device.status, refresh]);
 
   return (
     <>
@@ -166,6 +261,57 @@ export function WorkbenchAuthDialog() {
                 </p>
               </div>
             )}
+            {status?.installed && !status.loggedIn ? (
+              <div className="space-y-2 border-t pt-3">
+                <p className="text-sm font-medium">Login with ChatGPT (device code)</p>
+                {device.status === 'idle' ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void startDevice()}
+                    disabled={saving}
+                    className="w-full"
+                  >
+                    Start device login
+                  </Button>
+                ) : null}
+                {device.status === 'pending' ? (
+                  <div className="space-y-2">
+                    {device.url ? (
+                      <a
+                        href={device.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block text-sm text-blue-600 underline break-all"
+                      >
+                        {device.url}
+                      </a>
+                    ) : null}
+                    {device.code ? (
+                      <div className="rounded border bg-muted px-3 py-2 text-center font-mono text-lg tracking-widest">
+                        {device.code}
+                      </div>
+                    ) : null}
+                    <p className="text-xs text-muted-foreground">{device.message}</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void cancelDevice()}
+                      className="w-full"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : null}
+                {device.status === 'success' ? (
+                  <p className="text-sm text-green-600">{device.message}</p>
+                ) : null}
+                {device.status === 'failed' ? (
+                  <p className="text-sm text-red-600">{device.message}</p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
