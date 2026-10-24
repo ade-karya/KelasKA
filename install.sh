@@ -63,8 +63,12 @@
 #   - Installer ini tidak mengatur model LLM/openmaic.yml. Isi API key di
 #     .env.local lalu atur model lewat Settings atau buat openmaic.yml dari
 #     openmaic.example.yml.
-#   - pgAdmin4 dan OpenCode CLI tidak termasuk di installer Bun ini; gunakan
-#     install-node.sh bila membutuhkannya.
+#   - pgAdmin4 tidak termasuk di installer Bun ini; gunakan install-node.sh
+#     bila membutuhkannya. OpenCode CLI juga tidak termasuk (install-node.sh).
+#   - Codex CLI (@openai/codex) kini termasuk sebagai dependency dan akan
+#     terpasang via `bun install`; autentikasinya (API key / device code)
+#     dilakukan dari UI Pro Workbench (ikon kunci di header chat pane), bukan
+#     dari terminal.
 
 set -euo pipefail
 
@@ -1065,6 +1069,11 @@ if command -v ffmpeg >/dev/null 2>&1; then
 else
   info "  ffmpeg: tidak ada (--no-ffmpeg)"
 fi
+if [[ -d node_modules/@openai/codex ]]; then
+  info "  Codex CLI: OK (auth via UI Pro Workbench: ikon kunci)"
+else
+  warn "Codex CLI tidak terdeteksi — fitur transport codex-sdk tidak akan jalan."
+fi
 if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then
   if [[ -d "${OWNER_HOME}/.cache/ms-playwright" ]]; then
     info "  Playwright Chromium: OK (e2e: bun x playwright test)"
@@ -1115,6 +1124,10 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   echo "Colab: ekspos port 3000 ke browser dengan sel Python:"
   echo "  from google.colab import output"
   echo "  output.serve_kernel_port_as_window(3000)"
+  echo ""
+  echo "Colab: autentikasi Codex (jika pakai transport codex-sdk) dilakukan di"
+  echo "  UI Pro Workbench (ikon kunci di header chat pane) via device code —"
+  echo "  tidak perlu terminal."
   echo ""
   echo "Colab: jaga runtime tetap hidup (anti-idle) dengan sel Python looping:"
   echo "  from IPython.display import display, Javascript"
