@@ -1655,7 +1655,14 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
     || fail "ecosystem.bun.config.cjs tidak ditemukan; file ini dibutuhkan PM2 Bun."
   # --update-env agar perubahan .env.local/openmaic.yml ikut terpakai saat
   # installer dijalankan ulang (PM2 menyimpan env proses lama tanpa flag ini).
-  pm2_as_owner startOrReload ecosystem.bun.config.cjs --update-env
+  # `restart` (bukan `startOrReload`) dipakai agar aset statis yang baru
+  # disalin benar-benar dimuat ulang (reload graceful bisa mempertahankan
+  # file descriptor lama dan menyebabkan 404 pada chunk CSS/JS).
+  if pm2_as_owner pid kelaska 2>/dev/null | grep -qE '^[1-9][0-9]*$'; then
+    pm2_as_owner restart kelaska --update-env
+  else
+    pm2_as_owner start ecosystem.bun.config.cjs --update-env
+  fi
   pm2_as_owner save || warn "pm2 save gagal; jalankan manual: pm2 save"
   info "Aplikasi berjalan via PM2 (proses: kelaska, runtime Bun)."
   colab_mark "PM2 start selesai"
