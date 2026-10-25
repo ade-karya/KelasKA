@@ -63,7 +63,7 @@ providers:
   # the interpreter.
   # antigravity:
   #   preset: antigravity
-  #   models: [gemini-3.8-flash, gemini-4-argon]
+  #   models: [gemini-3.8-flash, claude-sonnet-4-6, claude-opus-4-6, gemini-4-argon]
 
   # Web search.
   # tavily:

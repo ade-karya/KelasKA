@@ -3,7 +3,6 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { lookupSlot } from '@/lib/server/model-config/runtime';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 import {
-  activatedDriverModels,
   activatedDriverModelsDynamic,
   defaultTier3ModelString,
   readActiveModelOverride,
@@ -107,6 +106,9 @@ export async function POST(req: Request) {
     return apiError('MISSING_REQUIRED_FIELD', 400, 'model is required');
   }
   const thinkingRaw = (body as { thinking?: unknown }).thinking;
+  // Ensure dynamic models are discovered so that isActivatedDriverModel
+  // recognizes variants like gemini-3.8-flash-high from agy models.
+  await activatedDriverModelsDynamic();
   try {
     const saved = writeActiveModelOverride(raw, thinkingRaw);
     return apiSuccess(

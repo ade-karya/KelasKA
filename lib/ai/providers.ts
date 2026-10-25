@@ -119,11 +119,24 @@ export const CODEX_SDK_THINKING: ThinkingCapability = {
  * SDK `ThinkingLevel` (lib/agent/runtime/antigravity-stream-fn.ts); `none`
  * sends no level so the model keeps its default, while `xhigh`/`max` map to
  * the SDK's `extra_high`.
+ *
+ * Gemini 3.8 Flash does not support `minimal` (the SDK rejects it), so it
+ * gets a narrower ladder defined in `ANTIGRAVITY_SDK_THINKING_GEMINI_FLASH`.
  */
 export const ANTIGRAVITY_SDK_THINKING: ThinkingCapability = {
   control: 'effort',
   requestAdapter: 'google',
-  effortValues: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+  effortValues: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'],
+  defaultEffort: 'medium',
+  toggleable: true,
+  budgetAdjustable: false,
+  defaultEnabled: true,
+};
+
+export const ANTIGRAVITY_SDK_THINKING_GEMINI_FLASH: ThinkingCapability = {
+  control: 'effort',
+  requestAdapter: 'google',
+  effortValues: ['none', 'low', 'medium', 'high'],
   defaultEffort: 'medium',
   toggleable: true,
   budgetAdjustable: false,
@@ -1962,6 +1975,10 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     type: 'antigravity',
     requiresApiKey: false,
     icon: '/logos/gemini.svg',
+    // Katalog = model yang dijual Antigravity CLI untuk akun biasa: Gemini 3.8
+    // Flash + Claude Sonnet/Opus 4.6. `gemini-4-argon` hanya tersedia untuk akun
+    // Pro, jadi biarkan di daftar (pemilik akun Pro melihatnya; akun biasa cukup
+    // menghapusnya dari ANTIGRAVITY_MODELS bila tidak mau melihat entri itu).
     models: [
       {
         id: 'gemini-3.8-flash',
@@ -1976,10 +1993,10 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         },
       },
       {
-        id: 'gemini-4-argon',
-        name: 'Gemini 4 Argon',
-        contextWindow: 1048576,
-        outputWindow: 65536,
+        id: 'claude-sonnet-4-6',
+        name: 'Claude Sonnet 4.6',
+        contextWindow: 200000,
+        outputWindow: 64000,
         capabilities: {
           streaming: true,
           tools: true,
@@ -1988,10 +2005,10 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         },
       },
       {
-        id: 'gemini-3.7-flash',
-        name: 'Gemini 3.7 Flash',
-        contextWindow: 1048576,
-        outputWindow: 65536,
+        id: 'claude-opus-4-6',
+        name: 'Claude Opus 4.6',
+        contextWindow: 200000,
+        outputWindow: 64000,
         capabilities: {
           streaming: true,
           tools: true,
@@ -2000,22 +2017,10 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         },
       },
       {
-        id: 'gemini-3.6-flash',
-        name: 'Gemini 3.6 Flash',
-        contextWindow: 1048576,
-        outputWindow: 65536,
-        capabilities: {
-          streaming: true,
-          tools: true,
-          vision: false,
-          thinking: ANTIGRAVITY_SDK_THINKING,
-        },
-      },
-      {
-        id: 'gemini-3.1-pro',
-        name: 'Gemini 3.1 Pro',
-        contextWindow: 1048576,
-        outputWindow: 65536,
+        id: 'gpt-oss-120b',
+        name: 'GPT-OSS 120B',
+        contextWindow: 131072,
+        outputWindow: 32768,
         capabilities: {
           streaming: true,
           tools: true,

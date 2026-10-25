@@ -1529,7 +1529,9 @@ fi
 # Install it into a project-local venv so the host Python stays untouched, then
 # point the server at that interpreter. Failures are warnings: the rest of
 # OpenMAIC still works and the workbench reports the missing transport.
-ANTIGRAVITY_MODELS_DEFAULT="gemini-3.8-flash,gemini-4-argon,gemini-3.7-flash,gemini-3.6-flash,gemini-3.1-pro"
+# Model yang dijual Antigravity CLI: Gemini 3.8 Flash + Claude Sonnet/Opus 4.6.
+# `gemini-4-argon` hanya ada di akun Pro (akun biasa: hapus dari baris ini).
+ANTIGRAVITY_MODELS_DEFAULT="gemini-3.8-flash,claude-sonnet-4-6,claude-opus-4-6,gemini-4-argon"
 if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
   LANGKAH="antigravity: venv + pip"
   ANTIGRAVITY_VENV="${ROOT_DIR}/.venv-antigravity"

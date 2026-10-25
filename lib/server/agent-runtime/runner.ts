@@ -35,6 +35,7 @@ import {
   antigravitySdkStreamFnOptions,
 } from './agent-driver-antigravity';
 import { opencodeCliStreamFnOptions } from './agent-driver-opencode';
+import { activatedAntigravityModelsDynamic } from './opencode-models';
 import { buildAskUserTool } from './ask-user';
 import { agentRuntimeConfig as config } from './config';
 import { buildCreateSkillTool } from './create-skill';
@@ -1374,6 +1375,11 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
         repairedToolCalls: repairedToolCallIds,
       });
     }
+
+    // Ensure Antigravity models discovered (populates discoveredAntigravityIds)
+    // so that dynamic model variants like gemini-3.8-flash-high are recognized
+    // as activated when the workbench override is checked.
+    await activatedAntigravityModelsDynamic();
 
     const driver = await resolveAgentDriverModel(await backgroundWorkspaceId(meta.ownerId));
     let streamFn: ReturnType<typeof createCallLlmStreamFn>;

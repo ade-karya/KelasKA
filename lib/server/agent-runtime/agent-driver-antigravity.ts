@@ -29,7 +29,7 @@
  * ketersediaan Python/SDK/kredensial sebelum run dimulai.
  */
 
-import { antigravitySdkAvailability, describeAntigravityError } from '@/lib/ai/antigravity-sdk';
+import { antigravityCliAuthStatus } from '@/lib/ai/antigravity-cli-auth';
 import {
   AGENT_DRIVER_STAGE,
   isAntigravitySdkApi,
@@ -39,17 +39,11 @@ import {
 
 export { AGENT_DRIVER_STAGE, isAntigravitySdkApi, isAntigravitySdkProvider };
 
-/** True bila koneksi yang ter-resolve dieksekusi lokal lewat Antigravity SDK. */
+/** True bila koneksi yang ter-resolve dieksekusi lokal lewat Antigravity CLI. */
 export function isAntigravitySdkDriverConnection(providerId: string, driverApi?: string): boolean {
   return isAntigravitySdkApi(driverApi) || isAntigravitySdkProvider(providerId);
 }
 
-/**
- * Resolve driver dan pastikan varian Antigravity. Melempar bila route
- * ter-resolve bukan Antigravity (mis. operator bermaksud HTTP ber-key) agar
- * kesalahan config gagal keras saat start run, bukan sebagai turn yang
- * menggantung.
- */
 export async function resolveAntigravitySdkDriverModel(): Promise<
   Awaited<ReturnType<typeof resolveAgentDriverModel>>
 > {
@@ -64,14 +58,10 @@ export async function resolveAntigravitySdkDriverModel(): Promise<
   return driver;
 }
 
-/**
- * Fail loud *before* the session starts when the host cannot run Antigravity
- * at all (bridge missing / Python package not installed / key absent). Turn
- * failures after this point surface through describeAntigravityError.
- */
 export async function assertAntigravitySdkReady(): Promise<void> {
-  const availability = await antigravitySdkAvailability();
-  if (!availability.available) throw new Error(availability.reason);
+  const availability = await antigravityCliAuthStatus();
+  if (!availability.installed) throw new Error(availability.message);
+  if (!availability.authenticated) throw new Error(availability.message);
 }
 
 /** Opsi StreamFn yang benar untuk driver Antigravity (tanpa cap max_tokens di wire). */
@@ -81,17 +71,17 @@ export function antigravitySdkStreamFnOptions(driver: {
 }): {
   maxOutputTokens: undefined;
   omitMaxOutputTokens: true;
-  source: 'agent-runtime:antigravity-sdk';
+  source: 'agent-runtime:antigravity-cli';
 } {
   void driver.wireMaxOutputTokens;
   return {
     maxOutputTokens: undefined,
     omitMaxOutputTokens: true,
-    source: 'agent-runtime:antigravity-sdk',
+    source: 'agent-runtime:antigravity-cli',
   };
 }
 
 /** Message shown when an Antigravity run fails before/while answering. */
 export function antigravitySdkFailureMessage(error: unknown): string {
-  return describeAntigravityError(error);
+  return error instanceof Error ? error.message : String(error);
 }
