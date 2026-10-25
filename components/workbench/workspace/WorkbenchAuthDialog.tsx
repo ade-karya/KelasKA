@@ -628,7 +628,7 @@ export function WorkbenchAuthDialog() {
                     <Button
                       type="button"
                       onClick={() => void startGoogle()}
-                      disabled={googleSaving || !googleProject.trim() || !googleLocation.trim()}
+                      disabled={googleSaving || !googleProject.trim()}
                       className="w-full"
                     >
                       Login with Google

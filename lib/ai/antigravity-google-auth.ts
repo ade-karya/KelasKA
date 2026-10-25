@@ -7,8 +7,27 @@
  * PM2/Bun process OpenMAIC runs in.
  */
 
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn, execFileSync, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { persistAntigravityEnvValue } from '@/lib/ai/antigravity-sdk';
+
+const GCLOUD_CANDIDATES = [
+  'gcloud',
+  '/tools/google-cloud-sdk/bin/gcloud',
+  '/usr/lib/google-cloud-sdk/bin/gcloud',
+  '/opt/google-cloud-sdk/bin/gcloud',
+];
+
+function resolveGcloud(): string {
+  for (const candidate of GCLOUD_CANDIDATES) {
+    try {
+      execFileSync(candidate, ['--version'], { stdio: 'ignore', timeout: 5000 });
+      return candidate;
+    } catch {
+      // try next
+    }
+  }
+  return 'gcloud';
+}
 
 export type GoogleLoginState =
   | { status: 'idle'; url: null; message: string }
@@ -47,13 +66,33 @@ export function googleLoginStatus(): GoogleLoginStatus {
     (!!process.env.GOOGLE_GENAI_USE_VERTEXAI &&
       !!process.env.GOOGLE_CLOUD_PROJECT &&
       !!process.env.GOOGLE_CLOUD_LOCATION);
-  // If a gcloud ADC token already exists, treat as logged in even without a run.
+  let resolvedProject = project ?? process.env.GOOGLE_CLOUD_PROJECT ?? null;
+  let resolvedLocation = location ?? process.env.GOOGLE_CLOUD_LOCATION ?? null;
+  // Prefill project from gcloud config when not explicitly set.
+  if (!resolvedProject) {
+    try {
+      const out = execFileSync(resolveGcloud(), ['config', 'get-value', 'project'], {
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 5000,
+      })
+        .toString('utf8')
+        .trim();
+      if (out && out !== '(unset)') resolvedProject = out;
+    } catch {
+      // ignore
+    }
+  }
+  if (!resolvedLocation) resolvedLocation = 'us-central1';
   return {
     status,
     url,
-    message: message || (loggedIn ? 'Logged in with Google.' : 'Not logged in.'),
-    project: project ?? process.env.GOOGLE_CLOUD_PROJECT ?? null,
-    location: location ?? process.env.GOOGLE_CLOUD_LOCATION ?? null,
+    message:
+      message ||
+      (loggedIn
+        ? 'Logged in with Google.'
+        : 'Fill project + location, then click "Login with Google".'),
+    project: resolvedProject,
+    location: resolvedLocation,
     loggedIn,
   };
 }
@@ -66,7 +105,7 @@ export function startGoogleLogin(): GoogleLoginState {
   status = 'pending';
   message = 'Starting Google login…';
   try {
-    proc = spawn('gcloud', ['auth', 'application-default', 'login', '--no-launch-browser'], {
+    proc = spawn(resolveGcloud(), ['auth', 'application-default', 'login', '--no-launch-browser'], {
       stdio: ['pipe', 'pipe', 'pipe'],
     });
   } catch (error) {
@@ -153,16 +192,16 @@ export function cancelGoogleLogin(): void {
 
 export function setGoogleProjectLocation(p: string | null, l: string | null): void {
   project = p?.trim() || null;
-  location = l?.trim() || null;
+  location = (l?.trim() || 'us-central1');
   if (project) process.env.GOOGLE_CLOUD_PROJECT = project;
-  if (location) process.env.GOOGLE_CLOUD_LOCATION = location;
+  process.env.GOOGLE_CLOUD_LOCATION = location;
 }
 
 export async function googleLogout(): Promise<{ ok: boolean; message: string }> {
   cancelGoogleLogin();
   try {
     await new Promise<void>((resolve) => {
-      const child = spawn('gcloud', ['auth', 'application-default', 'revoke', '--quiet'], {
+      const child = spawn(resolveGcloud(), ['auth', 'application-default', 'revoke', '--quiet'], {
         stdio: 'ignore',
       });
       child.on('close', () => resolve());
