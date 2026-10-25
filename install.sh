@@ -1625,6 +1625,11 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
   [[ -f .next/standalone/server.js ]] \
     || fail "server.js standalone tidak ada; PM2 tidak bisa dijalankan."
 
+  # Wrapper PM2 (run-server.sh) memaksa HOSTNAME=0.0.0.0; pastikan executable.
+  if [[ -f run-server.sh ]]; then
+    run_as_root chmod +x run-server.sh 2>/dev/null || chmod +x run-server.sh
+  fi
+
   LANGKAH="pm2: sinkron aset standalone"
   mkdir -p .next/standalone/.next
   rm -rf .next/standalone/.next/static .next/standalone/public

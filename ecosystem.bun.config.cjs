@@ -79,16 +79,16 @@ env.HOSTNAME = '0.0.0.0';
 if (!env.PORT) env.PORT = '3000';
 // Endpoint health membaca npm_package_version yang biasanya diisi npm.
 if (pkgVersion && !env.npm_package_version) env.npm_package_version = pkgVersion;
+// Teruskan override binary Bun (opsional) ke wrapper.
+if (process.env.OPENMAIC_BUN_BIN && !env.OPENMAIC_BUN_BIN) env.OPENMAIC_BUN_BIN = process.env.OPENMAIC_BUN_BIN;
 
 module.exports = {
   apps: [
     {
       name: 'kelaska',
       cwd: root,
-      script: path.join(root, '.next/standalone/server.js'),
-      // PM2 mendukung interpreter kustom; ini yang membuat aplikasi berjalan
-      // di Bun, bukan Node. Bisa dioverride lewat OPENMAIC_BUN_BIN.
-      interpreter: process.env.OPENMAIC_BUN_BIN || '/usr/local/bin/bun',
+      script: path.join(root, 'run-server.sh'),
+      interpreter: '/bin/sh',
       exec_mode: 'fork',
       env,
     },
