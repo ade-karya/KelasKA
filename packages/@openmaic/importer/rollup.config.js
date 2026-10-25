@@ -11,12 +11,19 @@ const onwarn = (warning) => {
   console.warn(`(!) ${warning.message}`);
 };
 
+// Minifying all three outputs costs ~1 min on a 2-vCPU Colab runtime.
+// dist/index.js is served to browsers from /vendor/maic-importer, so it must
+// stay minified (1.8 MB vs 3.7 MB); the UMD/CJS variants are legacy artifacts
+// the app never loads. OPENMAIC_FAST_MINIFY=1 skips minifying those two on
+// local installs. Release builds leave it unset and minify all three outputs.
+const fastMinify = process.env.OPENMAIC_FAST_MINIFY === '1';
+const minifier = (keep = false) => (keep || !fastMinify ? [terser()] : []);
+
 const plugins = [
   nodeResolve({ browser: true, preferBuiltins: false }),
   commonjs(),
   json(),
   typescript({ tsconfig: './tsconfig.json' }),
-  terser(),
   globals({
     dirname: false,
     filename: false,
@@ -35,9 +42,25 @@ export default {
   input: 'src/index.ts',
   onwarn,
   output: [
-    { file: 'dist/index.umd.js', format: 'umd', name: 'pptxtojsonPro', inlineDynamicImports: true },
-    { file: 'dist/index.cjs', format: 'cjs', inlineDynamicImports: true },
-    { file: 'dist/index.js', format: 'es', inlineDynamicImports: true },
+    {
+      file: 'dist/index.umd.js',
+      format: 'umd',
+      name: 'pptxtojsonPro',
+      inlineDynamicImports: true,
+      plugins: minifier(),
+    },
+    {
+      file: 'dist/index.cjs',
+      format: 'cjs',
+      inlineDynamicImports: true,
+      plugins: minifier(),
+    },
+    {
+      file: 'dist/index.js',
+      format: 'es',
+      inlineDynamicImports: true,
+      plugins: minifier(true),
+    },
   ],
   plugins,
 };

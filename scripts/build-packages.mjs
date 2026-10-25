@@ -73,6 +73,9 @@ function collectFiles(directory) {
 
 function sourceHash() {
   const hash = createHash('sha256');
+  // Fast installs skip minifying the unused UMD/CJS importer bundles, so a
+  // mode switch must rebuild instead of reusing the previous dist.
+  hash.update(`fast-minify:${process.env.OPENMAIC_FAST_MINIFY === '1' ? '1' : '0'}\0`);
   const files = [];
   for (const name of HASHED_ROOT_FILES) {
     const file = join(root, name);

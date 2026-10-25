@@ -41,6 +41,10 @@ const nextConfig: NextConfig = {
   },
   typescript: {
     tsconfigPath: process.env.NODE_ENV === 'production' ? 'tsconfig.build.json' : 'tsconfig.json',
+    // Installer/Colab builds are dominated by the TypeScript pass (~2.5 min on a
+    // 2-vCPU runtime). Set OPENMAIC_SKIP_TYPECHECK=1 to skip it for throwaway
+    // deployments; CI and release builds keep the check (the default).
+    ignoreBuildErrors: process.env.OPENMAIC_SKIP_TYPECHECK === '1',
   },
   transpilePackages: ['mathml2omml', 'pptxgenjs', '@openmaic/importer'],
   // These agent packages do a runtime `import(specifier)` with a computed

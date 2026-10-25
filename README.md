@@ -324,12 +324,14 @@ not install Node.js or pnpm; the legacy installer is kept as `install-node.sh`.
 sudo ./install.sh --yes            # base stack
 sudo ./install.sh --yes --with-pm2 # + production build, served via PM2
 sudo ./install.sh --dev            # dev server in the background (no build/PM2)
-sudo ./install.sh --colab          # Colab preset (= --yes --with-pm2)
+sudo ./install.sh --colab          # Colab preset (= --yes --with-pm2 --fast)
 ```
 
 The installer is idempotent — re-running it is safe and preserves non-empty
 values in `.env.local`. Other useful flags: `--build` (prove the production
-build), `--with-playwright` (e2e browser), `--with-postgres` / `--no-postgres`,
+build), `--fast` (skip the Next.js typecheck and the unused UMD/CJS
+minification for throwaway/Colab installs; `--no-fast` forces a full build),
+`--with-playwright` (e2e browser), `--with-postgres` / `--no-postgres`,
 `--pg-major=N`, `--pg-password=...`, and `--bun-version=X`. See
 `./install.sh --help` for all options.
 
@@ -339,6 +341,22 @@ PM2, and it starts `bun --bun run dev` detached on `PORT` from `.env.local`
 `kill -- -$(cat data/dev-server.pid)` (the file holds the process-group
 leader, so Bun's child `next dev` is stopped too). Add `--no-start` to prepare
 the stack without launching the server.
+
+The installer keeps the two configuration files separate: **`.env.local`** holds
+secrets and runtime settings (database URL, access code, API keys,
+`OPENCODE_BIN`, feature flags), while **`openmaic.yml`** holds providers, model
+allowlists and slots, referencing secrets as `${VAR}`. When `DEFAULT_MODEL` is
+set and its provider is unambiguous (the keyless CLI transports, or a
+`<PREFIX>_API_KEY` that already exists), the installer writes `openmaic.yml` and
+comments out `DEFAULT_MODEL` so there is only one source of truth. With no
+`DEFAULT_MODEL`, it creates the file from the discovered OpenCode catalogue.
+
+Every run refreshes the model catalogue: `opencode models` fills
+`OPENCODE_MODELS`/`OPENCODE_GO_MODELS`, `codex app-server` fills `CODEX_MODELS`,
+and the `# >>> models:<provider>` blocks in an installer-owned `openmaic.yml` are
+rewritten. Discovery failures keep the previous lists. A user-written
+`openmaic.yml` is never touched; pass `--no-model-refresh` to skip discovery or
+`--no-openmaic-yml` to keep the legacy configuration.
 
 Manage the production process with PM2 (the Bun ecosystem file runs the
 Next.js standalone server with Bun):
@@ -360,7 +378,12 @@ A new `PORT` in `.env.local` only needs
 #### Google Colab
 
 The `--colab` preset is tuned for Colab's root, systemd-less, non-interactive
-runtimes: it runs non-interactively, builds production, and serves via PM2.
+runtimes: it runs non-interactively, builds production in fast mode (Next.js
+typecheck skipped, so the first install is ~2 minutes shorter), and serves via
+PM2. Add `--no-fast` when you want the full type-checked build. Re-running the
+installer on an existing checkout skips both the package builds (source hash
+stamp in `node_modules`) and the production build when `.next/standalone`
+already exists.
 If `DATABASE_URL` is not set, it also installs a local PostgreSQL instance
 for the session. One cell runs the whole install:
 

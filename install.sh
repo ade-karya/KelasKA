@@ -19,6 +19,9 @@
 #      dilengkapi ACCESS_CODE, OPENMAIC_SECRET_KEY, flag TTS browser-native,
 #      ALLOW_LOCAL_NETWORKS, dan setelan persistence bila DATABASE_URL ada.
 #      Nilai yang sudah diisi user tidak ditimpa (kecuali flag installer).
+#   4b. `openmaic.yml` (model/provider/slot) dibuat dari DEFAULT_MODEL bila
+#      providernya jelas; secret tetap di .env.local dan dirujuk ${VAR}.
+#      File yang sudah ada tidak pernah ditimpa (lewati: --no-openmaic-yml).
 #   5. Dependensi JS via `bun install`. Installer menambahkan `workspaces`
 #      (dari pnpm-workspace.yaml) dan `trustedDependencies` ke package.json
 #      agar monorepo + modul native bekerja di Bun, lalu menulis bun.lock.
@@ -39,12 +42,22 @@
 #   --pg-major=N          Mayor PostgreSQL (default: 18).
 #   --pg-password=PASS    Paksa password Postgres (default: acak/idempoten).
 #   --no-install          Lewati `bun install` (hanya sistem + env).
+#   --no-openmaic-yml     Jangan buat openmaic.yml; konfigurasi model tetap
+#                         legacy (DEFAULT_MODEL/MODEL_ROUTES + Settings).
+#   --with-openmaic-yml   Paksa pembuatan openmaic.yml (default: otomatis bila
+#                         DEFAULT_MODEL berbentuk provider:model dan providernya
+#                         punya key/transport yang jelas).
 #   --build               Jalankan `bun --bun run build` di akhir.
 #   --with-pm2            Instal PM2 (via Bun) + build + jalankan aplikasi.
 #   --with-playwright     Instal browser Chromium untuk e2e Playwright.
 #   --full                Setara --build --with-playwright.
-#   --colab               Preset Colab/ephemeral: --yes --with-pm2, tanpa
-#                         Playwright; PostgreSQL mengikuti mode otomatis
+#   --fast                Build cepat untuk Colab/demo: lewati typecheck
+#                         Next.js dan minifikasi artefak importer yang tidak
+#                         dipakai browser. Build rilis normal tetap memeriksa
+#                         tipe (pakai --no-fast untuk memaksa).
+#   --no-fast             Paksa build penuh walau memakai preset --colab.
+#   --colab               Preset Colab/ephemeral: --yes --with-pm2 --fast,
+#                         tanpa Playwright; PostgreSQL mengikuti mode otomatis
 #                         (bisa dioverride flag lain).
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
 #                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
@@ -60,6 +73,8 @@
 #   --no-browser-tts      TTS browser-native OFF (butuh provider TTS ber-key).
 #   --bun-version=X       Pin versi Bun, mis. --bun-version=1.4.4.
 #   --min-bun-version=X   Ubah versi minimum Bun (default: 1.3.14).
+#   --no-model-refresh    Jangan segarkan OPENCODE_MODELS/CODEX_MODELS dari
+#                         CLI lokal; daftar di .env.local dibiarkan apa adanya.
 #   -h, --help            Tampilkan bantuan ini.
 #
 # Catatan:
@@ -68,9 +83,17 @@
 #   - `bun install` memang menulis `workspaces` ke package.json dan membuat
 #     bun.lock. Itu bagian dari migrasi workspace pnpm -> Bun dan aman
 #     di-commit.
-#   - Installer ini tidak mengatur model LLM/openmaic.yml. Isi API key di
-#     .env.local lalu atur model lewat Settings atau buat openmaic.yml dari
-#     openmaic.example.yml.
+#   - Installer ini memisahkan konfigurasi: secret + runtime di .env.local,
+#     provider/model/slot di openmaic.yml. Bila DEFAULT_MODEL sudah ada dan
+#     providernya jelas (CLI tanpa key, atau key <PREFIX>_API_KEY tersedia),
+#     installer membuat openmaic.yml lalu mengomentari DEFAULT_MODEL agar
+#     tidak ada dua sumber kebenaran. File openmaic.yml milik user tidak
+#     pernah ditimpa; blok models: milik installer disegarkan. Pakai
+#     --no-openmaic-yml untuk tetap legacy.
+#   - Setiap run menyegarkan katalog model dari CLI lokal: `opencode models`
+#     mengisi OPENCODE_MODELS/OPENCODE_GO_MODELS, `codex app-server` mengisi
+#     CODEX_MODELS, lalu blok models: di openmaic.yml (milik installer)
+#     diperbarui. Discovery gagal/offline -> daftar lama dipertahankan.
 #   - pgAdmin4 tidak termasuk di installer Bun ini; gunakan install-node.sh
 #     bila membutuhkannya. OpenCode CLI juga tidak termasuk (install-node.sh).
 #   - Codex CLI (@openai/codex) kini termasuk sebagai dependency dan akan
@@ -117,12 +140,15 @@ cd "$ROOT_DIR"
 ASSUME_YES=0
 WITH_POSTGRES=auto
 WITH_INSTALL=1
+WITH_OPENMAIC_YML=1
+WITH_MODEL_REFRESH=1
 WITH_BUILD=0
 WITH_PLAYWRIGHT=0
 WITH_PM2=0
 WITH_COLAB=0
 WITH_DEV=0
 WITH_DEV_START=1
+FAST_BUILD="auto"
 WITH_FFMPEG=1
 WITH_BROWSER_TTS=1
 PG_MAJOR="${PG_MAJOR:-18}"
@@ -142,6 +168,7 @@ Contoh:
   sudo ./install.sh --yes --with-pm2
   sudo ./install.sh --with-postgres --with-pm2 --yes
   sudo ./install.sh --colab
+  sudo ./install.sh --colab --no-fast
   sudo ./install.sh --dev
   sudo ./install.sh --dev --no-start
   sudo ./install.sh --yes --full
@@ -157,10 +184,15 @@ for arg in "$@"; do
     --with-postgres)     WITH_POSTGRES=1 ;;
     --no-postgres)       WITH_POSTGRES=0 ;;
     --no-install)        WITH_INSTALL=0 ;;
+    --no-openmaic-yml)   WITH_OPENMAIC_YML=0 ;;
+    --with-openmaic-yml) WITH_OPENMAIC_YML=1 ;;
+    --no-model-refresh)  WITH_MODEL_REFRESH=0 ;;
     --build)             WITH_BUILD=1 ;;
     --with-pm2)          WITH_PM2=1 ;;
     --with-playwright)   WITH_PLAYWRIGHT=1 ;;
     --full|--with-dev-tools) WITH_BUILD=1; WITH_PLAYWRIGHT=1 ;;
+    --fast)              FAST_BUILD=1 ;;
+    --no-fast)           FAST_BUILD=0 ;;
     --colab)             WITH_COLAB=1; ASSUME_YES=1; WITH_PM2=1; WITH_PLAYWRIGHT=0 ;;
     --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
     --no-start)          WITH_DEV_START=0 ;;
@@ -193,6 +225,20 @@ done
   || fail "--bun-version harus semver 3 angka (contoh: --bun-version=1.4.4)."
 [[ "$BUN_MIN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
   || fail "--min-bun-version harus semver 3 angka (contoh: --min-bun-version=1.3.14)."
+
+# --colab mengaktifkan mode cepat secara default; --fast/--no-fast menang
+# terlepas dari urutan argumen.
+if [[ "$FAST_BUILD" == "auto" ]]; then
+  if [[ "$WITH_COLAB" -eq 1 ]]; then FAST_BUILD=1; else FAST_BUILD=0; fi
+fi
+# Env build yang dipakai `bun install` (postinstall membangun packages) dan
+# `bun run build`; selalu diteruskan eksplisit lewat `env` karena langkah berat
+# dijalankan sebagai OWNER_USER (sudo/runuser tidak menjamin env ikut).
+BUILD_ENV=()
+if [[ "$FAST_BUILD" -eq 1 ]]; then
+  BUILD_ENV+=(OPENMAIC_FAST_MINIFY=1 OPENMAIC_SKIP_TYPECHECK=1)
+  info "Mode build cepat: typecheck Next.js dilewati; minifikasi UMD/CJS importer dilewati."
+fi
 
 # --dev dan PM2 sama-sama menjalankan server di PORT yang sama; jalankan salah
 # satu agar tidak ada dua proses berebut port.
@@ -409,6 +455,7 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   echo "  - siapkan .env.local + data/ + bun install (workspaces dimigrasikan)"
   if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then echo "  - instal browser Chromium Playwright"; fi
   if [[ "$WITH_BUILD" -eq 1 ]]; then echo "  - jalankan build produksi Bun"; fi
+  if [[ "$FAST_BUILD" -eq 1 ]]; then echo "  - mode cepat: typecheck Next.js + minifikasi UMD/CJS dilewati"; fi
   if [[ "$WITH_PM2" -eq 1 ]]; then echo "  - instal PM2 via Bun + jalankan aplikasi standalone"; fi
   if [[ "$WITH_COLAB" -eq 1 ]]; then echo "  - preset Colab: non-interaktif + PM2 (tanpa systemd)"; fi
   if [[ "$WITH_DEV" -eq 1 ]]; then
@@ -767,6 +814,568 @@ if [[ "$WITH_POSTGRES" -eq 1 && -n "$PGPORT" && -f .env.local ]]; then
 fi
 chmod 600 .env.local 2>/dev/null || true
 
+# ============================================== 4b. Konfigurasi model (openmaic.yml)
+# Pembagian tugas: .env.local menyimpan secret + runtime, openmaic.yml menyimpan
+# provider/allowlist model/slot. Server MENGABAIKAN DEFAULT_MODEL/MODEL_ROUTES
+# begitu openmaic.yml ada, jadi installer memindahkan model default ke file itu
+# sekali. File yang sudah ada tidak pernah ditimpa.
+komentari_env_model() {
+  local key="$1" catatan="$2"
+  [[ -f .env.local ]] || return 0
+  # Aktif maupun komentar lama dari run sebelumnya disegarkan, supaya tidak
+  # menyisakan nilai model yang sudah usang.
+  sed -i -E "s|^([[:space:]]*)${key}=(.*)$|# ${key} (${catatan})|" .env.local
+  sed -i -E "s|^([[:space:]]*)# ${key} \\([^)]*\\).*$|# ${key} (${catatan})|" .env.local
+}
+
+siapkan_openmaic_yml() {
+  if [[ "$WITH_OPENMAIC_YML" -ne 1 ]]; then
+    info "openmaic.yml dilewati (--no-openmaic-yml); konfigurasi model tetap legacy."
+    return 0
+  fi
+  if [[ -f openmaic.yml ]]; then
+    info "openmaic.yml sudah ada — dipertahankan; blok models disegarkan dari katalog."
+    return 0
+  fi
+
+  local model provider model_id prefix key_var="" models_csv api_line
+  model="$(env_get .env.local DEFAULT_MODEL)"
+  [[ -n "$model" ]] || model="${DEFAULT_MODEL:-}"
+  if [[ -z "$model" ]]; then
+    if [[ "$WITH_MODEL_REFRESH" -eq 1 ]]; then
+      info "DEFAULT_MODEL kosong — openmaic.yml akan dibuat dari katalog OpenCode setelah dependensi."
+    else
+      info "DEFAULT_MODEL kosong — openmaic.yml tidak dibuat (model diatur di Settings)."
+    fi
+    return 0
+  fi
+  if [[ "$model" != *:* ]]; then
+    warn "DEFAULT_MODEL '${model}' bukan bentuk provider:model — openmaic.yml dilewati."
+    return 0
+  fi
+  provider="${model%%:*}"
+  model_id="${model#*:}"
+  prefix="${provider^^}"
+  prefix="${prefix//-/_}"
+
+  # Transport lokal (CLI) tidak butuh key. Provider HTTP butuh <PREFIX>_API_KEY
+  # yang sudah ada; tanpa key file tidak dibuat supaya server tidak menolak start.
+  case "$provider" in
+    opencode|opencode-go) api_line="    api: opencode-cli" ;;
+    codex)                api_line="    api: codex-sdk" ;;
+    *)
+      key_var="${prefix}_API_KEY"
+      if [[ -n "$(env_get .env.local "$key_var")" || -n "${!key_var:-}" ]]; then
+        api_line="    api: openai-completions"
+      else
+        info "openmaic.yml tidak dibuat: provider '${provider}' butuh ${key_var} (atau pakai Settings)."
+        return 0
+      fi
+      ;;
+  esac
+
+  # Allowlist model dari <PREFIX>_MODELS bila ada (mis. OPENCODE_MODELS).
+  models_csv="$(env_get .env.local "${prefix}_MODELS")"
+  [[ -n "$models_csv" ]] || models_csv="$model_id"
+  local IFS=',' m models_yaml=""
+  for m in $models_csv; do
+    m="${m#"${m%%[![:space:]]*}"}"
+    m="${m%"${m##*[![:space:]]}"}"
+    [[ -n "$m" ]] && models_yaml+="      - ${m}"$'\n'
+  done
+
+  local key_yaml=""
+  if [[ -n "$key_var" ]]; then key_yaml="    apiKey: \${${key_var}}"$'\n'; fi
+
+  cat > openmaic.yml <<EOF
+# =============================================================================
+# openmaic.yml — konfigurasi model/provider deployment (dibuat oleh install.sh).
+# Secret tetap di .env.local dan dirujuk \${VAR}; file ini hanya provider/slot.
+# Dibaca sekali saat start — setelah mengubah:
+#   pm2 startOrReload ecosystem.bun.config.cjs --update-env
+# =============================================================================
+providers:
+  ${provider}:
+    preset: ${provider}
+${key_yaml}    models:
+      # >>> models:${provider} (dikelola install.sh)
+${models_yaml}      # <<< models:${provider}
+slots:
+  llm: ${model}
+  agent:
+    model: ${model}
+${api_line}
+EOF
+  info "openmaic.yml dibuat: provider '${provider}', slot llm+agent = ${model}."
+  komentari_env_model DEFAULT_MODEL "dipindah ke openmaic.yml -> slots.llm"
+  komentari_env_model MODEL_ROUTES "tidak dibaca server; pakai slots di openmaic.yml"
+  komentari_env_model MODEL_FALLBACK "dipindah ke openmaic.yml -> slots.llm.fallback"
+}
+siapkan_openmaic_yml
+
+# ======================================= 4c. Katalog model dari CLI lokal
+# Setiap run installer menyegarkan daftar model agar model baru dari OpenCode
+# dan Codex langsung muncul di pemilih Pro Workbench:
+#   OPENCODE_MODELS / OPENCODE_GO_MODELS  <- `opencode models`
+#   CODEX_MODELS                          <- `codex app-server` (model/list)
+# Kegagalan (offline, belum login, binary absen) tidak menghapus daftar lama.
+# Blok `models:` di openmaic.yml yang dibuat installer ikut diperbarui; file
+# milik user tidak disentuh. Matikan dengan --no-model-refresh.
+OPENCODE_DEAD_IDS=(exo-free ling-3.0-flash-fin-free fledge-alpha-free)
+
+cari_opencode_bin() {
+  local bin cand
+  bin="$(env_get .env.local OPENCODE_BIN)"
+  if [[ -n "$bin" && -x "$bin" ]]; then printf '%s' "$bin"; return 0; fi
+  if command -v opencode >/dev/null 2>&1; then command -v opencode; return 0; fi
+  for cand in "${OWNER_HOME}/.opencode/bin/opencode" "${OWNER_HOME}/bin/opencode" /usr/local/bin/opencode; do
+    if [[ -x "$cand" ]]; then printf '%s' "$cand"; return 0; fi
+  done
+  return 1
+}
+
+# Bare id unik satu provider dari output `opencode models`.
+# $1=output mentah, $2=provider (opencode|opencode-go).
+parse_opencode_models() {
+  printf '%s\n' "$1" | awk -v p="$2" '
+    {
+      line=$0
+      sub(/\r$/, "", line)
+      gsub(/^[ \t]+|[ \t]+$/, "", line)
+      if (line ~ ("^" p "[/:]")) {
+        sub(("^" p "[/:]"), "", line)
+        split(line, a, /[ \t]/)
+        id=a[1]
+        if (id != "" && !seen[id]++) out = out (out == "" ? "" : ",") id
+      }
+    }
+    END { printf "%s", out }'
+}
+
+# Buang id yang sudah mati meski masih muncul di `opencode models`.
+buang_model_mati() {
+  local csv="${1:-}" id out="" mati
+  local -a ids
+  [[ -n "$csv" ]] || { printf ''; return 0; }
+  IFS=',' read -r -a ids <<< "$csv"
+  for id in "${ids[@]}"; do
+    id="${id//[[:space:]]/}"
+    [[ -n "$id" ]] || continue
+    for mati in "${OPENCODE_DEAD_IDS[@]}"; do
+      if [[ "$id" == "$mati" ]]; then continue 2; fi
+    done
+    out+="${out:+,}$id"
+  done
+  printf '%s' "$out"
+}
+
+# Probe Codex: `codex app-server` + JSON-RPC model/list. Dijalankan lewat Bun
+# (installer ini tidak memasang Node); binary Codex tetap dari node_modules.
+tulis_probe_codex() {
+  cat > "$1" <<'PROBE'
+import { spawn } from 'node:child_process';
+const [runner, js] = process.argv.slice(2);
+const child = spawn(runner, [js, 'app-server'], { stdio: ['pipe', 'pipe', 'pipe'] });
+let buf = '';
+let done = false;
+const finish = (code) => {
+  if (done) return;
+  done = true;
+  try { child.kill(); } catch {}
+  process.exit(code);
+};
+child.stdout.on('data', (chunk) => {
+  buf += chunk.toString();
+  let idx;
+  while ((idx = buf.indexOf('\n')) >= 0) {
+    const line = buf.slice(0, idx).trim();
+    buf = buf.slice(idx + 1);
+    if (!line) continue;
+    try {
+      const msg = JSON.parse(line);
+      if (msg.id === 2 && msg.result && Array.isArray(msg.result.data)) {
+        const ids = msg.result.data
+          .filter((m) => !m.hidden)
+          .map((m) => String(m.id ?? m.model ?? ''))
+          .filter(Boolean);
+        console.log([...new Set(ids)].join(','));
+        finish(0);
+      }
+    } catch {}
+  }
+});
+child.stderr.on('data', () => {});
+child.on('error', () => finish(1));
+child.on('close', () => finish(1));
+const send = (o) => child.stdin.write(JSON.stringify(o) + '\n');
+send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'openmaic', version: '1.0' }, capabilities: {} } });
+setTimeout(() => send({ jsonrpc: '2.0', method: 'initialized', params: {} }), 300);
+setTimeout(() => send({ jsonrpc: '2.0', id: 2, method: 'model/list', params: {} }), 600);
+setTimeout(() => finish(2), 12000);
+PROBE
+}
+
+# $1=dir kerja. Menulis opencode.list/opencode-go.list + penanda .ok.
+kumpulkan_model_opencode() {
+  local dir="$1" bin raw ids go
+  bin="$(cari_opencode_bin)" || return 1
+  raw="$(as_owner env HOME="$OWNER_HOME" \
+    PATH="${OWNER_HOME}/.opencode/bin:/usr/local/bin:/usr/bin:/bin" \
+    timeout "${MODEL_DISCOVERY_TIMEOUT:-45}" "$bin" models 2>/dev/null)" || raw=""
+  if [[ -z "$raw" ]]; then
+    raw="$(env HOME="$OWNER_HOME" PATH="${OWNER_HOME}/.opencode/bin:/usr/local/bin:/usr/bin:/bin" \
+      timeout "${MODEL_DISCOVERY_TIMEOUT:-45}" "$bin" models 2>/dev/null)" || true
+  fi
+  [[ -n "$raw" ]] || return 1
+  ids="$(parse_opencode_models "$raw" opencode)"
+  ids="$(buang_model_mati "$ids")"
+  [[ -n "$ids" ]] || return 1
+  go="$(parse_opencode_models "$raw" opencode-go)"
+  printf '%s' "$ids" > "${dir}/opencode.list"
+  printf '%s' "$go" > "${dir}/opencode-go.list"
+  : > "${dir}/opencode.ok"
+}
+
+# $1=dir kerja. Menulis codex.list + penanda .ok.
+kumpulkan_model_codex() {
+  local dir="$1" js="${ROOT_DIR}/node_modules/@openai/codex/bin/codex.js" ids
+  [[ -f "$js" ]] || return 1
+  ids="$(as_owner env HOME="$OWNER_HOME" "$BUN_BIN" "${dir}/codex-probe.mjs" "$BUN_BIN" "$js" 2>/dev/null)" || return 1
+  ids="$(printf '%s' "$ids" | tr -d '\r\n' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')"
+  [[ -n "$ids" ]] || return 1
+  printf '%s' "$ids" > "${dir}/codex.list"
+  : > "${dir}/codex.ok"
+}
+
+# Tulis daftar model ke .env.local hanya bila berubah.
+sinkron_env_model() {
+  local key="$1" value="$2" cur
+  cur="$(env_get .env.local "$key")"
+  if [[ "$cur" == "$value" ]]; then return 0; fi
+  set_env_value .env.local "$key" "$value"
+  info "  ${key} diperbarui (${value:-<kosong>})."
+}
+
+model_ada() {
+  local csv="${1:-}" id="$2"
+  [[ ",${csv}," == *",${id},"* ]]
+}
+
+# Default yang stabil bila model lama hilang dari katalog.
+pilih_default_opencode() {
+  local csv="${1:-}" id
+  for id in big-pickle deepseek-v4.1-flash-free glm-5.3-flash-free; do
+    if model_ada "$csv" "$id"; then printf '%s' "$id"; return 0; fi
+  done
+  printf '%s' "${csv%%,*}"
+}
+
+# Blok provider YAML dengan marker model (dipakai saat membuat/menambah blok).
+blok_provider_yml() {
+  local provider="$1" preset="$2" csv="${3:-}" id
+  local -a ids
+  printf '  %s:\n    preset: %s\n    models:\n' "$provider" "$preset"
+  printf '      # >>> models:%s (dikelola install.sh)\n' "$provider"
+  if [[ -n "$csv" ]]; then
+    IFS=',' read -r -a ids <<< "$csv"
+    for id in "${ids[@]}"; do
+      id="${id//[[:space:]]/}"
+      if [[ -n "$id" ]]; then printf '      - %s\n' "$id"; fi
+    done
+  fi
+  printf '      # <<< models:%s\n\n' "$provider"
+}
+
+# Tambah blok provider baru sebelum `slots:` bila belum ada.
+tambah_provider_yml() {
+  local file="$1" provider="$2" preset="$3" csv="${4:-}" tmp block
+  [[ -n "$csv" ]] || return 0
+  if grep -qE "^  ${provider}:" "$file"; then return 0; fi
+  tmp="$(mktemp)"
+  block="$(mktemp)"
+  blok_provider_yml "$provider" "$preset" "$csv" > "$block"
+  awk -v block="$block" '
+    BEGIN { while ((getline l < block) > 0) b = b l "\n" }
+    !done && /^slots:[[:space:]]*$/ { printf "%s", b; done=1 }
+    { print }
+    END { if (!done) printf "\n%s", b }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+  rm -f "$block"
+}
+
+# Pastikan provider punya marker `# >>> models:<provider>` / `# <<<`.
+# File lama (dibuat versi installer sebelumnya) dimigrasikan di tempat tanpa
+# menyentuh komentar/slot lain. Return 1 bila blok provider tidak ada.
+pastikan_marker_yml() {
+  local file="$1" provider="$2" tmp
+  if grep -qE "^[[:space:]]*# >>> models:${provider}([[:space:]]|$)" "$file"; then return 0; fi
+  grep -qE "^  ${provider}:" "$file" || return 1
+  tmp="$(mktemp)"
+  awk -v prov="$provider" '
+    function tutup() { if (inlist) { print "      # <<< models:" prov; inlist=0 } }
+    function model_kurang() {
+      if (inprov && !punya_models) {
+        print "    models:"
+        print "      # >>> models:" prov " (dikelola install.sh)"
+        print "      # <<< models:" prov
+        punya_models=1
+      }
+    }
+    $0 ~ ("^  " prov ":[[:space:]]*$") { tutup(); model_kurang(); inprov=1; punya_models=0; print; next }
+    inprov && $0 ~ /^  [A-Za-z0-9_-]+:[[:space:]]*$/ { tutup(); model_kurang(); inprov=0 }
+    inprov && $0 ~ /^    models:[[:space:]]*$/ {
+      punya_models=1
+      print
+      print "      # >>> models:" prov " (dikelola install.sh)"
+      inlist=1
+      next
+    }
+    inlist {
+      if ($0 ~ /^      - /) { print; next }
+      tutup()
+    }
+    { print }
+    END { tutup(); if (inprov) model_kurang() }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+# Ganti isi blok marker dengan daftar baru (marker harus sudah ada).
+ganti_blok_model() {
+  local file="$1" provider="$2" csv="${3:-}" tmp items id
+  local -a ids
+  tmp="$(mktemp)"
+  items="$(mktemp)"
+  if [[ -n "$csv" ]]; then
+    IFS=',' read -r -a ids <<< "$csv"
+    for id in "${ids[@]}"; do
+      id="${id//[[:space:]]/}"
+      if [[ -n "$id" ]]; then printf '      - %s\n' "$id" >> "$items"; fi
+    done
+  fi
+  awk -v prov="$provider" -v items="$items" '
+    BEGIN { while ((getline l < items) > 0) b = b l "\n" }
+    $0 ~ ("^[[:space:]]*# >>> models:" prov "([[:space:]]|$)") {
+      print; printf "%s", b; skip=1; next
+    }
+    skip && $0 ~ ("^[[:space:]]*# <<< models:" prov "([[:space:]]|$)") {
+      skip=0; print; next
+    }
+    skip { next }
+    { print }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+  rm -f "$items"
+}
+
+baca_slot_llm() {
+  awk '
+    /^  llm:[[:space:]]*/ {
+      line=$0
+      sub(/^  llm:[[:space:]]*/, "", line)
+      sub(/[[:space:]]*#.*/, "", line)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+      print line
+      exit
+    }
+  ' "$1"
+}
+
+baca_slot_agent_model() {
+  awk '
+    /^  agent:[[:space:]]*$/ { inagent=1; next }
+    inagent && /^  [A-Za-z0-9_-]+:/ { exit }
+    inagent && /^    model:[[:space:]]*/ {
+      line=$0
+      sub(/^    model:[[:space:]]*/, "", line)
+      sub(/[[:space:]]*#.*/, "", line)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+      print line
+      exit
+    }
+  ' "$1"
+}
+
+ganti_slot_llm() {
+  local file="$1" model="$2" tmp
+  tmp="$(mktemp)"
+  awk -v m="$model" '
+    !done && /^  llm:[[:space:]]*/ { print "  llm: " m; done=1; next }
+    { print }
+    END { if (!done) print "  llm: " m }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+# Set model agent + api transport-nya, membuat baris yang belum ada.
+set_slot_agent() {
+  local file="$1" model="$2" api="${3:-}" tmp
+  tmp="$(mktemp)"
+  awk -v m="$model" -v api="$api" '
+    function ensure_model() { if (!gotmodel) { print "    model: " m; gotmodel=1 } }
+    function ensure_api() { if (api != "" && !gotapi) { print "    api: " api; gotapi=1 } }
+    /^  agent:[[:space:]]*$/ { inagent=1; print; next }
+    inagent && /^  [A-Za-z0-9_-]+:/ { ensure_model(); ensure_api(); inagent=0 }
+    inagent && /^    model:[[:space:]]*/ { print "    model: " m; gotmodel=1; next }
+    inagent && api != "" && /^    api:[[:space:]]*/ { print "    api: " api; gotapi=1; next }
+    { print }
+    END { if (inagent) { ensure_model(); ensure_api() } }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+# Buat openmaic.yml installer-owned dari hasil discovery (belum ada file).
+buat_openmaic_yml() {
+  local op_list="$1" go_list="$2" cx_list="$3" default_model
+  default_model="opencode:$(pilih_default_opencode "$op_list")"
+  {
+    cat <<'EOF'
+# =============================================================================
+# openmaic.yml — konfigurasi model/provider deployment (dibuat oleh install.sh)
+#
+# Pembagian tugas:
+#   .env.local   : secret (API key, DATABASE_URL, ACCESS_CODE), path runtime
+#                  (OPENCODE_BIN) dan feature flag.
+#   openmaic.yml : provider, allowlist model, dan slot (llm, agent, tts, ...).
+#                  Secret dirujuk ${VAR}; nilainya tetap di .env.local.
+#
+# Blok `models:` bertanda `# >>> models:<provider>` dikelola install.sh dan
+# disegarkan setiap run (termasuk model terbaru dari OpenCode/Codex). Edit di
+# luar blok itu untuk kustomisasi; file ini dibaca SEKALI saat server start:
+#   pm2 startOrReload ecosystem.bun.config.cjs --update-env
+# =============================================================================
+providers:
+EOF
+    blok_provider_yml opencode opencode "$op_list"
+    if [[ -n "$go_list" ]]; then
+      printf '  # OpenCode Go (butuh `opencode auth login`).\n'
+      blok_provider_yml opencode-go opencode-go "$go_list"
+    fi
+    if [[ -n "$cx_list" ]]; then
+      printf '  # Codex SDK (auth lewat `codex login` / CODEX_API_KEY).\n'
+      blok_provider_yml codex codex "$cx_list"
+    fi
+    cat <<EOF
+
+slots:
+  # Default chat: chat classic + seluruh slot course/classroom yang mengikutinya.
+  llm: ${default_model}
+
+  # Pro Workbench / agent runtime (butuh tool calling).
+  agent:
+    model: ${default_model}
+    api: opencode-cli
+EOF
+  } > openmaic.yml
+  info "openmaic.yml dibuat dari katalog: slot llm+agent = ${default_model}."
+  komentari_env_model DEFAULT_MODEL "dipindah ke openmaic.yml -> slots.llm"
+  komentari_env_model MODEL_ROUTES "tidak dibaca server; pakai slots di openmaic.yml"
+  komentari_env_model MODEL_FALLBACK "dipindah ke openmaic.yml -> slots.llm.fallback"
+}
+
+# Inti: discovery paralel + tulis .env.local + segarkan openmaic.yml.
+sinkron_model() {
+  local dir op_ok=0 cx_ok=0 pid_op pid_cx
+  local op_list="" go_list="" cx_list="" llm_cur agent_cur default_id dm
+
+  if [[ "$WITH_MODEL_REFRESH" -ne 1 ]]; then
+    info "Sinkron katalog model dilewati (--no-model-refresh)."
+    return 0
+  fi
+
+  LANGKAH="sinkron katalog model"
+  dir="$(mktemp -d)"
+  chmod 0755 "$dir"
+  tulis_probe_codex "${dir}/codex-probe.mjs"
+  chmod 0644 "${dir}/codex-probe.mjs"
+
+  # Paralel: `opencode models` bisa puluhan detik; Codex hanya ~1 detik.
+  ( kumpulkan_model_opencode "$dir" ) &
+  pid_op=$!
+  ( kumpulkan_model_codex "$dir" ) &
+  pid_cx=$!
+  wait "$pid_op" 2>/dev/null || true
+  wait "$pid_cx" 2>/dev/null || true
+
+  if [[ -f "${dir}/opencode.ok" ]]; then op_ok=1; fi
+  if [[ -f "${dir}/codex.ok" ]]; then cx_ok=1; fi
+  if [[ "$op_ok" -eq 1 ]]; then op_list="$(cat "${dir}/opencode.list")"; fi
+  if [[ "$op_ok" -eq 1 ]]; then go_list="$(cat "${dir}/opencode-go.list")"; fi
+  if [[ "$cx_ok" -eq 1 ]]; then cx_list="$(cat "${dir}/codex.list")"; fi
+
+  if [[ "$op_ok" -eq 1 ]]; then
+    sinkron_env_model OPENCODE_MODELS "$op_list"
+    sinkron_env_model OPENCODE_GO_MODELS "$go_list"
+    info "Katalog opencode: ${op_list//,/, }"
+  else
+    info "Katalog opencode tidak tersedia — OPENCODE_MODELS dipertahankan."
+  fi
+  if [[ "$cx_ok" -eq 1 ]]; then
+    sinkron_env_model CODEX_MODELS "$cx_list"
+    info "Katalog codex: ${cx_list//,/, }"
+  else
+    info "Katalog codex tidak tersedia — CODEX_MODELS dipertahankan."
+  fi
+
+  if [[ "$WITH_OPENMAIC_YML" -ne 1 ]]; then
+    rm -rf "$dir"
+    return 0
+  fi
+
+  if [[ ! -f openmaic.yml ]]; then
+    dm="$(env_get .env.local DEFAULT_MODEL)"
+    if [[ -n "$dm" && "$dm" != opencode:* && "$dm" != opencode-go:* && "$dm" != codex:* ]]; then
+      info "openmaic.yml belum ada; DEFAULT_MODEL=${dm} bukan transport CLI — tidak dibuat otomatis."
+    elif [[ "$op_ok" -eq 1 && -n "$op_list" ]]; then
+      buat_openmaic_yml "$op_list" "$go_list" "$cx_list"
+    else
+      info "openmaic.yml belum ada dan katalog opencode tidak tersedia — tidak dibuat."
+    fi
+    rm -rf "$dir"
+    return 0
+  fi
+
+  if ! grep -q "dibuat oleh install.sh" openmaic.yml; then
+    info "openmaic.yml ada tetapi bukan milik installer — tidak diubah."
+    rm -rf "$dir"
+    return 0
+  fi
+
+  # Segarkan blok model tiap provider yang berhasil didiscovery.
+  if [[ "$op_ok" -eq 1 ]]; then
+    pastikan_marker_yml openmaic.yml opencode || tambah_provider_yml openmaic.yml opencode opencode "$op_list"
+    ganti_blok_model openmaic.yml opencode "$op_list"
+  fi
+  if [[ "$op_ok" -eq 1 && -n "$go_list" ]]; then
+    pastikan_marker_yml openmaic.yml opencode-go || tambah_provider_yml openmaic.yml opencode-go opencode-go "$go_list"
+    ganti_blok_model openmaic.yml opencode-go "$go_list"
+  fi
+  if [[ "$cx_ok" -eq 1 ]]; then
+    pastikan_marker_yml openmaic.yml codex || tambah_provider_yml openmaic.yml codex codex "$cx_list"
+    ganti_blok_model openmaic.yml codex "$cx_list"
+  fi
+
+  # Bila model default lama hilang dari katalog, pindahkan slot ke model yang
+  # masih ada. Pilihan user yang masih valid tidak pernah ditimpa.
+  if [[ "$op_ok" -eq 1 ]]; then
+    default_id="$(pilih_default_opencode "$op_list")"
+    llm_cur="$(baca_slot_llm openmaic.yml)"
+    if [[ "$llm_cur" == opencode:* ]] && ! model_ada "$op_list" "${llm_cur#opencode:}"; then
+      ganti_slot_llm openmaic.yml "opencode:${default_id}"
+      info "slots.llm: ${llm_cur} hilang dari katalog -> opencode:${default_id}."
+    fi
+    agent_cur="$(baca_slot_agent_model openmaic.yml)"
+    if [[ "$agent_cur" == opencode:* ]] && ! model_ada "$op_list" "${agent_cur#opencode:}"; then
+      set_slot_agent openmaic.yml "opencode:${default_id}" opencode-cli
+      info "slots.agent: ${agent_cur} hilang dari katalog -> opencode:${default_id}."
+    fi
+  fi
+
+  info "Katalog model disinkronkan ke .env.local dan openmaic.yml."
+  rm -rf "$dir"
+}
+
 # ============================================================ 5. Direktori data
 LANGKAH="direktori data/"
 info "Menyiapkan direktori data/..."
@@ -849,7 +1458,7 @@ if (changed) {
   fi
 
   bun_install() {
-    as_owner "$BUN_BIN" install "$@"
+    as_owner env "${BUILD_ENV[@]}" "$BUN_BIN" install "$@"
   }
 
   if ! bun_install "${BUN_INSTALL_ARGS[@]}"; then
@@ -861,7 +1470,7 @@ if (changed) {
     if ! bun_install "${BUN_INSTALL_ARGS_RETRY[@]}"; then
       warn "bun install masih gagal — mengulang tanpa lifecycle script lalu build manual..."
       bun_install --no-progress --ignore-scripts
-      as_owner "$BUN_BIN" run build:packages
+      as_owner env "${BUILD_ENV[@]}" "$BUN_BIN" run build:packages
     fi
   fi
 
@@ -885,6 +1494,12 @@ if (changed) {
 else
   info "Lewati bun install (--no-install). Jalankan manual nanti: bun install"
 fi
+
+# ======================================= 6b. Sinkron katalog model (OpenCode/Codex)
+# Dijalankan setelah dependensi agar binary Codex sudah tersedia. Menulis
+# .env.local + openmaic.yml sebelum build/PM2 menyalin konfigurasi.
+sinkron_model
+colab_mark "sinkron katalog model selesai"
 
 # ============================================================ 7. Playwright
 if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then
@@ -920,7 +1535,7 @@ jalankan_build() {
     export NODE_OPTIONS="--max-old-space-size=${BUILD_HEAP}"
   fi
   info "Menjalankan build produksi Bun (bun --bun run build)..."
-  as_owner env NEXT_TELEMETRY_DISABLED=1 "$BUN_BIN" --bun run build
+  as_owner env NEXT_TELEMETRY_DISABLED=1 "${BUILD_ENV[@]}" "$BUN_BIN" --bun run build
   BUILD_DONE=1
   colab_mark "build produksi selesai"
 }
@@ -1206,6 +1821,9 @@ fi
 if [[ "$WITH_BUILD" -eq 1 || "$WITH_PM2" -eq 1 ]]; then
   if [[ -d .next ]]; then
     info "  Build produksi: OK (jalankan: bun --bun run start)"
+    if [[ "$FAST_BUILD" -eq 1 ]]; then
+      info "  Mode cepat: typecheck dilewati (build penuh: ./install.sh --build --no-fast)"
+    fi
   else
     warn "Build produksi tidak menghasilkan .next — ulangi: bun --bun run build"
   fi
@@ -1223,6 +1841,11 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
   else
     warn "PM2 tidak menjalankan kelaska — cek sebagai ${PM2_USER}: pm2 list && pm2 logs kelaska"
   fi
+fi
+if [[ -f openmaic.yml ]]; then
+  info "  Model config: openmaic.yml (secret tetap di .env.local, dirujuk \${VAR})"
+else
+  info "  Model config: legacy (.env.local/Settings) — buat openmaic.yml untuk default deployment"
 fi
 echo ""
 if [[ -f .env.local ]]; then
@@ -1280,7 +1903,10 @@ echo "Catatan:"
 echo "  - Installer ini menambahkan 'workspaces' + 'trustedDependencies' ke"
 echo "    package.json dan membuat bun.lock. Itu bagian migrasi ke Bun."
 echo "  - .env.local berisi secret (600); jangan commit."
-echo "  - Isi API key LLM di .env.local, lalu atur model lewat Settings atau"
-echo "    buat openmaic.yml dari openmaic.example.yml."
+echo "  - Isi API key LLM di .env.local; provider/model/slot ada di openmaic.yml"
+echo "    (dibuat otomatis dari DEFAULT_MODEL atau katalog OpenCode)."
+echo "  - Blok models: di openmaic.yml disegarkan setiap run dari katalog"
+echo "    OpenCode/Codex; edit di luar blok itu untuk kustomisasi, lalu:"
+echo "    pm2 startOrReload ecosystem.bun.config.cjs --update-env"
 echo "  - Ambil ACCESS_CODE kapan saja: grep '^ACCESS_CODE=' .env.local"
 echo "  - Node.js/pnpm tidak dipakai. Installer Node lama: ./install-node.sh"
