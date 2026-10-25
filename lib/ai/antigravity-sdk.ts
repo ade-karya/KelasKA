@@ -491,6 +491,16 @@ async function writeEnvValue(key: string, value: string | null): Promise<void> {
   fs.writeFileSync(/*turbopackIgnore: true*/ file, out.join('\n'), { mode: 0o600 });
 }
 
+/** Persist an arbitrary KEY=value line in `.env.local` (best-effort). */
+export async function persistAntigravityEnvValue(
+  key: string,
+  value: string | null,
+): Promise<void> {
+  // Reuse the internal writer by duplicating minimal logic is avoided: call
+  // the module-private helper through a thin public wrapper.
+  await (writeEnvValue as (k: string, v: string | null) => Promise<void>)(key, value);
+}
+
 /** Store a Gemini API key at runtime and persist it for the next restart. */
 export async function antigravityAuthLogin(
   apiKey: string,

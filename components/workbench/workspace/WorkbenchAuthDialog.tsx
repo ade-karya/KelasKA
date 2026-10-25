@@ -27,6 +27,15 @@ interface AntigravityStatus {
   message: string;
 }
 
+interface GoogleAuthStatus {
+  status: 'idle' | 'pending' | 'success' | 'failed';
+  url: string | null;
+  message: string;
+  project: string | null;
+  location: string | null;
+  loggedIn: boolean;
+}
+
 interface DeviceAuthState {
   url: string | null;
   code: string | null;
@@ -39,6 +48,11 @@ export function WorkbenchAuthDialog() {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<CodexAuthStatus | null>(null);
   const [antigravity, setAntigravity] = useState<AntigravityStatus | null>(null);
+  const [google, setGoogle] = useState<GoogleAuthStatus | null>(null);
+  const [googleProject, setGoogleProject] = useState('');
+  const [googleLocation, setGoogleLocation] = useState('');
+  const [googleCode, setGoogleCode] = useState('');
+  const [googleSaving, setGoogleSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [key, setKey] = useState('');
   const [saving, setSaving] = useState(false);
@@ -67,6 +81,20 @@ export function WorkbenchAuthDialog() {
     } finally {
       setLoading(false);
     }
+    // Google/Vertex status is served by a dedicated route.
+    void (async () => {
+      try {
+        const r = await fetch('/api/agent/auth/google', { credentials: 'include' });
+        const b = (await r.json().catch(() => ({}))) as { google?: GoogleAuthStatus };
+        if (b.google) {
+          setGoogle(b.google);
+          if (b.google.project) setGoogleProject(b.google.project);
+          if (b.google.location) setGoogleLocation(b.google.location);
+        }
+      } catch {
+        // ignore
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -167,6 +195,90 @@ export function WorkbenchAuthDialog() {
       setAgSaving(false);
     }
   }, []);
+
+  const startGoogle = useCallback(async () => {
+    setGoogleSaving(true);
+    try {
+      const res = await fetch('/api/agent/auth/google', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          action: 'start',
+          project: googleProject.trim() || undefined,
+          location: googleLocation.trim() || undefined,
+        }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { google?: GoogleAuthStatus; error?: string; message?: string };
+      if (!res.ok) throw new Error(body.message || body.error || `HTTP ${res.status}`);
+      if (body.google) setGoogle(body.google);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to start Google login.');
+    } finally {
+      setGoogleSaving(false);
+    }
+  }, [googleProject, googleLocation]);
+
+  const submitGoogleCode = useCallback(async () => {
+    if (!googleCode.trim()) return;
+    setGoogleSaving(true);
+    try {
+      const res = await fetch('/api/agent/auth/google', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'submit', code: googleCode.trim() }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { google?: GoogleAuthStatus; error?: string; message?: string };
+      if (!res.ok) throw new Error(body.message || body.error || `HTTP ${res.status}`);
+      if (body.google) setGoogle(body.google);
+      setGoogleCode('');
+      if (body.google?.status === 'success') toast.success('Logged in with Google.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Verification failed.');
+    } finally {
+      setGoogleSaving(false);
+    }
+  }, [googleCode]);
+
+  const cancelGoogle = useCallback(async () => {
+    await fetch('/api/agent/auth/google', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel' }),
+    }).catch(() => {});
+    setGoogle((prev) => (prev ? { ...prev, status: 'idle', url: null, message: '' } : prev));
+  }, []);
+
+  const logoutGoogle = useCallback(async () => {
+    setGoogleSaving(true);
+    try {
+      const res = await fetch('/api/agent/auth/google', { method: 'DELETE', credentials: 'include' });
+      const body = (await res.json().catch(() => ({}))) as { google?: GoogleAuthStatus; message?: string; error?: string };
+      if (!res.ok) throw new Error(body.message || body.error || `HTTP ${res.status}`);
+      if (body.google) setGoogle(body.google);
+      toast.success(body.message || 'Removed.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Remove failed.');
+    } finally {
+      setGoogleSaving(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (google?.status !== 'pending') return;
+    const timer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/agent/auth/google', { credentials: 'include' });
+        const body = (await res.json().catch(() => ({}))) as { google?: GoogleAuthStatus };
+        if (body.google) setGoogle(body.google);
+      } catch {
+        // ignore
+      }
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [google?.status]);
 
   const startDevice = useCallback(async () => {
     setSaving(true);
@@ -446,6 +558,87 @@ export function WorkbenchAuthDialog() {
                   Remove key
                 </Button>
               ) : null}
+              <div className="space-y-2 border-t pt-3">
+                <p className="text-sm font-medium">Login with Google (Vertex AI)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    placeholder="GCP project id"
+                    value={googleProject}
+                    onChange={(e) => setGoogleProject(e.target.value)}
+                    disabled={googleSaving}
+                  />
+                  <Input
+                    placeholder="location (e.g. us-central1)"
+                    value={googleLocation}
+                    onChange={(e) => setGoogleLocation(e.target.value)}
+                    disabled={googleSaving}
+                  />
+                </div>
+                {google?.loggedIn ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void logoutGoogle()}
+                    disabled={googleSaving}
+                    className="w-full"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out Google
+                  </Button>
+                ) : google?.status === 'pending' ? (
+                  <div className="space-y-2">
+                    {google.url ? (
+                      <a
+                        href={google.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block text-sm text-blue-600 underline break-all"
+                      >
+                        {google.url}
+                      </a>
+                    ) : null}
+                    <Input
+                      placeholder="Verification code"
+                      value={googleCode}
+                      onChange={(e) => setGoogleCode(e.target.value)}
+                      disabled={googleSaving}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => void submitGoogleCode()}
+                        disabled={googleSaving || !googleCode.trim()}
+                        className="flex-1"
+                      >
+                        Submit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => void cancelGoogle()}
+                        disabled={googleSaving}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{google.message}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Button
+                      type="button"
+                      onClick={() => void startGoogle()}
+                      disabled={googleSaving || !googleProject.trim() || !googleLocation.trim()}
+                      className="w-full"
+                    >
+                      Login with Google
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      {google?.message || 'Requires gcloud installed on the server.'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </DialogContent>
