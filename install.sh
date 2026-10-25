@@ -495,7 +495,7 @@ APT_PKGS=(
 )
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then APT_PKGS+=(gnupg); fi
 # The Antigravity transport runs a Python SDK from a project-local venv.
-if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then APT_PKGS+=(python3-venv python3-pip); fi
+if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then APT_PKGS+=(python3-venv python3-pip python3.12-venv python3.13-venv); fi
 # Colab/containers often ship an ffmpeg binary from a non-apt image; installing
 # the distro package would only add a large download.
 if [[ "$WITH_FFMPEG" -eq 1 ]] && ! command -v ffmpeg >/dev/null 2>&1; then
@@ -1536,18 +1536,35 @@ if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
   ANTIGRAVITY_PY="${ANTIGRAVITY_VENV}/bin/python"
   ag_venv_ok=0
   ag_installed=0
+  # Prefer an interpreter whose venv module actually works. The system
+  # `python3` may be newer than the installed python3-venv package (e.g. 3.13
+  # vs 3.12 on some Colab images), so probe candidates explicitly.
+  AG_PYTHON_BIN=""
+  for cand in python3.13 python3.12 python3.11 python3.10 python3; do
+    if command -v "$cand" >/dev/null 2>&1 && "$cand" -c 'import venv, ensurepip' >/dev/null 2>&1; then
+      AG_PYTHON_BIN="$cand"
+      break
+    fi
+  done
   if [[ -x "$ANTIGRAVITY_PY" ]]; then
     ag_venv_ok=1
     info "Venv Antigravity sudah ada — memakai ${ANTIGRAVITY_PY}."
-  elif command -v python3 >/dev/null 2>&1; then
-    info "Membuat venv Antigravity (${ANTIGRAVITY_VENV})..."
-    if as_owner python3 -m venv "$ANTIGRAVITY_VENV"; then
+  elif [[ -n "$AG_PYTHON_BIN" ]]; then
+    info "Membuat venv Antigravity (${ANTIGRAVITY_VENV}) dengan ${AG_PYTHON_BIN}..."
+    if as_owner "$AG_PYTHON_BIN" -m venv "$ANTIGRAVITY_VENV"; then
       ag_venv_ok=1
     else
-      warn "Gagal membuat venv Antigravity (butuh paket python3-venv)."
+      warn "Gagal membuat venv Antigravity (butuh paket ${AG_PYTHON_BIN}-venv)."
+    fi
+  elif command -v uv >/dev/null 2>&1; then
+    info "Membuat venv Antigravity (${ANTIGRAVITY_VENV}) dengan uv..."
+    if as_owner uv venv "$ANTIGRAVITY_VENV" --python 3.12; then
+      ag_venv_ok=1
+    else
+      warn "Gagal membuat venv Antigravity dengan uv."
     fi
   else
-    warn "python3 tidak ditemukan — Google Antigravity SDK dilewati."
+    warn "Tidak ada Python dengan modul venv — Google Antigravity SDK dilewati."
   fi
   if [[ "$ag_venv_ok" -eq 1 ]]; then
     # Keep pip current enough for wheels built for Python 3.10+.

@@ -461,3 +461,70 @@ export async function runAntigravityTurn(
     child.stdin.end(payload);
   });
 }
+
+/**
+ * Persist a single KEY=value line in the server's `.env.local` so the value
+ * survives a restart. A null value removes the line. Best-effort: failures are
+ * reported by the caller via the returned status, never thrown.
+ */
+async function writeEnvValue(key: string, value: string | null): Promise<void> {
+  const file = path.join(/*turbopackIgnore: true*/ repositoryRoot(), '.env.local');
+  let content = '';
+  try {
+    content = fs.readFileSync(/*turbopackIgnore: true*/ file, 'utf8');
+  } catch {
+    content = '';
+  }
+  const out: string[] = [];
+  let found = false;
+  for (const line of content.split(/\r?\n/)) {
+    if (new RegExp(`^\\s*${key}=`).test(line)) {
+      found = true;
+      if (value !== null) out.push(`${key}=${value}`);
+    } else {
+      out.push(line);
+    }
+  }
+  if (!found && value !== null) out.push(`${key}=${value}`);
+  while (out.length > 0 && out[out.length - 1] === '') out.pop();
+  if (value !== null) out.push('');
+  fs.writeFileSync(/*turbopackIgnore: true*/ file, out.join('\n'), { mode: 0o600 });
+}
+
+/** Store a Gemini API key at runtime and persist it for the next restart. */
+export async function antigravityAuthLogin(
+  apiKey: string,
+): Promise<{ ok: true; message: string } | { ok: false; message: string }> {
+  const trimmed = apiKey.trim();
+  if (!trimmed) return { ok: false, message: 'A Gemini API key is required.' };
+  process.env.GEMINI_API_KEY = trimmed;
+  try {
+    await writeEnvValue('GEMINI_API_KEY', trimmed);
+  } catch (error) {
+    return {
+      ok: true,
+      message:
+        'Saved for this server process; could not persist to .env.local ' +
+        `(${error instanceof Error ? error.message : 'unknown error'}).`,
+    };
+  }
+  return { ok: true, message: 'Antigravity API key saved.' };
+}
+
+/** Remove the persisted Gemini API key from this process and .env.local. */
+export async function antigravityAuthLogout(): Promise<
+  { ok: true; message: string } | { ok: false; message: string }
+> {
+  delete process.env.GEMINI_API_KEY;
+  try {
+    await writeEnvValue('GEMINI_API_KEY', null);
+  } catch (error) {
+    return {
+      ok: true,
+      message:
+        'Removed from this process; could not update .env.local ' +
+        `(${error instanceof Error ? error.message : 'unknown error'}).`,
+    };
+  }
+  return { ok: true, message: 'Antigravity API key removed.' };
+}

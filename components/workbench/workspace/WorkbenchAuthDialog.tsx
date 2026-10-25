@@ -42,6 +42,8 @@ export function WorkbenchAuthDialog() {
   const [loading, setLoading] = useState(false);
   const [key, setKey] = useState('');
   const [saving, setSaving] = useState(false);
+  const [agKey, setAgKey] = useState('');
+  const [agSaving, setAgSaving] = useState(false);
   const [device, setDevice] = useState<DeviceAuthState>({
     url: null,
     code: null,
@@ -113,6 +115,56 @@ export function WorkbenchAuthDialog() {
       toast.error(err instanceof Error ? err.message : 'Logout failed.');
     } finally {
       setSaving(false);
+    }
+  }, []);
+
+  const loginAntigravity = useCallback(async () => {
+    if (!agKey.trim()) return;
+    setAgSaving(true);
+    try {
+      const res = await fetch('/api/agent/auth', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ provider: 'antigravity', apiKey: agKey.trim() }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        antigravity?: AntigravityStatus;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(body.message || body.error || `HTTP ${res.status}`);
+      if (body.antigravity) setAntigravity(body.antigravity);
+      setAgKey('');
+      toast.success(body.message || 'Saved.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Save failed.');
+    } finally {
+      setAgSaving(false);
+    }
+  }, [agKey]);
+
+  const logoutAntigravity = useCallback(async () => {
+    setAgSaving(true);
+    try {
+      const res = await fetch('/api/agent/auth', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ provider: 'antigravity' }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        antigravity?: AntigravityStatus;
+        message?: string;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(body.message || body.error || `HTTP ${res.status}`);
+      if (body.antigravity) setAntigravity(body.antigravity);
+      toast.success(body.message || 'Removed.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Remove failed.');
+    } finally {
+      setAgSaving(false);
     }
   }, []);
 
@@ -360,9 +412,40 @@ export function WorkbenchAuthDialog() {
               </p>
               <p className="text-xs text-muted-foreground">
                 Install with <code>pip install google-antigravity</code> (or run{' '}
-                <code>./install.sh</code>), then set <code>GEMINI_API_KEY</code> (or Vertex AI
-                credentials) in the server environment.
+                <code>./install.sh</code>). Authenticate with a Gemini API key (stored on the
+                server) or with Vertex AI credentials in the server environment.
               </p>
+              {antigravity?.installed && !antigravity.authenticated ? (
+                <div className="space-y-2">
+                  <Input
+                    type="password"
+                    placeholder="AIza… (Gemini API key)"
+                    value={agKey}
+                    onChange={(e) => setAgKey(e.target.value)}
+                    disabled={agSaving}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => void loginAntigravity()}
+                    disabled={agSaving || !agKey.trim()}
+                    className="w-full"
+                  >
+                    Save key
+                  </Button>
+                </div>
+              ) : null}
+              {antigravity?.installed && antigravity.authenticated ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void logoutAntigravity()}
+                  disabled={agSaving}
+                  className="w-full"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Remove key
+                </Button>
+              ) : null}
             </div>
           </div>
         </DialogContent>
