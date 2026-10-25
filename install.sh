@@ -1592,6 +1592,28 @@ else
   set_env_value .env.local ANTIGRAVITY_MODELS ""
   info "Google Antigravity SDK dilewati (--no-antigravity)."
 fi
+
+# ================================= 6a2. Google Antigravity CLI (agy)
+# Opsional: binary `agy` untuk penggunaan interaktif di terminal. OpenMAIC tidak
+# memakainya sebagai transport (SDK yang menangani turn agar tool-loop tetap
+# milik harness), tetapi CLI ini berguna untuk login browser dan eksplorasi.
+if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
+  if command -v agy >/dev/null 2>&1; then
+    info "Antigravity CLI (agy) sudah terpasang."
+  else
+    info "Memasang Google Antigravity CLI (agy)..."
+    if curl -fsSL https://antigravity.google/cli/install.sh | bash >/tmp/opencode/agy-install.log 2>&1; then
+      info "Antigravity CLI (agy) terpasang di ~/.local/bin (jalankan 'agy' untuk login browser)."
+    else
+      warn "Gagal memasang Antigravity CLI (agy); lihat /tmp/opencode/agy-install.log."
+    fi
+  fi
+  # Pastikan ~/.local/bin masuk PATH untuk proses server (PM2).
+  case ":$PATH:" in
+    *":$HOME/.local/bin:"*) ;;
+    *) export PATH="$HOME/.local/bin:$PATH" ;;
+  esac
+fi
 colab_mark "antigravity selesai"
 
 # ======================================= 6b. Sinkron katalog model (OpenCode/Codex)
