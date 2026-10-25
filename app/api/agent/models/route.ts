@@ -66,16 +66,25 @@ export async function GET() {
   } catch {
     // Slot unreadable -> default below.
   }
-  const active = override?.modelString || slotModel || defaultTier3ModelString();
+  // An override that points at a model no longer available (for example a
+  // Codex model the logged-in account cannot use) is ignored so the UI falls
+  // back to the slot instead of a broken selection.
+  const availableModelStrings = new Set(models.map((m) => m.modelString));
+  const overrideValid = !!override && availableModelStrings.has(override.modelString);
+  const active =
+    (overrideValid ? override!.modelString : '') || slotModel || defaultTier3ModelString();
   // Varian aktif: override tombol, else thinking slot operator. Default
   // capability TIDAK disuntik di sini — kontrol picker menampilkannya sendiri
   // (getDefaultThinkingConfig) dan tak ada yang tersimpan sebelum user menyentuh.
-  const thinking: ThinkingConfig | undefined = override?.thinking ?? slotThinking;
+  const thinking: ThinkingConfig | undefined = overrideValid
+    ? override!.thinking ?? slotThinking
+    : slotThinking;
   return apiSuccess({
     active,
-    driverApi: override?.api ?? slotApi ?? 'opencode-cli',
+    driverApi:
+      (overrideValid ? override!.api : undefined) ?? slotApi ?? 'opencode-cli',
     ...(thinking ? { thinking } : {}),
-    source: override ? 'workbench-override' : slotModel ? 'agent-slot' : 'default',
+    source: overrideValid ? 'workbench-override' : slotModel ? 'agent-slot' : 'default',
     models,
   });
 }
