@@ -621,7 +621,9 @@ export function WorkbenchAuthDialog() {
                         Cancel
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">{google.message}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {google.message} After authorizing in the browser, copy the verification code shown and paste it here. Polling is automatic after submit.
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
