@@ -163,14 +163,14 @@ The object form accepts:
 | `model` | Required. `provider:model`, or `provider` alone outside chat slots. |
 | `fallback` | A model to retry on once, in the same form. Language-model slots only; see [Fallbacks](#fallbacks). |
 | `thinking` | Reasoning parameters for chat models: `enabled` (true/false), `mode` (`default`, `disabled`, `enabled`, `auto`), `effort` (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`), `level` (`minimal`, `low`, `medium`, `high`), `budgetTokens`, `excludeReasoningOutput`. Each provider adapter applies what its API supports. |
-| `api` | `agent` only: the transport, `openai-completions` (the default), `openai-responses`, `opencode-cli` (local OpenCode CLI) or `codex-sdk` (local Codex SDK). |
+| `api` | `agent` only: the transport, `openai-completions` (the default), `openai-responses`, `opencode-cli` (local OpenCode CLI), `codex-sdk` (local Codex SDK) or `antigravity-sdk` (local Google Antigravity SDK). |
 | `contextWindow` | `agent` only: the context window to assume for compaction, when it should be lower than the catalogue's. |
 
-On an HTTP transport the `agent` slot must not set `thinking.effort`: it cannot combine reasoning effort with function tools. The local transports (`opencode-cli`, `codex-sdk`) carry the effort as a prompt instruction or CLI flag instead, so an effort is accepted there.
+On an HTTP transport the `agent` slot must not set `thinking.effort`: it cannot combine reasoning effort with function tools. The local transports (`opencode-cli`, `codex-sdk`, `antigravity-sdk`) carry the effort as a prompt instruction or CLI flag instead, so an effort is accepted there.
 
 ### Local agent transports
 
-The Pro workbench agent can answer its turns through a local CLI instead of an HTTP endpoint. Both transports keep OpenMAIC's loop: the harness still owns the tools, the allowlist, timeouts, quota, the transcript and the event stream, and the CLI only decides the next assistant message and tool calls.
+The Pro workbench agent can answer its turns through a local CLI or SDK instead of an HTTP endpoint. All of these transports keep OpenMAIC's loop: the harness still owns the tools, the allowlist, timeouts, quota, the transcript and the event stream, and the local agent only decides the next assistant message and tool calls.
 
 ```yaml title="openmaic.yml"
 providers:
@@ -185,10 +185,24 @@ slots:
     thinking: { effort: high }
 ```
 
+```yaml title="openmaic.yml (Antigravity)"
+providers:
+  antigravity:
+    preset: antigravity
+    models: [gemini-3.8-flash, gemini-4-argon]
+
+slots:
+  agent:
+    model: antigravity:gemini-3.8-flash
+    api: antigravity-sdk
+    thinking: { effort: high }
+```
+
 - `codex` runs the native [`@openai/codex-sdk`](https://learn.chatgpt.com/docs/codex-sdk) against the server's own Codex installation. It needs no key in the model settings: authenticate with `codex login` on the server (or set `CODEX_API_KEY`). `CODEX_MODELS` lists the model ids offered in the workbench picker; `CODEX_PATH` points at a `codex` binary when the SDK's platform package is not installed; `OPENMAIC_CODEX_WORKDIR`, `OPENMAIC_CODEX_SANDBOX` and `OPENMAIC_CODEX_TIMEOUT_MS` tune the turn (the sandbox defaults to `read-only`, with no approvals, network or web search). A turn is constrained to one structured reply (`text` plus tool calls), which is how the SDK's agent is used as a model transport.
+- `antigravity` runs the [Google Antigravity SDK](https://antigravity.google/product/antigravity-sdk/) as a Python bridge (`lib/ai/antigravity_bridge.py`), one process per turn. Install it with `pip install google-antigravity` (or `./install.sh`, which creates `.venv-antigravity`); Python 3.10+ is required. Authenticate with `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) in the server environment, or with Vertex AI via `GOOGLE_GENAI_USE_VERTEXAI=true` plus `GOOGLE_CLOUD_PROJECT`/`GOOGLE_CLOUD_LOCATION`. `ANTIGRAVITY_MODELS` lists the model ids offered in the workbench picker, `ANTIGRAVITY_MODEL` sets the default, `ANTIGRAVITY_PYTHON` selects the interpreter (defaults to `python3`) and `OPENMAIC_ANTIGRAVITY_TIMEOUT_MS` caps a turn. Its built-in tools are disabled except structured output, so the harness still executes every tool.
 - `opencode` and `opencode-go` run `opencode run` and authenticate through `opencode auth login`; their model lists come from `OPENCODE_MODELS` and `OPENCODE_GO_MODELS`.
 
-Neither transport is offered in the classic model settings, and neither is reachable over HTTP: a model reference that selects one resolves only for the `agent` slot.
+None of these transports is offered in the classic model settings, and none is reachable over HTTP: a model reference that selects one resolves only for the `agent` slot.
 
 ### Provider-only references
 

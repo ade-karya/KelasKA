@@ -276,14 +276,19 @@ function maskKey(key: string): string {
 }
 
 /**
- * Registry transport lokal (OpenCode CLI + Codex SDK) — hanya Pro Workbench
- * (GET /api/agent/models), bukan provider HTTP yang bisa ditambah dari settings
- * classic.
+ * Registry transport lokal (OpenCode CLI + Codex SDK + Antigravity SDK) — hanya
+ * Pro Workbench (GET /api/agent/models), bukan provider HTTP yang bisa
+ * ditambah dari settings classic.
  */
 function isWorkbenchOnlyRegistryId(
   registryId: string,
-): registryId is OpencodeCliProvider | 'codex' {
-  return registryId === 'opencode' || registryId === 'opencode-go' || registryId === 'codex';
+): registryId is OpencodeCliProvider | 'codex' | 'antigravity' {
+  return (
+    registryId === 'opencode' ||
+    registryId === 'opencode-go' ||
+    registryId === 'codex' ||
+    registryId === 'antigravity'
+  );
 }
 
 /**
@@ -390,7 +395,7 @@ function workspacePresetProblem(preset: ProviderPreset): string | undefined {
   // settings classic.
   const registryId = preset.capabilities.chat?.registryId;
   if (registryId && isWorkbenchOnlyRegistryId(registryId)) {
-    return 'Local CLI transports (OpenCode, Codex SDK) are only available in Pro Workbench';
+    return 'Local CLI/SDK transports (OpenCode, Codex SDK, Antigravity SDK) are only available in Pro Workbench';
   }
   if (preset.capabilities.chat?.registryId === 'bedrock') {
     return 'Amazon Bedrock can only be configured by the deployment (openmaic.yml)';

@@ -2,13 +2,22 @@ import { NextRequest } from 'next/server';
 
 import { codexAuthLogin, codexAuthLogout, codexAuthStatus } from '@/lib/ai/codex-auth';
 import { invalidateCodexModelCache } from '@/lib/ai/codex-app-server';
+import { antigravityPythonStatus } from '@/lib/ai/antigravity-sdk';
 import { resetDiscoveredCodexIds } from '@/lib/server/agent-runtime/opencode-models';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 export async function GET() {
   try {
-    const codex = await codexAuthStatus();
-    return apiSuccess({ codex });
+    const [codex, antigravity] = await Promise.all([
+      codexAuthStatus(),
+      antigravityPythonStatus().catch((error: unknown) => ({
+        bridge: false,
+        installed: false,
+        authenticated: false,
+        message: error instanceof Error ? error.message : 'Antigravity status unavailable.',
+      })),
+    ]);
+    return apiSuccess({ codex, antigravity });
   } catch (error) {
     return apiError(
       'INTERNAL_ERROR',

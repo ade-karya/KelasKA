@@ -43,19 +43,25 @@ export const OPENCODE_CLI_APIS = new Set(['opencode-cli', 'cli', 'opencode']);
 
 /** Route `api` values that select the local Codex SDK transport instead of HTTP. */
 export const CODEX_SDK_APIS = new Set(['codex-sdk', 'codex']);
+/** Route `api` values that select the local Google Antigravity SDK transport. */
+export const ANTIGRAVITY_SDK_APIS = new Set(['antigravity-sdk', 'antigravity']);
 // Both sets are the agent-slot view of LOCAL_AGENT_TRANSPORT_APIS in
 // lib/config/model-slots.ts (which the YAML/settings validator reads).
 
 /** Provider executed through the local Codex SDK (no key, no HTTP). */
 export const CODEX_SDK_PROVIDER = 'codex';
 
+/** Provider executed through the local Google Antigravity SDK (no HTTP). */
+export const ANTIGRAVITY_SDK_PROVIDER = 'antigravity';
+
 /**
  * How one driver turn actually reaches a model:
  * - `http` — the keyed Vercel AI SDK path (lib/ai/providers.ts);
  * - `opencode-cli` — `opencode run` child process (tier-3 free);
- * - `codex-sdk` — native `@openai/codex-sdk` turn (local Codex agent).
+ * - `codex-sdk` — native `@openai/codex-sdk` turn (local Codex agent);
+ * - `antigravity-sdk` — one turn through the local Python Antigravity SDK.
  */
-export type AgentDriverTransport = 'http' | 'opencode-cli' | 'codex-sdk';
+export type AgentDriverTransport = 'http' | 'opencode-cli' | 'codex-sdk' | 'antigravity-sdk';
 
 /** Providers executed locally via CLI (no key, no HTTP). */
 export function isOpencodeCliProvider(providerId: string): boolean {
@@ -72,21 +78,32 @@ export function isCodexSdkApi(api: string | undefined): boolean {
   return !!api && CODEX_SDK_APIS.has(api);
 }
 
+/** True when the route explicitly selects the Antigravity SDK transport. */
+export function isAntigravitySdkApi(api: string | undefined): boolean {
+  return !!api && ANTIGRAVITY_SDK_APIS.has(api);
+}
+
 /** True when the provider can only run through the Codex SDK transport. */
 export function isCodexSdkProvider(providerId: string): boolean {
   return providerId === CODEX_SDK_PROVIDER;
 }
 
+/** True when the provider can only run through the Antigravity SDK transport. */
+export function isAntigravitySdkProvider(providerId: string): boolean {
+  return providerId === ANTIGRAVITY_SDK_PROVIDER;
+}
+
 /**
- * The transport a resolved route asks for. The api value wins; a codex
- * provider reference without one still means the SDK transport, because that
- * provider has no HTTP endpoint to fall back to.
+ * The transport a resolved route asks for. The api value wins; a codex or
+ * antigravity provider reference without one still means its SDK transport,
+ * because those providers have no HTTP endpoint to fall back to.
  */
 export function driverTransportFor(
   api: string | undefined,
   providerId: string,
 ): AgentDriverTransport {
   if (isCodexSdkApi(api) || isCodexSdkProvider(providerId)) return 'codex-sdk';
+  if (isAntigravitySdkApi(api) || isAntigravitySdkProvider(providerId)) return 'antigravity-sdk';
   if (isOpencodeCliApi(api) || isOpencodeCliProvider(providerId)) return 'opencode-cli';
   return 'http';
 }
@@ -110,9 +127,17 @@ export function buildPiDriverModel(
         `but model provider is "${connection.providerId}" (expected "codex").`,
     );
   }
-  // Effective pi api: both local transports collapse onto the OpenAI-completions
+  const antigravityTransport = isAntigravitySdkApi(configuredApi);
+  if (antigravityTransport && !isAntigravitySdkProvider(connection.providerId)) {
+    throw new Error(
+      `The agent slot uses Antigravity api ${JSON.stringify(configuredApi)} ` +
+        `but model provider is "${connection.providerId}" (expected "antigravity").`,
+    );
+  }
+  // Effective pi api: every local transport collapses onto the OpenAI-completions
   // shim — pi metadata only, never an HTTP transport selector here.
-  const effectiveApi = cliTransport || codexTransport ? 'openai-completions' : configuredApi;
+  const effectiveApi =
+    cliTransport || codexTransport || antigravityTransport ? 'openai-completions' : configuredApi;
   if (!effectiveApi || !OPENAI_PI_APIS.has(effectiveApi)) {
     throw new Error(
       `The agent slot has unsupported pi api/dialect ` +

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PROVIDERS, CODEX_SDK_THINKING, OPENCODE_CLI_THINKING } from '@/lib/ai/providers';
+import { PROVIDERS, CODEX_SDK_THINKING, OPENCODE_CLI_THINKING, ANTIGRAVITY_SDK_THINKING } from '@/lib/ai/providers';
 import { listCodexModels } from '@/lib/ai/codex-app-server';
 import { getDefaultThinkingConfig, normalizeThinkingConfig } from '@/lib/ai/thinking-config';
 import type { ThinkingCapability, ThinkingConfig, ThinkingEffort } from '@/lib/types/provider';
@@ -31,7 +31,12 @@ export type OpencodeCliProvider = (typeof OPENCODE_CLI_PROVIDERS)[number];
 
 /** Provider transport lokal yang bisa dipilih dari tombol Pro Workbench. */
 export const CODEX_PROVIDER = 'codex' as const;
-export const DRIVER_PROVIDERS = [...OPENCODE_CLI_PROVIDERS, CODEX_PROVIDER] as const;
+export const ANTIGRAVITY_PROVIDER = 'antigravity' as const;
+export const DRIVER_PROVIDERS = [
+  ...OPENCODE_CLI_PROVIDERS,
+  CODEX_PROVIDER,
+  ANTIGRAVITY_PROVIDER,
+] as const;
 export type DriverProvider = (typeof DRIVER_PROVIDERS)[number];
 
 export const OPENCODE_FREE_FALLBACK_IDS = [
@@ -53,6 +58,8 @@ export const OPENCODE_FREE_FALLBACK_IDS = [
 export const OPENCODE_DRIVER_API = 'opencode-cli' as const;
 /** Route api of the native Codex SDK transport (lib/ai/codex-sdk.ts). */
 export const CODEX_DRIVER_API = 'codex-sdk' as const;
+/** Route api of the Google Antigravity SDK transport (lib/ai/antigravity-sdk.ts). */
+export const ANTIGRAVITY_DRIVER_API = 'antigravity-sdk' as const;
 export const OPENCODE_ACTIVE_MODEL_FILE = 'agent-driver-model.json';
 
 function dataDir(): string {
@@ -97,6 +104,7 @@ function dedupe(ids: string[]): string[] {
 
 function envVarFor(provider: DriverProvider): string {
   if (provider === 'codex') return 'CODEX_MODELS';
+  if (provider === 'antigravity') return 'ANTIGRAVITY_MODELS';
   return provider === 'opencode-go' ? 'OPENCODE_GO_MODELS' : 'OPENCODE_MODELS';
 }
 
@@ -151,6 +159,12 @@ export interface ActivatedDriverModel {
 /** @deprecated Nama lama; model kini mencakup transport Codex juga. */
 export type ActivatedOpencodeModel = ActivatedDriverModel;
 
+function defaultDriverThinking(provider: DriverProvider): ThinkingCapability {
+  if (provider === CODEX_PROVIDER) return CODEX_SDK_THINKING;
+  if (provider === ANTIGRAVITY_PROVIDER) return ANTIGRAVITY_SDK_THINKING;
+  return OPENCODE_CLI_THINKING;
+}
+
 function modelEntry(provider: DriverProvider, id: string): ActivatedDriverModel | null {
   if (!id) return null;
   const catalog = PROVIDERS?.[provider]?.models ?? [];
@@ -162,7 +176,7 @@ function modelEntry(provider: DriverProvider, id: string): ActivatedDriverModel 
     name: info?.name ?? id,
   };
   if (info?.capabilities?.thinking) item.thinking = info.capabilities.thinking;
-  else item.thinking = provider === CODEX_PROVIDER ? CODEX_SDK_THINKING : OPENCODE_CLI_THINKING;
+  else item.thinking = defaultDriverThinking(provider);
   if (info?.contextWindow) item.contextWindow = info.contextWindow;
   if (info?.outputWindow) item.outputWindow = info.outputWindow;
   return item;
@@ -184,6 +198,13 @@ export function activatedOpencodeModels(): ActivatedDriverModel[] {
 export function activatedCodexModels(): ActivatedDriverModel[] {
   return activatedDriverIds(CODEX_PROVIDER)
     .map((id) => modelEntry(CODEX_PROVIDER, id))
+    .filter((item): item is ActivatedDriverModel => item !== null);
+}
+
+/** Model Google Antigravity aktif (ANTIGRAVITY_MODELS, fallback katalog). */
+export function activatedAntigravityModels(): ActivatedDriverModel[] {
+  return activatedDriverIds(ANTIGRAVITY_PROVIDER)
+    .map((id) => modelEntry(ANTIGRAVITY_PROVIDER, id))
     .filter((item): item is ActivatedDriverModel => item !== null);
 }
 
@@ -231,12 +252,13 @@ export async function activatedCodexModelsDynamic(): Promise<ActivatedDriverMode
 export async function activatedDriverModelsDynamic(): Promise<ActivatedDriverModel[]> {
   const opencode = activatedOpencodeModels();
   const codex = await activatedCodexModelsDynamic();
-  return [...opencode, ...codex];
+  const antigravity = activatedAntigravityModels();
+  return [...opencode, ...codex, ...antigravity];
 }
 
 /** SEMUA model transport lokal untuk tombol pemilih Pro Workbench. */
 export function activatedDriverModels(): ActivatedDriverModel[] {
-  return [...activatedOpencodeModels(), ...activatedCodexModels()];
+  return [...activatedOpencodeModels(), ...activatedCodexModels(), ...activatedAntigravityModels()];
 }
 
 /** Capability thinking satu model transport (fallback: varian transport standar). */
@@ -244,7 +266,7 @@ export function driverThinkingCapability(
   provider: DriverProvider,
   id: string,
 ): ThinkingCapability | undefined {
-  const fallback = provider === CODEX_PROVIDER ? CODEX_SDK_THINKING : OPENCODE_CLI_THINKING;
+  const fallback = defaultDriverThinking(provider);
   if (provider === CODEX_PROVIDER) {
     const discovered = discoveredCodexModels.get(id);
     if (discovered) {
@@ -341,7 +363,10 @@ export function resetDiscoveredCodexIds(): void {
 }
 
 export function isActivatedDriverModel(provider: DriverProvider, id: string): boolean {
-  if (provider === CODEX_PROVIDER) return true;
+  // Codex models discovered at runtime (app-server model/list) are activated
+  // even when the installer's CODEX_MODELS predates them; everything else
+  // must be in the provider's activated list.
+  if (provider === CODEX_PROVIDER && discoveredCodexIds.has(id)) return true;
   return activatedDriverIds(provider).includes(id);
 }
 
@@ -352,9 +377,11 @@ export function isActivatedOpencodeId(
   return isActivatedDriverModel(provider, id);
 }
 
-/** Route `api` for a driver provider (both are local, non-HTTP transports). */
+/** Route `api` for a driver provider (all are local, non-HTTP transports). */
 export function driverApiFor(provider: DriverProvider): string {
-  return provider === CODEX_PROVIDER ? CODEX_DRIVER_API : OPENCODE_DRIVER_API;
+  if (provider === CODEX_PROVIDER) return CODEX_DRIVER_API;
+  if (provider === ANTIGRAVITY_PROVIDER) return ANTIGRAVITY_DRIVER_API;
+  return OPENCODE_DRIVER_API;
 }
 
 interface ActiveModelFile {

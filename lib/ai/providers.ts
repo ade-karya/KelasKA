@@ -114,6 +114,23 @@ export const CODEX_SDK_THINKING: ThinkingCapability = {
 };
 
 /**
+ * Thinking capability of the Antigravity SDK transport (`provider:
+ * "antigravity"`, `api: "antigravity-sdk"`). The picker's effort becomes the
+ * SDK `ThinkingLevel` (lib/agent/runtime/antigravity-stream-fn.ts); `none`
+ * sends no level so the model keeps its default, while `xhigh`/`max` map to
+ * the SDK's `extra_high`.
+ */
+export const ANTIGRAVITY_SDK_THINKING: ThinkingCapability = {
+  control: 'effort',
+  requestAdapter: 'google',
+  effortValues: ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'],
+  defaultEffort: 'medium',
+  toggleable: true,
+  budgetAdjustable: false,
+  defaultEnabled: true,
+};
+
+/**
  * Provider registry
  */
 export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
@@ -1931,6 +1948,84 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     ],
   },
 
+  antigravity: {
+    id: 'antigravity',
+    name: 'Antigravity SDK',
+    // Transport Google Antigravity SDK LOKAL (lib/ai/antigravity-sdk.ts +
+    // lib/ai/antigravity_bridge.py + lib/agent/runtime/antigravity-stream-fn.ts)
+    // — BUKAN endpoint HTTP. Auth lewat GEMINI_API_KEY / GOOGLE_API_KEY atau
+    // Vertex AI (GOOGLE_GENAI_USE_VERTEXAI), jadi tidak ada API key di UI
+    // classic (lihat HIDDEN_PROVIDER_IDS). Model id diteruskan apa adanya ke
+    // SDK; operator bisa memperluas daftar lewat ANTIGRAVITY_MODELS /
+    // openmaic.yml. Angka konteks hanya estimasi kompaksi internal driver,
+    // tidak dikirim sebagai batas API.
+    type: 'antigravity',
+    requiresApiKey: false,
+    icon: '/logos/gemini.svg',
+    models: [
+      {
+        id: 'gemini-3.8-flash',
+        name: 'Gemini 3.8 Flash',
+        contextWindow: 1048576,
+        outputWindow: 65536,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: false,
+          thinking: ANTIGRAVITY_SDK_THINKING,
+        },
+      },
+      {
+        id: 'gemini-4-argon',
+        name: 'Gemini 4 Argon',
+        contextWindow: 1048576,
+        outputWindow: 65536,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: false,
+          thinking: ANTIGRAVITY_SDK_THINKING,
+        },
+      },
+      {
+        id: 'gemini-3.7-flash',
+        name: 'Gemini 3.7 Flash',
+        contextWindow: 1048576,
+        outputWindow: 65536,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: false,
+          thinking: ANTIGRAVITY_SDK_THINKING,
+        },
+      },
+      {
+        id: 'gemini-3.6-flash',
+        name: 'Gemini 3.6 Flash',
+        contextWindow: 1048576,
+        outputWindow: 65536,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: false,
+          thinking: ANTIGRAVITY_SDK_THINKING,
+        },
+      },
+      {
+        id: 'gemini-3.1-pro',
+        name: 'Gemini 3.1 Pro',
+        contextWindow: 1048576,
+        outputWindow: 65536,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: false,
+          thinking: ANTIGRAVITY_SDK_THINKING,
+        },
+      },
+    ],
+  },
+
   lemonade: {
     id: 'lemonade',
     name: 'Lemonade',
@@ -2600,6 +2695,28 @@ function createCodexSdkPlaceholderModel(modelId: string): LanguageModel {
 }
 
 /**
+ * The `antigravity` provider is the same kind of local transport: its turns
+ * run through the Python Antigravity SDK (lib/ai/antigravity-sdk.ts) and never
+ * reach `model`. The placeholder fails loudly for any other consumer.
+ */
+function createAntigravitySdkPlaceholderModel(modelId: string): LanguageModel {
+  const unsupported = (): never => {
+    throw new Error(
+      `The "antigravity" provider is only available as the Pro Workbench agent driver ` +
+        `(api "antigravity-sdk"); ${modelId} cannot be called over HTTP.`,
+    );
+  };
+  return {
+    specificationVersion: 'v3',
+    provider: 'antigravity',
+    modelId,
+    supportedUrls: {},
+    doGenerate: unsupported,
+    doStream: unsupported,
+  } as unknown as LanguageModel;
+}
+
+/**
  * Get a configured language model instance with its info
  * Accepts individual parameters for flexibility and security
  */
@@ -2990,6 +3107,14 @@ export function getModel(config: ModelConfig): ModelWithInfo {
       // lib/agent/runtime/codex-stream-fn.ts dan tidak pernah memanggil model
       // ini; placeholder-nya gagal keras bila ada konsumen lain.
       model = createCodexSdkPlaceholderModel(config.modelId);
+      break;
+    }
+
+    case 'antigravity': {
+      // Transport Google Antigravity SDK lokal (tanpa HTTP). Driver agen
+      // memakai lib/agent/runtime/antigravity-stream-fn.ts dan tidak pernah
+      // memanggil model ini; placeholder-nya gagal keras bila ada konsumen lain.
+      model = createAntigravitySdkPlaceholderModel(config.modelId);
       break;
     }
 

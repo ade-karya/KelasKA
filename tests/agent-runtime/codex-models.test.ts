@@ -1,7 +1,8 @@
 /**
- * The workbench picker's model catalogue now spans three local transports:
- * `opencode`, `opencode-go` and `codex` (native Codex SDK). These pin the codex
- * half without touching the existing opencode expectations.
+ * The workbench picker's model catalogue spans four local transports:
+ * `opencode`, `opencode-go`, `codex` (native Codex SDK) and `antigravity`
+ * (Google Antigravity SDK). These pin the codex/antigravity half without
+ * touching the existing opencode expectations.
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -22,6 +23,7 @@ describe('model transport Codex SDK (picker)', () => {
     delete process.env.OPENCODE_MODELS;
     delete process.env.OPENCODE_GO_MODELS;
     delete process.env.CODEX_MODELS;
+    delete process.env.ANTIGRAVITY_MODELS;
   });
 
   afterEach(() => {
@@ -30,6 +32,7 @@ describe('model transport Codex SDK (picker)', () => {
     delete process.env.OPENCODE_MODELS;
     delete process.env.OPENCODE_GO_MODELS;
     delete process.env.CODEX_MODELS;
+    delete process.env.ANTIGRAVITY_MODELS;
   });
 
   it('mengaktifkan model codex dari CODEX_MODELS', async () => {
@@ -57,16 +60,54 @@ describe('model transport Codex SDK (picker)', () => {
     expect(ids).toContain('codex:gpt-5.5-codex');
   });
 
-  it('activatedDriverModels menggabungkan ketiga transport, codex terakhir', async () => {
+  it('activatedDriverModels menggabungkan keempat transport, antigravity terakhir', async () => {
     process.env.OPENCODE_MODELS = 'big-pickle';
     process.env.OPENCODE_GO_MODELS = 'gpt-6-luna';
     process.env.CODEX_MODELS = 'gpt-5.6-codex';
+    process.env.ANTIGRAVITY_MODELS = 'gemini-3.8-flash';
     const m = await import('@/lib/server/agent-runtime/opencode-models');
     expect(m.activatedDriverModels().map((entry) => entry.modelString)).toEqual([
       'opencode:big-pickle',
       'opencode-go:gpt-6-luna',
       'codex:gpt-5.6-codex',
+      'antigravity:gemini-3.8-flash',
     ]);
+  });
+
+  it('mengaktifkan model antigravity dari ANTIGRAVITY_MODELS dan api-nya', async () => {
+    process.env.ANTIGRAVITY_MODELS = 'gemini-3.8-flash,gemini-3.1-pro';
+    const m = await import('@/lib/server/agent-runtime/opencode-models');
+    expect(m.activatedAntigravityModels()).toEqual([
+      expect.objectContaining({
+        provider: 'antigravity',
+        id: 'gemini-3.8-flash',
+        modelString: 'antigravity:gemini-3.8-flash',
+      }),
+      expect.objectContaining({
+        provider: 'antigravity',
+        id: 'gemini-3.1-pro',
+        modelString: 'antigravity:gemini-3.1-pro',
+      }),
+    ]);
+    expect(m.parseDriverModelInput('antigravity:gemini-3.8-flash')).toMatchObject({
+      provider: 'antigravity',
+      bare: 'gemini-3.8-flash',
+    });
+    expect(m.driverApiFor('antigravity')).toBe('antigravity-sdk');
+    expect(m.driverThinkingCapability('antigravity', 'gemini-3.8-flash')?.effortValues).toEqual([
+      'none',
+      'minimal',
+      'low',
+      'medium',
+      'high',
+      'xhigh',
+    ]);
+  });
+
+  it('ANTIGRAVITY_MODELS kosong menyembunyikan grup antigravity', async () => {
+    process.env.ANTIGRAVITY_MODELS = '';
+    const m = await import('@/lib/server/agent-runtime/opencode-models');
+    expect(m.activatedAntigravityModels()).toEqual([]);
   });
 
   it('parse input codex (titik dua + slash) dan api-nya', async () => {

@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/*': [
       'lib/server/agent-runtime/import-pptx-worker.mjs',
+      // The Antigravity bridge is spawned by path at run time
+      // (lib/ai/antigravity-sdk.ts), so the tracer never sees it. Without this,
+      // standalone builds ship without the script and every Antigravity turn
+      // fails with "bridge script not found".
+      'lib/ai/antigravity_bridge.py',
       // @openmaic/generation reads these Markdown prompts at runtime via
       // readFileSync with a computed path (packages' prompts-pbl/loader.ts),
       // so the tracer never sees them. Without this, standalone builds ship

@@ -332,7 +332,8 @@ values in `.env.local`. Other useful flags: `--build` (prove the production
 build), `--fast` (skip the Next.js typecheck and the unused UMD/CJS
 minification for throwaway/Colab installs; `--no-fast` forces a full build),
 `--with-playwright` (e2e browser), `--with-postgres` / `--no-postgres`,
-`--pg-major=N`, `--pg-password=...`, and `--bun-version=X`. See
+`--pg-major=N`, `--pg-password=...`, `--bun-version=X`, and
+`--no-antigravity` (skip the local Google Antigravity SDK venv). See
 `./install.sh --help` for all options.
 
 `--dev` is the development preset: non-interactive, no production build, no
@@ -354,9 +355,12 @@ comments out `DEFAULT_MODEL` so there is only one source of truth. With no
 Every run refreshes the model catalogue: `opencode models` fills
 `OPENCODE_MODELS`/`OPENCODE_GO_MODELS`, `codex app-server` fills `CODEX_MODELS`,
 and the `# >>> models:<provider>` blocks in an installer-owned `openmaic.yml` are
-rewritten. Discovery failures keep the previous lists. A user-written
-`openmaic.yml` is never touched; pass `--no-model-refresh` to skip discovery or
-`--no-openmaic-yml` to keep the legacy configuration.
+rewritten. The Google Antigravity SDK is installed into `.venv-antigravity`
+(`pip install google-antigravity`) and advertises its static model list through
+`ANTIGRAVITY_MODELS`; it authenticates with `GEMINI_API_KEY` (or Vertex AI
+credentials) from `.env.local`. Discovery failures keep the previous lists. A
+user-written `openmaic.yml` is never touched; pass `--no-model-refresh` to skip
+discovery or `--no-openmaic-yml` to keep the legacy configuration.
 
 Manage the production process with PM2 (the Bun ecosystem file runs the
 Next.js standalone server with Bun):

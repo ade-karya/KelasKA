@@ -20,6 +20,13 @@ interface CodexAuthStatus {
   message: string;
 }
 
+interface AntigravityStatus {
+  bridge: boolean;
+  installed: boolean;
+  authenticated: boolean;
+  message: string;
+}
+
 interface DeviceAuthState {
   url: string | null;
   code: string | null;
@@ -31,6 +38,7 @@ export function WorkbenchAuthDialog() {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<CodexAuthStatus | null>(null);
+  const [antigravity, setAntigravity] = useState<AntigravityStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [key, setKey] = useState('');
   const [saving, setSaving] = useState(false);
@@ -45,8 +53,12 @@ export function WorkbenchAuthDialog() {
     setLoading(true);
     try {
       const res = await fetch('/api/agent/auth', { credentials: 'include' });
-      const body = (await res.json().catch(() => ({}))) as { codex?: CodexAuthStatus };
+      const body = (await res.json().catch(() => ({}))) as {
+        codex?: CodexAuthStatus;
+        antigravity?: AntigravityStatus;
+      };
       if (body.codex) setStatus(body.codex);
+      if (body.antigravity) setAntigravity(body.antigravity);
       else if (!res.ok) toast.error('Failed to read auth status');
     } catch {
       toast.error('Failed to read auth status');
@@ -194,18 +206,19 @@ export function WorkbenchAuthDialog() {
         size="sm"
         className="h-8 w-8 p-0 shrink-0"
         onClick={() => setOpen(true)}
-        title="Codex auth"
-        aria-label="Codex auth"
+        title="Agent auth"
+        aria-label="Agent auth"
       >
         <KeyRound className="h-4 w-4" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Codex authentication</DialogTitle>
+            <DialogTitle>Agent authentication</DialogTitle>
             <DialogDescription>
-              Log in to the local Codex agent used by the Pro Workbench. The key is stored on the
-              server (in the Codex CLI credentials) and never sent to the browser again.
+              Log in to the local agents used by the Pro Workbench. Codex keys are stored on the
+              server (in the Codex CLI credentials) and never sent to the browser again;
+              Antigravity reads GEMINI_API_KEY / GOOGLE_API_KEY from the server environment.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -325,6 +338,32 @@ export function WorkbenchAuthDialog() {
                 ) : null}
               </div>
             ) : null}
+            <div className="space-y-1 border-t pt-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">Antigravity SDK</span>
+                <span
+                  className={
+                    antigravity?.installed && antigravity.authenticated
+                      ? 'text-green-600'
+                      : 'text-muted-foreground'
+                  }
+                >
+                  {antigravity
+                    ? antigravity.installed && antigravity.authenticated
+                      ? 'Ready'
+                      : 'Not ready'
+                    : 'Unknown'}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {loading ? 'Checking…' : (antigravity?.message ?? 'Unknown')}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Install with <code>pip install google-antigravity</code> (or run{' '}
+                <code>./install.sh</code>), then set <code>GEMINI_API_KEY</code> (or Vertex AI
+                credentials) in the server environment.
+              </p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

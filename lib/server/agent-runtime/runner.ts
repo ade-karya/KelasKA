@@ -20,6 +20,7 @@ import {
 
 import { buildAgent } from '@/lib/agent/runtime/build-agent';
 import { createCodexStreamFn } from '@/lib/agent/runtime/codex-stream-fn';
+import { createAntigravityStreamFn } from '@/lib/agent/runtime/antigravity-stream-fn';
 import { createCallLlmStreamFn } from '@/lib/agent/runtime/stream-fn';
 import { HOST_AGENT_LIFECYCLE as LIFECYCLE } from '@/lib/agent-runtime/lifecycle';
 import { createLogger } from '@/lib/logger';
@@ -29,6 +30,10 @@ import type { Scene, SlideContent } from '@/lib/types/stage';
 
 import { resolveAgentDriverModel } from './agent-driver-model';
 import { assertCodexSdkReady, codexSdkStreamFnOptions } from './agent-driver-codex';
+import {
+  assertAntigravitySdkReady,
+  antigravitySdkStreamFnOptions,
+} from './agent-driver-antigravity';
 import { opencodeCliStreamFnOptions } from './agent-driver-opencode';
 import { buildAskUserTool } from './ask-user';
 import { agentRuntimeConfig as config } from './config';
@@ -1388,6 +1393,24 @@ export async function runSession(ctx: RunContext, meta: ClaimedAgentSession): Pr
           : {}),
         abortSignal: abort.signal,
         source: codexOpts.source,
+      });
+    } else if (driver.driverTransport === 'antigravity-sdk') {
+      // Local Google Antigravity SDK turn: the harness keeps the loop, the
+      // Python bridge answers one structured turn
+      // (lib/agent/runtime/antigravity-stream-fn.ts). Probe Python + package +
+      // credentials before the session starts so a missing host fails loud.
+      log.info(
+        `session ${id}: Antigravity SDK driver ${driver.connection.modelString} (structured turn, local python)`,
+      );
+      await assertAntigravitySdkReady();
+      const antigravityOpts = antigravitySdkStreamFnOptions(driver);
+      streamFn = createAntigravityStreamFn({
+        modelId: driver.connection.modelId,
+        ...(driver.connection.thinkingConfig
+          ? { thinkingConfig: driver.connection.thinkingConfig }
+          : {}),
+        abortSignal: abort.signal,
+        source: antigravityOpts.source,
       });
     } else {
       if (driver.isCliDriver) {

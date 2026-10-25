@@ -24,14 +24,14 @@ export interface AgentModelItem {
 
 /**
  * Daftar + pilihan model transport lokal untuk Pro Workbench (provider
- * `opencode`, `opencode-go` dan `codex` — tiga grup di pemilih).
+ * `opencode`, `opencode-go`, `codex` dan `antigravity` — empat grup di pemilih).
  *
  *   GET /api/agent/models
  *     -> { active, driverApi, thinking, source,
  *          models: [{provider, id, modelString, name, thinking, ...}] }
  *
  *   POST /api/agent/models { model: "opencode:xxx" | "opencode-go:yyy" |
- *                                   "codex:zzz" | "xxx", thinking?: {...} }
+ *                                   "codex:zzz" | "antigravity:www" | "xxx", thinking?: {...} }
  *     -> memilih model aktif global + varian thinking per model
  *        (data/agent-driver-model.json). Berlaku untuk run berikutnya
  *        tanpa restart.
@@ -39,8 +39,8 @@ export interface AgentModelItem {
  * `active` = override tombol bila ada, else slot `agent` (openmaic.yml /
  * model settings), else default tier3. `thinking` = varian thinking aktif
  * (override, else slot; tanpa default suntikan). `models` = SEMUA model yang
- * diaktifkan installer di OPENCODE_MODELS / OPENCODE_GO_MODELS / CODEX_MODELS
- * (fallback katalog).
+ * diaktifkan installer di OPENCODE_MODELS / OPENCODE_GO_MODELS / CODEX_MODELS /
+ * ANTIGRAVITY_MODELS (fallback katalog).
  */
 export async function GET() {
   if (!isAgentRuntimeConfigured()) {

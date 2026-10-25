@@ -56,6 +56,15 @@ providers:
   #   preset: codex
   #   models: [gpt-5.6-codex]
 
+  # The same trick with the Google Antigravity SDK (Python 3.10+): install it
+  # with `pip install google-antigravity` (install.sh creates .venv-antigravity)
+  # and authenticate with GEMINI_API_KEY / GOOGLE_API_KEY or Vertex AI.
+  # ANTIGRAVITY_MODELS feeds the workbench picker; ANTIGRAVITY_PYTHON selects
+  # the interpreter.
+  # antigravity:
+  #   preset: antigravity
+  #   models: [gemini-3.8-flash, gemini-4-argon]
+
   # Web search.
   # tavily:
   #   preset: tavily
@@ -136,6 +145,12 @@ slots:
   # agent:
   #   model: codex:gpt-5.6-codex
   #   api: codex-sdk
+  #   thinking: { effort: high }
+
+  # ...or through the local Google Antigravity SDK:
+  # agent:
+  #   model: antigravity:gemini-3.8-flash
+  #   api: antigravity-sdk
   #   thinking: { effort: high }
 
   # A provider id alone means that provider's default model (search and

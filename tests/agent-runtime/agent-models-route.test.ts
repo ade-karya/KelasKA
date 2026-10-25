@@ -25,6 +25,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
     process.env.OPENCODE_MODELS = 'space-bunny-free,muse-spark-1.3-contributor-free,big-pickle';
     process.env.OPENCODE_GO_MODELS = 'gpt-6-luna';
     delete process.env.CODEX_MODELS;
+    process.env.ANTIGRAVITY_MODELS = 'gemini-3.8-flash';
     process.env.MODEL_ROUTES = JSON.stringify({
       'maic-agent-driver': {
         model: 'opencode:muse-spark-1.3-contributor-free',
@@ -39,6 +40,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
     delete process.env.OPENCODE_MODELS;
     delete process.env.OPENCODE_GO_MODELS;
     delete process.env.CODEX_MODELS;
+    delete process.env.ANTIGRAVITY_MODELS;
     delete process.env.MODEL_ROUTES;
   });
 
@@ -86,10 +88,12 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
       'opencode-go:gpt-6-luna',
       'codex:gpt-5.6-codex',
       'codex:gpt-5.5-codex',
+      'antigravity:gemini-3.8-flash',
     ]);
     expect(body.models[0].provider).toBe('opencode');
     expect(body.models[3].provider).toBe('opencode-go');
     expect(body.models[4].provider).toBe('codex');
+    expect(body.models[6].provider).toBe('antigravity');
     // Setiap model membawa capability thinking untuk kontrol varian.
     for (const m of body.models) {
       expect(m.thinking).toMatchObject({ control: 'effort' });
@@ -162,6 +166,7 @@ describe('grup Go disembunyikan bila belum login (OPENCODE_GO_MODELS kosong)', (
     process.env.OPENCODE_MODELS = 'big-pickle';
     process.env.OPENCODE_GO_MODELS = '';
     process.env.CODEX_MODELS = '';
+    process.env.ANTIGRAVITY_MODELS = '';
   });
 
   afterEach(() => {

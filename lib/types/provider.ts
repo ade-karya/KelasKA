@@ -27,6 +27,7 @@ export type BuiltInProviderId =
   | 'opencode'
   | 'opencode-go'
   | 'codex'
+  | 'antigravity'
   | 'lemonade'
   | 'ollama';
 
@@ -46,7 +47,8 @@ export type ProviderType =
   | 'bedrock'
   | 'google'
   | 'opencode'
-  | 'codex';
+  | 'codex'
+  | 'antigravity';
 
 export type ThinkingControlType =
   | 'none'
@@ -231,4 +233,5 @@ export const HIDDEN_PROVIDER_IDS: ReadonlySet<string> = new Set([
   'opencode',
   'opencode-go',
   'codex',
+  'antigravity',
 ]);

@@ -128,9 +128,10 @@ export function slotRefusesThinkingEffort(id: SlotId): boolean {
 
 /**
  * Route `api` values of the local agent transports: the Pro workbench's
- * `opencode-cli` and `codex-sdk`. They carry a reasoning effort as a prompt
- * instruction or CLI flag, not as a wire parameter, so the `agent` slot may set
- * `thinking.effort` with one (lib/server/agent-runtime/agent-driver-model.ts).
+ * `opencode-cli`, `codex-sdk` and `antigravity-sdk`. They carry a reasoning
+ * effort as a prompt instruction or CLI flag, not as a wire parameter, so the
+ * `agent` slot may set `thinking.effort` with one
+ * (lib/server/agent-runtime/agent-driver-model.ts).
  */
 export const LOCAL_AGENT_TRANSPORT_APIS: ReadonlySet<string> = new Set([
   'opencode-cli',
@@ -138,6 +139,8 @@ export const LOCAL_AGENT_TRANSPORT_APIS: ReadonlySet<string> = new Set([
   'opencode',
   'codex-sdk',
   'codex',
+  'antigravity-sdk',
+  'antigravity',
 ]);
 
 export function isSlotId(value: string): value is SlotId {

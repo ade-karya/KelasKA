@@ -28,6 +28,7 @@ const PROVIDER_GROUP_NAMES: Record<string, string> = {
   opencode: 'OpenCode CLI',
   'opencode-go': 'OpenCode Go',
   codex: 'Codex SDK',
+  antigravity: 'Antigravity SDK',
 };
 
 /** "Muse Spark 1.3 Free (Zen)" -> "Muse Spark 1.3 Free". */
@@ -51,7 +52,7 @@ function prettifyId(id: string): string {
 /** "opencode-go:gpt-6-luna" -> { providerId: "opencode-go", modelId: "gpt-6-luna" }. */
 function splitModelString(modelString: string): { providerId: string; modelId: string } {
   const lower = modelString.toLowerCase();
-  for (const providerId of ['opencode-go', 'codex'] as const) {
+  for (const providerId of ['opencode-go', 'codex', 'antigravity'] as const) {
     if (lower.startsWith(`${providerId}:`) || lower.startsWith(`${providerId}/`)) {
       return { providerId, modelId: modelString.slice(providerId.length + 1) };
     }
@@ -65,8 +66,8 @@ function splitModelString(modelString: string): { providerId: string; modelId: s
  * dan perilaku identik.
  *
  * Membaca SEMUA model transport lokal yang diaktifkan installer
- * (OPENCODE_MODELS + OPENCODE_GO_MODELS + CODEX_MODELS via
- * GET /api/agent/models, tiga grup provider) dan
+ * (OPENCODE_MODELS + OPENCODE_GO_MODELS + CODEX_MODELS + ANTIGRAVITY_MODELS via
+ * GET /api/agent/models, empat grup provider) dan
  * memilih aktif via POST (data/agent-driver-model.json, berlaku untuk run
  * berikutnya tanpa restart). Varian thinking per model dipilih lewat kontrol
  * inline di baris terpilih (POST {model, thinking}). Dipakai di header chat
@@ -227,7 +228,7 @@ export function WorkbenchModelPicker() {
 
   const activeSplit = active ? splitModelString(active) : null;
 
-  const groups = (['opencode', 'opencode-go', 'codex'] as const)
+  const groups = (['opencode', 'opencode-go', 'codex', 'antigravity'] as const)
     .map((providerId) => ({
       id: providerId,
       name: PROVIDER_GROUP_NAMES[providerId] ?? providerId,

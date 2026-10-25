@@ -8,6 +8,11 @@ CLAUDE.local.md
 /node_modules
 /openclaw/node_modules
 /openclaw/package-lock.json
+
+# Python bridge (Google Antigravity SDK)
+/.venv-antigravity/
+__pycache__/
+*.pyc
 /.pnp
 .pnp.*
 .yarn/*
