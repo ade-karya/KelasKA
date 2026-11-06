@@ -492,10 +492,7 @@ async function writeEnvValue(key: string, value: string | null): Promise<void> {
 }
 
 /** Persist an arbitrary KEY=value line in `.env.local` (best-effort). */
-export async function persistAntigravityEnvValue(
-  key: string,
-  value: string | null,
-): Promise<void> {
+export async function persistAntigravityEnvValue(key: string, value: string | null): Promise<void> {
   // Reuse the internal writer by duplicating minimal logic is avoided: call
   // the module-private helper through a thin public wrapper.
   await (writeEnvValue as (k: string, v: string | null) => Promise<void>)(key, value);

@@ -76,12 +76,11 @@ export async function GET() {
   // capability TIDAK disuntik di sini — kontrol picker menampilkannya sendiri
   // (getDefaultThinkingConfig) dan tak ada yang tersimpan sebelum user menyentuh.
   const thinking: ThinkingConfig | undefined = overrideValid
-    ? override!.thinking ?? slotThinking
+    ? (override!.thinking ?? slotThinking)
     : slotThinking;
   return apiSuccess({
     active,
-    driverApi:
-      (overrideValid ? override!.api : undefined) ?? slotApi ?? 'opencode-cli',
+    driverApi: (overrideValid ? override!.api : undefined) ?? slotApi ?? 'opencode-cli',
     ...(thinking ? { thinking } : {}),
     source: overrideValid ? 'workbench-override' : slotModel ? 'agent-slot' : 'default',
     models,

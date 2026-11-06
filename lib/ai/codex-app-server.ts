@@ -90,7 +90,12 @@ export async function listCodexModels(force = false): Promise<CodexDiscoveredMod
     });
 
     const send = (o: unknown) => child.stdin.write(JSON.stringify(o) + '\n');
-    send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'openmaic', version: '1.0' }, capabilities: {} } });
+    send({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: { clientInfo: { name: 'openmaic', version: '1.0' }, capabilities: {} },
+    });
     setTimeout(() => send({ jsonrpc: '2.0', method: 'initialized', params: {} }), 300);
     setTimeout(() => send({ jsonrpc: '2.0', id: 2, method: 'model/list', params: {} }), 600);
     // Hard timeout.

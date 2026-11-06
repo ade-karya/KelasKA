@@ -8,10 +8,7 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 export async function GET() {
   try {
-    const [codex, antigravity] = await Promise.all([
-      codexAuthStatus(),
-      antigravityCliAuthStatus(),
-    ]);
+    const [codex, antigravity] = await Promise.all([codexAuthStatus(), antigravityCliAuthStatus()]);
     return apiSuccess({ codex, antigravity });
   } catch (error) {
     return apiError(
@@ -30,7 +27,10 @@ export async function POST(request: NextRequest) {
     };
     if (body.provider === 'antigravity') {
       // Antigravity CLI authenticates via `agy` in the user's terminal.
-      return apiSuccess({ antigravity: await antigravityCliAuthStatus(), message: 'Run `agy` in your terminal to sign in.' });
+      return apiSuccess({
+        antigravity: await antigravityCliAuthStatus(),
+        message: 'Run `agy` in your terminal to sign in.',
+      });
     }
     const result = await codexAuthLogin(body.apiKey ?? '');
     if (!result.ok) return apiError('INVALID_CREDENTIALS', 400, result.message);
@@ -50,7 +50,10 @@ export async function DELETE(request: NextRequest) {
   try {
     const body = (await request.json().catch(() => ({}))) as { provider?: string };
     if (body.provider === 'antigravity') {
-      return apiSuccess({ antigravity: await antigravityCliAuthStatus(), message: 'Run `agy /logout` in your terminal to sign out.' });
+      return apiSuccess({
+        antigravity: await antigravityCliAuthStatus(),
+        message: 'Run `agy /logout` in your terminal to sign out.',
+      });
     }
     const result = await codexAuthLogout();
     if (!result.ok) return apiError('INVALID_CREDENTIALS', 400, result.message);

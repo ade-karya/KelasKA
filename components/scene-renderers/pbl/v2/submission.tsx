@@ -46,7 +46,7 @@ import {
   addSubmission,
   listSubmissionsForMicrotask,
 } from '@/lib/pbl/v2/operations/runtime/submission';
-import { findModelById } from '@/lib/ai/model-aliases';
+import type { ProviderId } from '@/lib/types/provider';
 import {
   TEXT_PDF_IMAGE_ACCEPT,
   isImageFile,
@@ -63,7 +63,7 @@ import type {
 import { trimmedPBLText } from '@/lib/pbl/v2/readers';
 import type { PBLSSEEvent } from '@/lib/pbl/v2/api/sse';
 import { applyInstructorEvent } from './apply-instructor-event';
-import { PROVIDERS } from '@/lib/ai/providers';
+import { getModelInfo } from '@/lib/ai/providers';
 import { useModelSettingsView } from '@/lib/model-settings/use-model-settings';
 import { effectiveTarget } from '@/lib/model-settings/capabilities';
 import { normalizeProjectRuntime } from '@/lib/pbl/v2/operations/kernel/progress';
@@ -1005,11 +1005,8 @@ function SubmissionModal({
   const classroomModel = effectiveTarget(useModelSettingsView(), 'classroom');
   const hasVision =
     !!classroomModel?.modelId &&
-    !!findModelById(
-      classroomModel.registryId,
-      PROVIDERS[classroomModel.registryId as keyof typeof PROVIDERS]?.models,
-      classroomModel.modelId,
-    )?.capabilities?.vision;
+    !!getModelInfo(classroomModel.registryId as ProviderId, classroomModel.modelId)?.capabilities
+      ?.vision;
   const [mode, setMode] = useState<'paste' | 'file'>('paste');
   const [text, setText] = useState('');
   const [filename, setFilename] = useState('');

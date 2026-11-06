@@ -48,10 +48,10 @@ async function loadNodeBuiltins(): Promise<{
 async function binCandidates(): Promise<string[]> {
   const fromEnv = (process.env.ANTIGRAVITY_CLI_BIN ?? process.env.AGY_BIN ?? '').trim();
   const { path } = await loadNodeBuiltins();
-  const home = (await (async () => {
+  const home = await (async () => {
     const { os } = await loadNodeBuiltins();
     return os.homedir();
-  })());
+  })();
   return [
     ...(fromEnv ? [fromEnv] : []),
     'agy',
@@ -72,7 +72,9 @@ async function probeBin(bin: string): Promise<boolean> {
       return;
     }
     const timer = setTimeout(() => {
-      try { child.kill(); } catch {}
+      try {
+        child.kill();
+      } catch {}
       resolve(false);
     }, 10_000);
     child.on('exit', (code) => {
@@ -91,7 +93,10 @@ export async function findAntigravityCliBin(): Promise<string | null> {
   const { fs } = await loadNodeBuiltins();
   for (const cand of await binCandidates()) {
     if (cand.includes('/') && !fs.existsSync(cand)) continue;
-    if (await probeBin(cand)) { cachedBin = cand; return cachedBin; }
+    if (await probeBin(cand)) {
+      cachedBin = cand;
+      return cachedBin;
+    }
   }
   cachedBin = null;
   return null;
@@ -111,7 +116,26 @@ export interface AntigravityCliTurnRequest {
 export interface AntigravityCliTurnResult {
   text: string;
   toolCalls: { name: string; arguments: Record<string, unknown> }[];
-  usage: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number; cachedContentTokenCount?: number } | null;
+  usage: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    thoughtsTokenCount?: number;
+    cachedContentTokenCount?: number;
+  } | null;
+}
+
+interface AntigravityCliEnvelope {
+  structured_output?: { text?: unknown; toolCalls?: unknown };
+  structured?: { text?: unknown; toolCalls?: unknown };
+  response?: unknown;
+  usage?: {
+    input_tokens?: number;
+    inputTokens?: number;
+    output_tokens?: number;
+    outputTokens?: number;
+    thinking_tokens?: number;
+    cache_read_tokens?: number;
+  };
 }
 
 function effortToAgy(effort?: string): string | undefined {
@@ -122,7 +146,9 @@ function effortToAgy(effort?: string): string | undefined {
   return undefined;
 }
 
-export async function runAntigravityCliTurn(req: AntigravityCliTurnRequest): Promise<AntigravityCliTurnResult> {
+export async function runAntigravityCliTurn(
+  req: AntigravityCliTurnRequest,
+): Promise<AntigravityCliTurnResult> {
   const bin = await findAntigravityCliBin();
   if (!bin) throw new Error('Antigravity CLI (agy) is not installed or not on PATH.');
 
@@ -139,22 +165,34 @@ export async function runAntigravityCliTurn(req: AntigravityCliTurnRequest): Pro
   const effort = effortToAgy(req.thinkingLevel);
 
   return new Promise((resolve, reject) => {
-    const child = spawn(bin, [
-      '--print', prompt,
-      '--output-format', 'json',
-      '--json-schema', schemaFile,
-      '--model', req.model,
-      '--dangerously-skip-permissions',
-      ...(effort ? ['--effort', effort] : []),
-    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(
+      bin,
+      [
+        '--print',
+        prompt,
+        '--output-format',
+        'json',
+        '--json-schema',
+        schemaFile,
+        '--model',
+        req.model,
+        '--dangerously-skip-permissions',
+        ...(effort ? ['--effort', effort] : []),
+      ],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    );
     let stdout = '';
     let stderr = '';
     const timer = setTimeout(() => {
-      try { child.kill('SIGKILL'); } catch {}
+      try {
+        child.kill('SIGKILL');
+      } catch {}
       reject(new Error(`Antigravity CLI timed out after ${Math.round(timeoutMs / 1000)}s`));
     }, timeoutMs);
 
-    child.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf8'); });
+    child.stdout.on('data', (d: Buffer) => {
+      stdout += d.toString('utf8');
+    });
     child.stderr.on('data', (d: Buffer) => {
       if (stderr.length < STDERR_TAIL_CHARS) stderr += d.toString('utf8');
     });
@@ -165,27 +203,39 @@ export async function runAntigravityCliTurn(req: AntigravityCliTurnRequest): Pro
     child.on('close', (code) => {
       clearTimeout(timer);
       // cleanup
-      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch {}
       if (code !== 0 && !stdout.trim()) {
         reject(new Error(`Antigravity CLI exited ${code}: ${stderr.slice(-500)}`));
         return;
       }
-      let envelope: any;
+      let envelope: AntigravityCliEnvelope;
       try {
-        envelope = JSON.parse(stdout.trim());
-      } catch (e) {
+        envelope = JSON.parse(stdout.trim()) as AntigravityCliEnvelope;
+      } catch {
         reject(new Error(`Antigravity CLI returned non-JSON output: ${stdout.slice(0, 300)}`));
         return;
       }
       const structured = envelope.structured_output ?? envelope.structured ?? null;
-      const text = (structured && typeof structured.text === 'string')
-        ? structured.text
-        : (typeof envelope.response === 'string' ? envelope.response : '');
-      const rawCalls = (structured && Array.isArray(structured.toolCalls)) ? structured.toolCalls : [];
-      const toolCalls = rawCalls.map((c: any) => ({
-        name: String(c?.name ?? ''),
-        arguments: (c?.arguments && typeof c.arguments === 'object') ? c.arguments : {},
-      }));
+      const text =
+        structured && typeof structured.text === 'string'
+          ? structured.text
+          : typeof envelope.response === 'string'
+            ? envelope.response
+            : '';
+      const rawCalls =
+        structured && Array.isArray(structured.toolCalls) ? structured.toolCalls : [];
+      const toolCalls = rawCalls.map((value) => {
+        const call = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+        return {
+          name: String(call.name ?? ''),
+          arguments:
+            call.arguments && typeof call.arguments === 'object'
+              ? (call.arguments as Record<string, unknown>)
+              : {},
+        };
+      });
       const usage = envelope.usage
         ? {
             promptTokenCount: envelope.usage.input_tokens ?? envelope.usage.inputTokens,

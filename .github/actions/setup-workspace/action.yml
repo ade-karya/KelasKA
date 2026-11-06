@@ -1,0 +1,147 @@
+name: Set up workspace
+description: >-
+  Install Node, Bun and the workspace dependencies, then make the workspace
+  packages' build outputs available, the way `bun install` leaves them.
+
+# Why the package build is cached
+#
+# The root `postinstall` runs `build:packages`, which compiles every workspace
+# package (the importer's three rollup + terser passes alone take ~50 s) and
+# then copies some of their outputs into public/vendor. That is ~85 s of every
+# install, while linking node_modules takes only a few seconds with Bun.
+# Several CI jobs install the workspace, so the build is repeated in each.
+#
+# With `build-cache: 'true'` this action installs with `--ignore-scripts` and
+# restores the packages' dist/ directories from a cache whose key covers every
+# input of that build: the tracked contents of packages/ (minus the separate
+# docs app), the root manifest (which defines `build:packages`), the lockfiles,
+# the workspace file, the runner platform and the Node major version. Any
+# change to a package source, its build config or a dependency misses the
+# cache and runs the real `build:packages`, which then saves the result.
+# The outputs are plain JS, JSON and .d.ts from rollup and tsc, so the key
+# does not include the Node patch version: `node-version: 24` resolves to
+# whichever 24.x the runner image carries, and that differs between runners
+# in the same run.
+#
+# Skipping lifecycle scripts drops nothing else: the root `postinstall` is the
+# only script `bun install` runs (build the workspace packages). Its output
+# is replaced by the dist/ restore, and the sync tail below is run explicitly.
+#
+# The sync steps at the end of the package build write ignored copies into
+# public/vendor. They are cheap and read node_modules as well as dist/, so they
+# always run instead of being cached. On Colab they live at the tail of
+# `scripts/build-packages.mjs`; upstream they were the tail of the
+# `build:packages` script string. The check below accepts either shape.
+#
+# Bun is kept as the installer because it is the package manager pinned in
+# `package.json` and its install is faster than pnpm's. The pnpm paths that
+# remain (publish-packages.yml's packing, docs-build.yml's standalone docs)
+# stay pnpm because those steps need pnpm's workspace packing semantics, not
+# because it is faster.
+#
+# `build-cache: 'false'` runs a plain `bun install`, real `postinstall`
+# included. The lint job uses it, because it verifies that installing does not
+# rewrite tracked files, which a restored cache would not exercise.
+
+inputs:
+  build-cache:
+    description: "'true' to restore the workspace package build from cache; 'false' to run the real postinstall."
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.4.4
+
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 24
+
+    - name: Install dependencies
+      if: inputs.build-cache != 'true'
+      shell: bash
+      run: bun install --frozen-lockfile
+
+    - name: Install dependencies (without lifecycle scripts)
+      if: inputs.build-cache == 'true'
+      shell: bash
+      run: bun install --frozen-lockfile --ignore-scripts
+
+    - name: Compute package build cache key
+      if: inputs.build-cache == 'true'
+      id: build-key
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Blob ids of every tracked input, so the key changes exactly when
+        # an input's content does. packages/docs is not a workspace package.
+        inputs_hash="$(
+          git ls-tree -r HEAD -- packages package.json pnpm-lock.yaml bun.lock pnpm-workspace.yaml scripts/build-packages.mjs \
+            | grep -v $'\tpackages/docs/' \
+            | sha256sum | cut -d' ' -f1
+        )"
+        echo "key=workspace-packages-v2-${RUNNER_OS}-${RUNNER_ARCH}-node$(node -p 'process.versions.node.split(".")[0]')-${inputs_hash}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore package build
+      if: inputs.build-cache == 'true'
+      id: build-cache
+      uses: actions/cache/restore@v6
+      with:
+        key: ${{ steps.build-key.outputs.key }}
+        path: |
+          packages/*/dist
+          packages/@openmaic/*/dist
+
+    - name: Build workspace packages
+      if: inputs.build-cache == 'true' && steps.build-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: bun run build:packages
+
+    # Saved right after the build, so a later test failure in the same job
+    # does not throw the build away. Parallel jobs racing on the same key are
+    # harmless: one saves, the others log a warning.
+    - name: Save package build
+      if: inputs.build-cache == 'true' && steps.build-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        key: ${{ steps.build-key.outputs.key }}
+        path: |
+          packages/*/dist
+          packages/@openmaic/*/dist
+
+    # The sync step below reproduces the tail of the package build. Fail rather
+    # than silently diverge if that script ever ends differently. Checked on
+    # every run, not only on a cache hit, so the change that breaks it fails.
+    # Two shapes exist: upstream inlines the sync chain at the end of
+    # `build:packages`; Colab delegates to `scripts/build-packages.mjs`, which
+    # runs the same three sync scripts as its final steps.
+    - name: Check the uncached tail of build:packages
+      if: inputs.build-cache == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        tail='&& node scripts/sync-maic-importer.mjs && node scripts/sync-interactive-assets.mjs && node scripts/prepare-code-editor.mjs'
+        if node -e 'process.exit(require("./package.json").scripts["build:packages"].includes("build-packages.mjs") ? 0 : 1)'; then
+          if ! grep -q "sync-maic-importer.mjs" scripts/build-packages.mjs \
+            || ! grep -q "sync-interactive-assets.mjs" scripts/build-packages.mjs \
+            || ! grep -q "prepare-code-editor.mjs" scripts/build-packages.mjs; then
+            echo "::error::scripts/build-packages.mjs no longer runs the sync steps (sync-maic-importer, sync-interactive-assets, prepare-code-editor)."
+            echo "Update .github/actions/setup-workspace so a cache hit reproduces its uncached steps."
+            exit 1
+          fi
+        elif ! node -e 'process.exit(require("./package.json").scripts["build:packages"].endsWith(process.argv[1]) ? 0 : 1)' "$tail"; then
+          echo "::error::build:packages no longer ends with: ${tail#&& }"
+          echo "Update .github/actions/setup-workspace so a cache hit reproduces its uncached steps."
+          exit 1
+        fi
+
+    - name: Sync package outputs into public/vendor
+      if: inputs.build-cache == 'true' && steps.build-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        node scripts/sync-maic-importer.mjs
+        node scripts/sync-interactive-assets.mjs
+        node scripts/prepare-code-editor.mjs

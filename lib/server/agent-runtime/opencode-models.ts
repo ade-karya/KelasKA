@@ -1,13 +1,21 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PROVIDERS, CODEX_SDK_THINKING, OPENCODE_CLI_THINKING, ANTIGRAVITY_SDK_THINKING } from '@/lib/ai/providers';
+import {
+  PROVIDERS,
+  CODEX_SDK_THINKING,
+  OPENCODE_CLI_THINKING,
+  ANTIGRAVITY_SDK_THINKING,
+} from '@/lib/ai/providers';
 import { listCodexModels } from '@/lib/ai/codex-app-server';
 import { listAntigravityModels } from '@/lib/ai/antigravity-cli-models';
 import { getDefaultThinkingConfig, normalizeThinkingConfig } from '@/lib/ai/thinking-config';
 import type { ThinkingCapability, ThinkingConfig, ThinkingEffort } from '@/lib/types/provider';
 
 const discoveredCodexIds = new Set<string>();
-const discoveredCodexModels = new Map<string, { reasoningEfforts: string[]; defaultReasoningEffort: string | null }>();
+const discoveredCodexModels = new Map<
+  string,
+  { reasoningEfforts: string[]; defaultReasoningEffort: string | null }
+>();
 const discoveredAntigravityIds = new Set<string>();
 
 /**
@@ -249,7 +257,7 @@ export async function activatedCodexModelsDynamic(): Promise<ActivatedDriverMode
         const efforts =
           m.reasoningEfforts.length > 0
             ? m.reasoningEfforts
-            : CODEX_SDK_THINKING.effortValues ?? [];
+            : (CODEX_SDK_THINKING.effortValues ?? []);
         const thinking: ThinkingCapability = {
           ...CODEX_SDK_THINKING,
           effortValues: efforts as ThinkingEffort[],
@@ -298,7 +306,7 @@ export function driverThinkingCapability(
       const efforts =
         discovered.reasoningEfforts.length > 0
           ? discovered.reasoningEfforts
-          : CODEX_SDK_THINKING.effortValues ?? [];
+          : (CODEX_SDK_THINKING.effortValues ?? []);
       return {
         ...CODEX_SDK_THINKING,
         effortValues: efforts as ThinkingEffort[],

@@ -19,7 +19,7 @@ export default defineConfig({
   },
   test: {
     include: ['tests/**/*.test.ts'],
-    setupFiles: ['tests/setup-env.ts'],
+    setupFiles: ['tests/setup-env.ts', 'tests/pg-contract-database.ts'],
     server: {
       deps: {
         // These reach for their own peer-pinned React copy unless they go

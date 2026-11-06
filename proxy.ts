@@ -25,6 +25,9 @@ function next(request: NextRequest, identity: NavigationIdentity | undefined): N
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // This machine-only route verifies its own signed gateway request in Node.
+  if (pathname === '/api/sandbox/preview/resolve') return NextResponse.next();
+
   // Return an actual server-side 404 when either half of the workbench is off.
   // Edge proxy cannot reliably inspect server-only deployment variables,
   // so it enforces the public gate and leaves the complete runtime/database
@@ -76,7 +79,10 @@ export const config = {
   // Keep `/api/*` covered (access-code 401 lives in proxy). Exclude Next
   // internals, metadata files and public static assets so they don't pay
   // for anonymous-owner + 200MB body buffering on every image/font/JSON hit.
+  // The duplex machine route authenticates its signed descriptor itself.
+  // Middleware forwarding buffers POST bodies and would deadlock a
+  // bidirectional stream, so it stays excluded from the matcher entirely.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|favicon.png|apple-icon.png|sitemap.xml|robots.txt|logos|avatars|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$|.*\\.avif$|.*\\.ico$|.*\\.txt$|.*\\.xml$|.*\\.json$|.*\\.webmanifest$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|favicon.png|apple-icon.png|sitemap.xml|robots.txt|logos|avatars|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$|.*\\.avif$|.*\\.ico$|.*\\.txt$|.*\\.xml$|.*\\.json$|.*\\.webmanifest$|api/sandbox/preview/tunnel$).*)',
   ],
 };

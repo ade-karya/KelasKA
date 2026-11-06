@@ -192,7 +192,7 @@ export function cancelGoogleLogin(): void {
 
 export function setGoogleProjectLocation(p: string | null, l: string | null): void {
   project = p?.trim() || null;
-  location = (l?.trim() || 'us-central1');
+  location = l?.trim() || 'us-central1';
   if (project) process.env.GOOGLE_CLOUD_PROJECT = project;
   process.env.GOOGLE_CLOUD_LOCATION = location;
 }

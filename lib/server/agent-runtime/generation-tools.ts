@@ -25,7 +25,11 @@ import type { CourseToolDeps } from './course-tools';
 import { runStageMutation } from './mutation-fence';
 import { shiftCourseOrders } from './course-edit/tools';
 import { createGenerationAiCallFactory, sceneContentStage } from './generation-ai-call';
-import { describeNarrationVoice, synthesizeSceneNarration } from './scene-tts';
+import {
+  describeNarrationVoice,
+  formatTtsFailureTally,
+  synthesizeSceneNarration,
+} from './scene-tts';
 import { toGenerationContent } from './generation-content';
 import { checkScenesAgainstSkill } from './skills';
 import { mayNameAPoolAsset } from '@/lib/media/media-placeholder';
@@ -61,11 +65,17 @@ const SceneParams = Type.Object({
       },
     ),
   ),
+  // Open object (not Type.Unknown) so the model-facing schema says `type: object`.
+  // No Type.Record (emits patternProperties) and no `additionalProperties: true`
+  // (Google's converter then keeps an empty `properties`, which Gemini rejects).
   widgetOutline: Type.Optional(
-    Type.Unknown({
-      description:
-        'Interactive pages only: widget configuration object matching widgetType (e.g. { concept, keyVariables } for simulation, { diagramType, nodes } for diagram, { language } for code, { gameType, challenge } for game, { visualizationType, objects } for visualization3d). Must be a plain object. Defaults to { concept: title } when widgetType is set; when only widgetOutline is set, widgetType defaults to simulation.',
-    }),
+    Type.Object(
+      {},
+      {
+        description:
+          'Interactive pages only: widget configuration object matching widgetType (e.g. { concept, keyVariables } for simulation, { diagramType, nodes } for diagram, { language } for code, { gameType, challenge } for game, { visualizationType, objects } for visualization3d). Must be a plain object. Defaults to { concept: title } when widgetType is set; when only widgetOutline is set, widgetType defaults to simulation.',
+      },
+    ),
   ),
   brief: Type.String({
     minLength: 1,
@@ -613,11 +623,13 @@ export function buildGenerationTools(deps: GenerationToolDeps): AgentTool<never,
           });
         }
       }
-      const voiced =
-        audio?.voice && audio.generated > 0
-          ? ` Narration audio: ${audio.generated} generated, ${audio.failed.length} failed. ${describeNarrationVoice(audio.voice)}`
+      const voiceNote =
+        audio?.voice && audio.generated > 0 ? ` ${describeNarrationVoice(audio.voice)}` : '';
+      const narration =
+        audio?.available === true
+          ? ` Narration audio: ${audio.generated} generated, ${audio.skipped} skipped, ${formatTtsFailureTally(audio.failed)}.${voiceNote}`
           : '';
-      return result(`Persisted ${actions.length} known actions for "${scene.title}".${voiced}`, {
+      return result(`Persisted ${actions.length} known actions for "${scene.title}".${narration}`, {
         sceneId: scene.id,
         actions,
         ...(audio ? { audio } : {}),

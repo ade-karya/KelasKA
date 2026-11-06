@@ -117,3 +117,6 @@ if (outputsExist && currentHash === previousHash) {
 
 run(process.execPath, ['scripts/sync-maic-importer.mjs']);
 run(process.execPath, ['scripts/sync-interactive-assets.mjs']);
+if (existsSync(join(root, 'scripts', 'prepare-code-editor.mjs'))) {
+  run(process.execPath, ['scripts/prepare-code-editor.mjs']);
+}

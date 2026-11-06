@@ -21,7 +21,11 @@ export async function GET(request: NextRequest) {
     const auth = await antigravityCliAuthStatus();
     return apiSuccess({ login: { ...status, url }, auth });
   } catch (error) {
-    return apiError('INTERNAL_ERROR', 500, error instanceof Error ? error.message : 'Unknown error');
+    return apiError(
+      'INTERNAL_ERROR',
+      500,
+      error instanceof Error ? error.message : 'Unknown error',
+    );
   }
 }
 
@@ -44,14 +48,26 @@ export async function POST(request: NextRequest) {
         invalidateAntigravityModelCache();
         resetDiscoveredAntigravityIds();
       }
-      return apiSuccess({ login: getAntigravityCliLoginStatus(), auth, message: result.message, ok: result.ok });
+      return apiSuccess({
+        login: getAntigravityCliLoginStatus(),
+        auth,
+        message: result.message,
+        ok: result.ok,
+      });
     }
     if (body.action === 'cancel') {
       cancelAntigravityCliLogin();
-      return apiSuccess({ login: getAntigravityCliLoginStatus(), auth: await antigravityCliAuthStatus() });
+      return apiSuccess({
+        login: getAntigravityCliLoginStatus(),
+        auth: await antigravityCliAuthStatus(),
+      });
     }
     return apiError('INVALID_REQUEST', 400, 'Unknown action');
   } catch (error) {
-    return apiError('INTERNAL_ERROR', 500, error instanceof Error ? error.message : 'Unknown error');
+    return apiError(
+      'INTERNAL_ERROR',
+      500,
+      error instanceof Error ? error.message : 'Unknown error',
+    );
   }
 }

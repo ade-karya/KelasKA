@@ -24,14 +24,29 @@ function extractUrl(text: string): string | null {
   return m ? m[0] : null;
 }
 
-export function startAntigravityCliLogin(): { sessionId: string; url: string | null; error: string | null } {
+export function startAntigravityCliLogin(): {
+  sessionId: string;
+  url: string | null;
+  error: string | null;
+} {
   if (active && !active.done) {
     return { sessionId: 'active', url: active.url, error: null };
   }
-  const child = spawn('script', ['-q', '-c', 'agy --print "ping" --output-format json', '/dev/null'], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
-  const session: LoginSession = { child, output: '', url: null, done: false, error: null, codeSubmitted: false };
+  const child = spawn(
+    'script',
+    ['-q', '-c', 'agy --print "ping" --output-format json', '/dev/null'],
+    {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    },
+  );
+  const session: LoginSession = {
+    child,
+    output: '',
+    url: null,
+    done: false,
+    error: null,
+    codeSubmitted: false,
+  };
   active = session;
   const collect = (d: Buffer) => {
     const text = d.toString('utf8');
@@ -84,7 +99,9 @@ export function submitAntigravityCliLoginCode(code: string): { ok: boolean; mess
 
 export function cancelAntigravityCliLogin(): void {
   if (active && !active.done) {
-    try { active.child.kill(); } catch {}
+    try {
+      active.child.kill();
+    } catch {}
   }
   active = null;
 }

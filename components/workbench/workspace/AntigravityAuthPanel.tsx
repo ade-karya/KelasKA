@@ -2,7 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Boxes, CheckCircle2, ExternalLink, Loader2, PlugZap, RefreshCw, Terminal } from 'lucide-react';
+import {
+  Boxes,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  PlugZap,
+  RefreshCw,
+  Terminal,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -55,11 +63,15 @@ export function AntigravityAuthPanel({
         fetch('/api/agent/auth', { credentials: 'include' }),
         fetch('/api/agent/models', { credentials: 'include' }),
       ]);
-      const authBody = (await authRes.json().catch(() => ({}))) as { antigravity?: AntigravityStatus };
+      const authBody = (await authRes.json().catch(() => ({}))) as {
+        antigravity?: AntigravityStatus;
+      };
       const modelsBody = (await modelsRes.json().catch(() => ({}))) as { models?: DriverModel[] };
       if (authBody.antigravity) {
         setStatus(authBody.antigravity);
-        onConnectionChange?.(Boolean(authBody.antigravity.installed && authBody.antigravity.authenticated));
+        onConnectionChange?.(
+          Boolean(authBody.antigravity.installed && authBody.antigravity.authenticated),
+        );
       }
       if (Array.isArray(modelsBody.models)) {
         setModels(modelsBody.models.filter((m) => m.provider === 'antigravity'));
@@ -82,7 +94,10 @@ export function AntigravityAuthPanel({
     const timer = setInterval(async () => {
       try {
         const res = await fetch('/api/agent/auth/antigravity-cli', { credentials: 'include' });
-        const body = (await res.json().catch(() => ({}))) as { login?: LoginState; auth?: AntigravityStatus };
+        const body = (await res.json().catch(() => ({}))) as {
+          login?: LoginState;
+          auth?: AntigravityStatus;
+        };
         if (body.login) setLogin(body.login);
         if (body.auth) {
           setStatus(body.auth);
@@ -111,7 +126,11 @@ export function AntigravityAuthPanel({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action: 'start' }),
       });
-      const body = (await res.json().catch(() => ({}))) as { login?: LoginState; auth?: AntigravityStatus; error?: string };
+      const body = (await res.json().catch(() => ({}))) as {
+        login?: LoginState;
+        auth?: AntigravityStatus;
+        error?: string;
+      };
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
       if (body.login) setLogin(body.login);
     } catch (error) {
@@ -131,7 +150,13 @@ export function AntigravityAuthPanel({
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action: 'submit', code: code.trim() }),
       });
-      const body = (await res.json().catch(() => ({}))) as { login?: LoginState; auth?: AntigravityStatus; ok?: boolean; message?: string; error?: string };
+      const body = (await res.json().catch(() => ({}))) as {
+        login?: LoginState;
+        auth?: AntigravityStatus;
+        ok?: boolean;
+        message?: string;
+        error?: string;
+      };
       if (!res.ok) throw new Error(body.error || body.message || `HTTP ${res.status}`);
       if (body.login) setLogin(body.login);
       if (body.auth) {
@@ -165,15 +190,16 @@ export function AntigravityAuthPanel({
 
   const ready = Boolean(status?.installed && status?.authenticated);
   const loginPending = Boolean(login?.active);
-  const description = loading && !status
-    ? 'Memeriksa koneksi ke server…'
-    : !status
-      ? 'Status belum bisa dibaca.'
-      : !status.installed
-        ? 'Antigravity CLI (agy) belum terpasang di server.'
-        : ready
-          ? 'Antigravity siap dipakai di chat.'
-          : 'Belum masuk. Mulai login lewat tombol di bawah.';
+  const description =
+    loading && !status
+      ? 'Memeriksa koneksi ke server…'
+      : !status
+        ? 'Status belum bisa dibaca.'
+        : !status.installed
+          ? 'Antigravity CLI (agy) belum terpasang di server.'
+          : ready
+            ? 'Antigravity siap dipakai di chat.'
+            : 'Belum masuk. Mulai login lewat tombol di bawah.';
 
   return (
     <div className="space-y-4" data-testid="antigravity-auth-panel">
@@ -193,7 +219,9 @@ export function AntigravityAuthPanel({
             Pasang Antigravity CLI di server, lalu periksa ulang:
           </p>
           <div className="flex items-center gap-1 rounded-md border bg-background/70 px-2 py-1">
-            <code className="min-w-0 flex-1 truncate text-[11px]">curl -fsSL https://antigravity.google/cli/install.sh | bash</code>
+            <code className="min-w-0 flex-1 truncate text-[11px]">
+              curl -fsSL https://antigravity.google/cli/install.sh | bash
+            </code>
           </div>
         </div>
       ) : null}
@@ -205,7 +233,12 @@ export function AntigravityAuthPanel({
               <AuthStep step={1} title="Buka halaman login Google">
                 {login?.url ? (
                   <div className="flex items-center gap-1">
-                    <Button asChild variant="outline" size="sm" className="min-w-0 flex-1 justify-start">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="min-w-0 flex-1 justify-start"
+                    >
                       <a href={login.url} target="_blank" rel="noreferrer">
                         <ExternalLink className="size-3.5 shrink-0" aria-hidden />
                         <span className="truncate">Buka accounts.google.com</span>
@@ -236,7 +269,11 @@ export function AntigravityAuthPanel({
                       aria-label="Kode verifikasi Google"
                       disabled={busy}
                     />
-                    <Button type="button" onClick={() => void submitCode()} disabled={busy || !code.trim()}>
+                    <Button
+                      type="button"
+                      onClick={() => void submitCode()}
+                      disabled={busy || !code.trim()}
+                    >
                       {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
                       Kirim
                     </Button>
@@ -254,7 +291,13 @@ export function AntigravityAuthPanel({
               </AuthStep>
             </ol>
             <div className="mt-3 flex justify-end border-t pt-3">
-              <Button type="button" variant="ghost" size="sm" onClick={() => void cancelLogin()} disabled={busy}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => void cancelLogin()}
+                disabled={busy}
+              >
                 Batalkan
               </Button>
             </div>
@@ -270,8 +313,17 @@ export function AntigravityAuthPanel({
             <p className="text-xs leading-relaxed text-muted-foreground">
               Login lewat browser Google. Kredensial disimpan oleh CLI di server.
             </p>
-            <Button type="button" onClick={() => void startLogin()} disabled={busy} className="w-full">
-              {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Terminal className="size-4" aria-hidden />}
+            <Button
+              type="button"
+              onClick={() => void startLogin()}
+              disabled={busy}
+              className="w-full"
+            >
+              {busy ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Terminal className="size-4" aria-hidden />
+              )}
               Mulai login
             </Button>
             {actionError ? <p className="text-xs text-destructive">{actionError}</p> : null}
@@ -292,7 +344,12 @@ export function AntigravityAuthPanel({
                 {modelsLoading && models.length === 0 ? '…' : models.length}
               </Badge>
             </span>
-            <RefreshCw className={cn('size-4 text-muted-foreground transition-transform', modelsOpen && 'rotate-180')} />
+            <RefreshCw
+              className={cn(
+                'size-4 text-muted-foreground transition-transform',
+                modelsOpen && 'rotate-180',
+              )}
+            />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>

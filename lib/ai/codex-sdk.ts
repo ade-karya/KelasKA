@@ -340,7 +340,11 @@ export function resolveCodexBinary(): string | null {
   }
 
   // bun cache fallback (and parent dirs for standalone builds).
-  const roots = [process.cwd(), path.join(process.cwd(), '..'), path.join(process.cwd(), '..', '..')];
+  const roots = [
+    process.cwd(),
+    path.join(process.cwd(), '..'),
+    path.join(process.cwd(), '..', '..'),
+  ];
   for (const root of roots) {
     const bunRoot = path.join(root, 'node_modules', '.bun');
     try {
@@ -359,9 +363,27 @@ export function resolveCodexBinary(): string | null {
       // no .bun cache
     }
     // Hoisted platform package in this root.
-    const hoisted = path.join(root, 'node_modules', '@openai', 'codex-linux-x64', 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex');
+    const hoisted = path.join(
+      root,
+      'node_modules',
+      '@openai',
+      'codex-linux-x64',
+      'vendor',
+      'x86_64-unknown-linux-musl',
+      'bin',
+      'codex',
+    );
     candidates.push(hoisted);
-    const hoistedShim = path.join(root, 'node_modules', '@openai', 'codex', 'vendor', 'x86_64-unknown-linux-musl', 'bin', 'codex');
+    const hoistedShim = path.join(
+      root,
+      'node_modules',
+      '@openai',
+      'codex',
+      'vendor',
+      'x86_64-unknown-linux-musl',
+      'bin',
+      'codex',
+    );
     candidates.push(hoistedShim);
   }
 

@@ -17,7 +17,10 @@ import type {
 import type { StreamFn } from '@earendil-works/pi-agent-core';
 
 import { runAntigravityCliTurn, type AntigravityCliTurnResult } from '@/lib/ai/antigravity-cli';
-import { ANTIGRAVITY_SDK_THINKING, ANTIGRAVITY_SDK_THINKING_GEMINI_FLASH } from '@/lib/ai/providers';
+import {
+  ANTIGRAVITY_SDK_THINKING,
+  ANTIGRAVITY_SDK_THINKING_GEMINI_FLASH,
+} from '@/lib/ai/providers';
 import { pickThinkingEffort } from '@/lib/ai/thinking-config';
 import type { ThinkingConfig } from '@/lib/types/provider';
 import { combineAbortSignals } from './abort-signals';
@@ -76,7 +79,6 @@ function antigravityUsageToPi(usage: AntigravityCliTurnResult['usage']): Assista
   };
 }
 
-
 async function pump(
   stream: AssistantEventStream,
   context: PiContext,
@@ -97,7 +99,9 @@ async function pump(
 
   let settled = false;
   const cleanup: Array<() => void> = [];
-  const runCleanup = () => { for (const fn of cleanup.splice(0)) fn(); };
+  const runCleanup = () => {
+    for (const fn of cleanup.splice(0)) fn();
+  };
 
   const settleError = (reason: 'error' | 'aborted', error: unknown): void => {
     if (settled) return;
@@ -121,9 +125,14 @@ async function pump(
     calls.forEach((call, callIndex) => {
       const index = partial.content.length;
       let args: Record<string, unknown> = {};
-      if (call.arguments && typeof call.arguments === 'object') args = call.arguments as Record<string, unknown>;
+      if (call.arguments && typeof call.arguments === 'object')
+        args = call.arguments as Record<string, unknown>;
       else if (typeof call.arguments === 'string') {
-        try { args = JSON.parse(call.arguments); } catch { args = {}; }
+        try {
+          args = JSON.parse(call.arguments);
+        } catch {
+          args = {};
+        }
       }
       const toolCall: ToolCall = {
         type: 'toolCall',
@@ -140,7 +149,13 @@ async function pump(
   try {
     const timeoutMs = opts.timeoutMs ?? 900_000;
     const timeout = new AbortController();
-    const timer = setTimeout(() => timeout.abort(new Error(`Antigravity CLI turn timed out after ${Math.round(timeoutMs / 1000)}s`)), timeoutMs) as ReturnType<typeof setTimeout> & { unref?: () => void };
+    const timer = setTimeout(
+      () =>
+        timeout.abort(
+          new Error(`Antigravity CLI turn timed out after ${Math.round(timeoutMs / 1000)}s`),
+        ),
+      timeoutMs,
+    ) as ReturnType<typeof setTimeout> & { unref?: () => void };
     timer.unref?.();
     cleanup.push(() => clearTimeout(timer));
 
@@ -148,17 +163,25 @@ async function pump(
     cleanup.push(combined.cleanup);
     const onAbort = () => {
       const reason = combined.signal?.reason;
-      settleError(timeout.signal.aborted ? 'error' : 'aborted', timeout.signal.aborted ? reason : (reason ?? 'Operation aborted'));
+      settleError(
+        timeout.signal.aborted ? 'error' : 'aborted',
+        timeout.signal.aborted ? reason : (reason ?? 'Operation aborted'),
+      );
     };
     combined.signal?.addEventListener('abort', onAbort, { once: true });
     cleanup.push(() => combined.signal?.removeEventListener('abort', onAbort));
-    if (combined.signal?.aborted) { onAbort(); return; }
+    if (combined.signal?.aborted) {
+      onAbort();
+      return;
+    }
 
     const prompt = buildAntigravityTurnPrompt(context);
-    const systemInstructions = 'You are the model half of the OpenMAIC Pro Workbench. Follow the turn instructions exactly; the OpenMAIC harness executes tools.';
-    const capability = opts.modelId === 'gemini-3.8-flash'
-      ? ANTIGRAVITY_SDK_THINKING_GEMINI_FLASH
-      : ANTIGRAVITY_SDK_THINKING;
+    const systemInstructions =
+      'You are the model half of the OpenMAIC Pro Workbench. Follow the turn instructions exactly; the OpenMAIC harness executes tools.';
+    const capability =
+      opts.modelId === 'gemini-3.8-flash'
+        ? ANTIGRAVITY_SDK_THINKING_GEMINI_FLASH
+        : ANTIGRAVITY_SDK_THINKING;
     const effort = opts.thinkingConfig
       ? pickThinkingEffort(capability, opts.thinkingConfig)
       : capability.defaultEffort;
@@ -179,7 +202,11 @@ async function pump(
     partial.stopReason = result.toolCalls.length > 0 ? 'toolUse' : 'stop';
     settled = true;
     runCleanup();
-    stream.push({ type: 'done', reason: result.toolCalls.length > 0 ? 'toolUse' : 'stop', message: partial });
+    stream.push({
+      type: 'done',
+      reason: result.toolCalls.length > 0 ? 'toolUse' : 'stop',
+      message: partial,
+    });
   } catch (error) {
     if (settled) return;
     settleError('error', error);
@@ -213,7 +240,9 @@ export function renderAntigravityConversation(messages: PiMessage[]): string {
       for (const block of message.content) {
         if (block.type === 'text') out.push(block.text);
         else if (block.type === 'toolCall') {
-          out.push(`<tool_call name="${block.name}">${JSON.stringify(block.arguments)}</tool_call>`);
+          out.push(
+            `<tool_call name="${block.name}">${JSON.stringify(block.arguments)}</tool_call>`,
+          );
         }
       }
     } else if (message.role === 'toolResult') {

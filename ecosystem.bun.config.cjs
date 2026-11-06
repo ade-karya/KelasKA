@@ -80,7 +80,8 @@ if (!env.PORT) env.PORT = '3000';
 // Endpoint health membaca npm_package_version yang biasanya diisi npm.
 if (pkgVersion && !env.npm_package_version) env.npm_package_version = pkgVersion;
 // Teruskan override binary Bun (opsional) ke wrapper.
-if (process.env.OPENMAIC_BUN_BIN && !env.OPENMAIC_BUN_BIN) env.OPENMAIC_BUN_BIN = process.env.OPENMAIC_BUN_BIN;
+if (process.env.OPENMAIC_BUN_BIN && !env.OPENMAIC_BUN_BIN)
+  env.OPENMAIC_BUN_BIN = process.env.OPENMAIC_BUN_BIN;
 
 module.exports = {
   apps: [
