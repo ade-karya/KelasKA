@@ -60,8 +60,8 @@ export function AntigravityAuthPanel({
     setModelsLoading(true);
     try {
       const [authRes, modelsRes] = await Promise.all([
-        fetch('/api/agent/auth', { credentials: 'include' }),
-        fetch('/api/agent/models', { credentials: 'include' }),
+        fetch('/api/agent/auth', { credentials: 'include', cache: 'no-store' }),
+        fetch('/api/agent/models', { credentials: 'include', cache: 'no-store' }),
       ]);
       const authBody = (await authRes.json().catch(() => ({}))) as {
         antigravity?: AntigravityStatus;
@@ -93,7 +93,7 @@ export function AntigravityAuthPanel({
     if (!login?.active) return;
     const timer = setInterval(async () => {
       try {
-        const res = await fetch('/api/agent/auth/antigravity-cli', { credentials: 'include' });
+        const res = await fetch('/api/agent/auth/antigravity-cli', { credentials: 'include', cache: 'no-store' });
         const body = (await res.json().catch(() => ({}))) as {
           login?: LoginState;
           auth?: AntigravityStatus;

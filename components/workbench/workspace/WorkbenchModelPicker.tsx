@@ -86,7 +86,7 @@ export function WorkbenchModelPicker() {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch('/api/agent/models', { credentials: 'include' });
+      const res = await fetch('/api/agent/models', { credentials: 'include', cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = (await res.json()) as AgentModelsResponse;
       const list = Array.isArray(body.models) ? body.models : [];
