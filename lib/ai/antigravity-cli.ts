@@ -164,89 +164,106 @@ export async function runAntigravityCliTurn(
   const prompt = `${req.systemInstructions}\n\n${req.prompt}`;
   const effort = effortToAgy(req.thinkingLevel);
 
-  return new Promise((resolve, reject) => {
-    const child = spawn(
-      bin,
-      [
-        '--print',
-        prompt,
-        '--output-format',
-        'json',
-        '--json-schema',
-        schemaFile,
-        '--model',
-        req.model,
+  const runAttempt = (effort: string | undefined): Promise<{
+    code: number | null;
+    stdout: string;
+    stderr: string;
+  }> =>
+    new Promise((resolve, reject) => {
+      const child = spawn(bin, [
+        '--print', prompt,
+        '--output-format', 'json',
+        '--json-schema', schemaFile,
+        '--model', req.model,
         '--dangerously-skip-permissions',
         ...(effort ? ['--effort', effort] : []),
-      ],
-      { stdio: ['ignore', 'pipe', 'pipe'] },
-    );
-    let stdout = '';
-    let stderr = '';
-    const timer = setTimeout(() => {
-      try {
-        child.kill('SIGKILL');
-      } catch {}
-      reject(new Error(`Antigravity CLI timed out after ${Math.round(timeoutMs / 1000)}s`));
-    }, timeoutMs);
+      ], { stdio: ['ignore', 'pipe', 'pipe'] });
+      let stdout = '';
+      let stderr = '';
+      const timer = setTimeout(() => {
+        try { child.kill('SIGKILL'); } catch {}
+        reject(new Error(`Antigravity CLI timed out after ${Math.round(timeoutMs / 1000)}s`));
+      }, timeoutMs);
 
-    child.stdout.on('data', (d: Buffer) => {
-      stdout += d.toString('utf8');
-    });
-    child.stderr.on('data', (d: Buffer) => {
-      if (stderr.length < STDERR_TAIL_CHARS) stderr += d.toString('utf8');
-    });
-    child.on('error', (err) => {
-      clearTimeout(timer);
-      reject(err);
-    });
-    child.on('close', (code) => {
-      clearTimeout(timer);
-      // cleanup
-      try {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      } catch {}
-      if (code !== 0 && !stdout.trim()) {
-        reject(new Error(`Antigravity CLI exited ${code}: ${stderr.slice(-500)}`));
-        return;
-      }
-      let envelope: AntigravityCliEnvelope;
-      try {
-        envelope = JSON.parse(stdout.trim()) as AntigravityCliEnvelope;
-      } catch {
-        reject(new Error(`Antigravity CLI returned non-JSON output: ${stdout.slice(0, 300)}`));
-        return;
-      }
-      const structured = envelope.structured_output ?? envelope.structured ?? null;
-      const text =
-        structured && typeof structured.text === 'string'
-          ? structured.text
-          : typeof envelope.response === 'string'
-            ? envelope.response
-            : '';
-      const rawCalls =
-        structured && Array.isArray(structured.toolCalls) ? structured.toolCalls : [];
-      const toolCalls = rawCalls.map((value) => {
-        const call = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
-        return {
-          name: String(call.name ?? ''),
-          arguments:
-            call.arguments && typeof call.arguments === 'object'
-              ? (call.arguments as Record<string, unknown>)
-              : {},
-        };
+      child.stdout.on('data', (d: Buffer) => { stdout += d.toString('utf8'); });
+      child.stderr.on('data', (d: Buffer) => {
+        if (stderr.length < STDERR_TAIL_CHARS) stderr += d.toString('utf8');
       });
-      const usage = envelope.usage
-        ? {
-            promptTokenCount: envelope.usage.input_tokens ?? envelope.usage.inputTokens,
-            candidatesTokenCount: envelope.usage.output_tokens ?? envelope.usage.outputTokens,
-            thoughtsTokenCount: envelope.usage.thinking_tokens,
-            cachedContentTokenCount: envelope.usage.cache_read_tokens,
-          }
-        : null;
-      resolve({ text, toolCalls, usage });
+      child.on('error', (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+      child.on('close', (code) => {
+        clearTimeout(timer);
+        try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+        // Recreate tmpDir for a possible retry? The schema file is gone; recreate below if needed.
+        resolve({ code, stdout, stderr });
+      });
     });
+
+  // Some models reject certain --effort values and then emit no structured
+  // output (and zero usage). Retry once without --effort so the turn still
+  // succeeds; the thinking level is a hint, not a hard requirement.
+  let attempt = await runAttempt(effort);
+  let envelope: AntigravityCliEnvelope | null = null;
+  try {
+    envelope = JSON.parse(attempt.stdout.trim()) as AntigravityCliEnvelope;
+  } catch {
+    envelope = null;
+  }
+  const hasStructured =
+    !!envelope &&
+    (envelope.structured_output != null || envelope.structured != null);
+  const usage = envelope?.usage;
+  const hasUsage =
+    !!usage &&
+    ((usage.output_tokens ?? usage.outputTokens ?? 0) > 0 ||
+      (usage.input_tokens ?? usage.inputTokens ?? 0) > 0);
+  if (effort && (!hasStructured || !hasUsage)) {
+    // Recreate schema file for retry.
+    fs.mkdirSync(tmpDir, { recursive: true });
+    fs.writeFileSync(schemaFile, JSON.stringify(req.responseSchema));
+    attempt = await runAttempt(undefined);
+    try {
+      envelope = JSON.parse(attempt.stdout.trim()) as AntigravityCliEnvelope;
+    } catch {
+      envelope = null;
+    }
+  }
+
+  const { code, stdout, stderr } = attempt;
+  if (code !== 0 && !stdout.trim()) {
+    throw new Error(`Antigravity CLI exited ${code}: ${stderr.slice(-500)}`);
+  }
+  let finalEnvelope: AntigravityCliEnvelope;
+  try {
+    finalEnvelope = JSON.parse(stdout.trim()) as AntigravityCliEnvelope;
+  } catch {
+    throw new Error(`Antigravity CLI returned non-JSON output: ${stdout.slice(0, 300)}`);
+  }
+  const structured = finalEnvelope.structured_output ?? finalEnvelope.structured ?? null;
+  const text = (structured && typeof structured.text === 'string')
+    ? structured.text
+    : (typeof finalEnvelope.response === 'string' ? finalEnvelope.response : '');
+  const rawCalls = (structured && Array.isArray(structured.toolCalls)) ? structured.toolCalls : [];
+  const toolCalls = rawCalls.map((value) => {
+    const call = (value && typeof value === 'object' ? value : {}) as Record<string, unknown>;
+    return {
+      name: String(call.name ?? ''),
+      arguments: (call.arguments && typeof call.arguments === 'object')
+        ? call.arguments as Record<string, unknown>
+        : {},
+    };
   });
+  const finalUsage = finalEnvelope.usage
+    ? {
+        promptTokenCount: finalEnvelope.usage.input_tokens ?? finalEnvelope.usage.inputTokens,
+        candidatesTokenCount: finalEnvelope.usage.output_tokens ?? finalEnvelope.usage.outputTokens,
+        thoughtsTokenCount: finalEnvelope.usage.thinking_tokens,
+        cachedContentTokenCount: finalEnvelope.usage.cache_read_tokens,
+      }
+    : null;
+  return { text, toolCalls, usage: finalUsage };
 }
 
 export async function antigravityCliAvailable(): Promise<boolean> {
