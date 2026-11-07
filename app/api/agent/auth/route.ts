@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 
 import { codexAuthLogin, codexAuthLogout, codexAuthStatus } from '@/lib/ai/codex-auth';
+import { opencodeAuthStatus } from '@/lib/ai/opencode-auth';
 import { invalidateCodexModelCache } from '@/lib/ai/codex-app-server';
 import { antigravityCliAuthStatus } from '@/lib/ai/antigravity-cli-auth';
 import { resetDiscoveredCodexIds } from '@/lib/server/agent-runtime/opencode-models';
@@ -8,8 +9,12 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 export async function GET() {
   try {
-    const [codex, antigravity] = await Promise.all([codexAuthStatus(), antigravityCliAuthStatus()]);
-    return apiSuccess({ codex, antigravity });
+    const [codex, antigravity, opencode] = await Promise.all([
+      codexAuthStatus(),
+      antigravityCliAuthStatus(),
+      opencodeAuthStatus(),
+    ]);
+    return apiSuccess({ codex, antigravity, opencode });
   } catch (error) {
     return apiError(
       'INTERNAL_ERROR',

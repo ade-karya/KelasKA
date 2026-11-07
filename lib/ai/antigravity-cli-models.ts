@@ -28,7 +28,9 @@ export async function listAntigravityModels(force = false): Promise<AntigravityD
       const parts = trimmed.split(/\t|\s{2,}/);
       if (parts.length < 1) continue;
       const id = parts[0].trim();
+      // Model ids are slugs; drop banner/error lines like "Error: Please sign in…".
       if (!id || /fetching|available models/i.test(id)) continue;
+      if (!/^[a-z0-9][a-z0-9._-]*$/i.test(id)) continue;
       const name = parts.slice(1).join(' ').trim() || id;
       models.push({ id, displayName: name });
     }

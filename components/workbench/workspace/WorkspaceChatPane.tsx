@@ -21,7 +21,6 @@ import { WorkbenchChat } from '@/components/workbench/WorkbenchChat';
 import type { MaterialSeed } from '@/components/workbench/compose-extras';
 import { PaneFoldButton } from './PaneFoldButton';
 import { WorkbenchModelPicker } from './WorkbenchModelPicker';
-import { WorkbenchAuthDialog } from './WorkbenchAuthDialog';
 import { useWorkbenchStore } from '@/lib/workbench/session-store';
 import { presentWorkspaceSession } from '@/lib/workbench/workspace-navigation';
 import { SESSION_TITLE_MAX_LENGTH, workbenchSessionTitle } from '@/lib/workbench/session-title';
@@ -186,7 +185,6 @@ export function WorkspaceChatPane({
           <span className="ws-pane-eyebrow shrink-0">{t(presentation.labelKey)}</span>
         )}
         <WorkbenchModelPicker />
-        <WorkbenchAuthDialog />
         {onCollapse ? (
           <PaneFoldButton
             testId="workspace-chat-fold"

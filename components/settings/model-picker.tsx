@@ -5,7 +5,7 @@
 // toolbar.* / settings.* 既有 key）。媒体模态（TTS/ASR/图像/视频）只传
 // groups，不传 thinking 回调，即为「仅搜索」的纯模型选择。
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Bot, Box, Brain, Check, CornerDownRight, Search } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -50,6 +50,23 @@ export interface ModelPickerGroup {
   icon?: string | null;
   /** A single-colour logo that is inverted on a dark background. */
   invertIcon?: boolean;
+}
+
+/**
+ * An action pinned to the bottom of the picker, below the model list.
+ *
+ * Provider logins belong next to the provider they unlock, so the workbench
+ * passes its "connect a model" entry here instead of putting a second key
+ * button in the chrome. Optional on purpose: the classic settings pickers
+ * render the same component with no footer.
+ */
+export interface ModelPickerFooterAction {
+  label: string;
+  description?: string;
+  icon?: ReactNode;
+  /** Draws a green dot on the action, e.g. when a provider is signed in. */
+  connected?: boolean;
+  onClick: () => void;
 }
 
 /** Logos with thin/wide artwork that read too small at `size-4` (DeepSeek's
@@ -340,6 +357,7 @@ export function ModelPicker({
   className,
   ariaLabel,
   note,
+  footerAction,
   t,
 }: {
   groups: ModelPickerGroup[];
@@ -360,6 +378,8 @@ export function ModelPicker({
   ariaLabel?: string;
   /** One muted line at the top of the dropdown, saying what picking here changes. */
   note?: string;
+  /** Optional action pinned below the list (provider login in the workbench). */
+  footerAction?: ModelPickerFooterAction;
   t: (key: string) => string;
 }) {
   const [open, setOpen] = useState(false);
@@ -595,6 +615,43 @@ export function ModelPicker({
           <div className="flex items-center gap-2 px-3 py-6 text-xs text-muted-foreground">
             <Bot className="size-4" />
             {t('settings.noModelsAvailable')}
+          </div>
+        )}
+
+        {footerAction && (
+          <div className="border-t p-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                // Close first: the dialog owns the focus trap, and leaving the
+                // popover open behind it makes Escape close the wrong layer.
+                setOpen(false);
+                footerAction.onClick();
+              }}
+              className="flex min-h-9 w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            >
+              {footerAction.icon ? (
+                <span
+                  className="flex size-7 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  {footerAction.icon}
+                </span>
+              ) : null}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-medium leading-tight">
+                  {footerAction.label}
+                </span>
+                {footerAction.description && (
+                  <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                    {footerAction.description}
+                  </span>
+                )}
+              </span>
+              {footerAction.connected ? (
+                <span className="size-1.5 shrink-0 rounded-full bg-green-500" aria-hidden="true" />
+              ) : null}
+            </button>
           </div>
         )}
       </PopoverContent>

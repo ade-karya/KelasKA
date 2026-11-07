@@ -1,17 +1,22 @@
 'use client';
 
 /**
- * Agent login entry point, opened from the key button in the workspace header.
+ * Agent login dialog, opened from the model picker's footer action.
  *
- * The dialog is a thin shell: two provider tabs (Antigravity / Codex) and a
- * quiet connection check so the trigger can show a green dot when at least one
- * provider is ready. All credential handling lives in the panels and on the
- * server — nothing secret reaches this component.
+ * The entry used to be a key button in the chat header, which put a credential
+ * action next to the session title and nowhere near the provider list it
+ * unlocks. It now lives inside the model picker, on both the home composer and
+ * the chat pane, so the login sits beside the Antigravity/Codex models it
+ * enables.
+ *
+ * The dialog is a thin shell: three provider tabs (OpenCode Console /
+ * Antigravity / Codex) and a quiet connection check so the opener can show a
+ * green dot when at least one provider is ready. All credential handling lives
+ * in the panels and on the server — nothing secret reaches this component.
  */
 
 import { useEffect, useState } from 'react';
-import { KeyRound, Sparkles, Terminal } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { KeyRound, Sparkles, SquareTerminal, Terminal } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -22,24 +27,36 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AntigravityAuthPanel } from './AntigravityAuthPanel';
 import { CodexAuthPanel } from './CodexAuthPanel';
+import { OpenCodeAuthPanel } from './OpenCodeAuthPanel';
 
-type ProviderTab = 'antigravity' | 'codex';
+type ProviderTab = 'opencode' | 'antigravity' | 'codex';
 
 interface AuthSnapshot {
   codex?: { loggedIn?: boolean };
   antigravity?: { authenticated?: boolean };
+  opencode?: { authenticated?: boolean };
 }
 
-export function WorkbenchAuthDialog() {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<ProviderTab>('antigravity');
+export function WorkbenchAuthDialog({
+  open,
+  onOpenChange,
+  onStatusChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** Reports whether at least one provider is signed in, for the opener dot. */
+  onStatusChange?: (connected: boolean) => void;
+}) {
+  const [tab, setTab] = useState<ProviderTab>('opencode');
+  const [opencodeConnected, setOpencodeConnected] = useState(false);
   const [antigravityConnected, setAntigravityConnected] = useState(false);
   const [codexConnected, setCodexConnected] = useState(false);
 
-  // Seed the trigger dot on mount and refresh it after the dialog closes. While
-  // the dialog is open the panels already fetch status, so skip the duplicate.
+  // Seed both tab dots when the dialog opens. The panels report their own
+  // status afterwards, but an inactive tab is not mounted yet, so without this
+  // its dot would stay grey until the user visited it.
   useEffect(() => {
-    if (open) return;
+    if (!open) return;
     let active = true;
     void (async () => {
       try {
@@ -49,8 +66,9 @@ export function WorkbenchAuthDialog() {
         if (!active) return;
         setAntigravityConnected(Boolean(body.antigravity?.authenticated));
         setCodexConnected(Boolean(body.codex?.loggedIn));
+        setOpencodeConnected(Boolean(body.opencode?.authenticated));
       } catch {
-        // The button is still usable; the panels report real errors once opened.
+        // The panels report real errors once the user asks for an action.
       }
     })();
     return () => {
@@ -58,76 +76,71 @@ export function WorkbenchAuthDialog() {
     };
   }, [open]);
 
-  const connected = antigravityConnected || codexConnected;
+  const connected = antigravityConnected || codexConnected || opencodeConnected;
+
+  useEffect(() => {
+    onStatusChange?.(connected);
+  }, [connected, onStatusChange]);
 
   return (
-    <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="relative h-8 w-8 shrink-0 p-0"
-        onClick={() => setOpen(true)}
-        title={connected ? 'Model AI terhubung — kelola login' : 'Hubungkan model AI'}
-        aria-label={connected ? 'Model AI terhubung, kelola login' : 'Hubungkan model AI'}
-      >
-        <KeyRound className="h-4 w-4" />
-        {connected ? (
-          <span
-            className="absolute top-1 right-1 size-1.5 rounded-full bg-green-500 ring-2 ring-background"
-            aria-hidden
-          />
-        ) : null}
-      </Button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader className="gap-3">
-            <div className="flex items-start gap-3 pr-6">
-              <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
-                aria-hidden
-              >
-                <KeyRound className="size-5" />
-              </span>
-              <div className="min-w-0 space-y-1">
-                <DialogTitle className="text-base">Hubungkan model AI</DialogTitle>
-                <DialogDescription className="text-xs leading-relaxed sm:text-sm">
-                  Masuk dengan akun yang sudah kamu punya. Kredensial disimpan di server dan tidak
-                  pernah dikirim ke browser.
-                </DialogDescription>
-              </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader className="gap-3">
+          <div className="flex items-start gap-3 pr-6">
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+              aria-hidden
+            >
+              <KeyRound className="size-5" />
+            </span>
+            <div className="min-w-0 space-y-1">
+              <DialogTitle className="text-base">Hubungkan model AI</DialogTitle>
+              <DialogDescription className="text-xs leading-relaxed sm:text-sm">
+                Masuk dengan akun yang sudah kamu punya. Kredensial disimpan di server dan tidak
+                pernah dikirim ke browser.
+              </DialogDescription>
             </div>
-          </DialogHeader>
+          </div>
+        </DialogHeader>
 
-          <Tabs value={tab} onValueChange={(value) => setTab(value as ProviderTab)}>
-            <TabsList className="h-10 w-full p-1">
-              <TabsTrigger value="antigravity" className="gap-2">
-                <Sparkles className="size-4" aria-hidden />
-                Antigravity
-                {antigravityConnected ? (
-                  <span className="size-1.5 rounded-full bg-green-500" aria-hidden />
-                ) : null}
-              </TabsTrigger>
-              <TabsTrigger value="codex" className="gap-2">
-                <Terminal className="size-4" aria-hidden />
-                Codex
-                {codexConnected ? (
-                  <span className="size-1.5 rounded-full bg-green-500" aria-hidden />
-                ) : null}
-              </TabsTrigger>
-            </TabsList>
+        <Tabs value={tab} onValueChange={(value) => setTab(value as ProviderTab)}>
+          <TabsList className="h-10 w-full p-1">
+            <TabsTrigger value="opencode" className="gap-2">
+              <SquareTerminal className="size-4" aria-hidden />
+              OpenCode
+              {opencodeConnected ? (
+                <span className="size-1.5 rounded-full bg-green-500" aria-hidden />
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger value="antigravity" className="gap-2">
+              <Sparkles className="size-4" aria-hidden />
+              Antigravity
+              {antigravityConnected ? (
+                <span className="size-1.5 rounded-full bg-green-500" aria-hidden />
+              ) : null}
+            </TabsTrigger>
+            <TabsTrigger value="codex" className="gap-2">
+              <Terminal className="size-4" aria-hidden />
+              Codex
+              {codexConnected ? (
+                <span className="size-1.5 rounded-full bg-green-500" aria-hidden />
+              ) : null}
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="antigravity" className="mt-4">
-              <AntigravityAuthPanel onConnectionChange={setAntigravityConnected} />
-            </TabsContent>
+          <TabsContent value="opencode" className="mt-4">
+            <OpenCodeAuthPanel onConnectionChange={setOpencodeConnected} />
+          </TabsContent>
 
-            <TabsContent value="codex" className="mt-4">
-              <CodexAuthPanel onConnectionChange={setCodexConnected} />
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
-    </>
+          <TabsContent value="antigravity" className="mt-4">
+            <AntigravityAuthPanel onConnectionChange={setAntigravityConnected} />
+          </TabsContent>
+
+          <TabsContent value="codex" className="mt-4">
+            <CodexAuthPanel onConnectionChange={setCodexConnected} />
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 }

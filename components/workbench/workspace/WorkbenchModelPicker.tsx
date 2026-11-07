@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { KeyRound } from 'lucide-react';
 import { ModelPicker } from '@/components/settings/model-picker';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { WorkbenchAuthDialog } from './WorkbenchAuthDialog';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 
 interface AgentModelItem {
@@ -66,12 +68,17 @@ function splitModelString(modelString: string): { providerId: string; modelId: s
  * dan perilaku identik.
  *
  * Membaca SEMUA model transport lokal yang diaktifkan installer
- * (OPENCODE_MODELS + OPENCODE_GO_MODELS + CODEX_MODELS + ANTIGRAVITY_MODELS via
- * GET /api/agent/models, empat grup provider) dan
+ * (OPENCODE_MODELS + OPENCODE_GO_MODELS via `opencode models` (login-aware),
+ * CODEX_MODELS / penemuan live Codex, ANTIGRAVITY_MODELS / `agy models` —
+ * empat grup provider) dan
  * memilih aktif via POST (data/agent-driver-model.json, berlaku untuk run
  * berikutnya tanpa restart). Varian thinking per model dipilih lewat kontrol
- * inline di baris terpilih (POST {model, thinking}). Dipakai di header chat
- * pane dan home composer — satu komponen untuk seluruh halaman /workspace.
+ * inline di baris terpilih (POST {model, thinking}). Dipakai di home composer
+ * dan header chat pane — satu komponen untuk seluruh halaman /workspace.
+ *
+ * Aksi login (OpenCode Console / Antigravity / Codex) dipasang sebagai aksi
+ * footer di popover yang sama, tepat di bawah daftar model, sehingga pintu
+ * masuk kredensial selalu berdampingan dengan provider yang dibukanya.
  */
 export function WorkbenchModelPicker() {
   const { t } = useI18n();
@@ -81,6 +88,38 @@ export function WorkbenchModelPicker() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authConnected, setAuthConnected] = useState(false);
+
+  // Green dot for the footer login action, seeded once on mount and kept in
+  // sync by the dialog afterwards.
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const res = await fetch('/api/agent/auth', { credentials: 'include' });
+        if (!res.ok) return;
+        const body = (await res.json().catch(() => ({}))) as {
+          codex?: { loggedIn?: boolean };
+          antigravity?: { authenticated?: boolean };
+          opencode?: { authenticated?: boolean };
+        };
+        if (!active) return;
+        setAuthConnected(
+          Boolean(
+            body?.antigravity?.authenticated ||
+            body?.codex?.loggedIn ||
+            body?.opencode?.authenticated,
+          ),
+        );
+      } catch {
+        // The login action is still reachable; the panels report real errors.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -239,25 +278,39 @@ export function WorkbenchModelPicker() {
     .filter((g) => g.models.length > 0);
 
   return (
-    <ModelPicker
-      groups={groups}
-      // Resolusi nama/badge ditangani ModelPicker (grup provider eksak dulu,
-      // lalu lintas-grup bila id sama di dua provider).
-      value={activeSplit}
-      onSelect={(providerId, modelId) => void choose(`${providerId}:${modelId}`)}
-      placeholder={
-        loading
-          ? t('workspace.modelPicker.loading')
-          : loadError
-            ? t('workspace.modelPicker.loadError')
-            : t('workspace.modelPicker.choose')
-      }
-      disabled={loading || saving}
-      thinkingConfig={thinking}
-      onThinkingChange={(config) => void changeThinking(config)}
-      ariaLabel={t('workspace.modelPicker.ariaLabel')}
-      className="w-auto min-w-0 max-w-full shrink-0"
-      t={t}
-    />
+    <>
+      <ModelPicker
+        groups={groups}
+        // Resolusi nama/badge ditangani ModelPicker (grup provider eksak dulu,
+        // lalu lintas-grup bila id sama di dua provider).
+        value={activeSplit}
+        onSelect={(providerId, modelId) => void choose(`${providerId}:${modelId}`)}
+        placeholder={
+          loading
+            ? t('workspace.modelPicker.loading')
+            : loadError
+              ? t('workspace.modelPicker.loadError')
+              : t('workspace.modelPicker.choose')
+        }
+        disabled={loading || saving}
+        thinkingConfig={thinking}
+        onThinkingChange={(config) => void changeThinking(config)}
+        ariaLabel={t('workspace.modelPicker.ariaLabel')}
+        footerAction={{
+          label: authConnected ? 'Model AI terhubung' : 'Hubungkan model AI',
+          description: 'OpenCode Console / Antigravity / Codex',
+          icon: <KeyRound className="size-4" />,
+          connected: authConnected,
+          onClick: () => setAuthOpen(true),
+        }}
+        className="w-auto min-w-0 max-w-full shrink-0"
+        t={t}
+      />
+      <WorkbenchAuthDialog
+        open={authOpen}
+        onOpenChange={setAuthOpen}
+        onStatusChange={setAuthConnected}
+      />
+    </>
   );
 }

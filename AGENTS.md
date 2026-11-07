@@ -33,6 +33,11 @@ Guidance for coding agents working in this repository, including the automated C
   ```
   `install.sh --with-pm2` performs the same sync automatically.
 
+## Workspace UI
+
+- The agent login entry (OpenCode Console / Antigravity / Codex) lives in the Pro Workbench model picker's footer action, not in the chat header. `WorkbenchAuthDialog` is controlled (`open`/`onOpenChange`/`onStatusChange`) and mounted by `WorkbenchModelPicker`; classic `components/settings/model-picker.tsx` renders the same popover without it via the optional `footerAction` prop.
+- The picker shows only models the signed-in account can actually use: live `opencode models` (login-aware; `OPENCODE_MODELS`/`OPENCODE_GO_MODELS` act as an optional operator allowlist intersected with the live list), Codex `model/list` gated on `codex login status`, and `agy models`. Empty or failed discovery means an empty group — never fall back to the static catalog in the dynamic path. `isActivatedDriverModel` trusts live discovery once `activatedDriverModelsDynamic()` has run.
+
 ## Code Review Rules
 
 ### Severity

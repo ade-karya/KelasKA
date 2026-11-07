@@ -8,6 +8,8 @@ import {
 } from '@/lib/ai/providers';
 import { listCodexModels } from '@/lib/ai/codex-app-server';
 import { listAntigravityModels } from '@/lib/ai/antigravity-cli-models';
+import { listOpencodeModels } from '@/lib/ai/opencode-cli-models';
+import { codexAuthStatus } from '@/lib/ai/codex-auth';
 import { getDefaultThinkingConfig, normalizeThinkingConfig } from '@/lib/ai/thinking-config';
 import type { ThinkingCapability, ThinkingConfig, ThinkingEffort } from '@/lib/types/provider';
 
@@ -17,19 +19,30 @@ const discoveredCodexModels = new Map<
   { reasoningEfforts: string[]; defaultReasoningEffort: string | null }
 >();
 const discoveredAntigravityIds = new Set<string>();
+// Runtime discovery outcomes, used by `isActivatedDriverModel`. `ran` stays false
+// until a dynamic listing ran in this process, so synchronous callers in dev keep
+// the old allowlist behaviour; once it ran, the live list is authoritative and
+// models the account cannot use are rejected.
+let opencodeDiscovery: { ran: boolean; ids: Set<string> } = { ran: false, ids: new Set() };
+let codexDiscoveryRan = false;
+let antigravityDiscoveryRan = false;
 
 /**
  * Daftar model transport lokal yang diaktifkan installer untuk Pro Workbench.
  *
- * Tiga provider (`opencode` dan `opencode-go` via `opencode run`, plus `codex`
- * via native `@openai/codex-sdk`), pola nexu-io/open-design:
- * - install.sh mengambil SEMUA model `opencode/*` + `opencode-go/*` via
- *   `opencode models` (login-aware untuk `opencode/`, live untuk
- *   `opencode-go/`) lalu mengaktifkan masing-masing di OPENCODE_MODELS /
- *   OPENCODE_GO_MODELS (comma-separated, bare id tanpa prefix). Bila pemilik
- *   sesi belum login, OPENCODE_GO_MODELS ditulis KOSONG sehingga grup Go
- *   disembunyikan dari pemilih (login lalu jalankan ulang installer untuk
- *   memunculkannya). Codex memakai CODEX_MODELS dengan aturan yang sama.
+ * Tiga+ provider (`opencode` dan `opencode-go` via `opencode run`, `codex`
+ * via native `@openai/codex-sdk`, `antigravity` via Google Antigravity SDK):
+ * - Model yang TAMPIL di pemilih selalu hasil penemuan live: `opencode
+ *   models` (login-aware), `model/list` Codex dan `agy models`. Model yang
+ *   akun tidak bisa pakai tidak pernah ditampilkan.
+ * - Untuk OpenCode, OPENCODE_MODELS / OPENCODE_GO_MODELS berfungsi sebagai
+ *   allowlist operator (comma-separated, bare id): daftar ditampilkan adalah
+ *   irisan allowlist dengan hasil `opencode models`. Variabel tidak ada atau
+ *   kosong = tanpa allowlist — tampilkan apa pun yang live-discovery temukan
+ *   (kosong bila CLI/login tidak tersedia).
+ * - CODEX_MODELS / ANTIGRAVITY_MODELS tetap ditulis installer sebagai catatan,
+ *   tetapi pemilih memakai penemuan live; saat penemuan gagal atau kosong,
+ *   tidak ada model yang ditampilkan.
  * - Tombol pemilih model di Pro Workbench (/workspace) membaca daftar ini via
  *   GET /api/agent/models dan memilih aktif (+ varian thinking per model)
  *   via POST (tersimpan di data/agent-driver-model.json, dipakai run
@@ -139,10 +152,10 @@ export function catalogOpencodeIds(provider: OpencodeCliProvider = 'opencode'): 
  * eksplisit dihormati apa adanya (tanpa menyuntik default) — installer yang
  * memastikan default ikut saat menulis daftar.
  *
- * Pengecualian: variabel ADA tapi KOSONG (mis. `OPENCODE_GO_MODELS=`) berarti
- * grup provider itu DISEMBUNYIKAN — installer menulisnya kosong bila pemilik
- * sesi belum `opencode auth login`. Bedakan dari variabel TAK ADA (unset)
- * yang berarti fallback katalog (instalasi manual / dev tanpa installer).
+ * Synchronous allowlist read (legacy/dev paths). Runtime discovery is the
+ * source of truth for what the picker shows; this function only backs the
+ * non-async call sites. `VAR` unset means "static catalog", `VAR=` empty means
+ * "no operator allowlist, follow live discovery", otherwise the listed ids.
  */
 export function activatedDriverIds(provider: DriverProvider): string[] {
   const raw = process.env[envVarFor(provider)];
@@ -220,6 +233,7 @@ export function activatedAntigravityModels(): ActivatedDriverModel[] {
 
 /** Model Antigravity yang tersedia untuk akun yang login (via `agy models`). */
 export async function activatedAntigravityModelsDynamic(): Promise<ActivatedDriverModel[]> {
+  antigravityDiscoveryRan = true;
   try {
     const discovered = await listAntigravityModels();
     if (discovered.length > 0) {
@@ -238,12 +252,20 @@ export async function activatedAntigravityModelsDynamic(): Promise<ActivatedDriv
   } catch {
     // fall through
   }
-  return activatedAntigravityModels();
+  // Penemuan kosong/gagal = tidak ada model yang bisa dipakai, jadi pemilih
+  // mengosongkan grupnya (bukan menampilkan katalog lama yang sudah mati).
+  return [];
 }
 
 /** Model Codex yang tersedia untuk akun yang login (via app-server model/list). */
 export async function activatedCodexModelsDynamic(): Promise<ActivatedDriverModel[]> {
+  codexDiscoveryRan = true;
   try {
+    // `model/list` mengembalikan katalog bawaan Codex bahkan tanpa login,
+    // jadi periksa status login dulu; kalau belum, tidak ada model yang bisa
+    // dipakai dan grupnya harus kosong.
+    const auth = await codexAuthStatus();
+    if (!auth.loggedIn) return [];
     const discovered = await listCodexModels();
     if (discovered.length > 0) {
       discovered.forEach((m) => {
@@ -276,16 +298,45 @@ export async function activatedCodexModelsDynamic(): Promise<ActivatedDriverMode
       });
     }
   } catch {
-    // fall through to static
+    // fall through: nothing usable to show
   }
-  return activatedCodexModels();
+  return [];
 }
 
-/** SEMUA model transport lokal, dengan codex yang ditemukan secara dinamis. */
+/** SEMUA model transport lokal, hanya yang bisa dipakai akun yang login. */
 export async function activatedDriverModelsDynamic(): Promise<ActivatedDriverModel[]> {
-  const opencode = activatedOpencodeModels();
-  const codex = await activatedCodexModelsDynamic();
-  const antigravity = await activatedAntigravityModelsDynamic();
+  const [opencodeLive, codex, antigravity] = await Promise.all([
+    listOpencodeModels(),
+    activatedCodexModelsDynamic(),
+    activatedAntigravityModelsDynamic(),
+  ]);
+  const liveByProvider = new Map<'opencode' | 'opencode-go', string[]>();
+  for (const provider of OPENCODE_CLI_PROVIDERS) liveByProvider.set(provider, []);
+  for (const model of opencodeLive) {
+    liveByProvider.get(model.provider)?.push(model.id);
+  }
+  opencodeDiscovery = {
+    ran: true,
+    ids: new Set(opencodeLive.map((model) => `${model.provider}:${model.id}`)),
+  };
+  const opencode: ActivatedDriverModel[] = [];
+  for (const provider of OPENCODE_CLI_PROVIDERS) {
+    const live = liveByProvider.get(provider) ?? [];
+    const raw = process.env[envVarFor(provider)];
+    let ids: string[];
+    if (raw !== undefined && raw.trim() !== '') {
+      // Allowlist operator: irisan dengan yang benar-benar bisa dipakai akun.
+      const liveSet = new Set(live);
+      ids = dedupe(splitIds(raw, provider)).filter((id) => liveSet.has(id));
+    } else {
+      // Tanpa allowlist: apa pun yang live-discovery temukan (login-aware).
+      ids = dedupe(live);
+    }
+    for (const id of ids) {
+      const item = modelEntry(provider, id);
+      if (item) opencode.push(item);
+    }
+  }
   return [...opencode, ...codex, ...antigravity];
 }
 
@@ -393,18 +444,33 @@ export function normalizeOpencodeModelInput(raw: string): string | null {
 export function resetDiscoveredCodexIds(): void {
   discoveredCodexIds.clear();
   discoveredCodexModels.clear();
+  codexDiscoveryRan = false;
 }
 
 export function resetDiscoveredAntigravityIds(): void {
   discoveredAntigravityIds.clear();
+  antigravityDiscoveryRan = false;
+}
+
+/** Drop the live OpenCode discovery cache (after sign-in / model catalog changes). */
+export function resetDiscoveredOpencodeIds(): void {
+  opencodeDiscovery = { ran: false, ids: new Set() };
 }
 
 export function isActivatedDriverModel(provider: DriverProvider, id: string): boolean {
-  // Codex models discovered at runtime (app-server model/list) are activated
-  // even when the installer's CODEX_MODELS predates them; everything else
-  // must be in the provider's activated list.
-  if (provider === CODEX_PROVIDER && discoveredCodexIds.has(id)) return true;
-  if (provider === ANTIGRAVITY_PROVIDER && discoveredAntigravityIds.has(id)) return true;
+  // Once live discovery ran in this process, its result is authoritative: models
+  // the account cannot use are rejected. Before that (synchronous cold path),
+  // keep the installer's allowlist so a fresh runner can still resolve the
+  // override the picker wrote.
+  if (provider === CODEX_PROVIDER) {
+    if (codexDiscoveryRan) return discoveredCodexIds.has(id);
+    return discoveredCodexIds.has(id) || activatedDriverIds(provider).includes(id);
+  }
+  if (provider === ANTIGRAVITY_PROVIDER) {
+    if (antigravityDiscoveryRan) return discoveredAntigravityIds.has(id);
+    return discoveredAntigravityIds.has(id) || activatedDriverIds(provider).includes(id);
+  }
+  if (opencodeDiscovery.ran) return opencodeDiscovery.ids.has(`${provider}:${id}`);
   return activatedDriverIds(provider).includes(id);
 }
 

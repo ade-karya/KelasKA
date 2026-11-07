@@ -938,6 +938,10 @@ siapkan_openmaic_yml
 #   OPENCODE_MODELS / OPENCODE_GO_MODELS  <- `opencode models`
 #   CODEX_MODELS                          <- `codex app-server` (model/list)
 # Kegagalan (offline, belum login, binary absen) tidak menghapus daftar lama.
+# Selain itu pemilih model di OpenMAIC memfilter ulang terhadap hasil live
+# `opencode models` / `model/list` / `agy models` saat menampilkan daftar,
+# sehingga model yang akun tidak bisa pakai tidak pernah muncul, walaupun
+# masih tercantum di .env.local.
 # Blok `models:` di openmaic.yml yang dibuat installer ikut diperbarui; file
 # milik user tidak disentuh. Matikan dengan --no-model-refresh.
 OPENCODE_DEAD_IDS=(exo-free ling-3.0-flash-fin-free fledge-alpha-free)
@@ -2028,9 +2032,12 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   echo "  from google.colab import output"
   echo "  output.serve_kernel_port_as_window(3000)"
   echo ""
-  echo "Colab: autentikasi Codex (jika pakai transport codex-sdk) dilakukan di"
-  echo "  UI Pro Workbench (ikon kunci di header chat pane) via device code —"
-  echo "  tidak perlu terminal."
+  echo "Colab: autentikasi OpenCode Console / Antigravity / Codex dilakukan di"
+  echo "  UI Pro Workbench: buka pemilih model (di atas composer / header chat"
+  echo "  pane), lalu pilih 'Hubungkan model AI' di bagian bawah popover — tidak"
+  echo "  perlu terminal. Login OpenCode Console memakai device code otomatis;"
+  echo "  kredensial disimpan oleh CLI. Pemilih model hanya menampilkan model"
+  echo "  yang bisa dipakai akun yang login."
   echo ""
   echo "Colab: jaga runtime tetap hidup (anti-idle) dengan sel Python looping:"
   echo "  from IPython.display import display, Javascript"
