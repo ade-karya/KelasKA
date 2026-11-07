@@ -103,6 +103,13 @@ const SHIPPED: readonly (readonly [
     'ee75e9d5cd1e893975386a6ee4cfbcac47db7a92f9a68765ca3391d28b7001d8',
   ],
   [
+    'owner-material',
+    6,
+    'restore_asset_id',
+    true,
+    '3c5f7275d1c958e2e3fd308dc41ba1d2356efd20e9038e463c73aa5a155c0bcc',
+  ],
+  [
     'asset',
     1,
     'baseline',

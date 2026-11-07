@@ -12,6 +12,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Guidance for coding agents working in this repository, including the automated Codex review that runs on every non-draft pull request. The contribution workflow is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Build and Test Resources
+
+- Maximize the RAM a memory-heavy Node task may use instead of leaving Node's default heap. The Next.js production build type-checks a large module graph and can exceed the default ~2 GB limit, failing with `FATAL ERROR: Reached heap limit`.
+- Check `free -h` first, then set `NODE_OPTIONS` below the available RAM so the OS keeps headroom. On the 12 GB Colab host, use:
+  ```bash
+  NODE_OPTIONS="--max-old-space-size=8192" bun run build
+  ```
+- Use the same setting for other heavy runs (large test suites, type checks). Do not run several memory-heavy tasks at once.
+
 ## Code Review Rules
 
 ### Severity

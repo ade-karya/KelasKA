@@ -263,6 +263,19 @@ const OWNER_MATERIAL_TOUCHED_AT = `
 ALTER TABLE owner_material ADD COLUMN IF NOT EXISTS touched_at DOUBLE PRECISION;
 `;
 
+/**
+ * Version 6: restore the pool pointer on databases that recorded version 5 but
+ * no longer have `asset_id`. Version 2 drops the column, and a database that
+ * replayed that statement after version 5 (or was restored without the
+ * column) keeps the version-5 record while missing the pointer, so every
+ * library read and extraction claim fails with `column "asset_id" does not
+ * exist`. Re-adding it here heals such a database without touching the
+ * shipped version 5.
+ */
+const OWNER_MATERIAL_ASSET_ID_REPAIR = `
+ALTER TABLE owner_material ADD COLUMN IF NOT EXISTS asset_id TEXT;
+`;
+
 const OWNER_MATERIAL_LIBRARY = `
 -- Library columns. Optional pointers and a defaulted retention class keep
 -- existing main uploads temporary. asset_id is the pool pointer library readers
@@ -358,6 +371,7 @@ export const OWNER_MATERIAL_MIGRATIONS: SchemaMigrationSet = {
     { version: 3, name: 'extraction_lease', up: OWNER_MATERIAL_EXTRACTION_LEASE },
     { version: 4, name: 'touched_at', up: OWNER_MATERIAL_TOUCHED_AT },
     { version: 5, name: 'material_library', up: OWNER_MATERIAL_LIBRARY },
+    { version: 6, name: 'restore_asset_id', up: OWNER_MATERIAL_ASSET_ID_REPAIR },
   ],
 };
 

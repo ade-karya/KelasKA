@@ -90,6 +90,25 @@ it('appends library migrations to a recorded main schema without losing material
   expect((await db.query(`SELECT * FROM agent_session_material_links`)).rows).toEqual([]);
 });
 
+it('restores asset_id when the library migration is recorded but the column is gone', async () => {
+  db = new PGlite();
+  await db.waitReady;
+  await applySchemaMigrations(db, {
+    ...OWNER_MATERIAL_MIGRATIONS,
+    migrations: OWNER_MATERIAL_MIGRATIONS.migrations.filter((m) => m.version <= 5),
+  });
+  // A database that replayed the version-2 drop after version 5, or was
+  // restored without the column, keeps the version-5 record but cannot be read.
+  await db.query(`ALTER TABLE owner_material DROP COLUMN asset_id`);
+  await ensureOwnerMaterialSchema(db);
+  const columns = await db.query<{ column_name: string }>(
+    `SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'owner_material' AND column_name = 'asset_id'`,
+  );
+  expect(columns.rows).toHaveLength(1);
+  expect(await listOwnerLibrary(db, 'owner')).toEqual([]);
+}, 30_000);
+
 it('cleanup keeps all successful uploads regardless of historical retention', async () => {
   db = new PGlite();
   await db.waitReady;
