@@ -25,6 +25,8 @@ import {
   type AgentSessionHooks,
   type AgentSessionMeta,
   type AgentSessionAutomaticTitleStore,
+  type AgentSessionDriverModel,
+  type AgentSessionDriverModelStore,
   type AgentSessionStore,
   type AgentSessionSkillStore,
   type AgentSessionTitleStore,
@@ -322,6 +324,12 @@ export const AGENT_SESSION_PG_MIGRATIONS: SchemaMigrationSet = {
       up: `ALTER TABLE agent_sessions ADD COLUMN IF NOT EXISTS locale TEXT;`,
       transaction: true,
     },
+    {
+      version: 4,
+      name: 'driver_model',
+      up: `ALTER TABLE agent_sessions ADD COLUMN IF NOT EXISTS driver_model JSONB;`,
+      transaction: true,
+    },
   ],
 };
 
@@ -436,6 +444,7 @@ interface SessionRow extends Record<string, unknown> {
   skill_id: string | null;
   origin: string | null;
   locale: string | null;
+  driver_model: unknown;
   existing_course: boolean;
   status: AgentSessionMeta['status'];
   attempt: number;
@@ -449,7 +458,7 @@ interface SessionRow extends Record<string, unknown> {
 }
 
 const SESSION_COLUMNS = `id, owner_id, prompt, title, stage_id, skill_id, origin, locale,
-  existing_course, status, attempt, delivered_user_message_seq, lease_worker_id, lease_worker_pid,
+  driver_model, existing_course, status, attempt, delivered_user_message_seq, lease_worker_id, lease_worker_pid,
   lease_heartbeat_at, error, created_at, updated_at`;
 
 function epoch(value: Date | string): number {
@@ -465,7 +474,36 @@ function urlOrigin(value: string): string | null {
   }
 }
 
+/** Decode and minimally validate the stored per-conversation driver choice. */
+function driverModelOf(value: unknown): AgentSessionDriverModel | undefined {
+  if (value === null || value === undefined) return undefined;
+  try {
+    const decoded = decodedObject(value);
+    const model = typeof decoded.model === 'string' ? decoded.model.trim() : '';
+    if (!model || model.length > 512) return undefined;
+    const api = typeof decoded.api === 'string' && decoded.api.trim() ? decoded.api.trim() : undefined;
+    const driverModel: AgentSessionDriverModel = { model };
+    if (api) driverModel.api = api;
+    if (decoded.thinking !== undefined) driverModel.thinking = decoded.thinking;
+    return driverModel;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Clamp a host-provided driver choice to something safe to persist. */
+function sanitizeDriverModel(selection: AgentSessionDriverModel): AgentSessionDriverModel {
+  const model = sanitizePgText(selection.model).trim().slice(0, 512);
+  const sanitized: AgentSessionDriverModel = { model };
+  if (typeof selection.api === 'string' && selection.api.trim()) {
+    sanitized.api = sanitizePgText(selection.api).trim().slice(0, 64);
+  }
+  if (selection.thinking !== undefined) sanitized.thinking = selection.thinking;
+  return sanitized;
+}
+
 function sessionMeta(row: SessionRow): AgentSessionMeta {
+  const driverModel = driverModelOf(row.driver_model);
   return {
     id: row.id,
     ownerId: row.owner_id,
@@ -475,6 +513,7 @@ function sessionMeta(row: SessionRow): AgentSessionMeta {
     ...(row.skill_id ? { skillId: row.skill_id } : {}),
     ...(row.origin ? { origin: row.origin } : {}),
     ...(row.locale ? { locale: row.locale } : {}),
+    ...(driverModel ? { driverModel } : {}),
     existingCourse: row.existing_course,
     status: row.status,
     attempt: Number(row.attempt),
@@ -506,6 +545,7 @@ export class PgAgentSessionStore
     AgentSessionStore,
     AgentSessionSkillStore,
     AgentSessionTitleStore,
+    AgentSessionDriverModelStore,
     AgentSessionAutomaticTitleStore,
     AgentSessionEventLog,
     AgentSessionEntryTree,
@@ -580,11 +620,12 @@ export class PgAgentSessionStore
       // clearing or renaming during a rolling deploy replaces it, fencing both
       // claims and commits without another state or token.
       const title = input.titleState === 'pending' ? '' : null;
+      const driverModel = input.driverModel ? sanitizeDriverModel(input.driverModel) : null;
       const result = await tx.query<SessionRow>(
         `INSERT INTO ${this.table('sessions')}
           (id, owner_id, prompt, title, title_state, stage_id, skill_id, origin, existing_course,
-           status, attempt, locale)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, $11)
+           status, attempt, locale, driver_model)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, $11, $12)
          RETURNING ${SESSION_COLUMNS}`,
         [
           id,
@@ -598,6 +639,7 @@ export class PgAgentSessionStore
           input.existingCourse ?? false,
           input.status ?? 'queued',
           input.locale ? sanitizePgText(input.locale).slice(0, 35) : null,
+          driverModel ? encodeJson(driverModel, 'driverModel') : null,
         ],
       );
       const meta = sessionMeta(result.rows[0]!);
@@ -651,6 +693,34 @@ export class PgAgentSessionStore
         tx,
       );
       return meta;
+    });
+  }
+
+  async setSessionDriverModel(
+    sessionId: string,
+    ownerId: string,
+    selection: AgentSessionDriverModel | null,
+  ): Promise<AgentSessionMeta | null> {
+    return this.transaction(async (tx) => {
+      const driverModel = selection ? sanitizeDriverModel(selection) : null;
+      const result = await tx.query<SessionRow>(
+        `UPDATE ${this.table('sessions')}
+         SET driver_model = $3, updated_at = clock_timestamp()
+         WHERE id = $1 AND owner_id = $2 AND deleted_at IS NULL
+         RETURNING ${SESSION_COLUMNS}`,
+        [
+          sessionId,
+          ownerId,
+          driverModel ? encodeJson(driverModel, 'driverModel') : null,
+        ],
+      );
+      const row = result.rows[0];
+      if (!row) return null;
+      // No owner-projection event: the picker reads its own selection
+      // straight from the session row (GET/POST /api/agent/models), so no
+      // new projection type is needed and the event-type allow-list stays
+      // untouched.
+      return sessionMeta(row);
     });
   }
 

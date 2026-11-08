@@ -114,14 +114,14 @@ export const CODEX_SDK_THINKING: ThinkingCapability = {
 };
 
 /**
- * Thinking capability of the Antigravity SDK transport (`provider:
- * "antigravity"`, `api: "antigravity-sdk"`). The picker's effort becomes the
- * SDK `ThinkingLevel` (lib/agent/runtime/antigravity-stream-fn.ts); `none`
- * sends no level so the model keeps its default, while `xhigh`/`max` map to
- * the SDK's `extra_high`.
+ * Thinking capability of the Antigravity transport (`provider:
+ * "antigravity"`, `api: "antigravity-sdk"`). Turns run through the local
+ * `agy` CLI (lib/agent/runtime/antigravity-stream-fn.ts); the picker's
+ * effort becomes an effort level passed to the CLI. `none` sends no level so
+ * the model keeps its default.
  *
- * Gemini 3.8 Flash does not support `minimal` (the SDK rejects it), so it
- * gets a narrower ladder defined in `ANTIGRAVITY_SDK_THINKING_GEMINI_FLASH`.
+ * Gemini 3.8 Flash does not support `minimal`, so it gets a narrower ladder
+ * defined in `ANTIGRAVITY_SDK_THINKING_GEMINI_FLASH`.
  */
 export const ANTIGRAVITY_SDK_THINKING: ThinkingCapability = {
   control: 'effort',
@@ -1981,7 +1981,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
 
   codex: {
     id: 'codex',
-    name: 'Codex SDK',
+    name: 'Codex',
     // Transport SDK Codex LOKAL (lib/ai/codex-sdk.ts +
     // lib/agent/runtime/codex-stream-fn.ts) — BUKAN endpoint HTTP. Auth lewat
     // sesi `codex login` di server atau CODEX_API_KEY / OPENAI_API_KEY, jadi
@@ -2012,15 +2012,14 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
 
   antigravity: {
     id: 'antigravity',
-    name: 'Antigravity SDK',
-    // Transport Google Antigravity SDK LOKAL (lib/ai/antigravity-sdk.ts +
-    // lib/ai/antigravity_bridge.py + lib/agent/runtime/antigravity-stream-fn.ts)
-    // — BUKAN endpoint HTTP. Auth lewat GEMINI_API_KEY / GOOGLE_API_KEY atau
-    // Vertex AI (GOOGLE_GENAI_USE_VERTEXAI), jadi tidak ada API key di UI
-    // classic (lihat HIDDEN_PROVIDER_IDS). Model id diteruskan apa adanya ke
-    // SDK; operator bisa memperluas daftar lewat ANTIGRAVITY_MODELS /
-    // openmaic.yml. Angka konteks hanya estimasi kompaksi internal driver,
-    // tidak dikirim sebagai batas API.
+    name: 'Antigravity',
+    // Transport Google Antigravity CLI LOKAL (lib/ai/antigravity-cli.ts +
+    // lib/agent/runtime/antigravity-stream-fn.ts) — BUKAN endpoint HTTP. Auth
+    // lewat sesi `agy` (login Google tersimpan oleh CLI di server), jadi tidak
+    // ada API key di UI classic (lihat HIDDEN_PROVIDER_IDS). Model id
+    // diteruskan apa adanya ke CLI; operator bisa memperluas daftar lewat
+    // ANTIGRAVITY_MODELS / openmaic.yml. Angka konteks hanya estimasi kompaksi
+    // internal driver, tidak dikirim sebagai batas API.
     type: 'antigravity',
     requiresApiKey: false,
     icon: '/logos/gemini.svg',
@@ -2038,7 +2037,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
           streaming: true,
           tools: true,
           vision: false,
-          thinking: ANTIGRAVITY_SDK_THINKING,
+          thinking: ANTIGRAVITY_SDK_THINKING_GEMINI_FLASH,
         },
       },
       {
@@ -2872,8 +2871,8 @@ function createCodexSdkPlaceholderModel(modelId: string): LanguageModel {
 
 /**
  * The `antigravity` provider is the same kind of local transport: its turns
- * run through the Python Antigravity SDK (lib/ai/antigravity-sdk.ts) and never
- * reach `model`. The placeholder fails loudly for any other consumer.
+ * run through the Antigravity CLI (`agy`) and never reach `model`. The
+ * placeholder fails loudly for any other consumer.
  */
 function createAntigravitySdkPlaceholderModel(modelId: string): LanguageModel {
   const unsupported = (): never => {
@@ -3317,7 +3316,7 @@ export function getModel(config: ModelConfig): ModelWithInfo {
     }
 
     case 'antigravity': {
-      // Transport Google Antigravity SDK lokal (tanpa HTTP). Driver agen
+      // Transport Antigravity CLI lokal (tanpa HTTP). Driver agen
       // memakai lib/agent/runtime/antigravity-stream-fn.ts dan tidak pernah
       // memanggil model ini; placeholder-nya gagal keras bila ada konsumen lain.
       model = createAntigravitySdkPlaceholderModel(config.modelId);

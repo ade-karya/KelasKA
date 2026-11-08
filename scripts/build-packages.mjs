@@ -6,10 +6,15 @@
  * Node/pnpm installer: it uses Bun when available and falls back to npm. The
  * final sync steps always run with the current JavaScript runtime, so a
  * Bun-only host does not need Node.
+ *
+ * Packages whose dependencies are already built run concurrently (two at a
+ * time on a normal Colab runtime) so the long @openmaic/importer bundle
+ * overlaps the renderer/editor builds instead of waiting behind them.
  */
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { availableParallelism, cpus, totalmem } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -41,6 +46,84 @@ function run(command, args, cwd = root) {
   });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
+}
+
+/** Workspace dependencies of a package, used to schedule builds. */
+function workspaceDependencies(name) {
+  const manifest = JSON.parse(readFileSync(join(root, 'packages', name, 'package.json'), 'utf8'));
+  const dependencies = new Set();
+  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies']) {
+    for (const dependency of Object.keys(manifest[field] || {})) {
+      if (packages.includes(dependency)) dependencies.add(dependency);
+    }
+  }
+  return dependencies;
+}
+
+function buildPackage(name) {
+  const directory = join(root, 'packages', name);
+  if (!existsSync(join(directory, 'package.json'))) {
+    return Promise.reject(new Error(`[build-packages] Missing package manifest: ${directory}`));
+  }
+  console.log(`\n[build-packages] ${name}`);
+  return new Promise((resolve, reject) => {
+    const child = spawn(runner, ['run', 'build'], {
+      cwd: directory,
+      env: process.env,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
+    child.on('error', reject);
+    child.on('exit', (code, signal) => {
+      if (code === 0) resolve();
+      else reject(new Error(`[build-packages] ${name} gagal (${signal || `exit ${code}`})`));
+    });
+  });
+}
+
+async function buildWorkspacePackages() {
+  const dependencies = new Map(packages.map((name) => [name, workspaceDependencies(name)]));
+  const cpuCount =
+    typeof availableParallelism === 'function' ? availableParallelism() : cpus().length;
+  // Two bundlers fit on a 2-vCPU/8 GB Colab runtime; small runtimes stay serial.
+  const concurrency = cpuCount >= 2 && totalmem() >= 7 * 1024 ** 3 ? 2 : 1;
+  const pending = new Set(packages);
+  const finished = new Set();
+  let running = 0;
+  let firstError = null;
+
+  await new Promise((resolve) => {
+    const pump = () => {
+      while (!firstError && running < concurrency) {
+        const next = [...pending].find((name) =>
+          [...dependencies.get(name)].every((dependency) => finished.has(dependency)),
+        );
+        if (!next) break;
+        pending.delete(next);
+        running += 1;
+        buildPackage(next).then(
+          () => {
+            finished.add(next);
+            running -= 1;
+            console.log(`[build-packages] ${next} selesai.`);
+            pump();
+          },
+          (error) => {
+            running -= 1;
+            firstError ||= error;
+            pump();
+          },
+        );
+      }
+      if (running === 0) resolve();
+    };
+    pump();
+  });
+
+  if (firstError) throw firstError;
+  if (pending.size > 0) {
+    throw new Error(`[build-packages] dependency cycle: ${[...pending].join(', ')}`);
+  }
 }
 
 // Rebuilding every package on each `bun install` costs ~3 minutes on a small
@@ -102,14 +185,11 @@ if (outputsExist && currentHash === previousHash) {
 } else {
   // Drop the stamp first: an interrupted build must never look "up to date".
   rmSync(STAMP_FILE, { force: true });
-  for (const name of packages) {
-    const directory = join(root, 'packages', name);
-    if (!existsSync(join(directory, 'package.json'))) {
-      console.error(`[build-packages] Missing package manifest: ${directory}`);
-      process.exit(1);
-    }
-    console.log(`\n[build-packages] ${name}`);
-    run(runner, ['run', 'build'], directory);
+  try {
+    await buildWorkspacePackages();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
   }
   mkdirSync(dirname(STAMP_FILE), { recursive: true });
   writeFileSync(STAMP_FILE, `${currentHash}\n`);

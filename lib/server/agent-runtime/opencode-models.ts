@@ -10,6 +10,7 @@ import { listCodexModels } from '@/lib/ai/codex-app-server';
 import { listAntigravityModels } from '@/lib/ai/antigravity-cli-models';
 import { listOpencodeModels } from '@/lib/ai/opencode-cli-models';
 import { codexAuthStatus } from '@/lib/ai/codex-auth';
+import { antigravityCliAuthStatus } from '@/lib/ai/antigravity-cli-auth';
 import { getDefaultThinkingConfig, normalizeThinkingConfig } from '@/lib/ai/thinking-config';
 import type { ThinkingCapability, ThinkingConfig, ThinkingEffort } from '@/lib/types/provider';
 
@@ -31,7 +32,7 @@ let antigravityDiscoveryRan = false;
  * Daftar model transport lokal yang diaktifkan installer untuk Pro Workbench.
  *
  * Tiga+ provider (`opencode` dan `opencode-go` via `opencode run`, `codex`
- * via native `@openai/codex-sdk`, `antigravity` via Google Antigravity SDK):
+ * via native `@openai/codex-sdk`, `antigravity` via Google Antigravity CLI):
  * - Model yang TAMPIL di pemilih selalu hasil penemuan live: `opencode
  *   models` (login-aware), `model/list` Codex dan `agy models`. Model yang
  *   akun tidak bisa pakai tidak pernah ditampilkan.
@@ -81,7 +82,7 @@ export const OPENCODE_FREE_FALLBACK_IDS = [
 export const OPENCODE_DRIVER_API = 'opencode-cli' as const;
 /** Route api of the native Codex SDK transport (lib/ai/codex-sdk.ts). */
 export const CODEX_DRIVER_API = 'codex-sdk' as const;
-/** Route api of the Google Antigravity SDK transport (lib/ai/antigravity-sdk.ts). */
+/** Route api of the Antigravity CLI transport (lib/ai/antigravity-cli.ts); the name is a documented wire alias. */
 export const ANTIGRAVITY_DRIVER_API = 'antigravity-sdk' as const;
 export const OPENCODE_ACTIVE_MODEL_FILE = 'agent-driver-model.json';
 
@@ -235,6 +236,12 @@ export function activatedAntigravityModels(): ActivatedDriverModel[] {
 export async function activatedAntigravityModelsDynamic(): Promise<ActivatedDriverModel[]> {
   antigravityDiscoveryRan = true;
   try {
+    // `agy models` prints a banner + sign-in error (not models) when the
+    // account is signed out, but gate on auth anyway so a stale cache never
+    // survives a logout.
+    const auth = await antigravityCliAuthStatus();
+    discoveredAntigravityIds.clear();
+    if (!auth.authenticated) return [];
     const discovered = await listAntigravityModels();
     if (discovered.length > 0) {
       discovered.forEach((m) => discoveredAntigravityIds.add(m.id));
@@ -265,6 +272,8 @@ export async function activatedCodexModelsDynamic(): Promise<ActivatedDriverMode
     // jadi periksa status login dulu; kalau belum, tidak ada model yang bisa
     // dipakai dan grupnya harus kosong.
     const auth = await codexAuthStatus();
+    discoveredCodexIds.clear();
+    discoveredCodexModels.clear();
     if (!auth.loggedIn) return [];
     const discovered = await listCodexModels();
     if (discovered.length > 0) {
@@ -526,11 +535,12 @@ export function readActiveModelOverride(): {
 }
 
 /**
- * Simpan pilihan tombol workbench (model + varian thinking); melempar bila
- * model di luar allowlist. Thinking dinormalisasi terhadap capability model
- * (nilai tak dikenal jatuh ke default capability, bukan gagal).
+ * Validate + normalize a driver-model selection from any caller (picker,
+ * session creation, session override). Throws a readable error when the
+ * model is unknown or not usable by the signed-in account. Thinking is
+ * normalized against the model's capability.
  */
-export function writeActiveModelOverride(
+export function normalizeDriverModelSelection(
   rawModel: string,
   rawThinking?: unknown,
 ): { modelString: string; api: string; thinking?: ThinkingConfig } {
@@ -549,12 +559,49 @@ export function writeActiveModelOverride(
     rawThinking && typeof rawThinking === 'object'
       ? (normalizeThinkingConfig(capability, rawThinking as ThinkingConfig) ?? undefined)
       : undefined;
+  const normalized: { modelString: string; api: string; thinking?: ThinkingConfig } = {
+    modelString: input.modelString,
+    api: driverApiFor(input.provider),
+  };
+  if (thinking) normalized.thinking = thinking;
+  return normalized;
+}
+
+/**
+ * Validate a stored per-conversation selection (agent_sessions.driver_model).
+ * Returns null when it is absent or no longer usable by this account.
+ */
+export function normalizeStoredDriverModel(
+  stored: { model?: unknown; api?: unknown; thinking?: unknown } | null | undefined,
+): { modelString: string; api: string; thinking?: ThinkingConfig } | null {
+  if (!stored || typeof stored.model !== 'string') return null;
+  try {
+    const normalized = normalizeDriverModelSelection(stored.model, stored.thinking);
+    if (typeof stored.api === 'string' && stored.api.trim()) {
+      normalized.api = stored.api.trim();
+    }
+    return normalized;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Simpan pilihan tombol workbench (model + varian thinking); melempar bila
+ * model di luar allowlist. Thinking dinormalisasi terhadap capability model
+ * (nilai tak dikenal jatuh ke default capability, bukan gagal).
+ */
+export function writeActiveModelOverride(
+  rawModel: string,
+  rawThinking?: unknown,
+): { modelString: string; api: string; thinking?: ThinkingConfig } {
+  const normalized = normalizeDriverModelSelection(rawModel, rawThinking);
   const dir = dataDir();
   fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
   const payload: ActiveModelFile = {
-    model: input.modelString,
-    api: driverApiFor(input.provider),
-    ...(thinking ? { thinking } : {}),
+    model: normalized.modelString,
+    api: normalized.api,
+    ...(normalized.thinking ? { thinking: normalized.thinking } : {}),
     updatedAt: Date.now(),
   };
   const tmp = path.join(
@@ -567,7 +614,7 @@ export function writeActiveModelOverride(
     modelString: payload.model!,
     api: payload.api!,
   };
-  if (thinking) saved.thinking = thinking;
+  if (normalized.thinking) saved.thinking = normalized.thinking;
   return saved;
 }
 

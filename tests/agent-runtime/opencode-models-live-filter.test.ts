@@ -18,6 +18,15 @@ vi.mock('@/lib/ai/antigravity-cli-models', () => ({
   listAntigravityModels: (...args: unknown[]) => listAntigravityModels(...args),
 }));
 
+vi.mock('@/lib/ai/antigravity-cli-auth', () => ({
+  antigravityCliAuthStatus: async () => ({
+    bridge: true,
+    installed: true,
+    authenticated: true,
+    message: 'ok',
+  }),
+}));
+
 vi.mock('@/lib/ai/codex-auth', () => ({
   codexAuthStatus: () => codexAuthStatus(),
 }));

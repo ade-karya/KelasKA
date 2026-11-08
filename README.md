@@ -337,7 +337,7 @@ build), `--fast` (skip the Next.js typecheck and the unused UMD/CJS
 minification for throwaway/Colab installs; `--no-fast` forces a full build),
 `--with-playwright` (e2e browser), `--with-postgres` / `--no-postgres`,
 `--pg-major=N`, `--pg-password=...`, `--bun-version=X`, and
-`--no-antigravity` (skip the local Google Antigravity SDK venv). See
+`--no-antigravity` (skip the local Google Antigravity CLI). See
 `./install.sh --help` for all options.
 
 `--dev` is the development preset: non-interactive, no production build, no
@@ -359,10 +359,12 @@ comments out `DEFAULT_MODEL` so there is only one source of truth. With no
 Every run refreshes the model catalogue: `opencode models` fills
 `OPENCODE_MODELS`/`OPENCODE_GO_MODELS`, `codex app-server` fills `CODEX_MODELS`,
 and the `# >>> models:<provider>` blocks in an installer-owned `openmaic.yml` are
-rewritten. The Google Antigravity SDK is installed into `.venv-antigravity`
-(`pip install google-antigravity`) and advertises its static model list through
-`ANTIGRAVITY_MODELS`; it authenticates with `GEMINI_API_KEY` (or Vertex AI
-credentials) from `.env.local`. Discovery failures keep the previous lists. A
+rewritten. The Google Antigravity CLI (`agy`) is installed, and the signed-in
+account's live model list (discovered with `agy models`) is advertised through
+`ANTIGRAVITY_MODELS` (an operator allowlist; the picker shows the live
+`agy models` output) and authenticates with a signed-in `agy` CLI (run `agy`
+to sign in with Google, or use the model picker in the Pro Workbench).
+Discovery failures keep the previous lists. A
 user-written `openmaic.yml` is never touched; pass `--no-model-refresh` to skip
 discovery or `--no-openmaic-yml` to keep the legacy configuration.
 
@@ -391,7 +393,13 @@ typecheck skipped, so the first install is ~2 minutes shorter), and serves via
 PM2. Add `--no-fast` when you want the full type-checked build. Re-running the
 installer on an existing checkout skips both the package builds (source hash
 stamp in `node_modules`) and the production build when `.next/standalone`
-already exists.
+already exists. Workspace package builds now run two at a time (the importer
+bundle overlaps renderer/editor), model discovery runs alongside the build, and
+the Antigravity CLI (`agy`) is skipped (force it with `--with-antigravity`).
+Authenticate with `agy` (interactive Google login); the picker only shows
+models the signed-in account can use. The production build itself is Turbopack
+and still dominates a cold run (~10-15 min on Colab's 2 vCPU); use
+`--dev --colab` when you only need a running server quickly.
 If `DATABASE_URL` is not set, it also installs a local PostgreSQL instance
 for the session. One cell runs the whole install:
 

@@ -23,6 +23,7 @@
  */
 import { create } from 'zustand';
 import i18n from 'i18next';
+import { readPendingDriverModel } from '@/lib/workbench/driver-model-preference';
 import { supportedLocaleOf } from '@/lib/i18n/types';
 import { isSkillLoadTool, skillLoadId } from './skill-load';
 import {
@@ -1986,6 +1987,7 @@ export async function createWorkbenchSession(input: {
   stageId?: string;
   existingCourse?: boolean;
 }): Promise<WorkbenchSessionMeta> {
+  const pendingDriverModel = readPendingDriverModel();
   const res = await fetch('/api/agent/sessions', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -1998,6 +2000,10 @@ export async function createWorkbenchSession(input: {
       ...(input.materials?.length
         ? { materialIds: input.materials.map((material) => material.materialId) }
         : {}),
+      // The model the user picked for a new conversation (the home picker
+      // keeps it in the pending-default cache). The server validates and
+      // stores it on the session; later picks stay with that session.
+      ...(pendingDriverModel ? { driverModel: pendingDriverModel } : {}),
       ...interfaceLocale(),
     }),
   });

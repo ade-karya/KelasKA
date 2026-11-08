@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useI18n } from '@/lib/hooks/use-i18n';
 import { AntigravityAuthPanel } from './AntigravityAuthPanel';
 import { CodexAuthPanel } from './CodexAuthPanel';
 import { OpenCodeAuthPanel } from './OpenCodeAuthPanel';
@@ -47,6 +48,7 @@ export function WorkbenchAuthDialog({
   /** Reports whether at least one provider is signed in, for the opener dot. */
   onStatusChange?: (connected: boolean) => void;
 }) {
+  const { t } = useI18n();
   const [tab, setTab] = useState<ProviderTab>('opencode');
   const [opencodeConnected, setOpencodeConnected] = useState(false);
   const [antigravityConnected, setAntigravityConnected] = useState(false);
@@ -94,10 +96,9 @@ export function WorkbenchAuthDialog({
               <KeyRound className="size-5" />
             </span>
             <div className="min-w-0 space-y-1">
-              <DialogTitle className="text-base">Hubungkan model AI</DialogTitle>
+              <DialogTitle className="text-base">{t('workspace.auth.connectTitle')}</DialogTitle>
               <DialogDescription className="text-xs leading-relaxed sm:text-sm">
-                Masuk dengan akun yang sudah kamu punya. Kredensial disimpan di server dan tidak
-                pernah dikirim ke browser.
+                {t('workspace.auth.connectDescription')}
               </DialogDescription>
             </div>
           </div>

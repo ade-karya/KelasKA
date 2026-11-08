@@ -276,7 +276,7 @@ function maskKey(key: string): string {
 }
 
 /**
- * Registry transport lokal (OpenCode CLI + Codex SDK + Antigravity SDK) — hanya
+ * Registry transport lokal (OpenCode CLI + Codex SDK + Antigravity CLI) — hanya
  * Pro Workbench (GET /api/agent/models), bukan provider HTTP yang bisa
  * ditambah dari settings classic.
  */
@@ -395,7 +395,7 @@ function workspacePresetProblem(preset: ProviderPreset): string | undefined {
   // settings classic.
   const registryId = preset.capabilities.chat?.registryId;
   if (registryId && isWorkbenchOnlyRegistryId(registryId)) {
-    return 'Local CLI/SDK transports (OpenCode, Codex SDK, Antigravity SDK) are only available in Pro Workbench';
+    return 'Local CLI/SDK transports (OpenCode, Codex SDK, Antigravity) are only available in Pro Workbench';
   }
   if (preset.capabilities.chat?.registryId === 'bedrock') {
     return 'Amazon Bedrock can only be configured by the deployment (openmaic.yml)';

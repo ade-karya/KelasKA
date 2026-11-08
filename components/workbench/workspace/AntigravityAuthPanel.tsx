@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
+import { useI18n } from '@/lib/hooks/use-i18n';
 import { cn } from '@/lib/utils';
 import { AuthStatusCard, AuthStep, CopyButton } from './agent-auth-ui';
 
@@ -45,6 +46,7 @@ export function AntigravityAuthPanel({
 }: {
   onConnectionChange?: (connected: boolean) => void;
 }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<AntigravityStatus | null>(null);
   const [login, setLogin] = useState<LoginState | null>(null);
   const [models, setModels] = useState<DriverModel[]>([]);
@@ -103,7 +105,7 @@ export function AntigravityAuthPanel({
           setStatus(body.auth);
           onConnectionChange?.(Boolean(body.auth.installed && body.auth.authenticated));
           if (body.auth.authenticated) {
-            toast.success('Antigravity berhasil terhubung.');
+            toast.success(t('workspace.auth.loginSuccessToast', { provider: 'Antigravity' }));
             setLogin(null);
             void refresh();
           }
@@ -114,7 +116,7 @@ export function AntigravityAuthPanel({
       }
     }, 2000);
     return () => clearInterval(timer);
-  }, [login?.active, onConnectionChange, refresh]);
+  }, [login?.active, onConnectionChange, refresh, t]);
 
   const startLogin = useCallback(async () => {
     setActionError(null);
@@ -134,11 +136,11 @@ export function AntigravityAuthPanel({
       if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
       if (body.login) setLogin(body.login);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Gagal memulai login.');
+      setActionError(error instanceof Error ? error.message : t('workspace.auth.startFailed', { provider: 'Antigravity' }));
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [t]);
 
   const submitCode = useCallback(async () => {
     if (!code.trim()) return;
@@ -165,16 +167,16 @@ export function AntigravityAuthPanel({
       }
       setCode('');
       if (body.auth?.authenticated) {
-        toast.success('Antigravity berhasil terhubung.');
+        toast.success(t('workspace.auth.loginSuccessToast', { provider: 'Antigravity' }));
         setLogin(null);
         void refresh();
       }
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Verifikasi gagal.');
+      setActionError(error instanceof Error ? error.message : t('workspace.auth.verifyFailed'));
     } finally {
       setBusy(false);
     }
-  }, [code, onConnectionChange, refresh]);
+  }, [code, onConnectionChange, refresh, t]);
 
   const cancelLogin = useCallback(async () => {
     await fetch('/api/agent/auth/antigravity-cli', {
@@ -192,14 +194,14 @@ export function AntigravityAuthPanel({
   const loginPending = Boolean(login?.active);
   const description =
     loading && !status
-      ? 'Memeriksa koneksi ke server…'
+      ? t('workspace.auth.checkingConnection')
       : !status
-        ? 'Status belum bisa dibaca.'
+        ? t('workspace.auth.statusUnreadable')
         : !status.installed
-          ? 'Antigravity CLI (agy) belum terpasang di server.'
+          ? t('workspace.auth.cliMissingTitle', { provider: 'Antigravity' }) + ' (agy).'
           : ready
-            ? 'Antigravity siap dipakai di chat.'
-            : 'Belum masuk. Mulai login lewat tombol di bawah.';
+            ? t('workspace.auth.connectedDesc', { provider: 'Antigravity' })
+            : t('workspace.auth.idleDesc', { provider: 'Antigravity' });
 
   return (
     <div className="space-y-4" data-testid="antigravity-auth-panel">
@@ -216,7 +218,7 @@ export function AntigravityAuthPanel({
       {status && !status.installed ? (
         <div className="space-y-2 rounded-xl border p-3">
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Pasang Antigravity CLI di server, lalu periksa ulang:
+            {t('workspace.auth.installRecheckBody')}
           </p>
           <div className="flex items-center gap-1 rounded-md border bg-background/70 px-2 py-1">
             <code className="min-w-0 flex-1 truncate text-[11px]">
@@ -230,7 +232,7 @@ export function AntigravityAuthPanel({
         loginPending ? (
           <div className="rounded-xl border p-3">
             <ol className="m-0 list-none p-0">
-              <AuthStep step={1} title="Buka halaman login Google">
+              <AuthStep step={1} title={t('workspace.auth.openAuthPageTitle')}>
                 {login?.url ? (
                   <div className="flex items-center gap-1">
                     <Button
@@ -241,20 +243,20 @@ export function AntigravityAuthPanel({
                     >
                       <a href={login.url} target="_blank" rel="noreferrer">
                         <ExternalLink className="size-3.5 shrink-0" aria-hidden />
-                        <span className="truncate">Buka accounts.google.com</span>
+                        <span className="truncate">accounts.google.com</span>
                       </a>
                     </Button>
-                    <CopyButton value={login.url} label="Salin tautan login" />
+                    <CopyButton value={login.url} label={t('workspace.auth.copyAuthLink')} />
                   </div>
                 ) : (
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                    Menyiapkan tautan dari server…
+                    {t('workspace.auth.preparingLink')}
                   </p>
                 )}
               </AuthStep>
 
-              <AuthStep step={2} title="Tempel kode verifikasi">
+              <AuthStep step={2} title={t('workspace.auth.enterCodeTitle')}>
                 {login?.url ? (
                   <div className="flex gap-2">
                     <Input
@@ -263,10 +265,10 @@ export function AntigravityAuthPanel({
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') void submitCode();
                       }}
-                      placeholder="Kode dari halaman Google"
+                      placeholder={t('workspace.auth.enterCodePlaceholder')}
                       className="font-mono"
                       autoComplete="one-time-code"
-                      aria-label="Kode verifikasi Google"
+                      aria-label={t('workspace.auth.enterCodeAria')}
                       disabled={busy}
                     />
                     <Button
@@ -275,18 +277,18 @@ export function AntigravityAuthPanel({
                       disabled={busy || !code.trim()}
                     >
                       {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-                      Kirim
+                      {t('workspace.auth.sendCode')}
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Menunggu tautan…</p>
+                  <p className="text-xs text-muted-foreground">{t('workspace.auth.preparingLink')}</p>
                 )}
               </AuthStep>
 
-              <AuthStep step={3} title="Selesai otomatis" last>
+              <AuthStep step={3} title={t('workspace.auth.doneAutoTitle')} last>
                 <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
-                  Kami mendeteksi sendiri saat login berhasil. Jendela ini akan diperbarui.
+                  {t('workspace.auth.detectingAuto')}
                 </p>
               </AuthStep>
             </ol>
@@ -298,7 +300,7 @@ export function AntigravityAuthPanel({
                 onClick={() => void cancelLogin()}
                 disabled={busy}
               >
-                Batalkan
+                {t('workspace.auth.cancel')}
               </Button>
             </div>
             {actionError ? <p className="mt-2 text-xs text-destructive">{actionError}</p> : null}
@@ -308,10 +310,10 @@ export function AntigravityAuthPanel({
           <div className="space-y-3 rounded-xl border p-3">
             <p className="flex items-center gap-1.5 text-sm font-medium">
               <Terminal className="size-4" aria-hidden />
-              Masuk dengan Antigravity
+              {t('workspace.auth.signInWith', { provider: 'Antigravity' })}
             </p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Login lewat browser Google. Kredensial disimpan oleh CLI di server.
+              {t('workspace.auth.signInBody')}
             </p>
             <Button
               type="button"
@@ -324,7 +326,7 @@ export function AntigravityAuthPanel({
               ) : (
                 <Terminal className="size-4" aria-hidden />
               )}
-              Mulai login
+              {t('workspace.auth.startLogin')}
             </Button>
             {actionError ? <p className="text-xs text-destructive">{actionError}</p> : null}
           </div>
@@ -339,7 +341,7 @@ export function AntigravityAuthPanel({
           >
             <span className="flex items-center gap-2">
               <Boxes className="size-4 text-muted-foreground" aria-hidden />
-              Model tersedia
+              {t('workspace.auth.availableModels')}
               <Badge variant="secondary" className="font-normal">
                 {modelsLoading && models.length === 0 ? '…' : models.length}
               </Badge>
@@ -356,7 +358,7 @@ export function AntigravityAuthPanel({
           {modelsLoading && models.length === 0 ? (
             <p className="mt-2 flex items-center gap-1.5 rounded-lg bg-muted/50 px-2.5 py-2 text-xs text-muted-foreground">
               <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              Memuat daftar model…
+              {t('workspace.auth.loadingModels')}
             </p>
           ) : models.length ? (
             <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
@@ -372,7 +374,7 @@ export function AntigravityAuthPanel({
             </div>
           ) : (
             <p className="mt-2 rounded-lg bg-muted/50 px-2.5 py-2 text-xs text-muted-foreground">
-              Belum ada model Antigravity yang terbuka. Masuk dulu lewat login di atas.
+              {t('workspace.auth.noModelsYet', { provider: 'Antigravity' })}
             </p>
           )}
         </CollapsibleContent>

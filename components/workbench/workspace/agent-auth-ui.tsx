@@ -35,16 +35,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
+import { useI18n } from '@/lib/hooks/use-i18n';
+
 /** Copy text to the clipboard, with a visible check mark for a moment. */
 export function CopyButton({
   value,
-  label = 'Salin',
+  label,
   className,
 }: {
   value: string;
   label?: string;
   className?: string;
 }) {
+  const { t } = useI18n();
+  const copyLabel = label ?? t('workspace.auth.copy');
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -74,9 +78,9 @@ export function CopyButton({
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 1800);
     } catch {
-      toast.error('Tidak bisa menyalin otomatis. Silakan salin manual.');
+      toast.error(t('workspace.auth.copyFailed'));
     }
-  }, [value]);
+  }, [value, t]);
 
   return (
     <Button
@@ -84,8 +88,8 @@ export function CopyButton({
       variant="ghost"
       size="icon-sm"
       onClick={() => void copy()}
-      aria-label={label}
-      title={label}
+      aria-label={copyLabel}
+      title={copyLabel}
       className={className}
     >
       {copied ? <Check className="text-green-600" /> : <Copy />}
@@ -115,6 +119,7 @@ export function AuthStatusCard({
   onRefresh?: () => void;
   children?: ReactNode;
 }) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(
@@ -158,12 +163,12 @@ export function AuthStatusCard({
               )}
             >
               {connected
-                ? 'Terhubung'
+                ? t('workspace.auth.connected')
                 : pending
-                  ? 'Menunggu login'
+                  ? t('workspace.auth.waitingLogin')
                   : checking
-                    ? 'Memeriksa…'
-                    : 'Belum terhubung'}
+                    ? t('workspace.auth.checking')
+                    : t('workspace.auth.notConnected')}
             </Badge>
           </div>
           <p className="text-xs leading-relaxed text-muted-foreground" aria-live="polite">
@@ -178,8 +183,8 @@ export function AuthStatusCard({
             size="icon-sm"
             onClick={onRefresh}
             disabled={loading}
-            aria-label="Periksa ulang status"
-            title="Periksa ulang status"
+            aria-label={t('workspace.auth.refreshStatus')}
+            title={t('workspace.auth.refreshStatus')}
             className="-mr-1 -mt-1 shrink-0"
           >
             <RefreshCw className={cn(loading && 'animate-spin')} />
@@ -321,6 +326,7 @@ export function AuthNotice({
 /** Password-style input with a show/hide toggle, for API keys. */
 export function SecretInput({ className, ...props }: Omit<ComponentProps<typeof Input>, 'type'>) {
   const [visible, setVisible] = useState(false);
+  const { t } = useI18n();
   return (
     <div className="relative">
       <Input {...props} type={visible ? 'text' : 'password'} className={cn('pr-10', className)} />
@@ -330,8 +336,8 @@ export function SecretInput({ className, ...props }: Omit<ComponentProps<typeof 
         size="icon-sm"
         className="absolute top-1/2 right-1 -translate-y-1/2"
         onClick={() => setVisible((current) => !current)}
-        aria-label={visible ? 'Sembunyikan kunci' : 'Tampilkan kunci'}
-        title={visible ? 'Sembunyikan kunci' : 'Tampilkan kunci'}
+        aria-label={t(visible ? 'workspace.auth.hideSecret' : 'workspace.auth.showSecret')}
+        title={t(visible ? 'workspace.auth.hideSecret' : 'workspace.auth.showSecret')}
       >
         {visible ? <EyeOff /> : <Eye />}
       </Button>

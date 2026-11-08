@@ -56,14 +56,14 @@ providers:
   #   preset: codex
   #   models: [gpt-5.6-codex]
 
-  # The same trick with the Google Antigravity SDK (Python 3.10+): install it
-  # with `pip install google-antigravity` (install.sh creates .venv-antigravity)
-  # and authenticate with GEMINI_API_KEY / GOOGLE_API_KEY or Vertex AI.
-  # ANTIGRAVITY_MODELS feeds the workbench picker; ANTIGRAVITY_PYTHON selects
-  # the interpreter.
+  # The same trick with the Google Antigravity CLI: install it with
+  # `curl -fsSL https://antigravity.google/cli/install.sh | bash` (install.sh
+  # does this too) and sign in with `agy`. ANTIGRAVITY_MODELS feeds the
+  # workbench picker as an operator allowlist; the picker shows the live
+  # `agy models` output of the signed-in account.
   # antigravity:
   #   preset: antigravity
-  #   models: [gemini-3.8-flash, claude-sonnet-4-6, claude-opus-4-6, gemini-4-argon]
+  #   models: [gemini-3.8-flash, claude-sonnet-4-6, claude-opus-4-6]
 
   # Web search.
   # tavily:
@@ -147,7 +147,7 @@ slots:
   #   api: codex-sdk
   #   thinking: { effort: high }
 
-  # ...or through the local Google Antigravity SDK:
+  # ...or through the local Antigravity CLI:
   # agent:
   #   model: antigravity:gemini-3.8-flash
   #   api: antigravity-sdk

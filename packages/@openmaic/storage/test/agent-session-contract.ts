@@ -4,6 +4,7 @@ import {
   AGENT_SESSION_LIFECYCLE,
   AgentSessionEntryTreeError,
   AgentSessionLeaseLostError,
+  type AgentSessionDriverModelStore,
   type AgentSessionEntryTree,
   type AgentSessionEventLog,
   type AgentSessionMessageEntry,
@@ -14,7 +15,8 @@ import {
 export type AgentSessionContractStore = AgentSessionStore &
   AgentSessionEventLog &
   AgentSessionEntryTree &
-  OwnerSessionEventProjection;
+  OwnerSessionEventProjection &
+  AgentSessionDriverModelStore;
 
 export function makeAgentSessionInput(
   overrides: Partial<Parameters<AgentSessionStore['createSession']>[0]> = {},
@@ -93,6 +95,33 @@ export function runAgentSessionStoreContract(
       // A session created without one reads back without one.
       const plain = await store.createSession(makeAgentSessionInput({ id: 'session-2' }));
       expect(plain.locale).toBeUndefined();
+    });
+
+    test('carries the conversation-scoped driver model and lets only the owner change it', async () => {
+      const store = makeStore();
+      const selection = {
+        model: 'opencode:big-pickle',
+        api: 'opencode-cli',
+        thinking: { mode: 'enabled', effort: 'medium' },
+      };
+      const created = await store.createSession(makeAgentSessionInput({ driverModel: selection }));
+      expect(created.driverModel).toEqual(selection);
+      expect((await store.getSession('session-1'))?.driverModel).toEqual(selection);
+      expect((await store.listSessionsByOwner('owner-a'))[0]?.driverModel).toEqual(selection);
+
+      // Another owner cannot point the conversation at another model.
+      expect(await store.setSessionDriverModel('session-1', 'owner-b', { model: 'codex:nope' })).toBeNull();
+      expect((await store.getSession('session-1'))?.driverModel?.model).toBe('opencode:big-pickle');
+
+      // The owner can replace it, or clear it back to the default.
+      const updated = await store.setSessionDriverModel('session-1', 'owner-a', {
+        model: 'codex:gpt-5.6-codex',
+        api: 'codex-sdk',
+      });
+      expect(updated?.driverModel).toEqual({ model: 'codex:gpt-5.6-codex', api: 'codex-sdk' });
+      const cleared = await store.setSessionDriverModel('session-1', 'owner-a', null);
+      expect(cleared?.driverModel).toBeUndefined();
+      expect((await store.getSession('session-1'))?.driverModel).toBeUndefined();
     });
 
     test('tombstones only through the owner and hides all public child reads', async () => {

@@ -96,11 +96,9 @@ describe('model transport Codex SDK (picker)', () => {
     expect(m.driverApiFor('antigravity')).toBe('antigravity-sdk');
     expect(m.driverThinkingCapability('antigravity', 'gemini-3.8-flash')?.effortValues).toEqual([
       'none',
-      'minimal',
       'low',
       'medium',
       'high',
-      'xhigh',
     ]);
   });
 

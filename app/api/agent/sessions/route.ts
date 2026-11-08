@@ -17,6 +17,10 @@ import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
 import { isPBLRoleSession } from '@/lib/pbl/v3/session-kind';
 import { scheduleConversationTitle } from '@/lib/server/agent-runtime/conversation-title-task';
 import {
+  activatedDriverModelsDynamic,
+  normalizeDriverModelSelection,
+} from '@/lib/server/agent-runtime/opencode-models';
+import {
   bindOwnerMaterialsToSession,
   SessionMaterialBindingError,
 } from '@/lib/server/agent-runtime/session-materials';
@@ -39,6 +43,13 @@ interface CreateSessionBody {
   courseRefs?: unknown;
   /** The interface language the conversation starts in; an unsupported value is ignored. */
   locale?: unknown;
+  /**
+   * Optional per-conversation driver model, chosen in the workbench picker
+   * before this conversation existed. Validated server-side; an unusable
+   * choice is dropped (the conversation inherits the global default), never
+   * fails the create.
+   */
+  driverModel?: unknown;
 }
 
 export async function POST(req: NextRequest) {
@@ -94,6 +105,38 @@ export async function POST(req: NextRequest) {
   const decodedCourseRefs = decodeCourseRefs(body.courseRefs ?? []);
   // Only a supported code is kept: it names the copy the run's tools load.
   const locale = supportedLocaleOf(body.locale);
+  // The picker's pending default rides along with the create so a brand-new
+  // conversation starts on the model the user actually sees. An unusable
+  // value is dropped rather than failing the create.
+  let driverModel: { model: string; api: string; thinking?: unknown } | undefined;
+  {
+    const raw = body.driverModel;
+    const rawModel =
+      typeof raw === 'string'
+        ? raw
+        : raw && typeof raw === 'object' && typeof (raw as { model?: unknown }).model === 'string'
+          ? ((raw as { model: string }).model ?? '')
+          : '';
+    const rawThinking =
+      raw && typeof raw === 'object'
+        ? (raw as { thinking?: unknown }).thinking
+        : undefined;
+    if (rawModel.trim()) {
+      try {
+        // Live discovery decides what this account may use; run it before
+        // validating a selection that was made outside this process.
+        await activatedDriverModelsDynamic();
+        const normalized = normalizeDriverModelSelection(rawModel, rawThinking);
+        driverModel = {
+          model: normalized.modelString,
+          api: normalized.api,
+          ...(normalized.thinking ? { thinking: normalized.thinking } : {}),
+        };
+      } catch {
+        driverModel = undefined;
+      }
+    }
+  }
   if (!decodedCourseRefs.ok) {
     return apiError('INVALID_REQUEST', 400, decodedCourseRefs.error);
   }
@@ -173,6 +216,7 @@ export async function POST(req: NextRequest) {
         titleState: 'pending',
         origin: buildRequestOrigin(req),
         ...(locale ? { locale } : {}),
+        ...(driverModel ? { driverModel } : {}),
         // Keep the runner from claiming the session until its opening materials
         // and references are durable. postUserMessage below atomically requeues it.
         ...(existingCourse || hasOpeningContext ? { status: 'succeeded' as const } : {}),

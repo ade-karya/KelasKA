@@ -74,6 +74,20 @@ export interface AgentSessionLease {
   heartbeatAt: number;
 }
 
+/**
+ * A per-conversation driver choice: which model (and optional reasoning
+ * variant) answers this session's turns. Opaque to the package — stored and
+ * read back verbatim, never interpreted; the host validates it.
+ */
+export interface AgentSessionDriverModel {
+  /** Fully-qualified model reference, e.g. `opencode:big-pickle`. */
+  model: string;
+  /** Transport/api hint (e.g. `opencode-cli`, `codex-sdk`); host-defined. */
+  api?: string;
+  /** Free-form thinking/reasoning configuration, host-defined. */
+  thinking?: unknown;
+}
+
 export interface AgentSessionMeta {
   id: string;
   ownerId: string;
@@ -88,6 +102,8 @@ export interface AgentSessionMeta {
    * it. Opaque to the package: stored and read back, never interpreted.
    */
   locale?: string;
+  /** The conversation's own driver choice, when the user picked one. */
+  driverModel?: AgentSessionDriverModel;
   existingCourse: boolean;
   status: AgentSessionStatus;
   /** The consecutive-failure generation, incremented by every successful claim. */
@@ -111,6 +127,8 @@ export interface CreateAgentSessionInput {
   origin?: string;
   /** The interface language of the creating request; opaque to the package. */
   locale?: string;
+  /** The conversation's own driver choice; opaque to the package. */
+  driverModel?: AgentSessionDriverModel;
   existingCourse?: boolean;
   /** New callers opt into the one-shot automatic-title lifecycle explicitly. */
   titleState?: 'pending';
@@ -354,6 +372,18 @@ export interface AgentSessionStore {
    * remain responsible for merging product tables outside this package.
    */
   mergeOwner(fromOwnerId: string, toOwnerId: string): Promise<number>;
+}
+
+export interface AgentSessionDriverModelStore {
+  /**
+   * Set (or clear, with `null`) the conversation's own driver choice.
+   * Owner-scoped: another owner's session is untouched (`null` result).
+   */
+  setSessionDriverModel(
+    sessionId: string,
+    ownerId: string,
+    selection: AgentSessionDriverModel | null,
+  ): Promise<AgentSessionMeta | null>;
 }
 
 export interface AgentSessionTitleStore {

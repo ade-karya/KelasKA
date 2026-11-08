@@ -24,6 +24,10 @@ Guidance for coding agents working in this repository, including the automated C
   NODE_OPTIONS="--max-old-space-size=8192" bun run build
   ```
 - Use the same setting for other heavy runs (large test suites, type checks). Do not run several memory-heavy tasks at once.
+- `install.sh` sizes the build heap as `min(8192, RAM - 2048)` MB, so a 12 GB Colab host gets the 8192 MB above instead of the old 3072 MB cap. On Colab's 2 vCPU the Turbopack production build dominates a cold `--colab` run (~10-15 min) and Bun cannot speed it up; the installer's wins are building workspace packages two at a time and running model discovery alongside the build. Use `--dev --colab` for a fast server without the production build.
+- Antigravity is the local `agy` CLI (`lib/ai/antigravity-cli.ts`, transport api `antigravity-sdk`), never a Python bridge. The installer installs `agy` and refreshes `ANTIGRAVITY_MODELS` from `agy models` (login-aware, like the Codex/OpenCode discovery); there is no `.venv-antigravity` and no `google-antigravity` pip package anywhere.
+- All workbench auth UI copy lives in `workspace.auth.*` and `workspace.modelPicker.*` in `lib/i18n/locales/<locale>.json` (13 locales, kept in sync by the i18n script); never hardcode Indonesian/English strings in the panels.
+- Model-selector tests must pin `OPENCODE_ACTIVE_MODEL_FILE` to a scratch path: a local `data/agent-driver-model.json` would otherwise leak into every resolution path and fail unrelated suites.
 - This app deploys `.next/standalone` through PM2. `next build` does not copy the client assets into it, so after every build sync them before restarting, or the HTML loads but every `/_next/static/*` request is a 404 and the page shows "This page couldn't load":
   ```bash
   rm -rf .next/standalone/.next/static .next/standalone/public
@@ -36,7 +40,9 @@ Guidance for coding agents working in this repository, including the automated C
 ## Workspace UI
 
 - The agent login entry (OpenCode Console / Antigravity / Codex) lives in the Pro Workbench model picker's footer action, not in the chat header. `WorkbenchAuthDialog` is controlled (`open`/`onOpenChange`/`onStatusChange`) and mounted by `WorkbenchModelPicker`; classic `components/settings/model-picker.tsx` renders the same popover without it via the optional `footerAction` prop.
-- The picker shows only models the signed-in account can actually use: live `opencode models` (login-aware; `OPENCODE_MODELS`/`OPENCODE_GO_MODELS` act as an optional operator allowlist intersected with the live list), Codex `model/list` gated on `codex login status`, and `agy models`. Empty or failed discovery means an empty group — never fall back to the static catalog in the dynamic path. `isActivatedDriverModel` trusts live discovery once `activatedDriverModelsDynamic()` has run.
+- The model popover caps its whole content at `--radix-popover-content-available-height` (flex column, list `min-h-0 max-h-[320px] overflow-y-auto`), not just the list. The search row and footer action are fixed height, so a list-only cap still overflows the viewport and clips the search field when the trigger sits near an edge.
+- The picker shows only models the signed-in account can actually use: live `opencode models` (login-aware; `OPENCODE_MODELS`/`OPENCODE_GO_MODELS` act as an optional operator allowlist intersected with the live list), Codex `model/list` gated on `codex login status`, and `agy models` (Antigravity also gated on `antigravityCliAuthStatus().authenticated`; a stale cache must never survive a logout). Empty or failed discovery means an empty group — never fall back to the static catalog in the dynamic path. `isActivatedDriverModel` trusts live discovery once `activatedDriverModelsDynamic()` has run.
+- Per-conversation driver models: `agent_sessions.driver_model` (migration v4, `@openmaic/storage` >= 0.39.4) carries `{model, api?, thinking?}`. The chat-header picker writes it via `POST /api/agent/models {sessionId}` and reads it via `GET /api/agent/models?sessionId=`, so old conversations never switch models when a new one is created; the home picker still writes the global default (`data/agent-driver-model.json`) that seeds new conversations. The runner resolves slot → session override (validated against live discovery) → global default.
 
 ## Code Review Rules
 

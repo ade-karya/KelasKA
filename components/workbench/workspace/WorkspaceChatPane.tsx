@@ -100,6 +100,7 @@ export function WorkspaceChatPane({
   const { t } = useI18n();
   const sessionPrompt = useWorkbenchStore((s) => s.sessionPrompt);
   const sessionTitle = useWorkbenchStore((s) => s.sessionTitle);
+  const sessionId = useWorkbenchStore((s) => s.sessionId);
   const status = useWorkbenchStore((s) => s.status);
   /**
    * How the run is doing, or null when there is no run to report.
@@ -184,7 +185,7 @@ export function WorkspaceChatPane({
         {draftConversation || !presentation ? null : (
           <span className="ws-pane-eyebrow shrink-0">{t(presentation.labelKey)}</span>
         )}
-        <WorkbenchModelPicker />
+        <WorkbenchModelPicker sessionId={sessionId} />
         {onCollapse ? (
           <PaneFoldButton
             testId="workspace-chat-fold"

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import os from 'node:os';
+import path from 'node:path';
 
 import type { ModelConfigLayer } from '@/lib/server/model-config/resolve-slot';
 
@@ -89,12 +91,19 @@ describe('agent driver model', () => {
     mocks.streamLLM.mockReset();
     mocks.modelInfo = { contextWindow: 200_000, outputWindow: 16_384 };
     mocks.workspaceReads.length = 0;
+    // Local runs may carry a real data/agent-driver-model.json; keep the
+    // suite independent of it.
+    process.env.OPENCODE_ACTIVE_MODEL_FILE = path.join(
+      os.tmpdir(),
+      `openmaic-test-no-override-${process.pid}.json`,
+    );
   });
 
   afterEach(async () => {
     const runtime = await import('@/lib/server/model-config/runtime');
     runtime.setDeploymentConfigForTests();
     runtime.setWorkspaceLayerLoaderForTests();
+    delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
   });
 
   it('fails loud when nothing assigns the agent', async () => {
@@ -310,6 +319,7 @@ describe('agent driver CLI dua provider + thinking varian', () => {
     const runtime = await import('@/lib/server/model-config/runtime');
     runtime.setDeploymentConfigForTests();
     runtime.setWorkspaceLayerLoaderForTests();
+    delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
   });
 
   it('mengizinkan thinking.effort pada slot transport CLI (prompt-level)', async () => {

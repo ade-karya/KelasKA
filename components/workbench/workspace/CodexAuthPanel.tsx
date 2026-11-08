@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { useI18n } from '@/lib/hooks/use-i18n';
 import {
   AuthMethodCard,
   AuthNotice,
@@ -57,6 +58,7 @@ export function CodexAuthPanel({
 }: {
   onConnectionChange?: (connected: boolean) => void;
 }) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<CodexAuthStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [method, setMethod] = useState<'key' | 'device'>('key');
@@ -85,14 +87,14 @@ export function CodexAuthPanel({
         setStatus(body.codex);
         onConnectionChangeRef.current?.(body.codex.loggedIn);
       } else if (!res.ok) {
-        toast.error('Gagal membaca status login Codex.');
+        toast.error(t('workspace.auth.statusReadFailed', { provider: 'Codex' }));
       }
     } catch {
-      toast.error('Gagal membaca status login Codex.');
+      toast.error(t('workspace.auth.statusReadFailed', { provider: 'Codex' }));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void refresh();
@@ -118,14 +120,14 @@ export function CodexAuthPanel({
       if (body.codex) setStatus(body.codex);
       setKey('');
       setShowForm(false);
-      toast.success(body.message || 'Codex berhasil terhubung.');
+      toast.success(body.message || t('workspace.auth.loginSuccessToast', { provider: 'Codex' }));
       void refresh();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Login gagal.');
+      setActionError(error instanceof Error ? error.message : t('workspace.auth.verifyFailed'));
     } finally {
       setSaving(false);
     }
-  }, [key, refresh]);
+  }, [key, refresh, t]);
 
   const logout = useCallback(async () => {
     setActionError(null);
@@ -139,19 +141,19 @@ export function CodexAuthPanel({
       };
       if (!res.ok) throw new Error(body.message || body.error || `HTTP ${res.status}`);
       if (body.codex) setStatus(body.codex);
-      toast.success(body.message || 'Codex terputus.');
+      toast.success(body.message || t('workspace.auth.disconnectedToast', { provider: 'Codex' }));
       void refresh();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : 'Logout gagal.');
+      setActionError(error instanceof Error ? error.message : t('workspace.auth.logoutFailed'));
     } finally {
       setSaving(false);
     }
-  }, [refresh]);
+  }, [refresh, t]);
 
   const startDevice = useCallback(async () => {
     setActionError(null);
     setSaving(true);
-    setDevice({ url: null, code: null, status: 'pending', message: 'Memulai…' });
+    setDevice({ url: null, code: null, status: 'pending', message: t('workspace.auth.preparingLink') });
     try {
       const res = await fetch('/api/agent/auth/device', { method: 'POST', credentials: 'include' });
       const body = (await res.json().catch(() => ({}))) as {
@@ -169,7 +171,7 @@ export function CodexAuthPanel({
           url: body.url ?? prev.url,
           code: body.code ?? prev.code,
           status: 'pending',
-          message: body.message || prev.message || 'Buka tautan dan masukkan kode.',
+          message: body.message || prev.message || t('workspace.auth.openAuthPageTitle'),
         };
       });
     } catch (error) {
@@ -177,12 +179,12 @@ export function CodexAuthPanel({
         url: null,
         code: null,
         status: 'failed',
-        message: error instanceof Error ? error.message : 'Gagal memulai login device.',
+        message: error instanceof Error ? error.message : t('workspace.auth.startFailed', { provider: 'Codex' }),
       });
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [t]);
 
   const cancelDevice = useCallback(async () => {
     await fetch('/api/agent/auth/device', { method: 'DELETE', credentials: 'include' }).catch(
@@ -208,9 +210,9 @@ export function CodexAuthPanel({
             url: null,
             code: null,
             status: 'success',
-            message: body.message || 'Login berhasil.',
+            message: body.message || t('workspace.auth.loginSuccessToast', { provider: 'ChatGPT' }),
           });
-          toast.success('Login ChatGPT berhasil.');
+          toast.success(t('workspace.auth.loginSuccessToast', { provider: 'ChatGPT' }));
           setShowForm(false);
           void refresh();
         } else if (body.status === 'failed') {
@@ -218,7 +220,7 @@ export function CodexAuthPanel({
             url: null,
             code: null,
             status: 'failed',
-            message: body.message || 'Login gagal.',
+            message: body.message || t('workspace.auth.verifyFailed'),
           });
         } else if (body.url || body.code) {
           setDevice((prev) => ({
@@ -238,16 +240,16 @@ export function CodexAuthPanel({
   const devicePending = device.status === 'pending';
   const description =
     !status && loading
-      ? 'Memeriksa koneksi ke server…'
+      ? t('workspace.auth.checkingConnection')
       : !status
-        ? 'Status belum bisa dibaca.'
+        ? t('workspace.auth.statusUnreadable')
         : !status.installed
-          ? 'Codex CLI belum terpasang di server.'
+          ? t('workspace.auth.cliMissingTitle', { provider: 'Codex' }) + '.'
           : devicePending
-            ? 'Menunggu login ChatGPT selesai. Ikuti langkah di bawah.'
+            ? t('workspace.auth.pendingDesc', { provider: 'ChatGPT' })
             : connected
-              ? 'Codex siap dipakai di chat.'
-              : 'Belum ada kredensial. Pilih salah satu metode di bawah.';
+              ? t('workspace.auth.connectedDesc', { provider: 'Codex' })
+              : t('workspace.auth.idleDesc', { provider: 'Codex' });
 
   const startDeviceFlow = useCallback(() => {
     setMethod('device');
@@ -268,11 +270,11 @@ export function CodexAuthPanel({
       />
 
       {status && !status.installed ? (
-        <AuthNotice tone="error" title="Codex CLI belum terpasang">
-          <p>Pasang di server, lalu periksa ulang:</p>
+        <AuthNotice tone="error" title={t('workspace.auth.cliMissingTitle', { provider: 'Codex' })}>
+          <p>{t('workspace.auth.installRecheckBody')}</p>
           <div className="mt-1.5 flex items-center gap-1 rounded-md border border-destructive/20 bg-background/70 px-2 py-1">
             <code className="min-w-0 flex-1 truncate text-[11px]">{INSTALL_COMMAND}</code>
-            <CopyButton value={INSTALL_COMMAND} label="Salin perintah pemasangan" />
+            <CopyButton value={INSTALL_COMMAND} label={t('workspace.auth.copyInstallCommand')} />
           </div>
         </AuthNotice>
       ) : null}
@@ -287,7 +289,7 @@ export function CodexAuthPanel({
             disabled={saving}
           >
             <LogOut className="size-3.5" aria-hidden />
-            Putuskan koneksi
+            {t('workspace.auth.disconnect')}
           </Button>
           <Button
             type="button"
@@ -299,7 +301,7 @@ export function CodexAuthPanel({
               setShowForm(true);
             }}
           >
-            Ganti metode
+            {t('workspace.auth.changeMethod')}
           </Button>
         </div>
       ) : (
@@ -316,14 +318,14 @@ export function CodexAuthPanel({
               }}
             >
               <ArrowLeft className="size-3.5" aria-hidden />
-              Kembali ke ringkasan
+              {t('workspace.auth.backToSummary')}
             </Button>
           ) : null}
 
           {/* Hidden during hand-off so the code panel stays the only thing to
-              act on; "Batalkan" is the way out. */}
+              act on; "Cancel" is the way out. */}
           {devicePending ? null : (
-            <div role="radiogroup" aria-label="Metode koneksi Codex" className="space-y-2">
+            <div role="radiogroup" aria-label={t('workspace.auth.connectionMethodAria')} className="space-y-2">
               <AuthMethodCard
                 selected={method === 'key'}
                 onSelect={() => {
@@ -331,9 +333,9 @@ export function CodexAuthPanel({
                   setActionError(null);
                 }}
                 icon={KeyRound}
-                title="Pakai OpenAI API key"
-                description="Tempel kunci dari platform OpenAI. Paling cepat dan stabil."
-                badge="Disarankan"
+                title={t('workspace.auth.codexApiKeyTitle')}
+                description={t('workspace.auth.codexApiKeyDesc')}
+                badge={t('workspace.auth.codexApiKeyBadge')}
                 disabled={status ? !status.installed : false}
               />
               <AuthMethodCard
@@ -343,8 +345,8 @@ export function CodexAuthPanel({
                   setActionError(null);
                 }}
                 icon={MessageSquare}
-                title="Masuk dengan ChatGPT"
-                description="Pakai kode sekali pakai. Membutuhkan device-code sign-in yang aktif."
+                title={t('workspace.auth.chatgptLoginTitle')}
+                description={t('workspace.auth.chatgptLoginDesc')}
                 disabled={status ? !status.installed : false}
               />
             </div>
@@ -356,7 +358,7 @@ export function CodexAuthPanel({
             <div className="space-y-3 rounded-xl border p-3">
               <div className="space-y-1.5">
                 <Label htmlFor="codex-api-key" className="text-xs">
-                  OpenAI API key
+                  {t('workspace.auth.apiKeyInputAria')}
                 </Label>
                 <SecretInput
                   id="codex-api-key"
@@ -382,17 +384,17 @@ export function CodexAuthPanel({
                 ) : (
                   <KeyRound className="size-4" aria-hidden />
                 )}
-                Simpan &amp; hubungkan
+                {t('workspace.auth.saveConnect')}
               </Button>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
-                Kunci disimpan di server dan tidak pernah dikirim balik ke browser.{' '}
+                {t('workspace.auth.apiKeySavedNote')}{' '}
                 <a
                   href={API_KEY_URL}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-0.5 font-medium text-foreground underline underline-offset-2"
                 >
-                  Dapatkan API key
+                  {t('workspace.auth.getApiKey')}
                   <ExternalLink className="size-3" aria-hidden />
                 </a>
               </p>
@@ -400,7 +402,7 @@ export function CodexAuthPanel({
           ) : device.status === 'pending' ? (
             <div className="rounded-xl border p-3">
               <ol className="m-0 list-none p-0">
-                <AuthStep step={1} title="Buka halaman login ChatGPT">
+                <AuthStep step={1} title={t('workspace.auth.openAuthPageTitle')}>
                   {device.url ? (
                     <div className="flex items-center gap-1">
                       <Button
@@ -411,36 +413,36 @@ export function CodexAuthPanel({
                       >
                         <a href={device.url} target="_blank" rel="noreferrer">
                           <ExternalLink className="size-3.5 shrink-0" aria-hidden />
-                          <span className="truncate">Buka halaman login</span>
+                          <span className="truncate">{t('workspace.auth.openAuthPageButton')}</span>
                         </a>
                       </Button>
-                      <CopyButton value={device.url} label="Salin tautan login" />
+                      <CopyButton value={device.url} label={t('workspace.auth.copyAuthLink')} />
                     </div>
                   ) : (
                     <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                      Menyiapkan tautan…
+                      {t('workspace.auth.preparingLink')}
                     </p>
                   )}
                 </AuthStep>
 
-                <AuthStep step={2} title="Masukkan kode ini">
+                <AuthStep step={2} title={t('workspace.auth.enterCodeTitle')}>
                   {device.code ? (
                     <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2">
                       <span className="min-w-0 flex-1 text-center font-mono text-lg font-medium tracking-[0.2em]">
                         {device.code}
                       </span>
-                      <CopyButton value={device.code} label="Salin kode" />
+                      <CopyButton value={device.code} label={t('workspace.auth.copyCode')} />
                     </div>
                   ) : (
-                    <p className="text-xs text-muted-foreground">Menunggu kode…</p>
+                    <p className="text-xs text-muted-foreground">{t('workspace.auth.waitingCode')}</p>
                   )}
                 </AuthStep>
 
-                <AuthStep step={3} title="Selesai otomatis" last>
+                <AuthStep step={3} title={t('workspace.auth.doneAutoTitle')} last>
                   <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
-                    Kami mendeteksi sendiri saat login berhasil.
+                    {t('workspace.auth.detectingAuto')}
                   </p>
                 </AuthStep>
               </ol>
@@ -451,7 +453,7 @@ export function CodexAuthPanel({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-[11px] text-muted-foreground underline underline-offset-2"
                 >
-                  Pengaturan keamanan
+                  {t('workspace.auth.securitySettings')}
                   <ExternalLink className="size-3" aria-hidden />
                 </a>
                 <Button
@@ -461,15 +463,14 @@ export function CodexAuthPanel({
                   onClick={() => void cancelDevice()}
                   disabled={saving}
                 >
-                  Batalkan
+                  {t('workspace.auth.cancel')}
                 </Button>
               </div>
             </div>
           ) : (
             <div className="space-y-3 rounded-xl border p-3">
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Kode sekali pakai akan muncul di sini. Pastikan device-code sign-in aktif di
-                pengaturan keamanan ChatGPT.
+                {t('workspace.auth.deviceIntro')}
               </p>
               <Button
                 type="button"
@@ -483,18 +484,18 @@ export function CodexAuthPanel({
                 ) : (
                   <Terminal className="size-4" aria-hidden />
                 )}
-                Mulai login dengan ChatGPT
+                {t('workspace.auth.deviceStartButton')}
               </Button>
               {device.status === 'failed' ? (
-                <AuthNotice tone="error" title="Login device gagal">
+                <AuthNotice tone="error" title={t('workspace.auth.deviceLoginFailedTitle')}>
                   {device.message}
                   <p className="mt-1">
-                    Aktifkan device-code sign-in di pengaturan keamanan, atau pakai API key.
+                    {t('workspace.auth.deviceEnableHint')}
                   </p>
                 </AuthNotice>
               ) : null}
               {device.status === 'success' ? (
-                <AuthNotice tone="success">Login berhasil. Menyegarkan status…</AuthNotice>
+                <AuthNotice tone="success">{t('workspace.auth.loginSuccessRefreshing')}</AuthNotice>
               ) : null}
             </div>
           )}
@@ -503,7 +504,7 @@ export function CodexAuthPanel({
 
       <details className="group rounded-lg border px-3 py-2 text-xs text-muted-foreground">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-medium text-foreground/80 [&::-webkit-details-marker]:hidden">
-          Info teknis
+          {t('workspace.auth.techInfoTitle')}
           <ChevronDown
             className="size-3.5 transition-transform group-open:rotate-180"
             aria-hidden
@@ -511,11 +512,11 @@ export function CodexAuthPanel({
         </summary>
         <div className="mt-2 space-y-1.5 text-[11px] leading-relaxed">
           <p>
-            API key disimpan lewat <code>codex login --with-api-key</code> di server.
+            {t('workspace.auth.techApiKeyLine')}
           </p>
-          <p>Device code memakai alur login ChatGPT dan memerlukan pengaturan keamanan akun.</p>
+          <p>{t('workspace.auth.techDeviceLine')}</p>
           <p>
-            CLI: <code>{INSTALL_COMMAND}</code>.
+            {t('workspace.auth.techCliLine', { command: INSTALL_COMMAND })}
           </p>
           {status?.message ? <p className="break-words opacity-70">{status.message}</p> : null}
         </div>

@@ -58,7 +58,8 @@
 #   --no-fast             Paksa build penuh walau memakai preset --colab.
 #   --colab               Preset Colab/ephemeral: --yes --with-pm2 --fast,
 #                         tanpa Playwright; PostgreSQL mengikuti mode otomatis
-#                         (bisa dioverride flag lain).
+#                         (bisa dioverride flag lain). Tanpa kredensial Google,
+#                         Antigravity CLI dilewati (paksa: --with-antigravity).
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
 #                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
 #                         latar belakang (log: data/dev-server.log, PID:
@@ -75,9 +76,8 @@
 #   --min-bun-version=X   Ubah versi minimum Bun (default: 1.3.14).
 #   --no-model-refresh    Jangan segarkan OPENCODE_MODELS/CODEX_MODELS dari
 #                         CLI lokal; daftar di .env.local dibiarkan apa adanya.
-#   --no-antigravity      Lewati Google Antigravity SDK (venv .venv-antigravity
-#                         + `pip install google-antigravity`).
-#   --with-antigravity    Paksa instalasi Antigravity SDK (default ON).
+#   --no-antigravity      Lewati Google Antigravity CLI (agy).
+#   --with-antigravity    Paksa instalasi Antigravity CLI (default ON).
 #   -h, --help            Tampilkan bantuan ini.
 #
 # Catatan:
@@ -97,17 +97,23 @@
 #     mengisi OPENCODE_MODELS/OPENCODE_GO_MODELS, `codex app-server` mengisi
 #     CODEX_MODELS, lalu blok models: di openmaic.yml (milik installer)
 #     diperbarui. Discovery gagal/offline -> daftar lama dipertahankan.
+#   - Sinkron katalog model menulis .env.local/openmaic.yml dan tidak dibaca
+#     oleh build, jadi pada --colab/--build discovery berjalan paralel dengan
+#     build produksi; log-nya diputar setelah build selesai.
+#   - Antigravity memakai Google Antigravity CLI (agy) yang dipasang dari
+#     antigravity.google; login Google lewat 'agy' (interaktif). Lewati dengan
+#     --no-antigravity.
 #   - pgAdmin4 tidak termasuk di installer Bun ini; gunakan install-node.sh
 #     bila membutuhkannya. OpenCode CLI juga tidak termasuk (install-node.sh).
 #   - Codex CLI (@openai/codex) kini termasuk sebagai dependency dan akan
 #     terpasang via `bun install`; autentikasinya (API key / device code)
 #     dilakukan dari UI Pro Workbench (ikon kunci di header chat pane), bukan
 #     dari terminal.
-#   - Google Antigravity SDK dipasang ke venv lokal .venv-antigravity
-#     (`pip install google-antigravity`) dan dipakai sebagai transport
-#     antigravity-sdk. Autentikasi lewat GEMINI_API_KEY / GOOGLE_API_KEY atau
-#     Vertex AI (GOOGLE_GENAI_USE_VERTEXAI + GOOGLE_CLOUD_PROJECT/LOCATION) di
-#     .env.local. Lewati dengan --no-antigravity.
+#   - Google Antigravity CLI (agy) adalah transport antigravity-kli: turn
+#     berjalan lewat `agy` dengan mode tool-call yang diurai harness (sama
+#     seperti `opencode run`). Login Google lewat `agy` secara interaktif di
+#     terminal; kredensial disimpan oleh CLI di server. Lewati dengan
+#     --no-antigravity.
 
 set -euo pipefail
 
@@ -130,6 +136,9 @@ LANGKAH="startup"
 FAILED_BY_FAIL=0
 on_exit() {
   local rc=$?
+  if [[ -n "${MODEL_SYNC_PID:-}" ]]; then
+    kill "$MODEL_SYNC_PID" 2>/dev/null || true
+  fi
   [[ "$rc" -eq 0 || "$rc" -eq 141 ]] && return 0
   if [[ "$FAILED_BY_FAIL" -eq 0 ]]; then
     echo -e "${MERAH}[install] GAGAL:${RESET} berhenti di langkah '${LANGKAH}' (exit ${rc})." >&2
@@ -151,6 +160,7 @@ WITH_INSTALL=1
 WITH_OPENMAIC_YML=1
 WITH_MODEL_REFRESH=1
 WITH_ANTIGRAVITY=1
+WITH_ANTIGRAVITY_EXPLICIT=0
 WITH_BUILD=0
 WITH_PLAYWRIGHT=0
 WITH_PM2=0
@@ -158,6 +168,11 @@ WITH_COLAB=0
 WITH_DEV=0
 WITH_DEV_START=1
 FAST_BUILD="auto"
+SYNC_MODEL_PARALLEL=0
+SYNC_MODEL_DONE=0
+MODEL_SYNC_PID=""
+MODEL_SYNC_LOG=""
+MODEL_SYNC_RC_FILE=""
 WITH_FFMPEG=1
 WITH_BROWSER_TTS=1
 PG_MAJOR="${PG_MAJOR:-18}"
@@ -196,8 +211,8 @@ for arg in "$@"; do
     --no-openmaic-yml)   WITH_OPENMAIC_YML=0 ;;
     --with-openmaic-yml) WITH_OPENMAIC_YML=1 ;;
     --no-model-refresh)  WITH_MODEL_REFRESH=0 ;;
-    --no-antigravity)    WITH_ANTIGRAVITY=0 ;;
-    --with-antigravity)  WITH_ANTIGRAVITY=1 ;;
+    --no-antigravity)    WITH_ANTIGRAVITY=0; WITH_ANTIGRAVITY_EXPLICIT=1 ;;
+    --with-antigravity)  WITH_ANTIGRAVITY=1; WITH_ANTIGRAVITY_EXPLICIT=1 ;;
     --build)             WITH_BUILD=1 ;;
     --with-pm2)          WITH_PM2=1 ;;
     --with-playwright)   WITH_PLAYWRIGHT=1 ;;
@@ -465,9 +480,9 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   fi
   echo "  - siapkan .env.local + data/ + bun install (workspaces dimigrasikan)"
   if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
-    echo "  - pasang Google Antigravity SDK di .venv-antigravity (pip)"
+    echo "  - pasang Google Antigravity CLI (agy)"
   else
-    echo "  - tanpa Google Antigravity SDK (--no-antigravity)"
+    echo "  - tanpa Google Antigravity CLI (--no-antigravity)"
   fi
   if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then echo "  - instal browser Chromium Playwright"; fi
   if [[ "$WITH_BUILD" -eq 1 ]]; then echo "  - jalankan build produksi Bun"; fi
@@ -494,8 +509,8 @@ APT_PKGS=(
   libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev
 )
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then APT_PKGS+=(gnupg); fi
-# The Antigravity transport runs a Python SDK from a project-local venv.
-if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then APT_PKGS+=(python3-venv python3-pip python3.12-venv python3.13-venv); fi
+# The Antigravity transport runs the Antigravity CLI (agy).
+# agy dibagikan sebagai skrip shell; tidak butuh paket apt tambahan.
 # Colab/containers often ship an ffmpeg binary from a non-apt image; installing
 # the distro package would only add a large download.
 if [[ "$WITH_FFMPEG" -eq 1 ]] && ! command -v ffmpeg >/dev/null 2>&1; then
@@ -1070,6 +1085,24 @@ kumpulkan_model_codex() {
   : > "${dir}/codex.ok"
 }
 
+# $1=dir kerja. Menulis antigravity.list + penanda .ok (login-aware; gagal bila
+# agy tidak ada atau belum login).
+kumpulkan_model_antigravity() {
+  local dir="$1" raw ids
+  command -v agy >/dev/null 2>&1 || return 1
+  raw="$(env HOME="$OWNER_HOME" PATH="${OWNER_HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin" \
+    timeout "${MODEL_DISCOVERY_TIMEOUT:-30}" agy models 2>/dev/null)" || return 1
+  [[ -n "$raw" ]] || return 1
+  ids="$(printf '%s\n' "$raw" | awk '
+    { id=$1 }
+    id ~ /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/ { print id }
+  ' | sort -u | tr '\n' ',' | sed -E 's/,$//')"
+  case "$ids" in *"ign in"*) return 1;; esac
+  [[ -n "$ids" ]] || return 1
+  printf '%s' "$ids" > "${dir}/antigravity.list"
+  : > "${dir}/antigravity.ok"
+}
+
 # Tulis daftar model ke .env.local hanya bila berubah.
 sinkron_env_model() {
   local key="$1" value="$2" cur
@@ -1280,7 +1313,7 @@ EOF
       blok_provider_yml codex codex "$cx_list"
     fi
     if [[ -n "$ag_list" ]]; then
-      printf '  # Google Antigravity SDK (auth lewat GEMINI_API_KEY / Vertex AI).\n'
+      printf '  # Google Antigravity CLI (agy; login Google lewat `agy`).\n'
       blok_provider_yml antigravity antigravity "$ag_list"
     fi
     cat <<EOF
@@ -1303,7 +1336,7 @@ EOF
 
 # Inti: discovery paralel + tulis .env.local + segarkan openmaic.yml.
 sinkron_model() {
-  local dir op_ok=0 cx_ok=0 pid_op pid_cx
+  local dir op_ok=0 cx_ok=0 ag_ok=0 pid_op pid_cx pid_ag
   local op_list="" go_list="" cx_list="" ag_list="" llm_cur agent_cur default_id dm
 
   if [[ "$WITH_MODEL_REFRESH" -ne 1 ]]; then
@@ -1312,7 +1345,8 @@ sinkron_model() {
   fi
 
   LANGKAH="sinkron katalog model"
-  # Antigravity's catalogue is static (the SDK has no model-list command).
+  # Antigravity: model ditemukan dari `agy models` (login-aware), sama seperti
+  # discovery OpenCode/Codex; tanpa agy/login daftar lama dipertahankan.
   ag_list="$(env_get .env.local ANTIGRAVITY_MODELS)"
   dir="$(mktemp -d)"
   chmod 0755 "$dir"
@@ -1324,14 +1358,19 @@ sinkron_model() {
   pid_op=$!
   ( kumpulkan_model_codex "$dir" ) &
   pid_cx=$!
+  ( kumpulkan_model_antigravity "$dir" ) &
+  pid_ag=$!
   wait "$pid_op" 2>/dev/null || true
   wait "$pid_cx" 2>/dev/null || true
+  wait "$pid_ag" 2>/dev/null || true
 
   if [[ -f "${dir}/opencode.ok" ]]; then op_ok=1; fi
   if [[ -f "${dir}/codex.ok" ]]; then cx_ok=1; fi
+  if [[ -f "${dir}/antigravity.ok" ]]; then ag_ok=1; fi
   if [[ "$op_ok" -eq 1 ]]; then op_list="$(cat "${dir}/opencode.list")"; fi
   if [[ "$op_ok" -eq 1 ]]; then go_list="$(cat "${dir}/opencode-go.list")"; fi
   if [[ "$cx_ok" -eq 1 ]]; then cx_list="$(cat "${dir}/codex.list")"; fi
+  if [[ "$ag_ok" -eq 1 ]]; then ag_list="$(cat "${dir}/antigravity.list")"; fi
 
   if [[ "$op_ok" -eq 1 ]]; then
     sinkron_env_model OPENCODE_MODELS "$op_list"
@@ -1345,6 +1384,12 @@ sinkron_model() {
     info "Katalog codex: ${cx_list//,/, }"
   else
     info "Katalog codex tidak tersedia — CODEX_MODELS dipertahankan."
+  fi
+  if [[ "$ag_ok" -eq 1 ]]; then
+    sinkron_env_model ANTIGRAVITY_MODELS "$ag_list"
+    info "Katalog antigravity: ${ag_list//,/, }"
+  else
+    info "Katalog antigravity tidak tersedia — ANTIGRAVITY_MODELS dipertahankan."
   fi
 
   if [[ "$WITH_OPENMAIC_YML" -ne 1 ]]; then
@@ -1528,88 +1573,19 @@ else
   info "Lewati bun install (--no-install). Jalankan manual nanti: bun install"
 fi
 
-# ================================= 6a. Google Antigravity SDK (venv Python)
-# The Antigravity transport runs a Python SDK (lib/ai/antigravity_bridge.py).
-# Install it into a project-local venv so the host Python stays untouched, then
-# point the server at that interpreter. Failures are warnings: the rest of
-# OpenMAIC still works and the workbench reports the missing transport.
-# Model yang dijual Antigravity CLI: Gemini 3.8 Flash + Claude Sonnet/Opus 4.6.
-# `gemini-4-argon` hanya ada di akun Pro (akun biasa: hapus dari baris ini).
-ANTIGRAVITY_MODELS_DEFAULT="gemini-3.8-flash,claude-sonnet-4-6,claude-opus-4-6,gemini-4-argon"
-if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
-  LANGKAH="antigravity: venv + pip"
-  ANTIGRAVITY_VENV="${ROOT_DIR}/.venv-antigravity"
-  ANTIGRAVITY_PY="${ANTIGRAVITY_VENV}/bin/python"
-  ag_venv_ok=0
-  ag_installed=0
-  # Prefer an interpreter whose venv module actually works. The system
-  # `python3` may be newer than the installed python3-venv package (e.g. 3.13
-  # vs 3.12 on some Colab images), so probe candidates explicitly.
-  AG_PYTHON_BIN=""
-  for cand in python3.13 python3.12 python3.11 python3.10 python3; do
-    if command -v "$cand" >/dev/null 2>&1 && "$cand" -c 'import venv, ensurepip' >/dev/null 2>&1; then
-      AG_PYTHON_BIN="$cand"
-      break
-    fi
-  done
-  if [[ -x "$ANTIGRAVITY_PY" ]]; then
-    ag_venv_ok=1
-    info "Venv Antigravity sudah ada — memakai ${ANTIGRAVITY_PY}."
-  elif [[ -n "$AG_PYTHON_BIN" ]]; then
-    info "Membuat venv Antigravity (${ANTIGRAVITY_VENV}) dengan ${AG_PYTHON_BIN}..."
-    if as_owner "$AG_PYTHON_BIN" -m venv "$ANTIGRAVITY_VENV"; then
-      ag_venv_ok=1
-    else
-      warn "Gagal membuat venv Antigravity (butuh paket ${AG_PYTHON_BIN}-venv)."
-    fi
-  elif command -v uv >/dev/null 2>&1; then
-    info "Membuat venv Antigravity (${ANTIGRAVITY_VENV}) dengan uv..."
-    if as_owner uv venv "$ANTIGRAVITY_VENV" --python 3.12; then
-      ag_venv_ok=1
-    else
-      warn "Gagal membuat venv Antigravity dengan uv."
-    fi
-  else
-    warn "Tidak ada Python dengan modul venv — Google Antigravity SDK dilewati."
-  fi
-  if [[ "$ag_venv_ok" -eq 1 ]]; then
-    # Keep pip current enough for wheels built for Python 3.10+.
-    as_owner "$ANTIGRAVITY_PY" -m pip install --quiet --upgrade pip setuptools wheel \
-      || warn "Pembaruan pip di venv Antigravity gagal; melanjutkan."
-    info "Memasang Google Antigravity SDK (pip install google-antigravity)..."
-    if as_owner "$ANTIGRAVITY_PY" -m pip install --quiet --upgrade google-antigravity; then
-      ag_installed=1
-    else
-      warn "Instalasi google-antigravity gagal — transport antigravity-sdk tidak akan jalan."
-    fi
-  fi
-  if [[ "$ag_installed" -eq 1 ]]; then
-    set_env_value .env.local ANTIGRAVITY_PYTHON "$ANTIGRAVITY_PY"
-    pastikan_var_env .env.local ANTIGRAVITY_MODELS "$ANTIGRAVITY_MODELS_DEFAULT"
-    info "Antigravity SDK: OK (${ANTIGRAVITY_PY}); isi GEMINI_API_KEY untuk mengaktifkan run."
-  else
-    # Hide the provider group unless the operator already wrote their own list.
-    if ! grep -qE "^[[:space:]]*ANTIGRAVITY_MODELS=.+" .env.local 2>/dev/null; then
-      set_env_value .env.local ANTIGRAVITY_MODELS ""
-    fi
-    warn "Antigravity SDK tidak terpasang; grup 'Antigravity SDK' disembunyikan dari pemilih model."
-  fi
-else
-  set_env_value .env.local ANTIGRAVITY_MODELS ""
-  info "Google Antigravity SDK dilewati (--no-antigravity)."
-fi
-
-# ================================= 6a2. Google Antigravity CLI (agy)
-# Opsional: binary `agy` untuk penggunaan interaktif di terminal. OpenMAIC tidak
-# memakainya sebagai transport (SDK yang menangani turn agar tool-loop tetap
-# milik harness), tetapi CLI ini berguna untuk login browser dan eksplorasi.
+# ================================= 6a. Google Antigravity CLI (agy)
+# Transport `antigravity` berjalan native lewat CLI `agy` (turn diproses
+# `agy`, tool-loop tetap milik harness). Model ditemukan dari `agy models`
+# (login-aware); login Google dilakukan interaktif (`agy`) atau lewat UI Pro
+# Workbench. Tidak ada dependensi Python.
+ANTIGRAVITY_MODELS_DEFAULT="gemini-3.8-flash,claude-sonnet-4-6,claude-opus-4-6"
 if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
   if command -v agy >/dev/null 2>&1; then
     info "Antigravity CLI (agy) sudah terpasang."
   else
     info "Memasang Google Antigravity CLI (agy)..."
     if curl -fsSL https://antigravity.google/cli/install.sh | bash >/tmp/opencode/agy-install.log 2>&1; then
-      info "Antigravity CLI (agy) terpasang di ~/.local/bin (jalankan 'agy' untuk login browser)."
+      info "Antigravity CLI (agy) terpasang di ~/.local/bin (jalankan 'agy' untuk login Google)."
     else
       warn "Gagal memasang Antigravity CLI (agy); lihat /tmp/opencode/agy-install.log."
     fi
@@ -1619,14 +1595,63 @@ if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
     *":$HOME/.local/bin:"*) ;;
     *) export PATH="$HOME/.local/bin:$PATH" ;;
   esac
+  # Isi ANTIGRAVITY_MODELS bila kosong; sinkron_model menyegarkannya dari
+  # `agy models`.
+  if ! grep -qE "^[[:space:]]*ANTIGRAVITY_MODELS=.+" .env.local 2>/dev/null; then
+    pastikan_var_env .env.local ANTIGRAVITY_MODELS "$ANTIGRAVITY_MODELS_DEFAULT"
+  fi
+else
+  set_env_value .env.local ANTIGRAVITY_MODELS ""
+  info "Google Antigravity CLI dilewati (--no-antigravity)."
 fi
 colab_mark "antigravity selesai"
 
 # ======================================= 6b. Sinkron katalog model (OpenCode/Codex)
 # Dijalankan setelah dependensi agar binary Codex sudah tersedia. Menulis
-# .env.local + openmaic.yml sebelum build/PM2 menyalin konfigurasi.
-sinkron_model
-colab_mark "sinkron katalog model selesai"
+# .env.local + openmaic.yml sebelum PM2 menyalin konfigurasi.
+# Discovery (`opencode models`) bisa sampai puluhan detik, sementara build
+# produksi tidak membaca kedua file itu: saat build berjalan, discovery
+# dijalankan paralel dan log-nya diputar setelah build selesai.
+sinkron_model_di_latar() {
+  MODEL_SYNC_LOG="$(mktemp)"
+  MODEL_SYNC_RC_FILE="${MODEL_SYNC_LOG}.rc"
+  rm -f "$MODEL_SYNC_RC_FILE"
+  (
+    sinkron_model || _sync_rc=$?
+    printf '%s\n' "${_sync_rc:-0}" > "$MODEL_SYNC_RC_FILE"
+  ) >"$MODEL_SYNC_LOG" 2>&1 &
+  MODEL_SYNC_PID=$!
+  info "Sinkron katalog model berjalan paralel dengan build."
+}
+
+pastikan_sinkron_model() {
+  if [[ "$SYNC_MODEL_DONE" -eq 1 ]]; then return 0; fi
+  if [[ -n "$MODEL_SYNC_PID" ]]; then
+    wait "$MODEL_SYNC_PID" 2>/dev/null || true
+    MODEL_SYNC_PID=""
+    if [[ -n "$MODEL_SYNC_LOG" && -f "$MODEL_SYNC_LOG" ]]; then cat "$MODEL_SYNC_LOG"; fi
+    if [[ -f "$MODEL_SYNC_RC_FILE" ]] \
+      && [[ "$(cat "$MODEL_SYNC_RC_FILE" 2>/dev/null || echo 1)" != "0" ]]; then
+      warn "Sinkron katalog model gagal; nilai lama di .env.local/openmaic.yml dipertahankan."
+    fi
+    if [[ -n "$MODEL_SYNC_LOG" ]]; then rm -f "$MODEL_SYNC_LOG"; fi
+    if [[ -n "$MODEL_SYNC_RC_FILE" ]]; then rm -f "$MODEL_SYNC_RC_FILE"; fi
+    MODEL_SYNC_LOG=""
+    MODEL_SYNC_RC_FILE=""
+  else
+    sinkron_model
+  fi
+  SYNC_MODEL_DONE=1
+  colab_mark "sinkron katalog model selesai"
+}
+
+if [[ "$WITH_DEV" -ne 1 ]] && { [[ "$WITH_BUILD" -eq 1 ]] || [[ "$WITH_PM2" -eq 1 ]]; }; then
+  # Dimulai di dalam jalankan_build() agar tetap sinkron bila build ternyata
+  # dilewati (mis. rerun dengan .next/standalone sudah ada).
+  SYNC_MODEL_PARALLEL=1
+else
+  pastikan_sinkron_model
+fi
 
 # ============================================================ 7. Playwright
 if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then
@@ -1648,23 +1673,28 @@ BUILD_DONE=0
 jalankan_build() {
   LANGKAH="bun: build produksi"
   # Heap adaptif untuk tsc/esbuild yang dijalankan bun saat build (pola
-  # install-node.sh). Mencegah OOM di runtime Colab kecil tanpa memperlambat
-  # runtime besar.
+  # install-node.sh). Host besar (Colab 12 GB) memakai 8 GB seperti AGENTS.md;
+  # sisakan ~2 GB agar kernel tidak kehabisan memori.
   if [[ -z "${NODE_OPTIONS:-}" ]]; then
-    BUILD_HEAP=3072
+    BUILD_HEAP=8192
     _ram_mb="$(awk '/^MemTotal:/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || true)"
     if [[ "$_ram_mb" =~ ^[0-9]+$ ]]; then
-      _heap_ram=$((_ram_mb - 512))
+      _heap_ram=$((_ram_mb - 2048))
       if [[ "$_heap_ram" -lt 1024 ]]; then _heap_ram=1024; fi
       if [[ "$_heap_ram" -lt "$BUILD_HEAP" ]]; then BUILD_HEAP="$_heap_ram"; fi
     fi
     unset _ram_mb _heap_ram
     export NODE_OPTIONS="--max-old-space-size=${BUILD_HEAP}"
   fi
+  if [[ "$SYNC_MODEL_PARALLEL" -eq 1 && "$SYNC_MODEL_DONE" -eq 0 && -z "$MODEL_SYNC_PID" ]]; then
+    sinkron_model_di_latar
+  fi
   info "Menjalankan build produksi Bun (bun --bun run build)..."
   as_owner env NEXT_TELEMETRY_DISABLED=1 "${BUILD_ENV[@]}" "$BUN_BIN" --bun run build
   BUILD_DONE=1
   colab_mark "build produksi selesai"
+  # PM2 menyalin openmaic.yml setelah build; pastikan discovery sudah selesai.
+  if [[ "$SYNC_MODEL_PARALLEL" -eq 1 ]]; then pastikan_sinkron_model; fi
 }
 
 if [[ "$WITH_BUILD" -eq 1 ]]; then
@@ -1751,6 +1781,10 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
   fi
   [[ -f .next/standalone/server.js ]] \
     || fail "server.js standalone tidak ada; PM2 tidak bisa dijalankan."
+
+  # Build bisa dilewati (standalone sudah ada); discovery model tetap harus
+  # selesai sebelum openmaic.yml disalin ke standalone.
+  if [[ "$SYNC_MODEL_PARALLEL" -eq 1 ]]; then pastikan_sinkron_model; fi
 
   # Wrapper PM2 (run-server.sh) memaksa HOSTNAME=0.0.0.0; pastikan executable.
   if [[ -f run-server.sh ]]; then
@@ -1951,11 +1985,10 @@ else
   warn "Codex CLI tidak terdeteksi — fitur transport codex-sdk tidak akan jalan."
 fi
 if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
-  if [[ -x "${ROOT_DIR}/.venv-antigravity/bin/python" ]] \
-    && "${ROOT_DIR}/.venv-antigravity/bin/python" -c 'import google.antigravity' >/dev/null 2>&1; then
-    info "  Antigravity SDK: OK (.venv-antigravity; isi GEMINI_API_KEY)"
+  if command -v agy >/dev/null 2>&1; then
+    info "  Antigravity CLI (agy): terpasang; login lewat 'agy' atau UI Pro Workbench."
   else
-    warn "Antigravity SDK tidak terdeteksi — transport antigravity-sdk tidak akan jalan."
+    warn "Antigravity CLI (agy) tidak terpasang — transport antigravity tidak akan jalan."
   fi
 fi
 if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then

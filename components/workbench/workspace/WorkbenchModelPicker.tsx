@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { KeyRound } from 'lucide-react';
 import { ModelPicker } from '@/components/settings/model-picker';
@@ -20,17 +20,28 @@ interface AgentModelsResponse {
   success?: boolean;
   active?: string;
   thinking?: ThinkingConfig;
+  source?: string;
   models?: AgentModelItem[];
 }
 
 const STORAGE_KEY = 'openmaic-workbench-model';
 const STORAGE_THINKING_KEY = 'openmaic-workbench-model-thinking';
 
+/** Per-conversation picks get their own cache slot so the global default is never clobbered. */
+function storageKeys(sessionId: string | null): { model: string; thinking: string } {
+  return sessionId
+    ? {
+        model: `openmaic-workbench-model:${sessionId}`,
+        thinking: `openmaic-workbench-model-thinking:${sessionId}`,
+      }
+    : { model: STORAGE_KEY, thinking: STORAGE_THINKING_KEY };
+}
+
 const PROVIDER_GROUP_NAMES: Record<string, string> = {
-  opencode: 'OpenCode CLI',
+  opencode: 'OpenCode',
   'opencode-go': 'OpenCode Go',
-  codex: 'Codex SDK',
-  antigravity: 'Antigravity SDK',
+  codex: 'Codex',
+  antigravity: 'Antigravity',
 };
 
 /** "Muse Spark 1.3 Free (Zen)" -> "Muse Spark 1.3 Free". */
@@ -67,21 +78,27 @@ function splitModelString(modelString: string): { providerId: string; modelId: s
  * (Popover + kolom cari fixed + daftar scroll + ring violet) agar tampilan
  * dan perilaku identik.
  *
- * Membaca SEMUA model transport lokal yang diaktifkan installer
- * (OPENCODE_MODELS + OPENCODE_GO_MODELS via `opencode models` (login-aware),
- * CODEX_MODELS / penemuan live Codex, ANTIGRAVITY_MODELS / `agy models` —
- * empat grup provider) dan
- * memilih aktif via POST (data/agent-driver-model.json, berlaku untuk run
- * berikutnya tanpa restart). Varian thinking per model dipilih lewat kontrol
- * inline di baris terpilih (POST {model, thinking}). Dipakai di home composer
- * dan header chat pane — satu komponen untuk seluruh halaman /workspace.
+ * Hanya model yang benar-benar bisa dipakai akun yang login yang tampil:
+ * daftar selalu hasil penemuan live (`opencode models`, `model/list` Codex,
+ * `agy models`), sehingga grup provider yang belum login tampil kosong.
+ *
+ * Dua mode:
+ * - tanpa `sessionId` (home composer): pilihan menjadi default untuk
+ *   percakapan BARU — tersimpan global di data/agent-driver-model.json.
+ * - dengan `sessionId` (chat pane): pilihan tersimpan PADA percakapan itu
+ *   (agent_sessions.driver_model) dan tidak memengaruhi percakapan lain.
+ *
+ * Varian thinking per model dipilih lewat kontrol inline di baris terpilih.
+ * Dipakai di home composer dan header chat pane — satu komponen untuk
+ * seluruh halaman /workspace.
  *
  * Aksi login (OpenCode Console / Antigravity / Codex) dipasang sebagai aksi
  * footer di popover yang sama, tepat di bawah daftar model, sehingga pintu
  * masuk kredensial selalu berdampingan dengan provider yang dibukanya.
  */
-export function WorkbenchModelPicker() {
+export function WorkbenchModelPicker({ sessionId = null }: { sessionId?: string | null }) {
   const { t } = useI18n();
+  const keys = useMemo(() => storageKeys(sessionId ?? null), [sessionId]);
   const [models, setModels] = useState<AgentModelItem[]>([]);
   const [active, setActive] = useState<string>('');
   const [thinking, setThinking] = useState<ThinkingConfig | undefined>(undefined);
@@ -125,7 +142,10 @@ export function WorkbenchModelPicker() {
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch('/api/agent/models', { credentials: 'include', cache: 'no-store' });
+      const url = sessionId
+        ? `/api/agent/models?sessionId=${encodeURIComponent(sessionId)}`
+        : '/api/agent/models';
+      const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = (await res.json()) as AgentModelsResponse;
       const list = Array.isArray(body.models) ? body.models : [];
@@ -134,7 +154,7 @@ export function WorkbenchModelPicker() {
       if (serverActive) {
         setActive(serverActive);
         try {
-          localStorage.setItem(STORAGE_KEY, serverActive);
+          localStorage.setItem(keys.model, serverActive);
         } catch {
           /* abaikan */
         }
@@ -142,7 +162,7 @@ export function WorkbenchModelPicker() {
       if (body.thinking && typeof body.thinking === 'object') {
         setThinking(body.thinking);
         try {
-          localStorage.setItem(STORAGE_THINKING_KEY, JSON.stringify(body.thinking));
+          localStorage.setItem(keys.thinking, JSON.stringify(body.thinking));
         } catch {
           /* abaikan */
         }
@@ -151,9 +171,9 @@ export function WorkbenchModelPicker() {
     } catch {
       setLoadError(t('workspace.modelPicker.loadFailed'));
       try {
-        const cached = localStorage.getItem(STORAGE_KEY);
+        const cached = localStorage.getItem(keys.model);
         if (cached) setActive(cached);
-        const cachedThinking = localStorage.getItem(STORAGE_THINKING_KEY);
+        const cachedThinking = localStorage.getItem(keys.thinking);
         if (cachedThinking) setThinking(JSON.parse(cachedThinking) as ThinkingConfig);
       } catch {
         /* abaikan */
@@ -161,14 +181,14 @@ export function WorkbenchModelPicker() {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, keys, sessionId]);
 
   useEffect(() => {
     // Label instan dari cache agar header tidak berkedip, lalu sinkronkan.
     try {
-      const cached = localStorage.getItem(STORAGE_KEY);
+      const cached = localStorage.getItem(keys.model);
       if (cached) setActive(cached);
-      const cachedThinking = localStorage.getItem(STORAGE_THINKING_KEY);
+      const cachedThinking = localStorage.getItem(keys.thinking);
       if (cachedThinking) setThinking(JSON.parse(cachedThinking) as ThinkingConfig);
     } catch {
       /* abaikan */
@@ -184,7 +204,11 @@ export function WorkbenchModelPicker() {
           method: 'POST',
           credentials: 'include',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ model: modelString, thinking: nextThinking ?? undefined }),
+          body: JSON.stringify({
+            model: modelString,
+            thinking: nextThinking ?? undefined,
+            ...(sessionId ? { sessionId } : {}),
+          }),
         });
         const body = (await res.json().catch(() => ({}))) as {
           active?: string;
@@ -202,21 +226,21 @@ export function WorkbenchModelPicker() {
         const next = typeof body.active === 'string' ? body.active : modelString;
         setActive(next);
         try {
-          localStorage.setItem(STORAGE_KEY, next);
+          localStorage.setItem(keys.model, next);
         } catch {
           /* abaikan */
         }
         if (body.thinking && typeof body.thinking === 'object') {
           setThinking(body.thinking);
           try {
-            localStorage.setItem(STORAGE_THINKING_KEY, JSON.stringify(body.thinking));
+            localStorage.setItem(keys.thinking, JSON.stringify(body.thinking));
           } catch {
             /* abaikan */
           }
         } else if (nextThinking === undefined) {
           setThinking(undefined);
           try {
-            localStorage.removeItem(STORAGE_THINKING_KEY);
+            localStorage.removeItem(keys.thinking);
           } catch {
             /* abaikan */
           }
@@ -226,7 +250,7 @@ export function WorkbenchModelPicker() {
         setSaving(false);
       }
     },
-    [t],
+    [t, keys, sessionId],
   );
 
   const choose = useCallback(
@@ -238,7 +262,7 @@ export function WorkbenchModelPicker() {
         const next = await save(modelString, thinking);
         const picked = models.find((m) => m.modelString === next);
         toast.success(
-          t('workspace.modelPicker.activeToast', {
+          t(sessionId ? 'workspace.modelPicker.activeToastSession' : 'workspace.modelPicker.activeToast', {
             name: picked ? displayNameOf(picked) : next,
           }),
         );
@@ -297,8 +321,10 @@ export function WorkbenchModelPicker() {
         onThinkingChange={(config) => void changeThinking(config)}
         ariaLabel={t('workspace.modelPicker.ariaLabel')}
         footerAction={{
-          label: authConnected ? 'Model AI terhubung' : 'Hubungkan model AI',
-          description: 'OpenCode Console / Antigravity / Codex',
+          label: authConnected
+            ? t('workspace.modelPicker.footerConnected')
+            : t('workspace.modelPicker.footerLabel'),
+          description: t('workspace.modelPicker.footerDescription'),
           icon: <KeyRound className="size-4" />,
           connected: authConnected,
           onClick: () => setAuthOpen(true),

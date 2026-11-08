@@ -4,10 +4,101 @@ import os from 'node:os';
 import path from 'node:path';
 import { NextRequest } from 'next/server';
 
+const mocks = vi.hoisted(() => ({
+  opencodeModels: [] as { provider: 'opencode' | 'opencode-go'; id: string }[],
+  codexModels: [] as Array<{
+    id: string;
+    displayName: string;
+    description: string;
+    reasoningEfforts: string[];
+    defaultReasoningEffort: string;
+    hidden: boolean;
+  }>,
+  agModels: [] as { id: string; displayName: string }[],
+}));
+
+const LIVE_OPENCODE = [
+  { provider: 'opencode' as const, id: 'space-bunny-free' },
+  { provider: 'opencode' as const, id: 'muse-spark-1.3-contributor-free' },
+  { provider: 'opencode' as const, id: 'big-pickle' },
+  // Tidak di allowlist operator: tidak boleh tampil.
+  { provider: 'opencode' as const, id: 'not-activated-free' },
+  { provider: 'opencode-go' as const, id: 'gpt-6-luna' },
+];
+
+const CODEX_MODELS = [
+  {
+    id: 'gpt-5.6-codex',
+    displayName: 'GPT-5.6 Codex',
+    description: '',
+    reasoningEfforts: ['low', 'medium', 'high'],
+    defaultReasoningEffort: 'high',
+    hidden: false,
+  },
+  {
+    id: 'gpt-5.5-codex',
+    displayName: 'GPT-5.5 Codex',
+    description: '',
+    reasoningEfforts: ['low', 'medium', 'high'],
+    defaultReasoningEffort: 'medium',
+    hidden: false,
+  },
+];
+
+const AG_MODELS = [{ id: 'gemini-3.8-flash', displayName: 'Gemini 3.8 Flash' }];
+
+vi.mock('@/lib/ai/opencode-cli-models', () => ({
+  listOpencodeModels: async () => mocks.opencodeModels,
+  invalidateOpencodeModelCache: () => {},
+}));
+
 vi.mock('@/lib/ai/codex-app-server', () => ({
-  listCodexModels: async () => [],
+  listCodexModels: async () => mocks.codexModels,
   invalidateCodexModelCache: () => {},
 }));
+
+vi.mock('@/lib/ai/codex-auth', () => ({
+  codexAuthStatus: async () => ({ installed: true, loggedIn: true, message: 'ok' }),
+}));
+
+vi.mock('@/lib/ai/antigravity-cli-models', () => ({
+  listAntigravityModels: async () => mocks.agModels,
+}));
+
+vi.mock('@/lib/ai/antigravity-cli-auth', () => ({
+  antigravityCliAuthStatus: async () => ({
+    bridge: true,
+    installed: true,
+    authenticated: true,
+    message: 'ok',
+  }),
+}));
+
+const providers = {
+  opencode: { preset: 'opencode', apiKey: 'sk' },
+  'opencode-go': { preset: 'opencode-go', apiKey: 'sk' },
+  codex: { preset: 'codex' },
+  antigravity: { preset: 'antigravity' },
+};
+
+async function configureSlot(agent: { model: string; api: string }) {
+  const runtime = await import('@/lib/server/model-config/runtime');
+  runtime.setDeploymentConfigForTests({
+    layer: {
+      source: 'deployment',
+      config: { providers, slots: { agent } } as never,
+    },
+    legacy: false,
+    notices: [],
+  });
+  runtime.setWorkspaceLayerLoaderForTests(async () => null);
+}
+
+async function resetSlot() {
+  const runtime = await import('@/lib/server/model-config/runtime');
+  runtime.setDeploymentConfigForTests(undefined);
+  runtime.setWorkspaceLayerLoaderForTests(undefined);
+}
 
 describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
   let file = '';
@@ -26,22 +117,20 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
     process.env.OPENCODE_GO_MODELS = 'gpt-6-luna';
     delete process.env.CODEX_MODELS;
     process.env.ANTIGRAVITY_MODELS = 'gemini-3.8-flash';
-    process.env.MODEL_ROUTES = JSON.stringify({
-      'maic-agent-driver': {
-        model: 'opencode:muse-spark-1.3-contributor-free',
-        api: 'opencode-cli',
-      },
-    });
+    mocks.opencodeModels = [...LIVE_OPENCODE];
+    mocks.codexModels = CODEX_MODELS.map((m) => ({ ...m }));
+    mocks.agModels = AG_MODELS.map((m) => ({ ...m }));
+    await configureSlot({ model: 'opencode:muse-spark-1.3-contributor-free', api: 'opencode-cli' });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (file && fs.existsSync(file)) fs.rmSync(file, { force: true });
     delete process.env.OPENCODE_ACTIVE_MODEL_FILE;
     delete process.env.OPENCODE_MODELS;
     delete process.env.OPENCODE_GO_MODELS;
     delete process.env.CODEX_MODELS;
     delete process.env.ANTIGRAVITY_MODELS;
-    delete process.env.MODEL_ROUTES;
+    await resetSlot();
   });
 
   it('POST memilih model codex beserta varian thinking (api codex-sdk)', async () => {
@@ -72,13 +161,13 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
     });
   });
 
-  it('GET mengembalikan semua model aktif kedua provider + model driver saat ini', async () => {
+  it('GET mengembalikan model yang bisa dipakai akun login (hasil penemuan live)', async () => {
     const { GET } = await import('@/app/api/agent/models/route');
     const res = await GET();
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
       active: string;
-      models: Array<{ provider: string; modelString: string; thinking?: unknown }>;
+      models: Array<{ provider: string; modelString: string; thinking?: { control?: string } }>;
     };
     expect(body.active).toBe('opencode:muse-spark-1.3-contributor-free');
     expect(body.models.map((m) => m.modelString)).toEqual([
@@ -94,9 +183,10 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
     expect(body.models[3].provider).toBe('opencode-go');
     expect(body.models[4].provider).toBe('codex');
     expect(body.models[6].provider).toBe('antigravity');
-    // Setiap model membawa capability thinking untuk kontrol varian.
+    // OpenCode/Codex membawa capability thinking; Antigravity tidak (varian effort dirangkum di id model).
     for (const m of body.models) {
-      expect(m.thinking).toMatchObject({ control: 'effort' });
+      if (m.provider === 'antigravity') expect(m.thinking).toBeUndefined();
+      else expect(m.thinking).toMatchObject({ control: 'effort' });
     }
   });
 
@@ -153,27 +243,30 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
   });
 });
 
-describe('grup Go disembunyikan bila belum login (OPENCODE_GO_MODELS kosong)', () => {
+describe('grup disembunyikan bila akun tidak punya model (penemuan live kosong)', () => {
   const OLD_ENV = { ...process.env };
 
   beforeEach(async () => {
     vi.resetModules();
     process.env.OPENMAIC_AGENT_RUNTIME_ENABLED = 'true';
     process.env.DATABASE_URL = 'postgres://openmaic:pw@localhost:5432/openmaic';
-    process.env.MODEL_ROUTES = JSON.stringify({
-      'maic-agent-driver': { model: 'opencode:big-pickle', api: 'opencode-cli' },
-    });
     process.env.OPENCODE_MODELS = 'big-pickle';
     process.env.OPENCODE_GO_MODELS = '';
     process.env.CODEX_MODELS = '';
     process.env.ANTIGRAVITY_MODELS = '';
+    await configureSlot({ model: 'opencode:big-pickle', api: 'opencode-cli' });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     process.env = { ...OLD_ENV };
+    await resetSlot();
   });
 
-  it('GET hanya model opencode; POST Go ditolak', async () => {
+  it('GET hanya model opencode; POST Go dan Codex ditolak', async () => {
+    // Akun ini hanya punya big-pickle (penemuan live); grup Go/Codex/Antigravity kosong.
+    mocks.opencodeModels = [{ provider: 'opencode', id: 'big-pickle' }];
+    mocks.codexModels = [];
+    mocks.agModels = [];
     const { GET, POST } = await import('@/app/api/agent/models/route');
     const res = await GET();
     expect(res.status).toBe(200);

@@ -478,7 +478,13 @@ export function ModelPicker({
         side="bottom"
         sideOffset={6}
         collisionPadding={12}
-        className="w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden p-0"
+        // Cap the whole popover, not only the list, to the space Radix found
+        // for it. The search row and the footer action are fixed height, so a
+        // list capped at 320px could still push the panel past the viewport
+        // when the trigger sits near an edge and the popover flips above it —
+        // the top (search field included) was clipped. The list below shrinks
+        // instead, and a tall viewport still stops it at 320px.
+        className="flex max-h-[var(--radix-popover-content-available-height)] w-[360px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden p-0"
         // 弹层 portal 在 Dialog DOM 之外：设置弹窗的 react-remove-scroll 会把
         // portal 内的 wheel 一律 preventDefault（视作“外部”事件），导致列表
         // 无法滚轮滚动。在 React 合成阶段截停传播，事件不再冒泡到 document
@@ -486,7 +492,7 @@ export function ModelPicker({
         // 不会意外带动弹窗背后的内容。
         onWheelCapture={(e) => e.stopPropagation()}
       >
-        <div className="border-b p-2">
+        <div className="shrink-0 border-b p-2">
           {note && (
             <p className="px-0.5 pb-2 text-[11px] leading-snug text-muted-foreground">{note}</p>
           )}
@@ -501,17 +507,10 @@ export function ModelPicker({
           </div>
         </div>
 
-        {/* 列表高度跟随 Radix 给出的可用高度自适应收缩（减去搜索区 ~64px）：
-            trigger 靠近视口底部时弹层变矮而不是向上翻转溢出视口——否则顶部
-            的搜索框会被裁到屏幕外（如第一行站点的检查器）。 */}
-        <div
-          className={cn(
-            'min-h-0 overflow-y-auto p-1.5',
-            note
-              ? 'max-h-[min(320px,calc(var(--radix-popover-content-available-height)-96px))]'
-              : 'max-h-[min(320px,calc(var(--radix-popover-content-available-height)-64px))]',
-          )}
-        >
+        {/* The list gets whatever height the fixed search/footer leave over:
+            `min-h-0` lets flex shrink it below its content, and 320px keeps a
+            tall viewport from turning the picker into a full-height panel. */}
+        <div className="min-h-0 max-h-[320px] overflow-y-auto overscroll-contain p-1.5">
           {followLabel && onFollow && (
             <button
               onClick={() => {
@@ -619,7 +618,7 @@ export function ModelPicker({
         )}
 
         {footerAction && (
-          <div className="border-t p-1.5">
+          <div className="shrink-0 border-t p-1.5">
             <button
               type="button"
               onClick={() => {

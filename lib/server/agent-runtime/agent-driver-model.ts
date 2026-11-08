@@ -11,11 +11,20 @@ import {
 import { resolveModel, type ResolvedModel } from '@/lib/server/resolve-model';
 import {
   CODEX_PROVIDER,
+  activatedDriverModelsDynamic,
   driverApiFor,
   isActivatedDriverModel,
+  normalizeStoredDriverModel,
   parseDriverModelInput,
   readActiveModelOverride,
 } from './opencode-models';
+
+/** The conversation's own persisted choice (agent_sessions.driver_model), if any. */
+export type SessionDriverModelSelection = {
+  model?: unknown;
+  api?: unknown;
+  thinking?: unknown;
+} | null | undefined;
 
 export const AGENT_DRIVER_STAGE = 'maic-agent-driver' as const;
 export const UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS = 8_192;
@@ -46,6 +55,7 @@ export const OPENCODE_CLI_APIS = new Set(['opencode-cli', 'cli', 'opencode']);
 /** Route `api` values that select the local Codex SDK transport instead of HTTP. */
 export const CODEX_SDK_APIS = new Set(['codex-sdk', 'codex']);
 /** Route `api` values that select the local Google Antigravity SDK transport. */
+// `antigravity-sdk` is the documented wire name (kept for openmaic.yml / env compatibility).
 export const ANTIGRAVITY_SDK_APIS = new Set(['antigravity-sdk', 'antigravity']);
 // Both sets are the agent-slot view of LOCAL_AGENT_TRANSPORT_APIS in
 // lib/config/model-slots.ts (which the YAML/settings validator reads).
@@ -61,7 +71,7 @@ export const ANTIGRAVITY_SDK_PROVIDER = 'antigravity';
  * - `http` — the keyed Vercel AI SDK path (lib/ai/providers.ts);
  * - `opencode-cli` — `opencode run` child process (tier-3 free);
  * - `codex-sdk` — native `@openai/codex-sdk` turn (local Codex agent);
- * - `antigravity-sdk` — one turn through the local Python Antigravity SDK.
+ * - `antigravity-sdk` — one turn through the local Antigravity CLI (`agy`).
  */
 export type AgentDriverTransport = 'http' | 'opencode-cli' | 'codex-sdk' | 'antigravity-sdk';
 
@@ -175,8 +185,14 @@ export function buildPiDriverModel(
  * Resolve the driver through the `agent` slot for `workspaceId` (where an
  * older deployment's translated defaults leave the agent off). The slot requires tool calling; a model the catalogue says lacks it is
  * refused. The transport dialect defaults to openai-completions.
+ *
+ * `sessionDriver` is the conversation's own persisted choice; it wins over the
+ * global workbench override for this run only.
  */
-export async function resolveAgentDriverModel(workspaceId: string | null = null): Promise<{
+export async function resolveAgentDriverModel(
+  workspaceId: string | null = null,
+  sessionDriver?: SessionDriverModelSelection,
+): Promise<{
   connection: ResolvedModel;
   piModel: Model<Api>;
   /** Catalog-backed API limit; undefined means omit max_tokens on the wire. */
@@ -193,6 +209,20 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
   teaching: { piModel: Model<Api>; wireMaxOutputTokens?: number };
 }> {
   const resolution = await lookupSlot('agent', workspaceId);
+  // The conversation's own choice (agent_sessions.driver_model) wins over the
+  // global workbench override. Live discovery decides usability; warm it
+  // before validating so a cold runner process rejects nothing it should
+  // accept.
+  let preferred = readActiveModelOverride();
+  if (sessionDriver) {
+    try {
+      await activatedDriverModelsDynamic();
+    } catch {
+      // Discovery failure must not break an existing conversation; the
+      // stored choice is then validated against whatever the process knows.
+    }
+    preferred = normalizeStoredDriverModel(sessionDriver) ?? preferred;
+  }
   if (resolution.status === 'disabled') throw new SlotDisabledError('agent');
 
   // An unassigned agent slot can still be driven by the Pro Workbench's
@@ -200,7 +230,7 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
   // the default tier-3 model, so a workspace that never configured the agent
   // slot can still run. Both are local transports.
   if (resolution.status === 'unassigned') {
-    const override = readActiveModelOverride();
+    const override = preferred;
     if (override) {
       const input = parseDriverModelInput(override.modelString);
       // The picker only offers activated models, but the runner process may not
@@ -258,7 +288,7 @@ export async function resolveAgentDriverModel(workspaceId: string | null = null)
   // DeepSeek di toolbar sementara run memakai model ber-key lain dari settings
   // workspace. Pilihan operator (deployment/locked) tetap tidak dibajak;
   // override di luar allowlist juga diabaikan.
-  const override = readActiveModelOverride();
+  const override = preferred;
   if (override) {
     const input = parseDriverModelInput(override.modelString);
     const overrideMayApply = slotIsLocalTransport || resolution.source === 'workspace';
