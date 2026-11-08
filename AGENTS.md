@@ -39,6 +39,10 @@ Guidance for coding agents working in this repository, including the automated C
   ```
   `install.sh --with-pm2` performs the same sync automatically.
 - Standalone learning diagrams at the repo root (for example `perjalanan-bahan-menuju-daun.html`) are dependency-free HTML/SVG. Validate both the desktop and mobile layouts with Playwright at 1440 px and 390 px; the diagram switches to a compact stacked layout when the canvas is narrower than 560 px.
+- Standalone simulation widgets keep the control panel stacked above the canvas below 900 px (`max-height: 40vh; overflow-y: auto`) and give the canvas at least 300 px; gradient or data state must still be visible without scrolling the page. A restart pulse animates `box-shadow`, never `transform`: an element with a perpetual transform animation never becomes “stable”, so Playwright clicks time out.
+- Simulation reset must clear every animation-owned value (time, measured rate, O₂, history, bubbles, growth, animation clock), not just the sliders. Keyboard handling must not skip every focused button: let Space use the button's native activation there, but still map `R` to reset, or reset silently stops working after the first click.
+- The host's untracked `openmaic.yml` (written by install.sh) is read by model/slot resolution at runtime, so provider-config tests like `tests/agent-runtime/owner-extraction-options.test.ts` fail on the live host while the same suite passes in a clean worktree. When a merge or push looks red, first re-run the failing file in `git worktree` off `origin/<branch>` and with `openmaic.yml` copied into and out of it before blaming the change; CI is unaffected.
+- `lib/i18n/locales/id-ID.json` is fork-owned (upstream ships neither it nor its extra keys), so every upstream locale addition must be mirrored there by hand or `tsc --noEmit` fails on the `LOADERS: Record<Locale, ...>` map in `material-model-copy.ts` even though `check-i18n-keys` only flags extra/missing keys and does not stop that build gate.
 
 ## Workspace UI
 
