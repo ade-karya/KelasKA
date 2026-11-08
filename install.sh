@@ -9,7 +9,9 @@
 #   1. Paket sistem (apt): git, curl, unzip, build tools, header cairo/pango
 #      untuk modul native, dan ffmpeg (bisa dilewati).
 #   2. Bun di /usr/local/bin/bun (versi minimum 1.3.14; bisa dipin via
-#      --bun-version=X). Node.js dan pnpm TIDAK diinstal.
+#      --bun-version=X). Diunduh dari registry npm dengan cadangan installer
+#      resmi bun.sh, karena GitHub Releases sesekali membalas 5xx/504. Node.js
+#      dan pnpm TIDAK diinstal.
 #   3. PostgreSQL (default: otomatis) dari repo resmi PGDG: bila DATABASE_URL
 #      belum ada di .env.local/environment, installer memasang PostgreSQL,
 #      membuat database + user `openmaic`, dan menulis DATABASE_URL. Aplikasi
@@ -181,6 +183,8 @@ BUN_VERSION="${BUN_VERSION:-}"
 BUN_MIN_VERSION="${BUN_MIN_VERSION:-1.3.14}"
 BUN_INSTALL_PREFIX="/usr/local"
 BUN_BIN="$BUN_INSTALL_PREFIX/bin/bun"
+# Registry npm dipakai untuk mengunduh binary Bun (cadangan: bun.sh/GitHub).
+BUN_NPM_REGISTRY="${BUN_NPM_REGISTRY:-https://registry.npmjs.org}"
 
 tampilkan_help() {
   awk 'NR>1 { if ($0 ~ /^[[:space:]]*$/) exit; sub(/^# ?/, ""); print }' "$0"
@@ -449,6 +453,98 @@ version_gte() {
   [[ "$h3" -ge "$w3" ]]
 }
 
+# Unduh dengan retry berjenjang. Colab kadang menerima 504/5xx dari GitHub
+# saat installer Bun mengunduh rilis; satu kegagalan tidak boleh menghentikan
+# seluruh instalasi. `--retry` curl saja tidak cukup karena installer resmi
+# menjalankan unduhannya sendiri.
+unduh_retry() {
+  local url="$1" out="$2" percobaan jeda
+  for percobaan in 1 2 3 4 5; do
+    if curl -fsSL --connect-timeout 15 --max-time 600 \
+      --retry 2 --retry-delay 3 "$url" -o "$out"; then
+      return 0
+    fi
+    jeda=$((percobaan * 3))
+    warn "Unduhan gagal (percobaan ${percobaan}/5): ${url} — coba lagi dalam ${jeda}s."
+    sleep "$jeda"
+  done
+  return 1
+}
+
+# ------------------------------------------------------- Bun: unduhan & pasang
+# Bun diambil lebih dulu dari registry npm (@oven/bun-linux-<arch>): registry
+# npm terpisah dari GitHub Releases, jadi tetap jalan saat GitHub 5xx/504.
+# Installer resmi bun.sh tetap dipakai sebagai cadangan.
+bun_arch_npm() {
+  case "$(uname -m)" in
+    x86_64|amd64) printf 'x64' ;;
+    aarch64|arm64) printf 'aarch64' ;;
+    *) return 1 ;;
+  esac
+}
+
+bun_libc_suffix() {
+  local f
+  for f in /lib/ld-musl-*.so.1 /usr/lib/ld-musl-*.so.1; do
+    [[ -e "$f" ]] && { printf '%s' '-musl'; return 0; }
+  done
+  printf '%s' ''
+}
+
+# Versi Bun terbaru dari registry npm (bukan GitHub API).
+bun_versi_terbaru_npm() {
+  curl -fsSL --connect-timeout 15 --max-time 60 --retry 2 --retry-delay 3 \
+    "${BUN_NPM_REGISTRY%/}/bun/latest" 2>/dev/null \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])' 2>/dev/null
+}
+
+pasang_bun_npm() {
+  local versi="$1" arch="$2" libc="$3"
+  local paket="bun-linux-${arch}${libc}"
+  local url="${BUN_NPM_REGISTRY%/}/@oven/${paket}/-/${paket}-${versi}.tgz"
+  local tmpdir src
+  tmpdir="$(mktemp -d)"
+  info "Mengunduh Bun ${versi} dari registry npm (${paket})..."
+  if ! unduh_retry "$url" "$tmpdir/bun.tgz"; then
+    rm -rf "$tmpdir"
+    return 1
+  fi
+  if ! tar -xzf "$tmpdir/bun.tgz" -C "$tmpdir" 2>/dev/null; then
+    rm -rf "$tmpdir"
+    return 1
+  fi
+  src="$(find "$tmpdir/package" -maxdepth 3 -type f -name bun 2>/dev/null | head -1 || true)"
+  if [[ -z "$src" ]]; then
+    rm -rf "$tmpdir"
+    return 1
+  fi
+  run_as_root install -d -m 0755 "$(dirname "$BUN_BIN")"
+  if ! run_as_root install -m 0755 "$src" "$BUN_BIN"; then
+    rm -rf "$tmpdir"
+    return 1
+  fi
+  rm -rf "$tmpdir"
+  # Binary npm bisa tidak jalan di CPU tanpa AVX2; biarkan pemanggil jatuh ke
+  # installer resmi yang memilih varian baseline sendiri.
+  "$BUN_BIN" --version >/dev/null 2>&1
+}
+
+pasang_bun_resmi() {
+  local installer rc=0
+  installer="$(mktemp)"
+  if ! unduh_retry https://bun.sh/install "$installer"; then
+    rm -f "$installer"
+    return 1
+  fi
+  if [[ -n "$BUN_VERSION" ]]; then
+    run_as_root env BUN_INSTALL="$BUN_INSTALL_PREFIX" bash "$installer" "bun-v${BUN_VERSION}" || rc=$?
+  else
+    run_as_root env BUN_INSTALL="$BUN_INSTALL_PREFIX" bash "$installer" || rc=$?
+  fi
+  rm -f "$installer"
+  return "$rc"
+}
+
 rand_hex() {
   "$BUN_BIN" -e 'process.stdout.write(require("node:crypto").randomBytes(Number(process.argv[1])).toString("hex"))' "$1"
 }
@@ -612,19 +708,33 @@ fi
 
 if [[ "$bun_siap" -ne 1 ]]; then
   info "Menginstal Bun ke ${BUN_INSTALL_PREFIX}..."
-  BUN_INSTALLER="$(mktemp)"
-  curl -fsSL https://bun.sh/install -o "$BUN_INSTALLER"
-  if [[ -n "$BUN_VERSION" ]]; then
-    run_as_root env BUN_INSTALL="$BUN_INSTALL_PREFIX" bash "$BUN_INSTALLER" "bun-v${BUN_VERSION}"
+  bun_dari_npm=0
+  if BUN_ARCH="$(bun_arch_npm)"; then
+    BUN_TARGET_VERSION="$BUN_VERSION"
+    if [[ -z "$BUN_TARGET_VERSION" ]]; then
+      BUN_TARGET_VERSION="$(bun_versi_terbaru_npm || true)"
+      [[ -n "$BUN_TARGET_VERSION" ]] \
+        || warn "Versi Bun terbaru tidak terbaca dari registry npm."
+    fi
+    if [[ -n "$BUN_TARGET_VERSION" ]] \
+      && pasang_bun_npm "$BUN_TARGET_VERSION" "$BUN_ARCH" "$(bun_libc_suffix)"; then
+      bun_dari_npm=1
+    fi
   else
-    run_as_root env BUN_INSTALL="$BUN_INSTALL_PREFIX" bash "$BUN_INSTALLER"
+    warn "Arsitektur $(uname -m) tidak punya paket Bun di npm."
   fi
-  rm -f "$BUN_INSTALLER"
+  if [[ "$bun_dari_npm" -ne 1 ]]; then
+    warn "Mengunduh Bun dari registry npm gagal — mencoba installer resmi bun.sh (butuh GitHub)."
+    pasang_bun_resmi \
+      || fail "Instalasi Bun gagal: registry npm dan installer resmi bun.sh tidak bisa diunduh. Periksa koneksi lalu jalankan ulang: sudo ./install.sh --yes"
+  fi
   hash -r 2>/dev/null || true
 fi
 
 [[ -x "$BUN_BIN" ]] || fail "Bun tidak ditemukan di ${BUN_BIN} setelah instalasi."
-BUN_TERPASANG="$("$BUN_BIN" --version)"
+BUN_TERPASANG="$("$BUN_BIN" --version 2>/dev/null || true)"
+[[ -n "$BUN_TERPASANG" ]] \
+  || fail "Bun di ${BUN_BIN} tidak bisa dijalankan (binary rusak atau arsitektur tidak cocok)."
 version_gte "$BUN_TERPASANG" "$BUN_MIN_VERSION" \
   || fail "Bun ${BUN_TERPASANG} masih di bawah minimum ${BUN_MIN_VERSION}."
 info "Bun ${BUN_TERPASANG} siap di ${BUN_BIN}."

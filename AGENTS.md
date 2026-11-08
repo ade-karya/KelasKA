@@ -15,6 +15,7 @@ Guidance for coding agents working in this repository, including the automated C
 ## Working Agreement
 
 - Update this file (`AGENTS.md`) as part of every change. Record the durable build, test, deployment, or debugging lesson the work produced, in the relevant section below. Keep it short and actionable; do not duplicate code or CONTRIBUTING.md.
+- After all work for a task is finished and verified, commit the changes and push them to `origin` on the current branch (Conventional Commit message), then report the branch, commit hash, and push result. Never leave finished work uncommitted; if the push is rejected or credentials are unavailable, say so explicitly instead of silently skipping it.
 
 ## Build and Test Resources
 
@@ -25,6 +26,7 @@ Guidance for coding agents working in this repository, including the automated C
   ```
 - Use the same setting for other heavy runs (large test suites, type checks). Do not run several memory-heavy tasks at once.
 - `install.sh` sizes the build heap as `min(8192, RAM - 2048)` MB, so a 12 GB Colab host gets the 8192 MB above instead of the old 3072 MB cap. On Colab's 2 vCPU the Turbopack production build dominates a cold `--colab` run (~10-15 min) and Bun cannot speed it up; the installer's wins are building workspace packages two at a time and running model discovery alongside the build. Use `--dev --colab` for a fast server without the production build.
+- Bun is downloaded from the npm registry (`@oven/bun-linux-<arch>`, override with `BUN_NPM_REGISTRY`) before the official `bun.sh` installer. The official installer fetches from GitHub Releases, which intermittently answers `504` on Colab and used to abort `--colab` at `bun: instalasi`; both paths now go through `unduh_retry`. To test the Bun step without a full install, extract `unduh_retry`/`pasang_bun_npm` into a scratch script with a temporary `BUN_INSTALL_PREFIX`.
 - Antigravity is the local `agy` CLI (`lib/ai/antigravity-cli.ts`, transport api `antigravity-sdk`), never a Python bridge. The installer installs `agy` and refreshes `ANTIGRAVITY_MODELS` from `agy models` (login-aware, like the Codex/OpenCode discovery); there is no `.venv-antigravity` and no `google-antigravity` pip package anywhere.
 - All workbench auth UI copy lives in `workspace.auth.*` and `workspace.modelPicker.*` in `lib/i18n/locales/<locale>.json` (13 locales, kept in sync by the i18n script); never hardcode Indonesian/English strings in the panels.
 - Model-selector tests must pin `OPENCODE_ACTIVE_MODEL_FILE` to a scratch path: a local `data/agent-driver-model.json` would otherwise leak into every resolution path and fail unrelated suites.
