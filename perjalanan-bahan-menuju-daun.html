@@ -1,0 +1,1892 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Diagram alur interaktif perjalanan air, karbon dioksida, dan cahaya menuju daun untuk fotosintesis."
+    />
+    <title>Telusuri Perjalanan Bahan Menuju Daun — Diagram Interaktif</title>
+    <script type="application/json" id="widget-config">
+      {
+        "type": "flowchart",
+        "title": "Telusuri Perjalanan Bahan Menuju Daun",
+        "subject": "Biologi",
+        "description": "Siswa menelusuri diagram alur untuk menghubungkan air yang diserap akar, karbon dioksida dari udara, dan cahaya yang ditangkap klorofil di daun. Air dan karbon dioksida adalah bahan baku, sedangkan cahaya menyediakan energi bagi fotosintesis.",
+        "steps": [
+          "Air diserap akar",
+          "Air bergerak melalui batang menuju daun",
+          "Karbon dioksida masuk melalui stomata",
+          "Cahaya ditangkap klorofil di daun",
+          "Bahan bertemu di tempat berlangsungnya fotosintesis"
+        ],
+        "stepDescriptions": [
+          "Di dalam tanah, bulu-bulu akar menyerap air. Air ini adalah bahan baku pertama fotosintesis.",
+          "Air naik dari akar melalui pembuluh xilem di batang. Transpirasi daun membantu menarik air sampai ke daun.",
+          "Karbon dioksida dari udara berdifusi masuk ke daun melalui stomata, pori-pori kecil di permukaan daun.",
+          "Klorofil di dalam kloroplas menangkap energi cahaya. Cahaya bukan bahan baku, tetapi sumber energi untuk fotosintesis.",
+          "Di kloroplas, air dan karbon dioksida diolah dengan energi cahaya menjadi glukosa dan oksigen."
+        ],
+        "nodes": [
+          {
+            "id": "air-di-akar",
+            "label": "Air diserap akar",
+            "icon": "💧",
+            "step": 1,
+            "role": "BAHAN BAKU",
+            "note": "H₂O • diserap dari tanah",
+            "color": "#0ea5e9",
+            "ink": "#0369a1",
+            "details": "Akar menyerap air dan mineral dari dalam tanah melalui bulu-bulu akar. Air yang masuk ini menjadi bahan baku fotosintesis.",
+            "fact": "Bulu akar memperluas permukaan penyerapan, sehingga tumbuhan dapat menyerap air lebih banyak."
+          },
+          {
+            "id": "air-di-batang",
+            "label": "Air bergerak melalui batang menuju daun",
+            "icon": "🌱",
+            "step": 2,
+            "role": "BAHAN BAKU",
+            "note": "naik lewat pembuluh xilem",
+            "color": "#0284c7",
+            "ink": "#075985",
+            "details": "Air dari akar naik melalui pembuluh xilem di batang. Gerakan ini dibantu oleh transpirasi daun dan sifat kapiler pembuluh.",
+            "fact": "Xilem adalah jaringan pembuluh yang membawa air dan mineral dari akar menuju daun."
+          },
+          {
+            "id": "co2-di-stomata",
+            "label": "Karbon dioksida masuk melalui stomata",
+            "icon": "💨",
+            "step": 3,
+            "role": "BAHAN BAKU",
+            "note": "CO₂ • dari udara",
+            "color": "#8b5cf6",
+            "ink": "#6d28d9",
+            "details": "Karbon dioksida dari udara masuk ke daun melalui stomata. Stomata adalah pori-pori kecil yang dapat membuka dan menutup.",
+            "fact": "Stomata paling banyak terdapat di permukaan bawah daun. Saat tumbuhan kekurangan air, stomata menutup untuk menghemat air."
+          },
+          {
+            "id": "cahaya-di-klorofil",
+            "label": "Cahaya ditangkap klorofil di daun",
+            "icon": "☀️",
+            "step": 4,
+            "role": "SUMBER ENERGI",
+            "note": "energi • bukan bahan baku",
+            "color": "#eab308",
+            "ink": "#a16207",
+            "details": "Klorofil di dalam kloroplas menangkap energi cahaya matahari. Energi ini dipakai untuk menjalankan reaksi fotosintesis.",
+            "fact": "Klorofil menyerap cahaya merah dan biru, lalu memantulkan cahaya hijau. Itulah sebabnya daun tampak hijau."
+          },
+          {
+            "id": "tempat-fotosintesis",
+            "label": "Bahan bertemu di tempat berlangsungnya fotosintesis",
+            "icon": "🍃",
+            "step": 5,
+            "role": "TEMPAT PROSES",
+            "note": "kloroplas • glukosa + O₂",
+            "color": "#10b981",
+            "ink": "#047857",
+            "details": "Air dan karbon dioksida bertemu di kloroplas. Dengan energi cahaya, keduanya diubah menjadi glukosa dan oksigen.",
+            "fact": "Air dan CO₂ adalah bahan baku, sedangkan cahaya menyediakan energi. Ketiganya dibutuhkan agar fotosintesis berlangsung."
+          }
+        ],
+        "edges": [
+          {
+            "from": "air-di-akar",
+            "to": "air-di-batang",
+            "label": "xilem",
+            "color": "#38bdf8"
+          },
+          {
+            "from": "air-di-batang",
+            "to": "tempat-fotosintesis",
+            "label": "air tiba di daun",
+            "color": "#38bdf8"
+          },
+          {
+            "from": "co2-di-stomata",
+            "to": "tempat-fotosintesis",
+            "label": "CO₂ berdifusi",
+            "color": "#c4b5fd"
+          },
+          {
+            "from": "cahaya-di-klorofil",
+            "to": "tempat-fotosintesis",
+            "label": "energi cahaya",
+            "color": "#fbbf24"
+          }
+        ]
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --panel: #0b1220;
+        --panel-2: #0f172a;
+        --line: #1e293b;
+        --line-2: #334155;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --green: #34d399;
+        --green-dark: #047857;
+        --focus: #fbbf24;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-height: 100%;
+        background: var(--bg);
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        background:
+          radial-gradient(900px 520px at 8% -5%, rgba(56, 189, 248, 0.13), transparent 70%),
+          radial-gradient(800px 480px at 96% 4%, rgba(250, 204, 21, 0.1), transparent 68%),
+          radial-gradient(1000px 700px at 50% 112%, rgba(16, 185, 129, 0.13), transparent 70%),
+          var(--bg);
+      }
+
+      button {
+        font: inherit;
+      }
+
+      button,
+      .node {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button:focus-visible,
+      .node:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      .app {
+        width: min(1440px, 100%);
+        margin: 0 auto;
+        padding: 18px;
+      }
+
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+      }
+
+      .brand-icon {
+        flex: 0 0 auto;
+        width: 54px;
+        height: 54px;
+        display: grid;
+        place-items: center;
+        font-size: 28px;
+        border-radius: 18px;
+        background:
+          radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.45), transparent 34%),
+          linear-gradient(145deg, #4ade80, #059669 62%, #065f46);
+        box-shadow:
+          0 14px 32px rgba(16, 185, 129, 0.26),
+          inset 0 1px 0 rgba(255, 255, 255, 0.32);
+      }
+
+      .kicker {
+        margin: 0 0 2px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        color: #6ee7b7;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(20px, 2.2vw, 30px);
+        line-height: 1.14;
+        letter-spacing: -0.025em;
+        color: #f8fafc;
+      }
+
+      .subtitle {
+        margin: 5px 0 0;
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: #aebccd;
+        max-width: 760px;
+      }
+
+      .subtitle b {
+        color: #e2e8f0;
+      }
+
+      .formula {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 6px;
+        padding: 4px 9px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.72);
+        font-size: 11px;
+        font-weight: 700;
+        color: #cbd5e1;
+      }
+
+      .formula em {
+        color: #fde68a;
+        font-style: normal;
+      }
+
+      .hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .step-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(52, 211, 153, 0.42);
+        background: rgba(6, 78, 59, 0.42);
+        color: #d1fae5;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .step-badge::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.14);
+      }
+
+      .ghost-btn {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid #334155;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.9);
+        color: #e2e8f0;
+        font-size: 12.5px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .ghost-btn:hover {
+        background: #1e293b;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 352px minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: calc(100vh - 32px);
+        padding: 14px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background:
+          linear-gradient(180deg, rgba(15, 23, 42, 0.97), rgba(8, 15, 30, 0.98)),
+          var(--panel);
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.34);
+        scrollbar-width: thin;
+        scrollbar-color: #334155 transparent;
+      }
+
+      .sidebar-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 2px;
+      }
+
+      .sidebar-head p {
+        margin: 0;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.17em;
+        color: #7dd3fc;
+        text-transform: uppercase;
+      }
+
+      .close-sidebar {
+        display: none;
+        width: 40px;
+        height: 40px;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        background: #172033;
+        color: #e2e8f0;
+        font-size: 18px;
+        cursor: pointer;
+      }
+
+      .step-card {
+        padding: 14px;
+        border: 1px solid #1f2b3f;
+        border-radius: 18px;
+        background:
+          radial-gradient(420px 140px at 12% 0%, rgba(56, 189, 248, 0.09), transparent 72%),
+          #0a1323;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+        color: #93a4b8;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow span {
+        color: #7dd3fc;
+      }
+
+      .step-card h2 {
+        margin: 0;
+        font-size: 18px;
+        line-height: 1.28;
+        letter-spacing: -0.015em;
+        color: #f8fafc;
+      }
+
+      .step-card p {
+        margin: 7px 0 0;
+        color: #b8c5d6;
+        font-size: 12.5px;
+        line-height: 1.65;
+      }
+
+      .dots {
+        display: flex;
+        gap: 6px;
+        margin-top: 12px;
+      }
+
+      .dot-step {
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: #233147;
+        transition:
+          background 0.25s ease,
+          box-shadow 0.25s ease;
+      }
+
+      .dot-step.done {
+        background: #22c55e;
+      }
+
+      .dot-step.current {
+        background: #fbbf24;
+        box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.14);
+      }
+
+      .detail-card {
+        --accent: #0ea5e9;
+        --accent-soft: rgba(14, 165, 233, 0.14);
+        position: relative;
+        padding: 15px 15px 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 6px solid var(--accent);
+        background: #ffffff;
+        color: #0f172a;
+        box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+      }
+
+      .detail-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .detail-icon {
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+        background: var(--accent-soft);
+        font-size: 23px;
+        line-height: 1;
+      }
+
+      .role-pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 9px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #0f172a;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.11em;
+        line-height: 1.1;
+        text-align: center;
+      }
+
+      .detail-card h3 {
+        margin: 10px 0 0;
+        font-size: 17px;
+        line-height: 1.25;
+        letter-spacing: -0.018em;
+        color: #0f172a;
+      }
+
+      .detail-note {
+        margin: 4px 0 0;
+        color: #64748b;
+        font-size: 10.5px;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+      }
+
+      .detail-desc {
+        margin: 9px 0 0;
+        color: #334155;
+        font-size: 12.5px;
+        line-height: 1.62;
+      }
+
+      .detail-fact {
+        margin-top: 10px;
+        padding: 9px 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 11px;
+        background: #f8fafc;
+        color: #334155;
+        font-size: 11.5px;
+        line-height: 1.55;
+      }
+
+      .detail-fact b {
+        color: #0f172a;
+      }
+
+      .concept-card {
+        padding: 13px 14px;
+        border: 1px solid #1f2b3f;
+        border-radius: 18px;
+        background: #0a1323;
+      }
+
+      .concept-card h3 {
+        margin: 0 0 9px;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        color: #86efac;
+        text-transform: uppercase;
+      }
+
+      .concept-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        padding: 7px 0;
+        border-top: 1px solid rgba(51, 65, 85, 0.42);
+        color: #b8c5d6;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .concept-row:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+      }
+
+      .concept-row:last-child {
+        padding-bottom: 0;
+      }
+
+      .concept-row .emoji {
+        flex: 0 0 auto;
+        width: 21px;
+        text-align: center;
+        font-size: 15px;
+        line-height: 1.35;
+      }
+
+      .concept-row b {
+        color: #f1f5f9;
+      }
+
+      .main {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .diagram-card {
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: #030a18;
+        box-shadow: 0 26px 70px rgba(0, 0, 0, 0.38);
+      }
+
+      .diagram-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+        background: rgba(8, 15, 30, 0.86);
+      }
+
+      .legend {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        color: #9fb0c4;
+        font-size: 10.5px;
+        font-weight: 700;
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+      }
+
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .legend-dot.sky {
+        background: #38bdf8;
+        box-shadow: 0 0 8px rgba(56, 189, 248, 0.7);
+      }
+
+      .legend-dot.violet {
+        background: #c4b5fd;
+        box-shadow: 0 0 8px rgba(196, 181, 253, 0.7);
+      }
+
+      .legend-dot.gold {
+        background: #fbbf24;
+        box-shadow: 0 0 8px rgba(251, 191, 36, 0.7);
+      }
+
+      .toolbar-hint {
+        color: #7f91a7;
+        font-size: 10.5px;
+        font-weight: 650;
+      }
+
+      .canvas-wrap {
+        position: relative;
+        padding: 6px;
+        background:
+          radial-gradient(720px 340px at 12% 8%, rgba(56, 189, 248, 0.11), transparent 72%),
+          radial-gradient(620px 320px at 88% 10%, rgba(250, 204, 21, 0.09), transparent 72%),
+          radial-gradient(760px 440px at 50% 104%, rgba(16, 185, 129, 0.11), transparent 72%),
+          linear-gradient(180deg, #061022, #020817);
+      }
+
+      #flowSvg {
+        display: block;
+        width: 100%;
+        max-width: 980px;
+        height: auto;
+        margin: 0 auto;
+        overflow: visible;
+        touch-action: manipulation;
+        user-select: none;
+      }
+
+      .node {
+        cursor: pointer;
+        opacity: 1;
+        transition: opacity 0.36s ease;
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+
+      .node.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .node.just-in {
+        animation: node-reveal 0.46s cubic-bezier(0.16, 0.84, 0.3, 1) both;
+      }
+
+      @keyframes node-reveal {
+        0% {
+          opacity: 0;
+          transform: translateY(13px) scale(0.985);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .node .card {
+        transition:
+          stroke-width 0.18s ease,
+          stroke 0.18s ease,
+          filter 0.18s ease;
+      }
+
+      .node:hover .card {
+        stroke-width: 3.6;
+        filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.3));
+      }
+
+      .node.selected .card {
+        stroke: #fbbf24;
+        stroke-width: 4.2;
+        filter:
+          drop-shadow(0 0 10px rgba(251, 191, 36, 0.42))
+          drop-shadow(0 12px 22px rgba(0, 0, 0, 0.28));
+      }
+
+      .node-label {
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        font-weight: 800;
+        fill: #0f172a;
+        letter-spacing: -0.012em;
+      }
+
+      .node-role {
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+      }
+
+      .node-note {
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        font-size: 10.5px;
+        font-weight: 650;
+        fill: #64748b;
+      }
+
+      .node-icon {
+        font-size: 23px;
+        pointer-events: none;
+      }
+
+      .edge {
+        transition: opacity 0.42s ease;
+      }
+
+      .edge.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .edge-line {
+        fill: none;
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-dasharray: 8 7;
+        animation: flow-dash 1.15s linear infinite;
+      }
+
+      .edge-label-text {
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        font-size: 11px;
+        font-weight: 800;
+        fill: #f8fafc;
+        letter-spacing: 0.01em;
+      }
+
+      @keyframes flow-dash {
+        to {
+          stroke-dashoffset: -15;
+        }
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 12px 14px 13px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(10, 19, 35, 0.94);
+        box-shadow: 0 18px 46px rgba(0, 0, 0, 0.26);
+      }
+
+      .progress-area {
+        flex: 1 1 230px;
+        min-width: 190px;
+      }
+
+      .progress-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 7px;
+      }
+
+      .progress-top strong {
+        color: #f1f5f9;
+        font-size: 12.5px;
+        line-height: 1.3;
+      }
+
+      .progress-top span {
+        flex: 0 0 auto;
+        color: #93a4b8;
+        font-size: 10.5px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .progress-track {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #1b293d;
+      }
+
+      .progress-fill {
+        height: 100%;
+        width: 20%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #22d3ee, #34d399 56%, #fbbf24);
+        box-shadow: 0 0 14px rgba(52, 211, 153, 0.44);
+        transition: width 0.38s cubic-bezier(0.16, 0.84, 0.3, 1);
+      }
+
+      .control-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 1 auto;
+      }
+
+      .control-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid #334155;
+        border-radius: 13px;
+        background: #172033;
+        color: #e2e8f0;
+        font-size: 12px;
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+          background 0.18s ease,
+          transform 0.18s ease,
+          border-color 0.18s ease;
+      }
+
+      .control-btn:hover:not(:disabled) {
+        background: #24324a;
+        border-color: #475569;
+      }
+
+      .control-btn:active:not(:disabled) {
+        transform: translateY(1px);
+      }
+
+      .control-btn:disabled {
+        opacity: 0.38;
+        cursor: not-allowed;
+      }
+
+      .control-btn.primary {
+        border-color: rgba(52, 211, 153, 0.6);
+        background: linear-gradient(180deg, #22c55e, #16a34a);
+        color: #04240f;
+        box-shadow: 0 8px 22px rgba(34, 197, 94, 0.22);
+      }
+
+      .control-btn.primary:hover:not(:disabled) {
+        background: linear-gradient(180deg, #4ade80, #22c55e);
+        border-color: #86efac;
+      }
+
+      .control-btn.reset {
+        width: 44px;
+        padding: 0;
+        font-size: 17px;
+      }
+
+      .scrim {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        background: rgba(2, 6, 23, 0.68);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+          opacity 0.25s ease,
+          visibility 0.25s ease;
+      }
+
+      .scrim.show {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+      }
+
+      .sr-only {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border: 0 !important;
+      }
+
+      @media (max-width: 1050px) {
+        .workspace {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .sidebar {
+          position: fixed;
+          z-index: 70;
+          left: 12px;
+          right: 12px;
+          bottom: 12px;
+          top: auto;
+          width: auto;
+          max-height: min(76vh, 700px);
+          visibility: hidden;
+          transform: translateY(calc(100% + 28px));
+          transition:
+            transform 0.32s cubic-bezier(0.16, 0.84, 0.3, 1),
+            visibility 0.32s ease;
+          border-radius: 22px;
+          box-shadow: 0 30px 90px rgba(0, 0, 0, 0.66);
+        }
+
+        .sidebar.open {
+          visibility: visible;
+          transform: translateY(0);
+        }
+
+        .ghost-btn {
+          display: inline-flex;
+        }
+
+        .close-sidebar {
+          display: inline-grid;
+          place-items: center;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .app {
+          padding: 12px;
+        }
+
+        .hero {
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+
+        .brand {
+          align-items: flex-start;
+        }
+
+        .brand-icon {
+          width: 46px;
+          height: 46px;
+          border-radius: 15px;
+          font-size: 24px;
+        }
+
+        .subtitle {
+          font-size: 11.5px;
+        }
+
+        .hero-actions {
+          width: 100%;
+          justify-content: space-between;
+        }
+
+        .diagram-card,
+        .sidebar {
+          border-radius: 20px;
+        }
+
+        .diagram-toolbar {
+          padding: 9px 11px;
+        }
+
+        .toolbar-hint {
+          display: none;
+        }
+
+        .canvas-wrap {
+          padding: 3px;
+        }
+
+        .controls {
+          align-items: stretch;
+          padding: 11px;
+        }
+
+        .progress-area {
+          flex-basis: 100%;
+        }
+
+        .control-actions {
+          width: 100%;
+        }
+
+        .control-actions .primary {
+          flex: 1;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <header class="hero">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">🍃</div>
+          <div>
+            <p class="kicker">Biologi • Fotosintesis</p>
+            <h1>Telusuri Perjalanan Bahan Menuju Daun</h1>
+            <p class="subtitle">
+              Ikuti <b>air</b>, <b>karbon dioksida</b>, dan <b>cahaya</b> sampai bertemu di daun.
+            </p>
+            <span class="formula" aria-label="Air ditambah karbon dioksida ditambah cahaya menghasilkan glukosa dan oksigen">
+              H₂O + CO₂ + <em>cahaya</em> → glukosa + O₂
+            </span>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <span id="stepBadge" class="step-badge">Langkah 1 / 5</span>
+          <button
+            id="sidebarToggle"
+            class="ghost-btn"
+            type="button"
+            aria-controls="sidebar"
+            aria-expanded="false"
+          >
+            ☰ Panel
+          </button>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <aside id="sidebar" class="sidebar" aria-label="Panel langkah dan detail bahan">
+          <div class="sidebar-head">
+            <p>Penjelajah fotosintesis</p>
+            <button
+              id="closeSidebar"
+              class="close-sidebar"
+              type="button"
+              aria-label="Tutup panel"
+            >
+              ✕
+            </button>
+          </div>
+
+          <section class="step-card" aria-labelledby="stepTitle">
+            <div class="eyebrow">
+              <span>Langkah <span id="stepNumber">1</span> dari 5</span>
+              <span id="stepFraction">1 / 5</span>
+            </div>
+            <h2 id="stepTitle">Air diserap akar</h2>
+            <p id="stepDescription">
+              Di dalam tanah, bulu-bulu akar menyerap air. Air ini adalah bahan baku pertama
+              fotosintesis.
+            </p>
+            <div id="stepDots" class="dots" aria-hidden="true"></div>
+          </section>
+
+          <section id="detailCard" class="detail-card" aria-live="polite">
+            <div class="detail-top">
+              <div id="detailIcon" class="detail-icon" aria-hidden="true">💧</div>
+              <span id="detailRole" class="role-pill">BAHAN BAKU</span>
+            </div>
+            <h3 id="detailTitle">Air diserap akar</h3>
+            <p id="detailNote" class="detail-note">H₂O • diserap dari tanah</p>
+            <p id="detailDescription" class="detail-desc">
+              Akar menyerap air dan mineral dari dalam tanah melalui bulu-bulu akar.
+            </p>
+            <div id="detailFact" class="detail-fact">
+              💡 <b>Fakta:</b> Bulu akar memperluas permukaan penyerapan air.
+            </div>
+          </section>
+
+          <section class="concept-card" aria-labelledby="conceptTitle">
+            <h3 id="conceptTitle">Kunci konsep</h3>
+            <div class="concept-row">
+              <span class="emoji" aria-hidden="true">💧</span>
+              <span><b>Air</b> dari akar adalah bahan baku fotosintesis.</span>
+            </div>
+            <div class="concept-row">
+              <span class="emoji" aria-hidden="true">💨</span>
+              <span><b>Karbon dioksida</b> dari udara juga bahan baku.</span>
+            </div>
+            <div class="concept-row">
+              <span class="emoji" aria-hidden="true">☀️</span>
+              <span><b>Cahaya</b> bukan bahan, melainkan sumber energi.</span>
+            </div>
+          </section>
+        </aside>
+
+        <main class="main">
+          <section class="diagram-card" aria-labelledby="diagramTitle">
+            <div class="diagram-toolbar">
+              <div class="legend" aria-label="Keterangan warna garis">
+                <span><i class="legend-dot sky"></i>Air</span>
+                <span><i class="legend-dot violet"></i>Karbon dioksida</span>
+                <span><i class="legend-dot gold"></i>Cahaya</span>
+              </div>
+              <span class="toolbar-hint">Klik kotak untuk melihat detail</span>
+            </div>
+            <div id="canvasWrap" class="canvas-wrap">
+              <svg
+                id="flowSvg"
+                viewBox="0 0 1000 700"
+                role="img"
+                aria-labelledby="diagramTitle diagramDesc"
+              >
+                <title id="diagramTitle">Diagram alur perjalanan bahan menuju daun</title>
+                <desc id="diagramDesc">
+                  Air diserap akar, bergerak melalui batang menuju daun. Karbon dioksida masuk
+                  melalui stomata. Cahaya ditangkap klorofil. Ketiganya menuju tempat fotosintesis.
+                </desc>
+              </svg>
+              <noscript>
+                <p style="padding: 20px; color: #fca5a5">
+                  Aktifkan JavaScript untuk menampilkan diagram interaktif.
+                </p>
+              </noscript>
+            </div>
+          </section>
+
+          <div class="controls" aria-label="Kontrol langkah diagram">
+            <div class="progress-area">
+              <div class="progress-top">
+                <strong id="controlTitle">Langkah 1: Air diserap akar</strong>
+                <span id="controlCount">1 / 5</span>
+              </div>
+              <div
+                class="progress-track"
+                role="progressbar"
+                aria-label="Kemajuan langkah"
+                aria-valuemin="1"
+                aria-valuemax="5"
+                aria-valuenow="1"
+              >
+                <div id="progressFill" class="progress-fill"></div>
+              </div>
+            </div>
+            <div class="control-actions">
+              <button id="prevBtn" class="control-btn" type="button" disabled>
+                ← Sebelumnya
+              </button>
+              <button
+                id="resetBtn"
+                class="control-btn reset"
+                type="button"
+                aria-label="Mulai ulang dari langkah pertama"
+                title="Mulai ulang"
+              >
+                ↺
+              </button>
+              <button id="nextBtn" class="control-btn primary" type="button">
+                Berikutnya →
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <div id="scrim" class="scrim" aria-hidden="true"></div>
+    <p id="liveRegion" class="sr-only" aria-live="polite"></p>
+
+    <script>
+      (function () {
+        'use strict';
+
+        var CONFIG = JSON.parse(document.getElementById('widget-config').textContent);
+        var NS = 'http://www.w3.org/2000/svg';
+
+        var DESKTOP = {
+          name: 'desktop',
+          viewBox: '0 0 1000 700',
+          nodes: {
+            'air-di-akar': { x: 330, y: 20, w: 340, h: 120 },
+            'air-di-batang': { x: 330, y: 170, w: 340, h: 120 },
+            'co2-di-stomata': { x: 20, y: 310, w: 300, h: 140 },
+            'cahaya-di-klorofil': { x: 680, y: 310, w: 300, h: 140 },
+            'tempat-fotosintesis': { x: 300, y: 510, w: 400, h: 170 },
+          },
+          labels: {
+            'air-di-akar>air-di-batang': { dx: 48, dy: 0 },
+            'air-di-batang>tempat-fotosintesis': { dx: 0, dy: 0 },
+            'co2-di-stomata>tempat-fotosintesis': { dx: 24, dy: 10 },
+            'cahaya-di-klorofil>tempat-fotosintesis': { dx: -24, dy: 10 },
+          },
+          fontSize: 15,
+          labelSize: 11,
+        };
+
+        var MOBILE = {
+          name: 'mobile',
+          viewBox: '0 0 420 650',
+          nodes: {
+            'air-di-akar': { x: 24, y: 16, w: 372, h: 100 },
+            'air-di-batang': { x: 24, y: 136, w: 372, h: 100 },
+            'co2-di-stomata': { x: 20, y: 262, w: 176, h: 150 },
+            'cahaya-di-klorofil': { x: 224, y: 262, w: 176, h: 150 },
+            'tempat-fotosintesis': { x: 24, y: 450, w: 372, h: 178 },
+          },
+          labels: {
+            'air-di-akar>air-di-batang': { dx: 42, dy: 0 },
+            'air-di-batang>tempat-fotosintesis': { dx: 0, dy: 89 },
+            'co2-di-stomata>tempat-fotosintesis': { dx: -45, dy: 0 },
+            'cahaya-di-klorofil>tempat-fotosintesis': { dx: 45, dy: 0 },
+          },
+          fontSize: 14,
+          labelSize: 10,
+        };
+
+        var svg = document.getElementById('flowSvg');
+        var canvasWrap = document.getElementById('canvasWrap');
+        var sidebar = document.getElementById('sidebar');
+        var sidebarToggle = document.getElementById('sidebarToggle');
+        var closeSidebar = document.getElementById('closeSidebar');
+        var scrim = document.getElementById('scrim');
+        var stepBadge = document.getElementById('stepBadge');
+        var stepNumber = document.getElementById('stepNumber');
+        var stepFraction = document.getElementById('stepFraction');
+        var stepTitle = document.getElementById('stepTitle');
+        var stepDescription = document.getElementById('stepDescription');
+        var stepDots = document.getElementById('stepDots');
+        var detailCard = document.getElementById('detailCard');
+        var detailIcon = document.getElementById('detailIcon');
+        var detailRole = document.getElementById('detailRole');
+        var detailTitle = document.getElementById('detailTitle');
+        var detailNote = document.getElementById('detailNote');
+        var detailDescription = document.getElementById('detailDescription');
+        var detailFact = document.getElementById('detailFact');
+        var controlTitle = document.getElementById('controlTitle');
+        var controlCount = document.getElementById('controlCount');
+        var progressFill = document.getElementById('progressFill');
+        var progressTrack = document.querySelector('.progress-track');
+        var prevBtn = document.getElementById('prevBtn');
+        var nextBtn = document.getElementById('nextBtn');
+        var resetBtn = document.getElementById('resetBtn');
+        var liveRegion = document.getElementById('liveRegion');
+
+        var state = {
+          step: 1,
+          selectedId: CONFIG.nodes[0].id,
+          layout: null,
+        };
+
+        var nodeElements = {};
+        var edgeElements = [];
+        var revealTimer = null;
+        var lastMobile = false;
+
+        function svgEl(tag, attrs) {
+          var el = document.createElementNS(NS, tag);
+          if (attrs) {
+            Object.keys(attrs).forEach(function (key) {
+              el.setAttribute(key, attrs[key]);
+            });
+          }
+          return el;
+        }
+
+        function hexToRgba(hex, alpha) {
+          var h = String(hex).replace('#', '');
+          if (h.length === 3) {
+            h =
+              h.charAt(0) +
+              h.charAt(0) +
+              h.charAt(1) +
+              h.charAt(1) +
+              h.charAt(2) +
+              h.charAt(2);
+          }
+          var num = parseInt(h, 16);
+          var r = (num >> 16) & 255;
+          var g = (num >> 8) & 255;
+          var b = num & 255;
+          return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+        }
+
+        function layoutForWidth(width) {
+          return width < 560 ? MOBILE : DESKTOP;
+        }
+
+        function wrapLabel(text, maxChars) {
+          var words = text.split(/\s+/);
+          var lines = [];
+          var line = '';
+          words.forEach(function (word) {
+            var candidate = line ? line + ' ' + word : word;
+            if (candidate.length > maxChars && line) {
+              lines.push(line);
+              line = word;
+            } else {
+              line = candidate;
+            }
+          });
+          if (line) lines.push(line);
+          return lines;
+        }
+
+        function clipRectToRect(node, targetX, targetY) {
+          var cx = node.x + node.w / 2;
+          var cy = node.y + node.h / 2;
+          var dx = targetX - cx;
+          var dy = targetY - cy;
+          if (dx === 0 && dy === 0) return { x: cx, y: cy };
+          var sx = node.w / 2 / Math.max(Math.abs(dx), 1e-9);
+          var sy = node.h / 2 / Math.max(Math.abs(dy), 1e-9);
+          var scale = Math.min(sx, sy);
+          return { x: cx + dx * scale, y: cy + dy * scale };
+        }
+
+        function edgeEndpoints(a, b) {
+          var acx = a.x + a.w / 2;
+          var acy = a.y + a.h / 2;
+          var bcx = b.x + b.w / 2;
+          var bcy = b.y + b.h / 2;
+          return {
+            p1: clipRectToRect(a, bcx, bcy),
+            p2: clipRectToRect(b, acx, acy),
+          };
+        }
+
+        function buildDefs(edges) {
+          var defs = svgEl('defs');
+
+          var pattern = svgEl('pattern', {
+            id: 'dot-grid',
+            width: '24',
+            height: '24',
+            patternUnits: 'userSpaceOnUse',
+          });
+          pattern.appendChild(
+            svgEl('circle', {
+              cx: '1.5',
+              cy: '1.5',
+              r: '1.15',
+              fill: '#1e293b',
+              'fill-opacity': '0.52',
+            })
+          );
+          defs.appendChild(pattern);
+
+          var shadow = svgEl('filter', {
+            id: 'card-shadow',
+            x: '-24%',
+            y: '-24%',
+            width: '148%',
+            height: '156%',
+          });
+          shadow.appendChild(
+            svgEl('feDropShadow', {
+              dx: '0',
+              dy: '8',
+              stdDeviation: '9',
+              'flood-color': '#000000',
+              'flood-opacity': '0.34',
+            })
+          );
+          defs.appendChild(shadow);
+
+          edges.forEach(function (edge, index) {
+            var marker = svgEl('marker', {
+              id: 'arrow-' + index,
+              viewBox: '0 0 12 12',
+              refX: '10',
+              refY: '6',
+              markerWidth: '11',
+              markerHeight: '11',
+              orient: 'auto',
+              markerUnits: 'userSpaceOnUse',
+            });
+            marker.appendChild(
+              svgEl('path', {
+                d: 'M 1 1 L 11 6 L 1 11 Z',
+                fill: edge.color,
+                stroke: '#020617',
+                'stroke-width': '1.2',
+                'stroke-linejoin': 'round',
+              })
+            );
+            defs.appendChild(marker);
+          });
+
+          svg.appendChild(defs);
+        }
+
+        function renderEdge(edge, index, layout) {
+          var group = svgEl('g', { class: 'edge', 'data-edge': index });
+          var fromNode = findNode(edge.from);
+          var toNode = findNode(edge.to);
+          var fromPos = layout.nodes[edge.from];
+          var toPos = layout.nodes[edge.to];
+          var points = edgeEndpoints(fromPos, toPos);
+          var pathD =
+            'M ' +
+            points.p1.x.toFixed(1) +
+            ' ' +
+            points.p1.y.toFixed(1) +
+            ' L ' +
+            points.p2.x.toFixed(1) +
+            ' ' +
+            points.p2.y.toFixed(1);
+
+          var halo = svgEl('path', {
+            d: pathD,
+            fill: 'none',
+            stroke: '#020617',
+            'stroke-width': '8',
+            'stroke-linecap': 'round',
+            opacity: '0.7',
+          });
+          group.appendChild(halo);
+
+          var line = svgEl('path', {
+            d: pathD,
+            class: 'edge-line',
+            stroke: edge.color,
+            'marker-end': 'url(#arrow-' + index + ')',
+          });
+          group.appendChild(line);
+
+          var key = edge.from + '>' + edge.to;
+          var offset = layout.labels[key] || { dx: 0, dy: 0 };
+          var mx = (points.p1.x + points.p2.x) / 2 + offset.dx;
+          var my = (points.p1.y + points.p2.y) / 2 + offset.dy;
+
+          var labelGroup = svgEl('g', {
+            class: 'edge-label',
+            transform: 'translate(' + mx.toFixed(1) + ' ' + my.toFixed(1) + ')',
+          });
+          var labelHeight = layout.name === 'mobile' ? 20 : 22;
+          var labelRect = svgEl('rect', {
+            x: '-40',
+            y: String(-labelHeight / 2),
+            width: '80',
+            height: String(labelHeight),
+            rx: String(labelHeight / 2),
+            fill: '#0f172a',
+            'fill-opacity': '0.94',
+            stroke: edge.color,
+            'stroke-opacity': '0.55',
+            'stroke-width': '1',
+          });
+          var labelText = svgEl('text', {
+            x: '0',
+            y: '1',
+            'text-anchor': 'middle',
+            'dominant-baseline': 'middle',
+            class: 'edge-label-text',
+            'font-size': String(layout.labelSize),
+          });
+          labelText.textContent = edge.label;
+          labelGroup.appendChild(labelRect);
+          labelGroup.appendChild(labelText);
+          group.appendChild(labelGroup);
+          svg.appendChild(group);
+
+          var box = labelText.getBBox();
+          var width = Math.max(48, box.width + 20);
+          labelRect.setAttribute('x', String(-width / 2));
+          labelRect.setAttribute('width', String(width));
+
+          edgeElements.push({
+            el: group,
+            from: fromNode.id,
+            to: toNode.id,
+            label: edge.label,
+          });
+        }
+
+        function renderNode(node, layout) {
+          var pos = layout.nodes[node.id];
+          var isMobile = layout.name === 'mobile';
+          var group = svgEl('g', {
+            class: 'node',
+            tabindex: '0',
+            role: 'button',
+            'aria-label': node.label + '. Klik untuk detail.',
+            'data-node-id': node.id,
+          });
+
+          var card = svgEl('rect', {
+            x: String(pos.x),
+            y: String(pos.y),
+            width: String(pos.w),
+            height: String(pos.h),
+            rx: isMobile ? '16' : '18',
+            fill: '#ffffff',
+            stroke: node.color,
+            'stroke-width': '2.6',
+            class: 'card',
+            filter: 'url(#card-shadow)',
+          });
+          group.appendChild(card);
+
+          group.appendChild(
+            svgEl('line', {
+              x1: String(pos.x + 18),
+              y1: String(pos.y + 2.4),
+              x2: String(pos.x + pos.w - 18),
+              y2: String(pos.y + 2.4),
+              stroke: node.color,
+              'stroke-width': '4.8',
+              'stroke-linecap': 'round',
+            })
+          );
+
+          var isCompact = isMobile && (node.id === 'co2-di-stomata' || node.id === 'cahaya-di-klorofil');
+          var iconR = isCompact ? 17 : isMobile ? 20 : 23;
+          var iconCX = pos.x + (isCompact ? 37 : isMobile ? 38 : 42);
+          var iconCY = pos.y + (isCompact ? 35 : isMobile ? 34 : 46);
+
+          group.appendChild(
+            svgEl('circle', {
+              cx: String(iconCX),
+              cy: String(iconCY),
+              r: String(iconR),
+              fill: hexToRgba(node.color, 0.15),
+              stroke: hexToRgba(node.color, 0.45),
+              'stroke-width': '1.2',
+            })
+          );
+
+          var icon = svgEl('text', {
+            x: String(iconCX),
+            y: String(iconCY + 1),
+            'text-anchor': 'middle',
+            'dominant-baseline': 'middle',
+            class: 'node-icon',
+            'font-size': String(isCompact ? 19 : isMobile ? 21 : 24),
+          });
+          icon.textContent = node.icon;
+          group.appendChild(icon);
+
+          var roleX = pos.x + (isCompact ? 61 : isMobile ? 68 : 76);
+          var roleY = pos.y + (isCompact ? 31 : isMobile ? 28 : 35);
+          var role = svgEl('text', {
+            x: String(roleX),
+            y: String(roleY),
+            class: 'node-role',
+            fill: node.ink,
+            'font-size': String(isCompact ? 7.9 : isMobile ? 8.5 : 9),
+          });
+          role.textContent = node.role;
+          group.appendChild(role);
+
+          var labelX = pos.x + (isCompact ? 14 : 20);
+          var labelWidth = pos.w - (isCompact ? 28 : 40);
+          var font = isCompact ? 12.5 : isMobile ? 14 : 14.6;
+          var maxChars = Math.max(14, Math.floor(labelWidth / (font * 0.56)));
+          var lines = wrapLabel(node.label, maxChars);
+          var lineHeight = isCompact ? 15.5 : isMobile ? 17.5 : 20.5;
+          var labelY = pos.y + (isCompact ? 61 : isMobile ? 61 : 71);
+
+          var label = svgEl('text', {
+            x: String(labelX),
+            y: String(labelY),
+            class: 'node-label',
+            'font-size': String(font),
+          });
+          lines.forEach(function (lineText, lineIndex) {
+            if (lineIndex === 0) {
+              label.textContent = lineText;
+            } else {
+              var tspan = svgEl('tspan', {
+                x: String(labelX),
+                dy: String(lineHeight),
+              });
+              tspan.textContent = lineText;
+              label.appendChild(tspan);
+            }
+          });
+          group.appendChild(label);
+
+          var noteY = pos.y + pos.h - (isCompact ? 13 : isMobile ? 13 : 15);
+          var note = svgEl('text', {
+            x: String(labelX),
+            y: String(noteY),
+            class: 'node-note',
+            'font-size': String(isCompact ? 8.6 : isMobile ? 9.8 : 10.7),
+          });
+          note.textContent = node.note;
+          group.appendChild(note);
+
+          group.addEventListener('click', function () {
+            selectNode(node.id, true);
+          });
+          group.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              selectNode(node.id, true);
+            }
+          });
+
+          svg.appendChild(group);
+          nodeElements[node.id] = group;
+        }
+
+        function buildScene() {
+          var layout = state.layout;
+          svg.innerHTML = '';
+          nodeElements = {};
+          edgeElements = [];
+
+          svg.setAttribute('viewBox', layout.viewBox);
+
+          buildDefs(CONFIG.edges);
+
+          svg.appendChild(
+            svgEl('rect', {
+              x: '0',
+              y: '0',
+              width: '100%',
+              height: '100%',
+              fill: 'url(#dot-grid)',
+            })
+          );
+
+          CONFIG.edges.forEach(function (edge, index) {
+            renderEdge(edge, index, layout);
+          });
+
+          CONFIG.nodes.forEach(function (node) {
+            renderNode(node, layout);
+          });
+
+          applyStep(false);
+          selectNode(state.selectedId, false);
+        }
+
+        function findNode(id) {
+          for (var i = 0; i < CONFIG.nodes.length; i++) {
+            if (CONFIG.nodes[i].id === id) return CONFIG.nodes[i];
+          }
+          return null;
+        }
+
+        function stepNode(step) {
+          return CONFIG.nodes.filter(function (node) {
+            return node.step === step;
+          })[0];
+        }
+
+        function applyStep(animate) {
+          var visibleIds = {};
+
+          CONFIG.nodes.forEach(function (node) {
+            var visible = node.step <= state.step;
+            visibleIds[node.id] = visible;
+            var el = nodeElements[node.id];
+            if (!el) return;
+            var wasHidden = el.classList.contains('is-hidden');
+            el.classList.toggle('is-hidden', !visible);
+            el.setAttribute('tabindex', visible ? '0' : '-1');
+            el.setAttribute('aria-hidden', visible ? 'false' : 'true');
+            if (animate && visible && wasHidden) {
+              el.classList.remove('just-in');
+              void el.getBoundingClientRect();
+              el.classList.add('just-in');
+              window.setTimeout(function () {
+                el.classList.remove('just-in');
+              }, 520);
+            }
+          });
+
+          edgeElements.forEach(function (edge) {
+            var visible = visibleIds[edge.from] && visibleIds[edge.to];
+            edge.el.classList.toggle('is-hidden', !visible);
+            edge.el.setAttribute('aria-hidden', visible ? 'false' : 'true');
+          });
+
+          updateStepUI();
+        }
+
+        function updateStepUI() {
+          var total = CONFIG.steps.length;
+          var title = CONFIG.steps[state.step - 1];
+          var description = CONFIG.stepDescriptions[state.step - 1];
+
+          stepBadge.textContent = 'Langkah ' + state.step + ' / ' + total;
+          stepNumber.textContent = String(state.step);
+          stepFraction.textContent = state.step + ' / ' + total;
+          stepTitle.textContent = title;
+          stepDescription.textContent = description;
+          controlTitle.textContent = 'Langkah ' + state.step + ': ' + title;
+          controlCount.textContent = state.step + ' / ' + total;
+          progressFill.style.width = (state.step / total) * 100 + '%';
+          progressTrack.setAttribute('aria-valuenow', String(state.step));
+
+          stepDots.innerHTML = '';
+          for (var i = 1; i <= total; i++) {
+            var dot = document.createElement('span');
+            dot.className = 'dot-step';
+            if (i < state.step) dot.classList.add('done');
+            if (i === state.step) dot.classList.add('current');
+            stepDots.appendChild(dot);
+          }
+
+          prevBtn.disabled = state.step <= 1;
+          nextBtn.disabled = state.step >= total;
+          nextBtn.textContent = state.step >= total ? 'Selesai ✓' : 'Berikutnya →';
+
+          if (revealTimer) window.clearTimeout(revealTimer);
+          revealTimer = window.setTimeout(function () {
+            liveRegion.textContent =
+              'Langkah ' + state.step + ' dari ' + total + ': ' + title + '. ' + description;
+          }, 120);
+        }
+
+        function selectNode(id, openPanel) {
+          var node = findNode(id);
+          if (!node) return;
+          state.selectedId = id;
+
+          Object.keys(nodeElements).forEach(function (nodeId) {
+            nodeElements[nodeId].classList.toggle('selected', nodeId === id);
+          });
+
+          detailCard.style.setProperty('--accent', node.color);
+          detailCard.style.setProperty('--accent-soft', hexToRgba(node.color, 0.14));
+          detailCard.style.borderLeftColor = node.color;
+          detailIcon.textContent = node.icon;
+          detailRole.textContent = node.role;
+          detailRole.style.background = hexToRgba(node.color, 0.15);
+          detailRole.style.color = node.ink;
+          detailTitle.textContent = node.label;
+          detailNote.textContent = node.note;
+          detailDescription.textContent = node.details;
+          detailFact.innerHTML = '💡 <b>Fakta:</b> ' + escapeHtml(node.fact);
+
+          if (openPanel) {
+            liveRegion.textContent = node.label + '. ' + node.details;
+            if (window.matchMedia('(max-width: 1050px)').matches) openSidebarPanel();
+          }
+        }
+
+        function escapeHtml(value) {
+          return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function goToStep(nextStep, focusPanel) {
+          var total = CONFIG.steps.length;
+          var clamped = Math.max(1, Math.min(total, nextStep));
+          if (clamped === state.step) return;
+          state.step = clamped;
+          var node = stepNode(clamped);
+          if (node) state.selectedId = node.id;
+          applyStep(true);
+          if (node) selectNode(node.id, false);
+          if (focusPanel && window.matchMedia('(max-width: 1050px)').matches) {
+            openSidebarPanel();
+          }
+        }
+
+        function openSidebarPanel() {
+          sidebar.classList.add('open');
+          scrim.classList.add('show');
+          scrim.setAttribute('aria-hidden', 'false');
+          sidebarToggle.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeSidebarPanel() {
+          sidebar.classList.remove('open');
+          scrim.classList.remove('show');
+          scrim.setAttribute('aria-hidden', 'true');
+          sidebarToggle.setAttribute('aria-expanded', 'false');
+        }
+
+        function reset() {
+          state.step = 1;
+          state.selectedId = CONFIG.nodes[0].id;
+          applyStep(false);
+          selectNode(state.selectedId, false);
+          closeSidebarPanel();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function handleResize() {
+          var mobileNow = canvasWrap.clientWidth < 560;
+          if (mobileNow !== lastMobile || !state.layout) {
+            lastMobile = mobileNow;
+            state.layout = mobileNow ? MOBILE : DESKTOP;
+            buildScene();
+            if (window.matchMedia('(min-width: 1051px)').matches) {
+              closeSidebarPanel();
+            }
+          }
+        }
+
+        prevBtn.addEventListener('click', function () {
+          goToStep(state.step - 1, false);
+        });
+
+        nextBtn.addEventListener('click', function () {
+          goToStep(state.step + 1, false);
+        });
+
+        resetBtn.addEventListener('click', reset);
+
+        sidebarToggle.addEventListener('click', function () {
+          if (sidebar.classList.contains('open')) closeSidebarPanel();
+          else openSidebarPanel();
+        });
+
+        closeSidebar.addEventListener('click', closeSidebarPanel);
+        scrim.addEventListener('click', closeSidebarPanel);
+
+        document.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape') {
+            closeSidebarPanel();
+            return;
+          }
+
+          var tag = document.activeElement ? document.activeElement.tagName : '';
+          if (
+            event.key === 'ArrowRight' &&
+            tag !== 'INPUT' &&
+            tag !== 'TEXTAREA' &&
+            tag !== 'SELECT'
+          ) {
+            event.preventDefault();
+            goToStep(state.step + 1, false);
+          }
+          if (
+            event.key === 'ArrowLeft' &&
+            tag !== 'INPUT' &&
+            tag !== 'TEXTAREA' &&
+            tag !== 'SELECT'
+          ) {
+            event.preventDefault();
+            goToStep(state.step - 1, false);
+          }
+        });
+
+        window.addEventListener('resize', function () {
+          handleResize();
+        });
+
+        if (typeof ResizeObserver !== 'undefined') {
+          new ResizeObserver(handleResize).observe(canvasWrap);
+        }
+
+        // Initial render: step 1, with the first node already visible and selected.
+        state.layout = layoutForWidth(canvasWrap.clientWidth);
+        lastMobile = state.layout.name === 'mobile';
+        buildScene();
+        updateStepUI();
+        selectNode(state.selectedId, false);
+
+        window.setTimeout(function () {
+          if (nodeElements[state.selectedId]) {
+            nodeElements[state.selectedId].classList.add('just-in');
+            window.setTimeout(function () {
+              if (nodeElements[state.selectedId]) {
+                nodeElements[state.selectedId].classList.remove('just-in');
+              }
+            }, 520);
+          }
+        }, 80);
+      })();
+    </script>
+  </body>
+</html>

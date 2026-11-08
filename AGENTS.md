@@ -38,6 +38,7 @@ Guidance for coding agents working in this repository, including the automated C
   pm2 restart kelaska
   ```
   `install.sh --with-pm2` performs the same sync automatically.
+- Standalone learning diagrams at the repo root (for example `perjalanan-bahan-menuju-daun.html`) are dependency-free HTML/SVG. Validate both the desktop and mobile layouts with Playwright at 1440 px and 390 px; the diagram switches to a compact stacked layout when the canvas is narrower than 560 px.
 
 ## Workspace UI
 
