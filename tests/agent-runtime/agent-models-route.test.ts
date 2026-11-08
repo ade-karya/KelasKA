@@ -140,7 +140,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'codex:gpt-5.6-codex', thinking: { effort: 'high' } }),
     });
-    const postRes = await POST(req as unknown as Request);
+    const postRes = await POST(req);
     expect(postRes.status).toBe(200);
     const postBody = (await postRes.json()) as { active: string; thinking: { effort: string } };
     expect(postBody.active).toBe('codex:gpt-5.6-codex');
@@ -197,7 +197,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'opencode:big-pickle' }),
     });
-    const postRes = await POST(req as unknown as Request);
+    const postRes = await POST(req);
     expect(postRes.status).toBe(200);
     expect(((await postRes.json()) as { active: string }).active).toBe('opencode:big-pickle');
 
@@ -214,7 +214,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'opencode-go:gpt-6-luna', thinking: { effort: 'high' } }),
     });
-    const postRes = await POST(req as unknown as Request);
+    const postRes = await POST(req);
     expect(postRes.status).toBe(200);
     const postBody = (await postRes.json()) as { active: string; thinking: { effort: string } };
     expect(postBody.active).toBe('opencode-go:gpt-6-luna');
@@ -238,7 +238,7 @@ describe('GET/POST /api/agent/models (tombol pemilih model workbench)', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'opencode:tidak-ada' }),
     });
-    const res = await POST(req as unknown as Request);
+    const res = await POST(req);
     expect(res.status).toBe(400);
   });
 });
@@ -280,13 +280,13 @@ describe('grup disembunyikan bila akun tidak punya model (penemuan live kosong)'
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'opencode-go:gpt-6-luna' }),
     });
-    expect((await POST(req as unknown as Request)).status).toBe(400);
+    expect((await POST(req)).status).toBe(400);
 
     const codexReq = new NextRequest('http://localhost/api/agent/models', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'codex:gpt-5.6-codex' }),
     });
-    expect((await POST(codexReq as unknown as Request)).status).toBe(400);
+    expect((await POST(codexReq)).status).toBe(400);
   });
 });
