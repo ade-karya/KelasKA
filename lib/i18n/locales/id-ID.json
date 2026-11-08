@@ -378,6 +378,9 @@
     "proMode": "Mode profesional",
     "undo": "Urungkan",
     "redo": "Ulangi",
+    "courseHistory": {
+      "stepExpired": "Langkah itu tidak dapat dibatalkan lagi"
+    },
     "delete": "Hapus",
     "title": "Edit · {{type}}",
     "unsupportedScene": "{{type}} belum mendukung pengeditan",
@@ -3177,7 +3180,8 @@
       "planReview": "Tinjauan dan persetujuan rencana",
       "codeReview": "Tinjauan dan konfirmasi implementasi",
       "reviewApproved": "Dikonfirmasi",
-      "reviewPending": "Menunggu tinjauan"
+      "reviewPending": "Menunggu tinjauan",
+      "enterMilestone": "Masuk ke tonggak berikutnya"
     },
     "activity": {
       "read": "Membaca file proyek",
@@ -3309,7 +3313,12 @@
       "shareTitle": "Momen yang layak dibagikan",
       "shareHint": "Simpan pencapaian dan sorotan Anda sebagai kartu untuk membagikan progres Anda.",
       "recordsTitle": "Lihat catatan belajar",
-      "recordsHint": "Jelajahi keputusan, karya, dan percakapan yang tersimpan, atau ikuti referensi analisis secara langsung."
+      "recordsHint": "Jelajahi keputusan, karya, dan percakapan yang tersimpan, atau ikuti referensi analisis secara langsung.",
+      "projectResults": "Apa yang kamu buat",
+      "workflow": "Bagaimana kamu bekerja",
+      "decisionQuestion": "Pertanyaan keputusan",
+      "decisionChoice": "Keputusanmu",
+      "decisionReason": "Alasanmu"
     },
     "draftStorageUnavailable": "Penyimpanan draf browser tidak tersedia. Halaman ini menyimpan teks Anda; simpan file ke workspace dan salin teks yang belum terkirim sebelum meninggalkan halaman.",
     "pendingActions": {
