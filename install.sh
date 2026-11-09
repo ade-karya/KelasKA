@@ -21,6 +21,8 @@
 #      dilengkapi ACCESS_CODE, OPENMAIC_SECRET_KEY, flag TTS browser-native,
 #      ALLOW_LOCAL_NETWORKS, dan setelan persistence bila DATABASE_URL ada.
 #      Nilai yang sudah diisi user tidak ditimpa (kecuali flag installer).
+#      Pada --colab, feature flag aplikasi dipaksa ON dan endpoint model
+#      lokal/Docker dikosongkan.
 #   4b. `openmaic.yml` (model/provider/slot) dibuat dari DEFAULT_MODEL bila
 #      providernya jelas; secret tetap di .env.local dan dirujuk ${VAR}.
 #      File yang sudah ada tidak pernah ditimpa (lewati: --no-openmaic-yml).
@@ -53,15 +55,16 @@
 #   --with-pm2            Instal PM2 (via Bun) + build + jalankan aplikasi.
 #   --with-playwright     Instal browser Chromium untuk e2e Playwright.
 #   --full                Setara --build --with-playwright.
-#   --fast                Build cepat untuk Colab/demo: lewati typecheck
-#                         Next.js dan minifikasi artefak importer yang tidak
-#                         dipakai browser. Build rilis normal tetap memeriksa
-#                         tipe (pakai --no-fast untuk memaksa).
-#   --no-fast             Paksa build penuh walau memakai preset --colab.
-#   --colab               Preset Colab/ephemeral: --yes --with-pm2 --fast,
-#                         tanpa Playwright; PostgreSQL mengikuti mode otomatis
-#                         (bisa dioverride flag lain). Tanpa kredensial Google,
-#                         Antigravity CLI dilewati (paksa: --with-antigravity).
+#   --fast                Build cepat untuk demo: lewati typecheck Next.js dan
+#                         minifikasi artefak importer yang tidak dipakai browser.
+#                         Build rilis normal tetap memeriksa tipe.
+#   --no-fast             Paksa build penuh (default; berguna setelah --fast).
+#   --colab               Preset Colab/ephemeral: --yes --dev + semua feature
+#                         flag aplikasi ON. Tanpa build produksi, PM2, atau
+#                         Playwright; PostgreSQL mengikuti mode otomatis (bisa
+#                         dioverride flag lain). Docker, Ollama, dan provider
+#                         model lokal (Lemonade/FunASR/VoxCPM/ComfyUI/SearXNG)
+#                         tidak diaktifkan.
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
 #                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
 #                         latar belakang (log: data/dev-server.log, PID:
@@ -100,7 +103,7 @@
 #     CODEX_MODELS, lalu blok models: di openmaic.yml (milik installer)
 #     diperbarui. Discovery gagal/offline -> daftar lama dipertahankan.
 #   - Sinkron katalog model menulis .env.local/openmaic.yml dan tidak dibaca
-#     oleh build, jadi pada --colab/--build discovery berjalan paralel dengan
+#     oleh build, jadi pada --build/--with-pm2 discovery berjalan paralel dengan
 #     build produksi; log-nya diputar setelah build selesai.
 #   - Antigravity memakai Google Antigravity CLI (agy) yang dipasang dari
 #     antigravity.google; login Google lewat 'agy' (interaktif). Lewati dengan
@@ -196,7 +199,8 @@ Contoh:
   sudo ./install.sh --yes --with-pm2
   sudo ./install.sh --with-postgres --with-pm2 --yes
   sudo ./install.sh --colab
-  sudo ./install.sh --colab --no-fast
+  sudo ./install.sh --colab --no-start
+  sudo ./install.sh --colab --with-playwright
   sudo ./install.sh --dev
   sudo ./install.sh --dev --no-start
   sudo ./install.sh --yes --full
@@ -223,7 +227,7 @@ for arg in "$@"; do
     --full|--with-dev-tools) WITH_BUILD=1; WITH_PLAYWRIGHT=1 ;;
     --fast)              FAST_BUILD=1 ;;
     --no-fast)           FAST_BUILD=0 ;;
-    --colab)             WITH_COLAB=1; ASSUME_YES=1; WITH_PM2=1; WITH_PLAYWRIGHT=0 ;;
+    --colab)             WITH_COLAB=1; ASSUME_YES=1; WITH_DEV=1; WITH_PM2=0; WITH_PLAYWRIGHT=0 ;;
     --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
     --no-start)          WITH_DEV_START=0 ;;
     --with-ffmpeg)       WITH_FFMPEG=1 ;;
@@ -256,10 +260,10 @@ done
 [[ "$BUN_MIN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
   || fail "--min-bun-version harus semver 3 angka (contoh: --min-bun-version=1.3.14)."
 
-# --colab mengaktifkan mode cepat secara default; --fast/--no-fast menang
-# terlepas dari urutan argumen.
+# --colab adalah preset dev; build cepat hanya dipakai bila --fast diminta
+# eksplisit. --fast/--no-fast menang terlepas dari urutan argumen.
 if [[ "$FAST_BUILD" == "auto" ]]; then
-  if [[ "$WITH_COLAB" -eq 1 ]]; then FAST_BUILD=1; else FAST_BUILD=0; fi
+  FAST_BUILD=0
 fi
 # Env build yang dipakai `bun install` (postinstall membangun packages) dan
 # `bun run build`; selalu diteruskan eksplisit lewat `env` karena langkah berat
@@ -275,7 +279,7 @@ fi
 if [[ "$WITH_DEV" -eq 1 && "$WITH_PM2" -eq 1 ]]; then
   if [[ "$WITH_COLAB" -eq 1 ]]; then
     WITH_PM2=0
-    info "Mode dev + Colab: PM2 dilewati, dev server yang dijalankan."
+    info "Preset --colab adalah mode dev: PM2 dilewati dan dev server yang dijalankan."
   else
     fail "--dev tidak bisa digabung dengan --with-pm2 (dua server di port yang sama). Pilih salah satu."
   fi
@@ -438,6 +442,15 @@ set_env_value() {
   fi
 }
 
+# Kosongkan variabel hanya bila baris aktifnya ada. Placeholder komentar dari
+# .env.example dibiarkan agar dokumentasi tetap terbaca.
+kosongkan_var_env() {
+  local file="$1" key="$2"
+  [[ -f "$file" ]] || return 0
+  grep -qE "^[[:space:]]*${key}=" "$file" || return 0
+  sed -i -E "s|^[[:space:]]*${key}=.*|${key}=|" "$file"
+}
+
 version_gte() {
   local have="$1" want="$2" h1 h2 h3 w1 w2 w3
   IFS=. read -r h1 h2 h3 <<<"${have%%[^0-9.]*}"
@@ -584,7 +597,7 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_BUILD" -eq 1 ]]; then echo "  - jalankan build produksi Bun"; fi
   if [[ "$FAST_BUILD" -eq 1 ]]; then echo "  - mode cepat: typecheck Next.js + minifikasi UMD/CJS dilewati"; fi
   if [[ "$WITH_PM2" -eq 1 ]]; then echo "  - instal PM2 via Bun + jalankan aplikasi standalone"; fi
-  if [[ "$WITH_COLAB" -eq 1 ]]; then echo "  - preset Colab: non-interaktif + PM2 (tanpa systemd)"; fi
+  if [[ "$WITH_COLAB" -eq 1 ]]; then echo "  - preset Colab: mode dev + semua feature flag ON (Docker/Ollama/model lokal OFF)"; fi
   if [[ "$WITH_DEV" -eq 1 ]]; then
     if [[ "$WITH_DEV_START" -eq 1 ]]; then
       echo "  - preset dev: non-interaktif, tanpa build/PM2, dev server di latar belakang"
@@ -948,6 +961,83 @@ else
   warn "DATABASE_URL kosong: persistence/agent runtime nonaktif. Pasang --with-postgres atau isi DATABASE_URL."
 fi
 
+# ================================= 4a. Preset fitur --colab (mode dev)
+# --colab sengaja memaksa feature flag ON karena .env.example mengomentarinya
+# (default OFF). NEXT_PUBLIC_* dibaca saat dev server start, jadi tidak perlu
+# build ulang. Docker/render-service, Ollama, dan provider model lokal
+# dikosongkan: preset ini hanya memakai provider cloud/CLI.
+if [[ "$WITH_COLAB" -eq 1 ]]; then
+  LANGKAH="preset fitur Colab"
+  # Daftar ini mengikuti FORCE_ON di
+  # deploy-dev-node-native-full-features.ipynb; gate aktifnya ada di
+  # lib/config/feature-flags.ts.
+  FITUR_COLAB_ON=(
+    NEXT_PUBLIC_PRO_WORKBENCH_ENABLED
+    NEXT_PUBLIC_MAIC_EDITOR_ENABLED
+    NEXT_PUBLIC_MAIC_EDITOR_RENDERER_ENABLED
+    NEXT_PUBLIC_MAIC_PLAYBACK_RENDERER_ENABLED
+    NEXT_PUBLIC_PI_CHAT_ENABLED
+    NEXT_PUBLIC_COURSEWARE_REFERENCE_ENABLED
+    NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI
+    NEXT_PUBLIC_ENABLE_VIDEO_EXPORT
+    NEXT_PUBLIC_ENABLE_PPTX_IMPORT
+    OPENMAIC_ENABLE_VOCATIONAL
+    OPENMAIC_ENABLE_PI_NATIVE_CHILD_RUNTIME
+    OPENMAIC_ENABLE_PI_NATIVE_CHILD_SPOTLIGHT
+  )
+  for _flag in "${FITUR_COLAB_ON[@]}"; do
+    set_env_value .env.local "$_flag" "true"
+  done
+  unset _flag FITUR_COLAB_ON
+  # Default CTA video export dari notebook; tujuan milik user dipertahankan.
+  pastikan_var_env .env.local NEXT_PUBLIC_VIDEO_EXPORT_CTA_DESTINATION "open.maic.chat"
+
+  # Persistence + agent runtime hanya bisa ON bila ada database. --colab
+  # memasang PostgreSQL lokal bila DATABASE_URL belum ada, kecuali --no-postgres.
+  if [[ -n "$(env_get .env.local DATABASE_URL)" ]]; then
+    set_env_value .env.local NEXT_PUBLIC_PERSISTENCE "1"
+    set_env_value .env.local OPENMAIC_AGENT_RUNTIME_ENABLED "true"
+  else
+    warn "Preset --colab: DATABASE_URL kosong — persistence dan agent runtime tetap OFF."
+  fi
+
+  # Pastikan generasi paralel aktif tanpa menimpa concurrency > 1 milik user.
+  _paralel="$(env_get .env.local PARALLEL_SCENE_CONCURRENCY)"
+  if [[ -z "$_paralel" || "$_paralel" == "0" || "$_paralel" == "1" ]]; then
+    set_env_value .env.local PARALLEL_SCENE_CONCURRENCY "5"
+  fi
+  unset _paralel
+
+  # Docker/Compose dan semua provider yang berjalan lokal tidak dipakai.
+  set_env_value .env.local ALLOW_LOCAL_NETWORKS "false"
+  set_env_value .env.local IMAGE_COMFYUI_ENABLED "false"
+  set_env_value .env.local SEARXNG_ENABLED "false"
+  for _var in \
+    OLLAMA_BASE_URL OLLAMA_MODELS \
+    LEMONADE_BASE_URL LEMONADE_MODELS \
+    TTS_VOXCPM_BASE_URL TTS_LEMONADE_BASE_URL \
+    ASR_FUNASR_BASE_URL ASR_LEMONADE_BASE_URL \
+    IMAGE_LEMONADE_BASE_URL SEARXNG_BASE_URL; do
+    kosongkan_var_env .env.local "$_var"
+    unset "$_var" 2>/dev/null || true
+  done
+  unset _var
+  unset ALLOW_LOCAL_NETWORKS IMAGE_COMFYUI_ENABLED SEARXNG_ENABLED 2>/dev/null || true
+
+  # render-service adalah container Docker. Pertahankan URL non-lokal (mis.
+  # layanan render terkelola); kosongkan hanya target Docker/localhost.
+  _render_url="$(env_get .env.local RENDER_SERVICE_URL)"
+  case "$_render_url" in
+    ''|*render-service*|*localhost*|*127.0.0.1*|*0.0.0.0*|*::1*|*host.docker.internal*)
+      kosongkan_var_env .env.local RENDER_SERVICE_URL
+      unset RENDER_SERVICE_URL 2>/dev/null || true
+      ;;
+  esac
+  unset _render_url
+
+  info "Preset Colab: mode dev + semua feature flag ON; Docker, Ollama, dan model lokal OFF."
+fi
+
 if [[ "$WITH_POSTGRES" -eq 1 && -n "$PGPORT" && -f .env.local ]]; then
   _DB_URL_AKTIF="$(env_get .env.local DATABASE_URL)"
   _DB_PORT_AKTIF="$(printf '%s' "$_DB_URL_AKTIF" | sed -E -n 's#^postgres(ql)?://[^@]*@(localhost|127\.0\.0\.1|\[::1\]):([0-9]+)/.*#\3#p')"
@@ -1056,6 +1146,20 @@ EOF
   komentari_env_model MODEL_FALLBACK "dipindah ke openmaic.yml -> slots.llm.fallback"
 }
 siapkan_openmaic_yml
+if [[ "$WITH_COLAB" -eq 1 && -f openmaic.yml ]] \
+  && grep -qE '^[[:space:]]*baseUrl:[[:space:]]*https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)' openmaic.yml; then
+  warn "openmaic.yml memuat provider lokal; preset --colab tidak mengubah file milik user. Nonaktifkan manual bila tidak dipakai."
+fi
+if [[ "$WITH_COLAB" -eq 1 ]]; then
+  _model_lokal="$(env_get .env.local DEFAULT_MODEL)"
+  case "$_model_lokal" in
+    ollama:*|lemonade:*|local:*)
+      komentari_env_model DEFAULT_MODEL "model lokal tidak dipakai preset --colab"
+      warn "DEFAULT_MODEL '${_model_lokal}' adalah model lokal; dikomentari. Pilih model cloud di Settings/openmaic.yml."
+      ;;
+  esac
+  unset _model_lokal
+fi
 
 # ======================================= 4c. Katalog model dari CLI lokal
 # Setiap run installer menyegarkan daftar model agar model baru dari OpenCode
@@ -2071,6 +2175,9 @@ if command -v node >/dev/null 2>&1; then
   info "  Node: $(node -v 2>/dev/null) (tidak dipakai installer; runtime Bun)"
 else
   info "  Node: tidak diinstal (Bun-only)"
+fi
+if [[ "$WITH_COLAB" -eq 1 ]]; then
+  info "  Preset Colab: mode dev + semua feature flag ON; Docker/Ollama/model lokal OFF"
 fi
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then
   if [[ -n "$PGPORT" ]] && pg_isready -h localhost -p "$PGPORT" >/dev/null 2>&1; then

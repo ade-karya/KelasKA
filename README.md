@@ -328,13 +328,14 @@ not install Node.js or pnpm; the legacy installer is kept as `install-node.sh`.
 sudo ./install.sh --yes            # base stack
 sudo ./install.sh --yes --with-pm2 # + production build, served via PM2
 sudo ./install.sh --dev            # dev server in the background (no build/PM2)
-sudo ./install.sh --colab          # Colab preset (= --yes --with-pm2 --fast)
+sudo ./install.sh --colab          # dev preset + all features (no Docker/Ollama/local models)
 ```
 
 The installer is idempotent — re-running it is safe and preserves non-empty
-values in `.env.local`. Other useful flags: `--build` (prove the production
+values in `.env.local`, except the `--colab` feature-flag and local-provider
+overrides described below. Other useful flags: `--build` (prove the production
 build), `--fast` (skip the Next.js typecheck and the unused UMD/CJS
-minification for throwaway/Colab installs; `--no-fast` forces a full build),
+minification for throwaway/demo builds; `--no-fast` forces a full build),
 `--with-playwright` (e2e browser), `--with-postgres` / `--no-postgres`,
 `--pg-major=N`, `--pg-password=...`, `--bun-version=X`, and
 `--no-antigravity` (skip the local Google Antigravity CLI). See
@@ -388,20 +389,22 @@ A new `PORT` in `.env.local` only needs
 #### Google Colab
 
 The `--colab` preset is tuned for Colab's root, systemd-less, non-interactive
-runtimes: it runs non-interactively, builds production in fast mode (Next.js
-typecheck skipped, so the first install is ~2 minutes shorter), and serves via
-PM2. Add `--no-fast` when you want the full type-checked build. Re-running the
-installer on an existing checkout skips both the package builds (source hash
-stamp in `node_modules`) and the production build when `.next/standalone`
-already exists. Workspace package builds now run two at a time (the importer
-bundle overlaps renderer/editor), model discovery runs alongside the build, and
-the Antigravity CLI (`agy`) is skipped (force it with `--with-antigravity`).
-Authenticate with `agy` (interactive Google login); the picker only shows
-models the signed-in account can use. The production build itself is Turbopack
-and still dominates a cold run (~10-15 min on Colab's 2 vCPU); use
-`--dev --colab` when you only need a running server quickly.
-If `DATABASE_URL` is not set, it also installs a local PostgreSQL instance
-for the session. One cell runs the whole install:
+runtimes and is a **development** preset. It runs non-interactively, enables
+every application feature flag (Pro workbench, MAIC editor and renderers, Pi
+chat, courseware reference, vocational engine/UI, video export, PPTX import,
+Pi native child runtime/spotlight, persistence and the agent runtime when a
+database is available), and starts `bun --bun run dev` detached on `PORT`
+(default 3000). It does **not** run a production build, install PM2, or install
+Playwright (add `--with-playwright` after `--colab` for e2e).
+
+Docker, Ollama, and locally hosted model services are deliberately excluded:
+the Docker `render-service`, Ollama/Lemonade, FunASR, Lemonade/VoxCPM TTS,
+Lemonade images, ComfyUI, and SearXNG are disabled. Video export still works
+through the downloadable project ZIP. Cloud providers and the CLI transports
+(OpenCode, Codex, Antigravity) remain available; fill in their API keys or sign
+in from the Pro Workbench. If `DATABASE_URL` is not set, the installer still
+installs a local PostgreSQL instance for the session. One cell runs the whole
+install:
 
 ```bash
 %%bash
@@ -409,8 +412,11 @@ cd /content/KelasKA
 ./install.sh --colab
 ```
 
-For development on Colab, combine it with `--dev`: PM2 is skipped and the
-detached `next dev` server takes over port 3000 (`./install.sh --dev --colab`).
+`--colab` already starts the dev server, so `--dev --colab` is redundant; add
+`--no-start` to prepare the environment without launching it. Use `--with-pm2`
+or `--build` **without** `--colab` for a production PM2 deployment. The
+Turbopack production build still dominates a cold run (~10-15 min on Colab's
+2 vCPU); `--colab` skips it entirely.
 
 Then expose the app to your browser from a Python cell:
 
