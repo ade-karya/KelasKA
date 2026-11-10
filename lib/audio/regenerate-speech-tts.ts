@@ -10,6 +10,8 @@ import { serverTTSAvailable } from '@/lib/audio/tts-selection';
 import { generateAndStoreTTS } from '@/lib/audio/narration-tts';
 import { useStageStore } from '@/lib/store/stage';
 import { resolveAudioBlob } from '@/lib/media/resolve-audio-bytes';
+import { mayNameAPoolAsset } from '@/lib/media/media-placeholder';
+import { assetRefExists } from '@/lib/media/use-asset-url';
 import { mayGenerateForStage } from '@/lib/classroom/generation-permission';
 
 /** Legacy deterministic Dexie key used before pool allocation. */
@@ -46,12 +48,26 @@ export function isManagedTtsActive(): boolean {
   return serverTTSAvailable();
 }
 
-/** True if an audio blob is cached under this exact audioId. */
+/**
+ * True if narration bytes exist under this exact audioId.
+ *
+ * Allocated ids live in the server asset pool, not in the local `audioFiles`
+ * mirror: agent-generated narration is an `ast_` id with no Dexie row and no
+ * legacy `audioUrl`, so a local-only probe would report it missing in the
+ * timeline. The pool probe is metadata-only (`exists`, a HEAD where the store
+ * supports it).
+ */
 export async function audioExists(audioId: string): Promise<boolean> {
-  return !!(await db.audioFiles.get(audioId));
+  if (await db.audioFiles.get(audioId)) return true;
+  if (!mayNameAPoolAsset(audioId)) return false;
+  try {
+    return await assetRefExists(audioId);
+  } catch {
+    return false;
+  }
 }
 
-/** Existence for many audioIds in one IndexedDB round-trip. */
+/** Existence for many audioIds in one IndexedDB round-trip, then one pool probe per miss. */
 export async function audioExistsBulk(audioIds: string[]): Promise<Set<string>> {
   if (audioIds.length === 0) return new Set();
   const recs = await db.audioFiles.bulkGet(audioIds);
@@ -59,6 +75,17 @@ export async function audioExistsBulk(audioIds: string[]): Promise<Set<string>> 
   recs.forEach((r, i) => {
     if (r) have.add(audioIds[i]);
   });
+  await Promise.all(
+    audioIds
+      .filter((id) => !have.has(id) && mayNameAPoolAsset(id))
+      .map(async (id) => {
+        try {
+          if (await assetRefExists(id)) have.add(id);
+        } catch {
+          // A failed probe is a miss, matching `audioExists`.
+        }
+      }),
+  );
   return have;
 }
 

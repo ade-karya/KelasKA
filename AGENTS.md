@@ -51,7 +51,7 @@ Guidance for coding agents working in this repository, including the automated C
 
 - Agent-created content must not land in the project folder. Course documents and jobs go to PostgreSQL; generated images, video, posters and narration go through `storeGeneratedAsset` (asset pool: PostgreSQL or the configured S3/HF S3 byte store); uploaded source files and extraction results go through `getMaterialByteStore`, which uses Hugging Face S3 when `HF_S3_*` is set. `data/` is left for the one-time legacy classroom import, local usage records and the global driver-model default only.
 - `HF_S3_*` feeds two layers from one bucket: the `huggingface-s3` asset store (content-hash keys, registered in `instrumentation.node.ts`) and `lib/server/materials/s3-bytes.ts` (keys under `materials/…`). Keep `ASSET_S3_BUCKET` unset beside it. The namespaces cannot collide, so do not add a separate prefix or bucket unless the existing keys are migrated.
-- Agent narration used to be written to `data/classrooms/<stage>/media` and referenced as `/api/classroom-media/...`; it now stores an `ast_` asset id in `audioId` (no legacy `audioUrl`). Playback and export resolve allocated ids pool-first, so do not reintroduce a local-disk fallback for narration.
+- Agent narration used to be written to `data/classrooms/<stage>/media` and referenced as `/api/classroom-media/...`; it now stores an `ast_` asset id in `audioId` (no legacy `audioUrl`). Playback and export resolve allocated ids pool-first, and the timeline's `audioExists` probes the pool after a local miss, so do not reintroduce a local-disk fallback for narration.
 
 ## Workspace UI
 
