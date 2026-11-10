@@ -85,9 +85,12 @@
   margin-top: auto;
 }
 .home-page[data-mobile='true'] .home-brand img {
-  height: auto;
-  width: 190px;
-  max-width: 65vw;
+  /* Kunci tinggi, bukan lebar: rasio kedua logo beda (300×240 dan 251×240),
+     jadi `width` yang sama membuat logo DPRD jauh lebih tinggi dan lockup
+     terlihat timpang. Tinggi sama menjaga keduanya seimbang. */
+  height: 44px;
+  width: auto;
+  max-width: 34vw;
   margin: 0;
   animation: none;
 }

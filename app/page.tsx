@@ -932,7 +932,7 @@ function HomePage() {
           </div>
           {workbenchEntryEnabled ? (
             <div
-              className="absolute left-full top-0 ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]"
+              className="absolute left-full top-0 ml-1.5 mt-[9px] md:ml-2 md:mt-[11px]"
               data-pro-morph="badge"
             >
               <ProBadge

@@ -656,7 +656,10 @@ test('phone home keeps its layout unchanged when only the keyboard viewport chan
     await expect(home).not.toHaveAttribute('data-keyboard');
     expect(await home.boundingBox()).toEqual(before);
     await expect(page.locator('.home-mobile-heading')).toBeVisible();
-    await expect(page.locator('.home-brand img')).toHaveCSS('width', '190px');
+    // Height, not width: the mobile lockup pins each government logo's height
+    // (their PNG aspect ratios differ), so a keyboard-shrunk viewport must not
+    // change it.
+    await expect(page.locator('.home-brand img')).toHaveCSS('height', '44px');
     await expect(page.locator('.home-slogan')).toHaveCSS('font-size', '14px');
     expect(
       await home.evaluate((element) => {

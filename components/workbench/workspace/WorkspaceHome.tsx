@@ -135,9 +135,9 @@ export function WorkspaceHome({
               <BrandLogo size="lg" />
               {/* At the wordmark's cap height, where a trademark mark goes —
                   offset from the image TOP, not centred on it, sama seperti
-                  halaman utama (`ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]`). */}
+                  halaman utama (`ml-1.5 mt-[9px] md:ml-2 md:mt-[11px]`). */}
               <div
-                className="absolute left-full top-0 ml-1.5 mt-[10px] md:ml-2 md:mt-[14px]"
+                className="absolute left-full top-0 ml-1.5 mt-[9px] md:ml-2 md:mt-[11px]"
                 data-pro-morph="badge"
                 data-pro-stamp
               >
