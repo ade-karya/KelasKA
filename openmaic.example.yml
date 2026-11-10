@@ -112,6 +112,26 @@ providers:
   #   baseUrl: http://host.docker.internal:11434/v1
   #   models: [qwen3:8b]
 
+  # --- Local GPU services -----------------------------------------------------
+  # `install.sh --colab` writes these itself on a host with an NVIDIA GPU and
+  # only for services that answered their health check. Start them again after
+  # a reboot with ./scripts/gpu-services.sh (models live outside the repo).
+  # ollama:
+  #   preset: ollama
+  #   baseUrl: http://127.0.0.1:11434/v1
+  #   models: [llama3.2:3b]
+  # funasr:
+  #   preset: funasr-asr
+  #   baseUrl: http://127.0.0.1:8000/v1
+  # voxcpm:
+  #   preset: voxcpm-tts
+  #   baseUrl: http://127.0.0.1:8001
+  #   options:
+  #     backend: python-api   # /tts/upload; vllm-omni serves /v1/audio/speech
+  # comfyui:
+  #   preset: comfyui-image
+  #   baseUrl: http://127.0.0.1:8188
+
   # Services that authenticate with a key pair use credentials.
   # alidocmind:
   #   preset: alidocmind
@@ -158,6 +178,12 @@ slots:
   # webSearch: tavily
   # image: openai-image:gpt-image-2
   # tts: minimax:speech-2.8-turbo
+
+  # Local GPU services (providers above): ComfyUI picks its workflow in
+  # Settings, FunASR defaults to SenseVoiceSmall, VoxCPM2 to its auto voice.
+  # asr: funasr
+  # tts: voxcpm
+  # image: comfyui
 
   # null turns a capability off by default; users may still turn it on
   # unless lock names it.

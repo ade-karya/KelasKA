@@ -21,11 +21,18 @@
 #      dilengkapi ACCESS_CODE, OPENMAIC_SECRET_KEY, flag TTS browser-native,
 #      ALLOW_LOCAL_NETWORKS, dan setelan persistence bila DATABASE_URL ada.
 #      Nilai yang sudah diisi user tidak ditimpa (kecuali flag installer).
-#      Pada --colab, preset produksi memaksa feature flag aplikasi ON dan
-#      mengosongkan endpoint model lokal/Docker yang tidak tersedia di host.
+#      Pada --colab, preset produksi memaksa feature flag aplikasi ON. Endpoint
+#      model lokal/Docker dikosongkan HANYA bila host tidak punya GPU NVIDIA;
+#      dengan GPU, langkah 4g menyalakan layanan lokal dan endpoint yang hidup.
+#   4g. Layanan model lokal GPU (--with-gpu, atau --colab di host NVIDIA):
+#      scripts/gpu-services.sh memasang + menjalankan Ollama, ComfyUI, FunASR
+#      (CUDA) dan VoxCPM2, lalu installer hanya mengaktifkan layanan yang lolos
+#      health check. Model disimpan di --gpu-dir (default /opt/gpu-models),
+#      bukan di repo. Endpoint mati tidak pernah masuk .env.local/openmaic.yml.
 #   4b. `openmaic.yml` (model/provider/slot) dibuat dari DEFAULT_MODEL bila
 #      providernya jelas; secret tetap di .env.local dan dirujuk ${VAR}.
-#      File yang sudah ada tidak pernah ditimpa (lewati: --no-openmaic-yml).
+#      File yang sudah ada tidak pernah ditimpa (lewati: --no-openmaic-yml);
+#      provider/slot GPU yang belum ada ditambahkan tanpa mengubah isi user.
 #   5. Dependensi JS via `bun install`. Installer menambahkan `workspaces`
 #      (dari pnpm-workspace.yaml) dan `trustedDependencies` ke package.json
 #      agar monorepo + modul native bekerja di Bun, lalu menulis bun.lock.
@@ -62,12 +69,21 @@
 #   --colab               Preset Colab produksi: --yes --with-pm2 (build
 #                         standalone + PM2) dengan semua feature flag aplikasi
 #                         ON. PostgreSQL mengikuti mode otomatis (bisa
-#                         dioverride flag lain). Docker, Ollama, dan provider
-#                         model lokal (Lemonade/FunASR/VoxCPM/ComfyUI/SearXNG)
-#                         tidak diaktifkan karena tidak tersedia di Colab.
+#                         dioverride flag lain). Bila host punya NVIDIA GPU,
+#                         layanan model lokal GPU (Ollama/ComfyUI/FunASR/
+#                         VoxCPM2) otomatis disiapkan dan diaktifkan; host
+#                         tanpa GPU tetap mengosongkan endpoint lokal seperti
+#                         sebelumnya (Docker/SearXNG/Lemonade tidak dipakai).
 #                         Playwright tidak dipasang (tambahkan sendiri untuk
 #                         e2e); --no-start hanya menyiapkan build tanpa
-#                         menjalankan PM2.
+#                         menjalankan PM2 maupun layanan GPU.
+#   --with-gpu            Paksa langkah layanan model lokal GPU walau tanpa
+#                         --colab. Butuh NVIDIA GPU (nvidia-smi).
+#   --no-gpu              Jangan sentuh layanan GPU lokal (menang atas --colab).
+#   --gpu-dir=DIR         Direktori model/layanan GPU (default: /opt/gpu-models).
+#   --gpu-ollama-model=M  Model Ollama yang diunduh (default: llama3.2:3b).
+#   --gpu-image-model=M   Checkpoint ComfyUI (default: sd_xl_base_1.0.safetensors;
+#                         "none" melewati unduhan ~6.9 GB).
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
 #                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
 #                         latar belakang (log: data/dev-server.log, PID:
@@ -126,6 +142,12 @@
 #     seperti `opencode run`). Login Google lewat `agy` secara interaktif di
 #     terminal; kredensial disimpan oleh CLI di server. Lewati dengan
 #     --no-antigravity.
+#   - Layanan GPU dijalankan detached dengan PID di <gpu-dir>/pids dan log di
+#     <gpu-dir>/logs; skripnya bisa dipakai ulang tanpa installer:
+#       ./scripts/gpu-services.sh --status
+#       ./scripts/gpu-services.sh --only ollama
+#     Status terakhir ada di <gpu-dir>/gpu-services.env. Setelah reboot host,
+#     jalankan ulang installer (idempoten) atau skrip itu untuk start ulang.
 
 set -euo pipefail
 
@@ -177,6 +199,13 @@ WITH_BUILD=0
 WITH_PLAYWRIGHT=0
 WITH_PM2=0
 WITH_COLAB=0
+# Layanan model lokal GPU: "auto" = aktif hanya pada --colab + NVIDIA GPU.
+WITH_GPU="auto"
+WITH_GPU_EXPLICIT=0
+GPU_DIR="${GPU_MODELS_DIR:-/opt/gpu-models}"
+GPU_OLLAMA_MODEL="${GPU_OLLAMA_MODEL:-llama3.2:3b}"
+GPU_IMAGE_MODEL="${GPU_IMAGE_MODEL:-sd_xl_base_1.0.safetensors}"
+GPU_AKTIF=""
 WITH_DEV=0
 WITH_SERVER_START=1
 FAST_BUILD="auto"
@@ -208,6 +237,8 @@ Contoh:
   sudo ./install.sh --colab
   sudo ./install.sh --colab --no-start
   sudo ./install.sh --colab --with-playwright
+  sudo ./install.sh --colab --gpu-image-model=none
+  sudo ./install.sh --colab --no-gpu
   sudo ./install.sh --dev
   sudo ./install.sh --dev --no-start
   sudo ./install.sh --yes --full
@@ -235,6 +266,11 @@ for arg in "$@"; do
     --fast)              FAST_BUILD=1 ;;
     --no-fast)           FAST_BUILD=0 ;;
     --colab)             WITH_COLAB=1; ASSUME_YES=1; WITH_BUILD=1; WITH_PM2=1; WITH_DEV=0 ;;
+    --with-gpu)          WITH_GPU=1; WITH_GPU_EXPLICIT=1 ;;
+    --no-gpu)            WITH_GPU=0; WITH_GPU_EXPLICIT=1 ;;
+    --gpu-dir=*)         GPU_DIR="${arg#*=}" ;;
+    --gpu-ollama-model=*) GPU_OLLAMA_MODEL="${arg#*=}" ;;
+    --gpu-image-model=*) GPU_IMAGE_MODEL="${arg#*=}" ;;
     --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
     --no-start)          WITH_SERVER_START=0 ;;
     --with-ffmpeg)       WITH_FFMPEG=1 ;;
@@ -579,6 +615,34 @@ port_sibuk() {
   return 1
 }
 
+# True bila host punya GPU NVIDIA yang bisa dipakai (driver + nvidia-smi).
+gpu_nvidia_ada() {
+  command -v nvidia-smi >/dev/null 2>&1 || return 1
+  nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null | grep -qE '^[0-9]+'
+}
+
+# --with-gpu/--no-gpu eksplisit menang; "auto" menyalakan layanan GPU hanya
+# untuk --colab di host NVIDIA. Host tanpa GPU mempertahankan perilaku lama
+# (endpoint lokal dikosongkan), jadi preset tetap aman di Colab CPU.
+if [[ "$WITH_GPU" == "auto" ]]; then
+  if [[ "$WITH_COLAB" -eq 1 ]] && gpu_nvidia_ada; then
+    WITH_GPU=1
+  else
+    WITH_GPU=0
+  fi
+fi
+if [[ "$WITH_GPU" -eq 1 ]]; then
+  if ! gpu_nvidia_ada; then
+    if [[ "$WITH_GPU_EXPLICIT" -eq 1 ]]; then
+      fail "--with-gpu diminta tetapi nvidia-smi tidak menemukan GPU NVIDIA."
+    fi
+    warn "Host tanpa GPU NVIDIA: langkah layanan model lokal GPU dilewati."
+    WITH_GPU=0
+  elif [[ "$GPU_DIR" != /* ]]; then
+    GPU_DIR="${ROOT_DIR}/${GPU_DIR}"
+  fi
+fi
+
 # ------------------------------------------------------- deteksi distro (apt)
 if ! command -v apt-get >/dev/null 2>&1; then
   fail "Script ini untuk Ubuntu/Debian (butuh apt-get). Di distro lain, samakan manual: Bun >= ${BUN_MIN_VERSION} + paket build di Dockerfile."
@@ -608,7 +672,17 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_BUILD" -eq 1 ]]; then echo "  - jalankan build produksi Bun"; fi
   if [[ "$FAST_BUILD" -eq 1 ]]; then echo "  - mode cepat: typecheck Next.js + minifikasi UMD/CJS dilewati"; fi
   if [[ "$WITH_PM2" -eq 1 ]]; then echo "  - instal PM2 via Bun + jalankan aplikasi standalone"; fi
-  if [[ "$WITH_COLAB" -eq 1 ]]; then echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON (Docker/Ollama/model lokal OFF)"; fi
+  if [[ "$WITH_COLAB" -eq 1 ]]; then
+    if [[ "$WITH_GPU" -eq 1 ]]; then
+      echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON + layanan GPU lokal"
+    else
+      echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON (Docker/Ollama/model lokal OFF)"
+    fi
+  fi
+  if [[ "$WITH_GPU" -eq 1 ]]; then
+    echo "  - layanan GPU lokal: Ollama, ComfyUI (SDXL), FunASR, VoxCPM2 di ${GPU_DIR}"
+    echo "    (unduhan model beberapa GB; layanan yang gagal health check tidak diaktifkan)"
+  fi
   if [[ "$WITH_DEV" -eq 1 ]]; then
     if [[ "$WITH_SERVER_START" -eq 1 ]]; then
       echo "  - preset dev: non-interaktif, tanpa build/PM2, dev server di latar belakang"
@@ -972,12 +1046,55 @@ else
   warn "DATABASE_URL kosong: persistence/agent runtime nonaktif. Pasang --with-postgres atau isi DATABASE_URL."
 fi
 
+# ========================= 4g. Layanan model lokal GPU (Ollama/ComfyUI/…)
+# Dijalankan sebelum preset fitur supaya 4a/4b hanya mengaktifkan endpoint yang
+# benar-benar merespons. Skrip menulis <gpu-dir>/gpu-services.env; kegagalan
+# satu layanan tidak menggagalkan instalasi aplikasi.
+if [[ "$WITH_GPU" -eq 1 ]]; then
+  LANGKAH="layanan model lokal GPU"
+  GPU_SCRIPT="${ROOT_DIR}/scripts/gpu-services.sh"
+  if [[ ! -f "$GPU_SCRIPT" ]]; then
+    warn "scripts/gpu-services.sh tidak ada — layanan GPU dilewati."
+    WITH_GPU=0
+  elif [[ "$WITH_SERVER_START" -ne 1 ]]; then
+    info "--no-start: layanan GPU tidak dijalankan, jadi endpoint lokal tidak diaktifkan."
+    WITH_GPU=0
+  else
+    info "Menyiapkan layanan GPU di ${GPU_DIR} (Ollama, ComfyUI, FunASR, VoxCPM2)..."
+    colab_mark "mulai layanan GPU"
+    if run_as_root env GPU_MODELS_DIR="$GPU_DIR" bash "$GPU_SCRIPT" \
+      --dir "$GPU_DIR" --ollama-model "$GPU_OLLAMA_MODEL" --image-model "$GPU_IMAGE_MODEL"; then
+      GPU_STATE_FILE="${GPU_DIR}/gpu-services.env"
+      if [[ -f "$GPU_STATE_FILE" ]]; then
+        set -a
+        # shellcheck disable=SC1090,SC1091
+        . "$GPU_STATE_FILE"
+        set +a
+      fi
+    else
+      warn "Skrip layanan GPU keluar dengan error; endpoint lokal tidak diaktifkan."
+    fi
+    for _svc in ollama comfyui funasr voxcpm; do
+      _key="GPU_$(printf '%s' "$_svc" | tr '[:lower:]' '[:upper:]')_STATUS"
+      if [[ "${!_key:-down}" == "up" ]]; then GPU_AKTIF+=" $_svc"; fi
+    done
+    unset _svc _key
+    if [[ -n "$GPU_AKTIF" ]]; then
+      info "Layanan GPU aktif:${GPU_AKTIF}"
+    else
+      warn "Tidak ada layanan GPU yang siap; fitur model lokal tidak diaktifkan."
+    fi
+    colab_mark "layanan GPU selesai"
+  fi
+fi
+
 # ================================= 4a. Preset fitur --colab (produksi)
 # --colab sengaja memaksa feature flag ON karena .env.example mengomentarinya
 # (default OFF). Berbeda dari mode dev, NEXT_PUBLIC_* dibaca saat build
 # produksi, jadi blok ini harus berjalan sebelum `bun run build` (bagian 8).
-# Docker/render-service, Ollama, dan provider model lokal dikosongkan: preset
-# ini hanya memakai provider cloud/CLI yang benar-benar tersedia di host.
+# Docker/render-service dan SearXNG tidak dipakai preset ini. Provider model
+# lokal hanya diisi bila layanan GPU-nya hidup (langkah 4g); tanpa GPU semua
+# endpoint lokal dikosongkan seperti perilaku lama.
 if [[ "$WITH_COLAB" -eq 1 ]]; then
   LANGKAH="preset fitur Colab"
   # Daftar ini mengikuti FORCE_ON di
@@ -1020,20 +1137,43 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   fi
   unset _paralel
 
-  # Docker/Compose dan semua provider yang berjalan lokal tidak dipakai.
-  set_env_value .env.local ALLOW_LOCAL_NETWORKS "false"
-  set_env_value .env.local IMAGE_COMFYUI_ENABLED "false"
+  # Docker/Compose, SearXNG dan Lemonade tidak dipakai preset ini. Ollama dan
+  # FunASR hanya diisi bila layanan GPU-nya merespons health check (4g).
   set_env_value .env.local SEARXNG_ENABLED "false"
   for _var in \
-    OLLAMA_BASE_URL OLLAMA_MODELS \
     LEMONADE_BASE_URL LEMONADE_MODELS \
-    TTS_VOXCPM_BASE_URL TTS_LEMONADE_BASE_URL \
-    ASR_FUNASR_BASE_URL ASR_LEMONADE_BASE_URL \
+    TTS_LEMONADE_BASE_URL ASR_LEMONADE_BASE_URL \
     IMAGE_LEMONADE_BASE_URL SEARXNG_BASE_URL; do
     kosongkan_var_env .env.local "$_var"
     unset "$_var" 2>/dev/null || true
   done
   unset _var
+
+  if [[ " $GPU_AKTIF " == *" ollama "* && -n "${GPU_OLLAMA_URL:-}" ]]; then
+    set_env_value .env.local OLLAMA_BASE_URL "$GPU_OLLAMA_URL"
+    set_env_value .env.local OLLAMA_MODELS "${GPU_OLLAMA_MODELS:-}"
+  else
+    kosongkan_var_env .env.local OLLAMA_BASE_URL
+    kosongkan_var_env .env.local OLLAMA_MODELS
+  fi
+  if [[ " $GPU_AKTIF " == *" funasr "* && -n "${GPU_FUNASR_URL:-}" ]]; then
+    set_env_value .env.local ASR_FUNASR_BASE_URL "$GPU_FUNASR_URL"
+  else
+    kosongkan_var_env .env.local ASR_FUNASR_BASE_URL
+  fi
+  # VoxCPM2 butuh openmaic.yml (options.backend: python-api); var legacy ini
+  # tidak bisa memilih backend, jadi tidak pernah diisi oleh installer.
+  kosongkan_var_env .env.local TTS_VOXCPM_BASE_URL
+  if [[ " $GPU_AKTIF " == *" comfyui "* ]]; then
+    set_env_value .env.local IMAGE_COMFYUI_ENABLED "true"
+  else
+    set_env_value .env.local IMAGE_COMFYUI_ENABLED "false"
+  fi
+  if [[ -n "$GPU_AKTIF" ]]; then
+    set_env_value .env.local ALLOW_LOCAL_NETWORKS "true"
+  else
+    set_env_value .env.local ALLOW_LOCAL_NETWORKS "false"
+  fi
   unset ALLOW_LOCAL_NETWORKS IMAGE_COMFYUI_ENABLED SEARXNG_ENABLED 2>/dev/null || true
 
   # render-service adalah container Docker. Pertahankan URL non-lokal (mis.
@@ -1051,7 +1191,13 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   info "  ON: Pro workbench, MAIC editor/renderer, playback renderer, Pi chat, courseware reference,"
   info "      vocational (server+UI), video export, PPTX import, Pi native child/spotlight,"
   info "      persistence + agent runtime (bila DATABASE_URL terisi)."
-  info "  OFF (tidak tersedia di host): Docker render-service, Ollama, Lemonade, FunASR, VoxCPM, ComfyUI, SearXNG."
+  if [[ -n "$GPU_AKTIF" ]]; then
+    info "  ON (GPU lokal):${GPU_AKTIF}."
+    info "  OFF (tidak dipakai preset): Docker render-service, SearXNG, Lemonade."
+    info "  Model gambar/TTS/ASR lokal aktif otomatis; Ollama tersedia sebagai provider chat."
+  else
+    info "  OFF (tidak tersedia di host): Docker render-service, Ollama, Lemonade, FunASR, VoxCPM, ComfyUI, SearXNG."
+  fi
 fi
 
 if [[ "$WITH_POSTGRES" -eq 1 && -n "$PGPORT" && -f .env.local ]]; then
@@ -1161,8 +1307,107 @@ EOF
   komentari_env_model MODEL_ROUTES "tidak dibaca server; pakai slots di openmaic.yml"
   komentari_env_model MODEL_FALLBACK "dipindah ke openmaic.yml -> slots.llm.fallback"
 }
+# --- Provider/slot GPU lokal di openmaic.yml --------------------------------
+# Ditambahkan hanya untuk layanan yang health check-nya lolos. Provider yang
+# sudah dideklarasikan user tidak disentuh; slot yang sudah terisi juga tidak
+# ditimpa (installer hanya mengisi slot yang belum ada/kosong).
+tambah_provider_gpu_yml() {
+  local file="$1" provider="$2" preset="$3" base_url="$4" csv="${5:-}" extra="${6:-}"
+  local tmp block
+  grep -qE "^  ${provider}:" "$file" && return 0
+  tmp="$(mktemp)"
+  block="$(mktemp)"
+  {
+    printf '  %s:\n    preset: %s\n    baseUrl: %s\n' "$provider" "$preset" "$base_url"
+    if [[ -n "$extra" ]]; then printf '%s\n' "$extra"; fi
+    if [[ -n "$csv" ]]; then
+      printf '    models:\n      # >>> models:%s (dikelola install.sh)\n' "$provider"
+      local IFS=',' id
+      for id in $csv; do
+        id="${id//[[:space:]]/}"
+        [[ -n "$id" ]] && printf '      - %s\n' "$id"
+      done
+      printf '      # <<< models:%s\n' "$provider"
+    fi
+    printf '\n'
+  } >"$block"
+  awk -v block="$block" '
+    BEGIN { while ((getline l < block) > 0) b = b l "\n" }
+    !done && /^slots:[[:space:]]*$/ { printf "%s", b; done=1 }
+    { print }
+    END { if (!done) printf "\n%s", b }
+  ' "$file" >"$tmp"
+  mv "$tmp" "$file"
+  rm -f "$block"
+}
+
+pastikan_slot_yml() {
+  local file="$1" slot="$2" value="$3" tmp
+  [[ -f "$file" ]] || return 0
+  if grep -qE "^  ${slot}:" "$file"; then
+    # Susunan milik user dipertahankan; hanya bentuk kosong/null yang diisi.
+    sed -i -E "s|^  ${slot}:[[:space:]]*$|  ${slot}: ${value}|" "$file"
+    return 0
+  fi
+  tmp="$(mktemp)"
+  awk -v slot="$slot" -v value="$value" '
+    function tambah() { if (in_slots && !done) { print "  " slot ": " value; done=1 } }
+    /^slots:[[:space:]]*$/ { in_slots=1; print; next }
+    in_slots && /^[^[:space:]#]/ { tambah(); in_slots=0 }
+    { print }
+    END { tambah() }
+  ' "$file" >"$tmp"
+  mv "$tmp" "$file"
+}
+
+konfigurasi_gpu_openmaic_yml() {
+  [[ "$WITH_GPU" -eq 1 && -n "$GPU_AKTIF" ]] || return 0
+  if [[ "$WITH_OPENMAIC_YML" -ne 1 ]]; then
+    warn "Layanan GPU aktif tetapi --no-openmaic-yml: daftarkan provider lokal manual di Settings."
+    return 0
+  fi
+  if [[ ! -f openmaic.yml ]]; then
+    {
+      echo "# ============================================================================="
+      echo "# openmaic.yml — dibuat install.sh untuk layanan model lokal GPU."
+      echo "# Secret tetap di .env.local; file ini hanya provider/slot."
+      echo "# ============================================================================="
+      echo "providers:"
+      echo ""
+      echo "slots:"
+    } >openmaic.yml
+    info "openmaic.yml dibuat untuk provider GPU lokal."
+  fi
+  local ditambah=""
+  if [[ " $GPU_AKTIF " == *" ollama "* ]]; then
+    tambah_provider_gpu_yml openmaic.yml ollama ollama "${GPU_OLLAMA_URL:-}" "${GPU_OLLAMA_MODELS:-}"
+    ditambah+=" ollama"
+  fi
+  if [[ " $GPU_AKTIF " == *" funasr "* ]]; then
+    tambah_provider_gpu_yml openmaic.yml funasr funasr-asr "${GPU_FUNASR_URL:-}"
+    pastikan_slot_yml openmaic.yml asr funasr
+    ditambah+=" funasr"
+  fi
+  if [[ " $GPU_AKTIF " == *" voxcpm "* ]]; then
+    tambah_provider_gpu_yml openmaic.yml voxcpm voxcpm-tts "${GPU_VOXCPM_URL:-}" "" \
+      $'    options:\n      backend: python-api'
+    pastikan_slot_yml openmaic.yml tts voxcpm
+    ditambah+=" voxcpm"
+  fi
+  if [[ " $GPU_AKTIF " == *" comfyui "* ]]; then
+    tambah_provider_gpu_yml openmaic.yml comfyui comfyui-image "${GPU_COMFYUI_URL:-}"
+    pastikan_slot_yml openmaic.yml image comfyui
+    ditambah+=" comfyui"
+  fi
+  if [[ -n "$ditambah" ]]; then
+    info "openmaic.yml: provider/slot GPU ditambahkan untuk${ditambah}."
+    info "  Slot yang sudah diisi user tidak ditimpa; nilai kosong diisi otomatis."
+  fi
+}
+
 siapkan_openmaic_yml
-if [[ "$WITH_COLAB" -eq 1 && -f openmaic.yml ]] \
+konfigurasi_gpu_openmaic_yml
+if [[ "$WITH_COLAB" -eq 1 && -z "$GPU_AKTIF" && -f openmaic.yml ]] \
   && grep -qE '^[[:space:]]*baseUrl:[[:space:]]*https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)' openmaic.yml; then
   warn "openmaic.yml memuat provider lokal; preset --colab tidak mengubah file milik user. Nonaktifkan manual bila tidak dipakai."
 fi
@@ -2220,7 +2465,12 @@ else
   info "  Node: tidak diinstal (Bun-only)"
 fi
 if [[ "$WITH_COLAB" -eq 1 ]]; then
-  info "  Preset Colab: produksi (build standalone + PM2) + semua feature flag ON; Docker/Ollama/model lokal OFF"
+  if [[ -n "$GPU_AKTIF" ]]; then
+    info "  Preset Colab: produksi (build standalone + PM2) + semua feature flag ON"
+    info "  Layanan GPU lokal:${GPU_AKTIF} (status: $GPU_DIR/gpu-services.env)"
+  else
+    info "  Preset Colab: produksi (build standalone + PM2) + semua feature flag ON; Docker/Ollama/model lokal OFF"
+  fi
 fi
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then
   if [[ -n "$PGPORT" ]] && pg_isready -h localhost -p "$PGPORT" >/dev/null 2>&1; then
