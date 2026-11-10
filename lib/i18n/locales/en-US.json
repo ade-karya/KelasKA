@@ -28,7 +28,6 @@
     "examplesLabel": "Try an example",
     "examplePython": "Learn Python from scratch",
     "exampleFourier": "Explain the Fourier transform with intuitive examples",
-    "desktopOnly": "Please use a computer for the editor and Pro mode.",
     "slogan": "Generative Learning in Multi-Agent Interactive Classroom",
     "greetingWithName": "Hi, {{name}}",
     "vocationalTestBadge": "Beta",

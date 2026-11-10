@@ -28,7 +28,6 @@
     "examplesLabel": "Exemples de sujets",
     "examplePython": "Apprendre Python de zéro",
     "exampleFourier": "Comprendre la transformée de Fourier par des exemples",
-    "desktopOnly": "Utilisez un ordinateur pour l’éditeur et le mode Pro.",
     "slogan": "L’apprentissage génératif en classe interactive multi-agents",
     "greetingWithName": "Bonjour, {{name}}",
     "vocationalTestBadge": "Fonction de test",

@@ -28,7 +28,6 @@
     "examplesLabel": "Prueba un tema",
     "examplePython": "Aprender Python desde cero",
     "exampleFourier": "Transformada de Fourier con ejemplos intuitivos",
-    "desktopOnly": "Usa una computadora para el editor y el modo Pro.",
     "slogan": "Aprendizaje generativo en un aula interactiva multiagente",
     "greetingWithName": "Hola, {{name}}",
     "vocationalTestBadge": "Función de prueba",

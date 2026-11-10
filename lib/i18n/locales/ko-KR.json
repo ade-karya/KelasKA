@@ -28,7 +28,6 @@
     "examplesLabel": "예시 주제",
     "examplePython": "Python 기초부터 배우기",
     "exampleFourier": "직관적인 예제로 푸리에 변환 배우기",
-    "desktopOnly": "편집기와 Pro 모드는 컴퓨터에서 이용하세요.",
     "slogan": "멀티 에이전트 인터랙티브 교실에서 펼치는 생성형 학습",
     "greetingWithName": "안녕하세요, {{name}}!",
     "vocationalTestBadge": "테스트 기능",

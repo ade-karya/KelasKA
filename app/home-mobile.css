@@ -95,7 +95,20 @@
   animation: none;
 }
 .home-page[data-mobile='true'] [data-pro-morph='badge'] {
-  display: none;
+  /* The badge stays reachable on a phone. Its desktop placement is the
+     wordmark's shoulder (`left-full`), which a 44px mobile lockup pushes past
+     the viewport edge, so it drops under the lockup as its own centred row. */
+  position: static;
+  display: flex;
+  justify-content: center;
+  margin: 6px 0 0;
+}
+/* The pill is deliberately tiny; on touch the hit area grows to ~44px without
+   changing what it looks like. */
+.home-page[data-mobile='true'] [data-pro-morph='badge'] > button::after {
+  content: '';
+  position: absolute;
+  inset: -12px -14px;
 }
 .home-mobile-heading {
   font-size: 23px;

@@ -33,8 +33,7 @@
     "allSettings": "Semua pengaturan",
     "examplesLabel": "Coba contoh",
     "examplePython": "Belajar Python dari nol",
-    "exampleFourier": "Jelaskan transformasi Fourier dengan contoh yang intuitif",
-    "desktopOnly": "Gunakan komputer untuk editor dan mode Pro."
+    "exampleFourier": "Jelaskan transformasi Fourier dengan contoh yang intuitif"
   },
   "toolbar": {
     "pdfParser": "Parser",

@@ -937,7 +937,7 @@ function HomePage() {
             >
               <ProBadge
                 active={false}
-                onToggle={() => (mobile ? toast.info(t('home.desktopOnly')) : enterWorkbench())}
+                onToggle={enterWorkbench}
               />
             </div>
           ) : null}
