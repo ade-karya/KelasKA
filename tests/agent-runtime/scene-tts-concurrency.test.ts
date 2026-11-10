@@ -43,8 +43,8 @@ vi.mock('@/lib/audio/tts-providers', async (original) => ({
   ...(await original<typeof import('@/lib/audio/tts-providers')>()),
   generateTTS: (...args: unknown[]) => mocks.generate(...args),
 }));
-vi.mock('@/lib/server/classroom-media-bytes', () => ({
-  persistClassroomMediaBytes: (...args: unknown[]) => mocks.persist(...args),
+vi.mock('@/lib/server/store-generated-asset', () => ({
+  storeGeneratedAssetOrThrow: (...args: unknown[]) => mocks.persist(...args),
 }));
 
 import {
@@ -98,7 +98,7 @@ describe('agent TTS in-flight cap', () => {
     resetAgentTtsProviderGatesForTests();
     vi.clearAllMocks();
     mocks.providers.mockResolvedValue(connection);
-    mocks.persist.mockResolvedValue('/api/classroom-media/stage-a/media/tts.mp3');
+    mocks.persist.mockResolvedValue('ast_audio');
   });
 
   it('never has more provider calls in flight than the shared cap', async () => {
@@ -629,7 +629,7 @@ describe('agent TTS failure classification', () => {
     resetAgentTtsProviderGatesForTests();
     vi.clearAllMocks();
     mocks.providers.mockResolvedValue(connection);
-    mocks.persist.mockResolvedValue('/api/classroom-media/stage-a/media/tts.mp3');
+    mocks.persist.mockResolvedValue('ast_audio');
   });
 
   it.each([
@@ -734,7 +734,7 @@ describe('agent TTS classroom retry throttle', () => {
     resetAgentTtsProviderGatesForTests();
     vi.clearAllMocks();
     mocks.providers.mockResolvedValue(connection);
-    mocks.persist.mockResolvedValue('/api/classroom-media/stage-a/media/tts.mp3');
+    mocks.persist.mockResolvedValue('ast_audio');
   });
 
   function speeches(ids: string[]): Scene {

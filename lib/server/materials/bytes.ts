@@ -5,6 +5,12 @@ import { dirname, join, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
+import {
+  createHuggingFaceS3Client,
+  huggingFaceS3ConfigFromEnv,
+  type HuggingFaceS3Config,
+} from '@/lib/server/huggingface-s3';
+
 export type MaterialByteInput = Buffer | Uint8Array | Readable | ReadableStream<Uint8Array>;
 
 export interface MaterialByteStore {
@@ -85,10 +91,75 @@ export class LocalMaterialByteStore implements MaterialByteStore {
   }
 }
 
+/**
+ * The Hugging Face S3 store behind deferred construction, for the same reason
+ * the asset byte store defers: the module is only imported when a host opted
+ * in, and a failed construction is retried by the next call instead of being
+ * cached forever.
+ */
+class LazyS3MaterialByteStore implements MaterialByteStore {
+  private pending?: Promise<MaterialByteStore>;
+
+  constructor(private readonly config: HuggingFaceS3Config) {}
+
+  private resolve(): Promise<MaterialByteStore> {
+    return (this.pending ??= (async () => {
+      const [{ S3MaterialByteStore }, client] = await Promise.all([
+        import('./s3-bytes'),
+        createHuggingFaceS3Client(this.config),
+      ]);
+      return new S3MaterialByteStore({ bucket: this.config.bucket, client });
+    })().catch((error: unknown) => {
+      this.pending = undefined;
+      throw error;
+    }));
+  }
+
+  async put(key: string, body: MaterialByteInput, mime?: string): Promise<void> {
+    await (await this.resolve()).put(key, body, mime);
+  }
+
+  async get(key: string): Promise<Buffer> {
+    return (await this.resolve()).get(key);
+  }
+
+  async delete(key: string): Promise<void> {
+    await (await this.resolve()).delete(key);
+  }
+
+  async list(prefix: string): Promise<Array<{ key: string; modifiedAt: number }>> {
+    return (await this.resolve()).list(prefix);
+  }
+
+  async deletePrefix(prefix: string): Promise<void> {
+    await (await this.resolve()).deletePrefix(prefix);
+  }
+}
+
+/**
+ * The byte store this deployment configured: Hugging Face S3 when
+ * `HF_S3_BUCKET` is set, otherwise the local data directory.
+ *
+ * Agent-created source material, extraction results and legacy attachment
+ * bytes must not land in the project folder on a host that opted into object
+ * storage. The same `HF_S3_*` settings already carry the asset pool's bytes
+ * (see `lib/server/persistence-hooks/huggingface-s3-asset-store.ts`); material
+ * keys live under `materials/…`, apart from the content-hash-named asset
+ * objects in that bucket.
+ */
+export function configuredMaterialByteStore(
+  env: Record<string, string | undefined> = process.env,
+): MaterialByteStore {
+  const config = huggingFaceS3ConfigFromEnv(env);
+  if (!config) return new LocalMaterialByteStore();
+  console.info(`[materials] byte store: huggingface-s3 (bucket ${config.bucket})`);
+  return new LazyS3MaterialByteStore(config);
+}
+
 let sharedStore: MaterialByteStore | null = null;
 
 export function getMaterialByteStore(): MaterialByteStore {
-  sharedStore ??= new LocalMaterialByteStore();
+  sharedStore ??= configuredMaterialByteStore();
   return sharedStore;
 }
 

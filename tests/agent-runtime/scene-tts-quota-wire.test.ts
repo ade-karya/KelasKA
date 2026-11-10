@@ -17,8 +17,8 @@ vi.mock('@/lib/server/model-config/media', async (original) => ({
   ...(await original<typeof import('@/lib/server/model-config/media')>()),
   serverMediaConnection: (...args: unknown[]) => providers(...args),
 }));
-vi.mock('@/lib/server/classroom-media-bytes', () => ({
-  persistClassroomMediaBytes: vi.fn(),
+vi.mock('@/lib/server/store-generated-asset', () => ({
+  storeGeneratedAssetOrThrow: vi.fn(),
 }));
 
 import {

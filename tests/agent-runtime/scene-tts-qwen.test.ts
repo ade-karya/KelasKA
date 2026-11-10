@@ -15,8 +15,8 @@ vi.mock('node:dns', async (original) => {
   const actual = await original<typeof import('node:dns')>();
   return { ...actual, promises: { ...actual.promises, lookup: mocks.lookup } };
 });
-vi.mock('@/lib/server/classroom-media-bytes', () => ({
-  persistClassroomMediaBytes: mocks.persist,
+vi.mock('@/lib/server/store-generated-asset', () => ({
+  storeGeneratedAssetOrThrow: mocks.persist,
 }));
 
 const TARGET = 'cosyvoice-v3.5-flash';
@@ -47,6 +47,7 @@ function input(voiceId: string) {
       actions: [{ id: 'speech', type: 'speech', text: 'Hello' }],
     } as Scene,
     force: false,
+    ownerId: 'user:alice',
     roster: [
       { role: 'teacher', voiceConfig: { providerId: 'qwen-tts', voiceId } },
     ] as GeneratedAgentConfig[],
@@ -59,7 +60,7 @@ describe('agent scene narration with Qwen cloned voices', () => {
     vi.stubEnv('TTS_QWEN_VOICE_CLONE_MODEL', TARGET);
     deployment();
     mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
-    mocks.persist.mockReset().mockResolvedValue('media/tts-speech.wav');
+    mocks.persist.mockReset().mockResolvedValue('ast_audio');
     mocks.fetch
       .mockReset()
       .mockResolvedValueOnce(
@@ -89,9 +90,9 @@ describe('agent scene narration with Qwen cloned voices', () => {
     });
     expect(JSON.parse(mocks.fetch.mock.calls[0][1].body).model).toBe(TARGET);
     expect(request.scene.actions?.[0]).toMatchObject({
-      audioId: 'media/tts-speech.wav',
-      audioUrl: 'media/tts-speech.wav',
+      audioId: 'ast_audio',
     });
+    expect((request.scene.actions?.[0] as { audioUrl?: string }).audioUrl).toBeUndefined();
     expect(mocks.persist).toHaveBeenCalledOnce();
   });
 

@@ -9,10 +9,10 @@ import type { NextRequest } from 'next/server';
  * Courses no longer live here: server-side generation writes through the
  * document store and the asset pool. What still reads the directory is the
  * one-time import of the courses older versions wrote
- * (`lib/server/legacy-classroom-import.ts`), the agent runtime's
- * narration/material media writer (`classroom-media-bytes.ts`), and the
- * `/api/classroom-media` route that serves both kinds of files to the courses
- * that still name them.
+ * (`lib/server/legacy-classroom-import.ts`) and the `/api/classroom-media`
+ * route that serves the files those imported courses still name. New
+ * narration and material media go to the asset pool and the material byte
+ * store instead (`scene-tts.ts`, `materials/bytes.ts`).
  */
 export const CLASSROOMS_DIR = process.env.OPENMAIC_CLASSROOMS_DIR
   ? path.resolve(process.env.OPENMAIC_CLASSROOMS_DIR)

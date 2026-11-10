@@ -26,7 +26,7 @@ import type { LegacySpeechAction, SpeechAction } from '@/lib/types/action';
 import type { GeneratedAgentConfig, Scene } from '@/lib/types/stage';
 import { adapterOptions } from '@/lib/server/model-config/adapter-options';
 import { resolveTTSModel, slotTTSModel } from '@/lib/server/provider-config';
-import { persistClassroomMediaBytes } from '@/lib/server/classroom-media-bytes';
+import { storeGeneratedAssetOrThrow } from '@/lib/server/store-generated-asset';
 
 export interface SceneTtsFailure {
   id: string;
@@ -314,7 +314,7 @@ export function hasConfiguredTtsCapability(
   return true;
 }
 
-/** Server-configured narration synthesis into the stage's classroom-media path. */
+/** Server-configured narration synthesis into the run owner's asset pool. */
 export async function synthesizeSceneNarration(input: SceneTtsInput): Promise<SceneTtsSummary> {
   const startedAt = Date.now();
   // The tts slot decides the provider; the narrator's bound voice applies
@@ -452,23 +452,25 @@ export async function synthesizeSceneNarration(input: SceneTtsInput): Promise<Sc
           },
         );
         if (input.signal?.aborted) throw new Error('aborted');
-        // The persisted reference is the RELATIVE classroom-media path (the
-        // agent runtime has no request origin; relative stays valid on any
-        // deployment origin — see classroom-media-bytes.ts). The browser's
-        // narration consumers (timeline status/preview, playback, exports)
-        // resolve a speech line through the legacy (audioId, audioUrl) pair:
-        // `audioId` alone is never resolvable to bytes client-side, while a
-        // present `audioUrl` marks the line voiced and is what the audio
-        // element / fetch fallback plays. Stamp the same relative path on both.
-        const audioId = await persistClassroomMediaBytes({
+        // The durable reference is an allocated asset id, exactly like the
+        // images and videos the agent generates: its bytes go through the
+        // deployment's asset byte layer (PostgreSQL or the configured object
+        // store), never the project folder. The document write that names the
+        // id commits the allocation. The browser resolves allocated narration
+        // pool-first through `resolveAudioBlob`, so no legacy `audioUrl` is
+        // stamped on a converted line.
+        if (!input.ownerId) {
+          throw new Error('Narration cannot be stored without the run owner');
+        }
+        const audioId = await storeGeneratedAssetOrThrow({
+          ownerId: input.ownerId,
           stageId: input.scene.stageId,
-          bytes: Buffer.from(audio.audio),
-          mime: audioMime(audio.format),
-          prefix: `tts-${action.id}`,
-          signal: input.signal,
+          bytes: audio.audio,
+          mimeType: audioMime(audio.format),
+          kind: 'audio',
         });
         speech.audioId = audioId;
-        (speech as LegacySpeechAction).audioUrl = audioId;
+        delete (speech as LegacySpeechAction).audioUrl;
         generated += 1;
       } catch (error) {
         if (input.signal?.aborted) throw error;

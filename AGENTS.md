@@ -47,6 +47,12 @@ Guidance for coding agents working in this repository, including the automated C
 - A live database can record `owner-material` migration 6 while `owner_material.asset_id` is missing (restored or externally migrated database). The extractor then logs `[MaterialExtraction] extraction scan failed: column "asset_id" does not exist` on every scan and the material library fails. Migration 6 is already recorded, so it is skipped; repair operationally with `ALTER TABLE owner_material ADD COLUMN IF NOT EXISTS asset_id TEXT;` (nullable, exactly migration 6's DDL), then confirm `pm2 logs kelaska` stops logging the error.
 - `lib/i18n/locales/id-ID.json` is fork-owned (upstream ships neither it nor its extra keys), so every upstream locale addition must be mirrored there by hand or `tsc --noEmit` fails on the `LOADERS: Record<Locale, ...>` map in `material-model-copy.ts` even though `check-i18n-keys` only flags extra/missing keys and does not stop that build gate.
 
+## Persistence and storage
+
+- Agent-created content must not land in the project folder. Course documents and jobs go to PostgreSQL; generated images, video, posters and narration go through `storeGeneratedAsset` (asset pool: PostgreSQL or the configured S3/HF S3 byte store); uploaded source files and extraction results go through `getMaterialByteStore`, which uses Hugging Face S3 when `HF_S3_*` is set. `data/` is left for the one-time legacy classroom import, local usage records and the global driver-model default only.
+- `HF_S3_*` feeds two layers from one bucket: the `huggingface-s3` asset store (content-hash keys, registered in `instrumentation.node.ts`) and `lib/server/materials/s3-bytes.ts` (keys under `materials/…`). Keep `ASSET_S3_BUCKET` unset beside it. The namespaces cannot collide, so do not add a separate prefix or bucket unless the existing keys are migrated.
+- Agent narration used to be written to `data/classrooms/<stage>/media` and referenced as `/api/classroom-media/...`; it now stores an `ast_` asset id in `audioId` (no legacy `audioUrl`). Playback and export resolve allocated ids pool-first, so do not reintroduce a local-disk fallback for narration.
+
 ## Workspace UI
 
 - The agent login entry (OpenCode Console / Antigravity / Codex) lives in the Pro Workbench model picker's footer action, not in the chat header. `WorkbenchAuthDialog` is controlled (`open`/`onOpenChange`/`onStatusChange`) and mounted by `WorkbenchModelPicker`; classic `components/settings/model-picker.tsx` renders the same popover without it via the optional `footerAction` prop.

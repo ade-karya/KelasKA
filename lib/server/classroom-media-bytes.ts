@@ -25,13 +25,14 @@ function extensionForMime(mime: string): string {
  * an origin-independent serving reference.
  *
  * The returned reference is a RELATIVE path (`/api/classroom-media/...`), not
- * an absolute URL. This is the agent runtime's only byte-persist path: it runs
- * with no HTTP request to derive an origin from, and the durable value must
- * stay valid regardless of which origin serves the app. The browser resolves
- * the relative path against the page origin (image/video `src`, narration
- * `audioUrl` playback), and every server-side consumer of the reference reads
- * the local file or fetches it relative to the same origin. Request-bearing
- * routes that DO have an origin build absolute URLs through
+ * an absolute URL. This is the legacy byte-persist path kept for imported
+ * classrooms; the agent runtime stores new narration in the asset pool
+ * (`scene-tts.ts`) instead. The durable value must stay valid regardless of
+ * which origin serves the app: the browser resolves the relative path against
+ * the page origin (image/video `src`, narration `audioUrl` playback), and
+ * every server-side consumer of the reference reads the local file or fetches
+ * it relative to the same origin. Request-bearing routes that DO have an
+ * origin build absolute URLs through
  * `resolveMediaServingOrigin` (`media-origin.ts`).
  */
 export async function persistClassroomMediaBytes(input: {

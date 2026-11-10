@@ -31,8 +31,8 @@ vi.mock('@/lib/server/model-config/media', async (original) => ({
   serverMediaConnection: async () => mocks.providers(),
 }));
 
-vi.mock('@/lib/server/classroom-media-bytes', () => ({
-  persistClassroomMediaBytes: mocks.persist,
+vi.mock('@/lib/server/store-generated-asset', () => ({
+  storeGeneratedAssetOrThrow: mocks.persist,
 }));
 
 const scene = {

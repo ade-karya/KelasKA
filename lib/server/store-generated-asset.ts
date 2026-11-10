@@ -22,7 +22,7 @@ import { getServerPersistenceProvider } from '@/lib/persistence/server-provider'
  * It exists as one helper rather than as two inline call sites because the
  * refusal branch is the whole point: a store with no room must fail the tool
  * call, not fall back to a second storage model. `lib/server/classroom-media-bytes.ts`
- * remains for the flows that still serve legacy `/api/classroom-media` paths.
+ * remains only for imported classrooms' legacy `/api/classroom-media` paths.
  */
 
 /**
