@@ -328,7 +328,7 @@ not install Node.js or pnpm; the legacy installer is kept as `install-node.sh`.
 sudo ./install.sh --yes            # base stack
 sudo ./install.sh --yes --with-pm2 # + production build, served via PM2
 sudo ./install.sh --dev            # dev server in the background (no build/PM2)
-sudo ./install.sh --colab          # dev preset + all features (no Docker/Ollama/local models)
+sudo ./install.sh --colab          # production build + PM2 + all features (no Docker/Ollama/local models)
 ```
 
 The installer is idempotent — re-running it is safe and preserves non-empty
@@ -389,22 +389,26 @@ A new `PORT` in `.env.local` only needs
 #### Google Colab
 
 The `--colab` preset is tuned for Colab's root, systemd-less, non-interactive
-runtimes and is a **development** preset. It runs non-interactively, enables
+runtimes and is a **production** preset: it runs non-interactively, enables
 every application feature flag (Pro workbench, MAIC editor and renderers, Pi
 chat, courseware reference, vocational engine/UI, video export, PPTX import,
 Pi native child runtime/spotlight, persistence and the agent runtime when a
-database is available), and starts `bun --bun run dev` detached on `PORT`
-(default 3000). It does **not** run a production build, install PM2, or install
-Playwright (add `--with-playwright` after `--colab` for e2e).
+database is available), builds the Next.js standalone server, and serves it
+through PM2 on `PORT` (default 3000). Because `NEXT_PUBLIC_*` values are baked
+in at build time, the feature flags are written to `.env.local` before the
+build. Playwright is not installed (add `--with-playwright` after `--colab` for
+e2e), and `--no-start` performs the build and asset sync without launching the
+PM2 process.
 
-Docker, Ollama, and locally hosted model services are deliberately excluded:
-the Docker `render-service`, Ollama/Lemonade, FunASR, Lemonade/VoxCPM TTS,
-Lemonade images, ComfyUI, and SearXNG are disabled. Video export still works
-through the downloadable project ZIP. Cloud providers and the CLI transports
-(OpenCode, Codex, Antigravity) remain available; fill in their API keys or sign
-in from the Pro Workbench. If `DATABASE_URL` is not set, the installer still
-installs a local PostgreSQL instance for the session. One cell runs the whole
-install:
+Docker, Ollama, and locally hosted model services are deliberately excluded
+because they are not available on a Colab host: the Docker `render-service`,
+Ollama/Lemonade, FunASR, Lemonade/VoxCPM TTS, Lemonade images, ComfyUI, and
+SearXNG are disabled. Video export still works through the downloadable project
+ZIP, and media extraction uses the host `ffmpeg` when present. Cloud providers
+and the CLI transports (OpenCode, Codex, Antigravity) remain available; fill in
+their API keys or sign in from the Pro Workbench. If `DATABASE_URL` is not set,
+the installer still installs a local PostgreSQL instance for the session. One
+cell runs the whole install:
 
 ```bash
 %%bash
@@ -412,11 +416,13 @@ cd /content/KelasKA
 ./install.sh --colab
 ```
 
-`--colab` already starts the dev server, so `--dev --colab` is redundant; add
-`--no-start` to prepare the environment without launching it. Use `--with-pm2`
-or `--build` **without** `--colab` for a production PM2 deployment. The
-Turbopack production build still dominates a cold run (~10-15 min on Colab's
-2 vCPU); `--colab` skips it entirely.
+`--colab` now combines `--build` and `--with-pm2`; do not add `--dev` (it is
+rejected because both would bind the same port). Add `--no-start` to build and
+sync without launching PM2. If an older detached `--dev` server is still
+running, the installer stops it (process group in `data/dev-server.pid`) before
+PM2 starts. The Turbopack production build dominates a cold run (~10-15 min on
+Colab's 2 vCPU); the installer runs model discovery in parallel with it and
+sizes the Node heap to the host.
 
 Then expose the app to your browser from a Python cell:
 
@@ -470,8 +476,9 @@ Notes: a Colab runtime is ephemeral — `data/`, the local database, and
 `data/` (or use an external `DATABASE_URL`) before closing. Keep the tab open
 during the install (system packages plus the production build typically take
 about 10–15 minutes on a 2-vCPU runtime; re-runs with unchanged sources finish
-in under a minute). This installer does not create
-`openmaic.yml`; configure providers in Settings or copy `openmaic.example.yml`.
+faster). The installer writes `openmaic.yml` when the
+default provider is unambiguous; otherwise configure providers in Settings or
+copy `openmaic.example.yml`.
 
 ### Vercel Deployment (up to 1.1.x)
 

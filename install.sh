@@ -21,8 +21,8 @@
 #      dilengkapi ACCESS_CODE, OPENMAIC_SECRET_KEY, flag TTS browser-native,
 #      ALLOW_LOCAL_NETWORKS, dan setelan persistence bila DATABASE_URL ada.
 #      Nilai yang sudah diisi user tidak ditimpa (kecuali flag installer).
-#      Pada --colab, feature flag aplikasi dipaksa ON dan endpoint model
-#      lokal/Docker dikosongkan.
+#      Pada --colab, preset produksi memaksa feature flag aplikasi ON dan
+#      mengosongkan endpoint model lokal/Docker yang tidak tersedia di host.
 #   4b. `openmaic.yml` (model/provider/slot) dibuat dari DEFAULT_MODEL bila
 #      providernya jelas; secret tetap di .env.local dan dirujuk ${VAR}.
 #      File yang sudah ada tidak pernah ditimpa (lewati: --no-openmaic-yml).
@@ -59,20 +59,24 @@
 #                         minifikasi artefak importer yang tidak dipakai browser.
 #                         Build rilis normal tetap memeriksa tipe.
 #   --no-fast             Paksa build penuh (default; berguna setelah --fast).
-#   --colab               Preset Colab/ephemeral: --yes --dev + semua feature
-#                         flag aplikasi ON. Tanpa build produksi, PM2, atau
-#                         Playwright; PostgreSQL mengikuti mode otomatis (bisa
+#   --colab               Preset Colab produksi: --yes --with-pm2 (build
+#                         standalone + PM2) dengan semua feature flag aplikasi
+#                         ON. PostgreSQL mengikuti mode otomatis (bisa
 #                         dioverride flag lain). Docker, Ollama, dan provider
 #                         model lokal (Lemonade/FunASR/VoxCPM/ComfyUI/SearXNG)
-#                         tidak diaktifkan.
+#                         tidak diaktifkan karena tidak tersedia di Colab.
+#                         Playwright tidak dipasang (tambahkan sendiri untuk
+#                         e2e); --no-start hanya menyiapkan build tanpa
+#                         menjalankan PM2.
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
 #                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
 #                         latar belakang (log: data/dev-server.log, PID:
 #                         data/dev-server.pid). Port dari PORT di .env.local
 #                         (default 3000). Butuh Chromium e2e? Tambahkan
 #                         --with-playwright.
-#   --no-start            Jangan jalankan dev server otomatis (hanya relevan
-#                         dengan --dev).
+#   --no-start            Jangan jalankan server otomatis: pada --dev dev server
+#                         tidak diluncurkan, pada --colab/--with-pm2 build tetap
+#                         dibuat tetapi proses PM2 tidak dijalankan.
 #   --with-ffmpeg         Instal ffmpeg (default ON; no-op).
 #   --no-ffmpeg           Lewati ffmpeg (ekstraksi media lokal mati).
 #   --with-browser-tts    TTS browser-native ON (default ON; no-op).
@@ -105,6 +109,9 @@
 #   - Sinkron katalog model menulis .env.local/openmaic.yml dan tidak dibaca
 #     oleh build, jadi pada --build/--with-pm2 discovery berjalan paralel dengan
 #     build produksi; log-nya diputar setelah build selesai.
+#   - Bila --colab/--with-pm2 dijalankan saat dev server hasil --dev masih
+#     hidup, installer menghentikannya (grup proses di data/dev-server.pid)
+#     sebelum PM2 memakai PORT yang sama.
 #   - Antigravity memakai Google Antigravity CLI (agy) yang dipasang dari
 #     antigravity.google; login Google lewat 'agy' (interaktif). Lewati dengan
 #     --no-antigravity.
@@ -171,7 +178,7 @@ WITH_PLAYWRIGHT=0
 WITH_PM2=0
 WITH_COLAB=0
 WITH_DEV=0
-WITH_DEV_START=1
+WITH_SERVER_START=1
 FAST_BUILD="auto"
 SYNC_MODEL_PARALLEL=0
 SYNC_MODEL_DONE=0
@@ -227,9 +234,9 @@ for arg in "$@"; do
     --full|--with-dev-tools) WITH_BUILD=1; WITH_PLAYWRIGHT=1 ;;
     --fast)              FAST_BUILD=1 ;;
     --no-fast)           FAST_BUILD=0 ;;
-    --colab)             WITH_COLAB=1; ASSUME_YES=1; WITH_DEV=1; WITH_PM2=0; WITH_PLAYWRIGHT=0 ;;
+    --colab)             WITH_COLAB=1; ASSUME_YES=1; WITH_BUILD=1; WITH_PM2=1; WITH_DEV=0 ;;
     --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
-    --no-start)          WITH_DEV_START=0 ;;
+    --no-start)          WITH_SERVER_START=0 ;;
     --with-ffmpeg)       WITH_FFMPEG=1 ;;
     --no-ffmpeg)         WITH_FFMPEG=0 ;;
     --with-browser-tts)  WITH_BROWSER_TTS=1 ;;
@@ -260,7 +267,7 @@ done
 [[ "$BUN_MIN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
   || fail "--min-bun-version harus semver 3 angka (contoh: --min-bun-version=1.3.14)."
 
-# --colab adalah preset dev; build cepat hanya dipakai bila --fast diminta
+# --colab adalah preset produksi; build cepat hanya dipakai bila --fast diminta
 # eksplisit. --fast/--no-fast menang terlepas dari urutan argumen.
 if [[ "$FAST_BUILD" == "auto" ]]; then
   FAST_BUILD=0
@@ -275,14 +282,10 @@ if [[ "$FAST_BUILD" -eq 1 ]]; then
 fi
 
 # --dev dan PM2 sama-sama menjalankan server di PORT yang sama; jalankan salah
-# satu agar tidak ada dua proses berebut port.
+# satu agar tidak ada dua proses berebut port. --colab sekarang preset
+# produksi (PM2), jadi menggabungkannya dengan --dev adalah kesalahan konfigurasi.
 if [[ "$WITH_DEV" -eq 1 && "$WITH_PM2" -eq 1 ]]; then
-  if [[ "$WITH_COLAB" -eq 1 ]]; then
-    WITH_PM2=0
-    info "Preset --colab adalah mode dev: PM2 dilewati dan dev server yang dijalankan."
-  else
-    fail "--dev tidak bisa digabung dengan --with-pm2 (dua server di port yang sama). Pilih salah satu."
-  fi
+  fail "--dev tidak bisa digabung dengan --colab/--with-pm2 (dua server di port yang sama). Pilih --colab (produksi) atau --dev."
 fi
 if [[ "$WITH_DEV" -eq 1 && "$WITH_BUILD" -eq 1 ]]; then
   info "Mode dev: --build tetap dijalankan, tetapi dev server memakai next dev (build tidak wajib)."
@@ -567,6 +570,14 @@ url_encode() {
 url_decode() {
   "$BUN_BIN" -e 'process.stdout.write(decodeURIComponent(process.argv[1]))' "$1"
 }
+# True bila ada proses yang mendengarkan di 127.0.0.1:<port>. Dipakai sebelum
+# PM2 start agar bentrok port (mis. dev server sisa --dev) terlihat di log.
+port_sibuk() {
+  local port="${1:-}"
+  [[ "$port" =~ ^[0-9]+$ ]] || return 1
+  (exec 3<>"/dev/tcp/127.0.0.1/${port}") 2>/dev/null && return 0
+  return 1
+}
 
 # ------------------------------------------------------- deteksi distro (apt)
 if ! command -v apt-get >/dev/null 2>&1; then
@@ -597,9 +608,9 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_BUILD" -eq 1 ]]; then echo "  - jalankan build produksi Bun"; fi
   if [[ "$FAST_BUILD" -eq 1 ]]; then echo "  - mode cepat: typecheck Next.js + minifikasi UMD/CJS dilewati"; fi
   if [[ "$WITH_PM2" -eq 1 ]]; then echo "  - instal PM2 via Bun + jalankan aplikasi standalone"; fi
-  if [[ "$WITH_COLAB" -eq 1 ]]; then echo "  - preset Colab: mode dev + semua feature flag ON (Docker/Ollama/model lokal OFF)"; fi
+  if [[ "$WITH_COLAB" -eq 1 ]]; then echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON (Docker/Ollama/model lokal OFF)"; fi
   if [[ "$WITH_DEV" -eq 1 ]]; then
-    if [[ "$WITH_DEV_START" -eq 1 ]]; then
+    if [[ "$WITH_SERVER_START" -eq 1 ]]; then
       echo "  - preset dev: non-interaktif, tanpa build/PM2, dev server di latar belakang"
     else
       echo "  - preset dev: non-interaktif, tanpa build/PM2 (server tidak dijalankan)"
@@ -961,11 +972,12 @@ else
   warn "DATABASE_URL kosong: persistence/agent runtime nonaktif. Pasang --with-postgres atau isi DATABASE_URL."
 fi
 
-# ================================= 4a. Preset fitur --colab (mode dev)
+# ================================= 4a. Preset fitur --colab (produksi)
 # --colab sengaja memaksa feature flag ON karena .env.example mengomentarinya
-# (default OFF). NEXT_PUBLIC_* dibaca saat dev server start, jadi tidak perlu
-# build ulang. Docker/render-service, Ollama, dan provider model lokal
-# dikosongkan: preset ini hanya memakai provider cloud/CLI.
+# (default OFF). Berbeda dari mode dev, NEXT_PUBLIC_* dibaca saat build
+# produksi, jadi blok ini harus berjalan sebelum `bun run build` (bagian 8).
+# Docker/render-service, Ollama, dan provider model lokal dikosongkan: preset
+# ini hanya memakai provider cloud/CLI yang benar-benar tersedia di host.
 if [[ "$WITH_COLAB" -eq 1 ]]; then
   LANGKAH="preset fitur Colab"
   # Daftar ini mengikuti FORCE_ON di
@@ -1035,7 +1047,11 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   esac
   unset _render_url
 
-  info "Preset Colab: mode dev + semua feature flag ON; Docker, Ollama, dan model lokal OFF."
+  info "Preset Colab produksi: semua feature flag aplikasi ON (build + PM2 di bagian 8-10)."
+  info "  ON: Pro workbench, MAIC editor/renderer, playback renderer, Pi chat, courseware reference,"
+  info "      vocational (server+UI), video export, PPTX import, Pi native child/spotlight,"
+  info "      persistence + agent runtime (bila DATABASE_URL terisi)."
+  info "  OFF (tidak tersedia di host): Docker render-service, Ollama, Lemonade, FunASR, VoxCPM, ComfyUI, SearXNG."
 fi
 
 if [[ "$WITH_POSTGRES" -eq 1 && -n "$PGPORT" && -f .env.local ]]; then
@@ -2030,6 +2046,30 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
       || warn "Gagal chown .next ke ${PM2_USER}."
   fi
 
+  # Dev server sisa --dev memakai PORT yang sama; hentikan sebelum PM2 start
+  # agar server standalone tidak gagal bind (EADDRINUSE).
+  DEV_PID_LAMA="$ROOT_DIR/data/dev-server.pid"
+  if [[ -f "$DEV_PID_LAMA" ]]; then
+    _dev_pid="$(tr -dc '0-9' < "$DEV_PID_LAMA" 2>/dev/null || true)"
+    if [[ -n "$_dev_pid" ]] && kill -0 -- "-$_dev_pid" 2>/dev/null; then
+      info "Menghentikan dev server lama (grup PID ${_dev_pid}) sebelum PM2..."
+      kill -- "-$_dev_pid" 2>/dev/null || true
+      for _ in {1..20}; do
+        kill -0 -- "-$_dev_pid" 2>/dev/null || break
+        sleep 1
+      done
+      kill -9 -- "-$_dev_pid" 2>/dev/null || true
+    fi
+    rm -f "$DEV_PID_LAMA"
+    unset _dev_pid
+  fi
+  PM2_PORT="$(env_get .env.local PORT)"
+  PM2_PORT="${PM2_PORT:-3000}"
+  if port_sibuk "$PM2_PORT"; then
+    warn "Port ${PM2_PORT} sudah dipakai proses lain. Hentikan dulu (ss -ltnp | grep :${PM2_PORT}) atau ubah PORT di .env.local; PM2 start bisa gagal bind."
+  fi
+
+  if [[ "$WITH_SERVER_START" -eq 1 ]]; then
   LANGKAH="pm2: start/reload"
   [[ -f ecosystem.bun.config.cjs ]] \
     || fail "ecosystem.bun.config.cjs tidak ditemukan; file ini dibutuhkan PM2 Bun."
@@ -2082,6 +2122,9 @@ EOF
   else
     info "Tanpa systemd — lewati startup otomatis (setelah reboot: pm2 resurrect sebagai ${PM2_USER})."
   fi
+  else
+    info "PM2 tidak dijalankan (--no-start). Build standalone sudah siap; jalankan: pm2 start ecosystem.bun.config.cjs --update-env"
+  fi
 else
   info "Lewati PM2 (pakai --with-pm2 untuk produksi via PM2)."
 fi
@@ -2115,7 +2158,7 @@ if [[ "$WITH_DEV" -eq 1 ]]; then
 
   if [[ "$WITH_INSTALL" -ne 1 ]]; then
     warn "Mode dev butuh dependensi terpasang; dev server tidak dijalankan. Jalankan manual: bun --bun run dev"
-  elif [[ "$WITH_DEV_START" -ne 1 ]]; then
+  elif [[ "$WITH_SERVER_START" -ne 1 ]]; then
     info "Mode dev: dev server tidak dijalankan (--no-start). Jalankan manual: bun --bun run dev"
   elif dev_pid_hidup && dev_health; then
     DEV_STARTED=1
@@ -2177,7 +2220,7 @@ else
   info "  Node: tidak diinstal (Bun-only)"
 fi
 if [[ "$WITH_COLAB" -eq 1 ]]; then
-  info "  Preset Colab: mode dev + semua feature flag ON; Docker/Ollama/model lokal OFF"
+  info "  Preset Colab: produksi (build standalone + PM2) + semua feature flag ON; Docker/Ollama/model lokal OFF"
 fi
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then
   if [[ -n "$PGPORT" ]] && pg_isready -h localhost -p "$PGPORT" >/dev/null 2>&1; then
@@ -2233,7 +2276,9 @@ if [[ "$WITH_DEV" -eq 1 ]]; then
   fi
 fi
 if [[ "$WITH_PM2" -eq 1 ]]; then
-  if pm2_as_owner pid kelaska 2>/dev/null | grep -qE '^[1-9][0-9]*$'; then
+  if [[ "$WITH_SERVER_START" -ne 1 ]]; then
+    info "  PM2: tidak dijalankan (--no-start); jalankan: pm2 start ecosystem.bun.config.cjs --update-env"
+  elif pm2_as_owner pid kelaska 2>/dev/null | grep -qE '^[1-9][0-9]*$'; then
     info "  PM2: OK (proses kelaska; kelola: pm2 logs kelaska | pm2 reload kelaska)"
   else
     warn "PM2 tidak menjalankan kelaska — cek sebagai ${PM2_USER}: pm2 list && pm2 logs kelaska"
@@ -2278,9 +2323,14 @@ if [[ "$WITH_DEV" -eq 1 ]]; then
 fi
 if [[ "$WITH_COLAB" -eq 1 ]]; then
   echo ""
-  echo "Colab: ekspos port 3000 ke browser dengan sel Python:"
+  echo "Colab: server produksi berjalan via PM2 (standalone, NODE_ENV=production)."
+  echo "  curl http://localhost:${PM2_PORT:-3000}/api/health   # cek status"
+  echo "  pm2 logs kelaska --lines 100              # ikuti log"
+  echo "  pm2 restart kelaska --update-env          # terapkan .env.local baru"
+  echo ""
+  echo "Colab: ekspos port ${PM2_PORT:-3000} ke browser dengan sel Python:"
   echo "  from google.colab import output"
-  echo "  output.serve_kernel_port_as_window(3000)"
+  echo "  output.serve_kernel_port_as_window(${PM2_PORT:-3000})"
   echo ""
   echo "Colab: autentikasi OpenCode Console / Antigravity / Codex dilakukan di"
   echo "  UI Pro Workbench: buka pemilih model (di atas composer / header chat"
@@ -2292,7 +2342,7 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   echo "Colab: jaga runtime tetap hidup (anti-idle) dengan sel Python looping:"
   echo "  from IPython.display import display, Javascript"
   echo "  import threading, time"
-  echo "  display(Javascript(\"(function(){if(window.__openmaicKeepAlive)return;window.__openmaicKeepAlive=true;function tick(){try{const x=Math.floor(Math.random()*window.innerWidth),y=Math.floor(Math.random()*window.innerHeight);['mousemove','mousedown','mouseup','click'].forEach(function(t){document.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));window.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));});window.scrollBy(0,1);window.scrollBy(0,-1);document.querySelectorAll('colab-connect-button,colab-toolbar-button,button[aria-label*=\"Connect\" i],button[aria-label*=\"Reconnect\" i]').forEach(function(el){if(el&&!el.disabled)try{el.click();}catch(e){}});fetch('http://localhost:3000/api/health',{mode:'no-cors'}).catch(function(){});console.log('[keep-alive] tick',new Date().toISOString());}catch(e){console.warn('[keep-alive] err',e);}} tick();setInterval(tick,30000);})()\")"
+  echo "  display(Javascript(\"(function(){if(window.__openmaicKeepAlive)return;window.__openmaicKeepAlive=true;function tick(){try{const x=Math.floor(Math.random()*window.innerWidth),y=Math.floor(Math.random()*window.innerHeight);['mousemove','mousedown','mouseup','click'].forEach(function(t){document.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));window.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));});window.scrollBy(0,1);window.scrollBy(0,-1);document.querySelectorAll('colab-connect-button,colab-toolbar-button,button[aria-label*=\"Connect\" i],button[aria-label*=\"Reconnect\" i]').forEach(function(el){if(el&&!el.disabled)try{el.click();}catch(e){}});fetch('http://localhost:${PM2_PORT:-3000}/api/health',{mode:'no-cors'}).catch(function(){});console.log('[keep-alive] tick',new Date().toISOString());}catch(e){console.warn('[keep-alive] err',e);}} tick();setInterval(tick,30000);})()\")"
   echo "  def _hb():"
   echo "      while True:"
   echo "          print('[keep-alive] kernel heartbeat', time.strftime('%H:%M:%S'), flush=True); time.sleep(120)"
