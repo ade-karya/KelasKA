@@ -46,6 +46,7 @@ import { isAbortError } from '@openmaic/generation';
 import type { Queryable } from '@openmaic/storage/document/pg';
 
 import { pickNarratorAgent, resolveServerAgentVoiceOptions } from '@/lib/audio/agent-voice-options';
+import { narratorReferenceAudio } from './narrator-reference';
 import { voiceBindingKey } from '@/lib/audio/unavailable-voice-bindings';
 import type { ResolvedVoice } from '@/lib/audio/voice-resolver';
 
@@ -1020,12 +1021,24 @@ async function executeClaimedRun(
       // A voice of a provider the slot does not name stays unvoiced.
       if (!chosen) return null;
       const { voice, globalVoice } = chosen;
-      const providerOptions = await resolveServerAgentVoiceOptions(teacher, {
+      const baseProviderOptions = await resolveServerAgentVoiceOptions(teacher, {
         providerId: voice.providerId,
         providerConfig: clipProviderConfig(target, voice),
         voiceId: voice.voiceId,
         language: languageDirective,
       });
+      // Pin the narrator's timbre once per voice: synthesize one reference clip
+      // and thread it inline into VoxCPM's reference_wav_path so every clip in
+      // the batch is the same teacher, not five random ones.
+      const referenceClip = await narratorReferenceAudio(
+        teacher,
+        target.connection,
+        languageDirective,
+        signal,
+      );
+      const providerOptions = referenceClip
+        ? { ...(baseProviderOptions ?? {}), ...referenceClip }
+        : baseProviderOptions;
       try {
         return await withRouteRetry(
           () =>

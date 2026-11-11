@@ -490,8 +490,12 @@ async function generateVoxCPMTTS(
   const denoise = options.denoise ?? false;
   const usePromptContinuation = Boolean(options.promptText?.trim() && options.referenceAudioBase64);
 
+  // A reference clip clones the timbre zero-shot, like the registered-voice
+  // path: the raw text is sent as-is, never prefixed with the design prompt.
+  const useReferenceClone = Boolean(options.referenceAudioBase64) && !options.promptText?.trim();
   const request = {
-    targetText: usePromptContinuation ? text : buildVoxCPMTargetText(text, voicePrompt),
+    targetText:
+      usePromptContinuation || useReferenceClone ? text : buildVoxCPMTargetText(text, voicePrompt),
     rawText: text,
     registeredVoiceId,
     voicePrompt,
