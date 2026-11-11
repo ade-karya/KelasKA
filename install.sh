@@ -23,11 +23,14 @@
 #      Nilai yang sudah diisi user tidak ditimpa (kecuali flag installer).
 #      Pada --colab, preset produksi memaksa feature flag aplikasi ON. Endpoint
 #      model lokal/Docker dikosongkan HANYA bila host tidak punya GPU NVIDIA;
-#      dengan GPU, langkah 4g menyalakan layanan lokal dan endpoint yang hidup.
+#      dengan GPU, langkah 4g menyalakan layanan media lokal dan endpoint yang
+#      hidup.
 #   4g. Layanan model lokal GPU (--with-gpu, atau --colab di host NVIDIA):
-#      scripts/gpu-services.sh memasang + menjalankan Ollama, ComfyUI, FunASR
-#      (CUDA) dan VoxCPM2, lalu installer hanya mengaktifkan layanan yang lolos
-#      health check. Model disimpan di --gpu-dir (default /opt/gpu-models),
+#      scripts/gpu-services.sh memasang + menjalankan ComfyUI (gambar), FunASR
+#      (ASR, CUDA) dan VoxCPM2 (TTS), lalu installer hanya mengaktifkan layanan
+#      yang lolos health check. LLM lokal (Ollama) TIDAK ikut: chat memakai
+#      Gemini dan VRAM GPU dipakai model media; hanya --with-gpu eksplisit yang
+#      memasukkannya. Model disimpan di --gpu-dir (default /opt/gpu-models),
 #      bukan di repo. Endpoint mati tidak pernah masuk .env.local/openmaic.yml.
 #   4b. `openmaic.yml` (model/provider/slot) dibuat dari DEFAULT_MODEL bila
 #      providernya jelas; secret tetap di .env.local dan dirujuk ${VAR}.
@@ -73,18 +76,20 @@
 #                         standalone + PM2) dengan semua feature flag aplikasi
 #                         ON. PostgreSQL mengikuti mode otomatis (bisa
 #                         dioverride flag lain). Bila host punya NVIDIA GPU,
-#                         layanan model lokal GPU (Ollama/ComfyUI/FunASR/
-#                         VoxCPM2) otomatis disiapkan dan diaktifkan; host
-#                         tanpa GPU tetap mengosongkan endpoint lokal seperti
-#                         sebelumnya (Docker/SearXNG/Lemonade tidak dipakai).
+#                         layanan model media lokal (ComfyUI/FunASR/VoxCPM2)
+#                         otomatis disiapkan dan diaktifkan; Ollama/LLM lokal
+#                         tidak dipasang (chat memakai Gemini). Host tanpa GPU
+#                         tetap mengosongkan endpoint lokal seperti sebelumnya
+#                         (Docker/SearXNG/Lemonade tidak dipakai).
 #                         Playwright tidak dipasang (tambahkan sendiri untuk
 #                         e2e); --no-start hanya menyiapkan build tanpa
 #                         menjalankan PM2 maupun layanan GPU.
 #   --with-gpu            Paksa langkah layanan model lokal GPU walau tanpa
-#                         --colab. Butuh NVIDIA GPU (nvidia-smi).
+#                         --colab. Butuh NVIDIA GPU (nvidia-smi). Flag eksplisit
+#                         ini juga memasang Ollama + model LLM lokal (opt-in).
 #   --no-gpu              Jangan sentuh layanan GPU lokal (menang atas --colab).
 #   --gpu-dir=DIR         Direktori model/layanan GPU (default: /opt/gpu-models).
-#   --gpu-ollama-model=M  Model Ollama yang diunduh (default: llama3.2:3b).
+#   --gpu-ollama-model=M  Model Ollama untuk --with-gpu (default: llama3.2:3b).
 #   --gpu-image-model=M   Checkpoint ComfyUI (default: sd_xl_base_1.0.safetensors;
 #                         "none" melewati unduhan ~6.9 GB).
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
@@ -166,7 +171,9 @@
 #   - Layanan GPU dijalankan detached dengan PID di <gpu-dir>/pids dan log di
 #     <gpu-dir>/logs; skripnya bisa dipakai ulang tanpa installer:
 #       ./scripts/gpu-services.sh --status
-#       ./scripts/gpu-services.sh --only ollama
+#       ./scripts/gpu-services.sh --only comfyui
+#     Ollama/LLM lokal hanya ikut pada --with-gpu eksplisit; --colab tidak
+#     memasang maupun mengaktifkannya (chat tetap di Gemini).
 #     Status terakhir ada di <gpu-dir>/gpu-services.env. Setelah reboot host,
 #     jalankan ulang installer (idempoten) atau skrip itu untuk start ulang.
 
@@ -231,8 +238,12 @@ WITH_GPU="auto"
 WITH_GPU_EXPLICIT=0
 GPU_DIR="${GPU_MODELS_DIR:-/opt/gpu-models}"
 GPU_OLLAMA_MODEL="${GPU_OLLAMA_MODEL:-llama3.2:3b}"
+GPU_OLLAMA_MODEL_DIMINTA=0
 GPU_IMAGE_MODEL="${GPU_IMAGE_MODEL:-sd_xl_base_1.0.safetensors}"
 GPU_AKTIF=""
+# LLM lokal (Ollama) bukan bagian preset --colab: chat memakai Gemini dan VRAM
+# GPU dipakai model media. "auto" = hanya ikut bila --with-gpu diminta eksplisit.
+WITH_GPU_LLM="auto"
 WITH_DEV=0
 WITH_SERVER_START=1
 FAST_BUILD="auto"
@@ -303,7 +314,7 @@ for arg in "$@"; do
     --with-gpu)          WITH_GPU=1; WITH_GPU_EXPLICIT=1 ;;
     --no-gpu)            WITH_GPU=0; WITH_GPU_EXPLICIT=1 ;;
     --gpu-dir=*)         GPU_DIR="${arg#*=}" ;;
-    --gpu-ollama-model=*) GPU_OLLAMA_MODEL="${arg#*=}" ;;
+    --gpu-ollama-model=*) GPU_OLLAMA_MODEL="${arg#*=}"; GPU_OLLAMA_MODEL_DIMINTA=1 ;;
     --gpu-image-model=*) GPU_IMAGE_MODEL="${arg#*=}" ;;
     --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
     --no-start)          WITH_SERVER_START=0 ;;
@@ -672,6 +683,18 @@ if [[ "$WITH_GPU" -eq 1 ]]; then
     GPU_DIR="${ROOT_DIR}/${GPU_DIR}"
   fi
 fi
+# --with-gpu eksplisit mengikutkan LLM lokal (Ollama); jalur "auto" (--colab di
+# host NVIDIA) dan --no-gpu tidak pernah memasang maupun mengaktifkannya.
+if [[ "$WITH_GPU_LLM" == "auto" ]]; then
+  if [[ "$WITH_GPU" -eq 1 && "$WITH_GPU_EXPLICIT" -eq 1 ]]; then
+    WITH_GPU_LLM=1
+  else
+    WITH_GPU_LLM=0
+  fi
+fi
+if [[ "$WITH_GPU_LLM" -ne 1 && "$GPU_OLLAMA_MODEL_DIMINTA" -eq 1 ]]; then
+  info "--gpu-ollama-model diabaikan: LLM lokal hanya dipasang dengan --with-gpu."
+fi
 
 # ------------------------------------------------------- deteksi distro (apt)
 if ! command -v apt-get >/dev/null 2>&1; then
@@ -717,13 +740,18 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_PM2" -eq 1 ]]; then echo "  - instal PM2 via Bun + jalankan aplikasi standalone"; fi
   if [[ "$WITH_COLAB" -eq 1 ]]; then
     if [[ "$WITH_GPU" -eq 1 ]]; then
-      echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON + layanan GPU lokal"
+      echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON + layanan GPU media lokal"
     else
       echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON (Docker/Ollama/model lokal OFF)"
     fi
   fi
   if [[ "$WITH_GPU" -eq 1 ]]; then
-    echo "  - layanan GPU lokal: Ollama, ComfyUI (SDXL), FunASR, VoxCPM2 di ${GPU_DIR}"
+    if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
+      echo "  - layanan GPU lokal: Ollama (LLM), ComfyUI (SDXL), FunASR, VoxCPM2 di ${GPU_DIR}"
+    else
+      echo "  - layanan GPU lokal: ComfyUI (SDXL), FunASR, VoxCPM2 di ${GPU_DIR}"
+      echo "    (Ollama/LLM lokal dilewati; pakai --with-gpu untuk memasangnya)"
+    fi
     echo "    (unduhan model beberapa GB; layanan yang gagal health check tidak diaktifkan)"
   fi
   if [[ "$WITH_DEV" -eq 1 ]]; then
@@ -1089,7 +1117,7 @@ else
   warn "DATABASE_URL kosong: persistence/agent runtime nonaktif. Pasang --with-postgres atau isi DATABASE_URL."
 fi
 
-# ========================= 4g. Layanan model lokal GPU (Ollama/ComfyUI/…)
+# ========================= 4g. Layanan model lokal GPU (ComfyUI/FunASR/…)
 # Dijalankan sebelum preset fitur supaya 4a/4b hanya mengaktifkan endpoint yang
 # benar-benar merespons. Skrip menulis <gpu-dir>/gpu-services.env; kegagalan
 # satu layanan tidak menggagalkan instalasi aplikasi.
@@ -1103,10 +1131,18 @@ if [[ "$WITH_GPU" -eq 1 ]]; then
     info "--no-start: layanan GPU tidak dijalankan, jadi endpoint lokal tidak diaktifkan."
     WITH_GPU=0
   else
-    info "Menyiapkan layanan GPU di ${GPU_DIR} (Ollama, ComfyUI, FunASR, VoxCPM2)..."
+    GPU_SCRIPT_ARGS=(--dir "$GPU_DIR" --image-model "$GPU_IMAGE_MODEL")
+    if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
+      GPU_SCRIPT_ARGS+=(--ollama-model "$GPU_OLLAMA_MODEL")
+      info "Menyiapkan layanan GPU di ${GPU_DIR} (Ollama, ComfyUI, FunASR, VoxCPM2)..."
+    else
+      # LLM lokal tidak dipasang: chat memakai Gemini dan VRAM GPU dipakai
+      # model media, jadi Ollama dilewati (bukan cuma tidak diaktifkan).
+      GPU_SCRIPT_ARGS+=(--skip ollama)
+      info "Menyiapkan layanan GPU di ${GPU_DIR} (ComfyUI, FunASR, VoxCPM2; Ollama/LLM dilewati)..."
+    fi
     colab_mark "mulai layanan GPU"
-    if run_as_root env GPU_MODELS_DIR="$GPU_DIR" bash "$GPU_SCRIPT" \
-      --dir "$GPU_DIR" --ollama-model "$GPU_OLLAMA_MODEL" --image-model "$GPU_IMAGE_MODEL"; then
+    if run_as_root env GPU_MODELS_DIR="$GPU_DIR" bash "$GPU_SCRIPT" "${GPU_SCRIPT_ARGS[@]}"; then
       GPU_STATE_FILE="${GPU_DIR}/gpu-services.env"
       if [[ -f "$GPU_STATE_FILE" ]]; then
         set -a
@@ -1117,11 +1153,22 @@ if [[ "$WITH_GPU" -eq 1 ]]; then
     else
       warn "Skrip layanan GPU keluar dengan error; endpoint lokal tidak diaktifkan."
     fi
-    for _svc in ollama comfyui funasr voxcpm; do
+    unset GPU_SCRIPT_ARGS
+    GPU_LAYANAN_AKTIF=(comfyui funasr voxcpm)
+    if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
+      GPU_LAYANAN_AKTIF=(ollama "${GPU_LAYANAN_AKTIF[@]}")
+    else
+      # Status lama dari run sebelumnya tidak boleh menghidupkan kembali Ollama.
+      if [[ "${GPU_OLLAMA_STATUS:-down}" == "up" ]]; then
+        warn "Ollama dari run sebelumnya masih hidup (${GPU_OLLAMA_URL:-port 11434}); hentikan manual bila VRAM GPU dibutuhkan ComfyUI."
+      fi
+      unset GPU_OLLAMA_URL GPU_OLLAMA_MODELS GPU_OLLAMA_STATUS
+    fi
+    for _svc in "${GPU_LAYANAN_AKTIF[@]}"; do
       _key="GPU_$(printf '%s' "$_svc" | tr '[:lower:]' '[:upper:]')_STATUS"
       if [[ "${!_key:-down}" == "up" ]]; then GPU_AKTIF+=" $_svc"; fi
     done
-    unset _svc _key
+    unset _svc _key GPU_LAYANAN_AKTIF
     if [[ -n "$GPU_AKTIF" ]]; then
       info "Layanan GPU aktif:${GPU_AKTIF}"
     else
@@ -1180,8 +1227,10 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   fi
   unset _paralel
 
-  # Docker/Compose, SearXNG dan Lemonade tidak dipakai preset ini. Ollama dan
-  # FunASR hanya diisi bila layanan GPU-nya merespons health check (4g).
+  # Docker/Compose, SearXNG dan Lemonade tidak dipakai preset ini. FunASR,
+  # VoxCPM2 dan ComfyUI hanya diisi bila layanan GPU-nya merespons health check
+  # (4g). Ollama/LLM lokal tidak ikut preset ini (WITH_GPU_LLM=0), jadi
+  # OLLAMA_* dikosongkan; hanya --with-gpu eksplisit yang mengisinya.
   set_env_value .env.local SEARXNG_ENABLED "false"
   for _var in \
     LEMONADE_BASE_URL LEMONADE_MODELS \
@@ -1236,8 +1285,11 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   info "      persistence + agent runtime (bila DATABASE_URL terisi)."
   if [[ -n "$GPU_AKTIF" ]]; then
     info "  ON (GPU lokal):${GPU_AKTIF}."
-    info "  OFF (tidak dipakai preset): Docker render-service, SearXNG, Lemonade."
-    info "  Model gambar/TTS/ASR lokal aktif otomatis; Ollama tersedia sebagai provider chat."
+    info "  OFF (tidak dipakai preset): Docker render-service, SearXNG, Lemonade, Ollama (LLM lokal)."
+    info "  Model gambar/TTS/ASR lokal aktif otomatis; chat memakai Gemini."
+    if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
+      info "  Ollama (LLM lokal) ikut karena --with-gpu eksplisit."
+    fi
   else
     info "  OFF (tidak tersedia di host): Docker render-service, Ollama, Lemonade, FunASR, VoxCPM, ComfyUI, SearXNG."
   fi
@@ -1432,7 +1484,9 @@ konfigurasi_gpu_openmaic_yml() {
     info "openmaic.yml dibuat untuk provider GPU lokal."
   fi
   local ditambah=""
-  if [[ " $GPU_AKTIF " == *" ollama "* ]]; then
+  # Ollama/LLM lokal hanya ada pada --with-gpu eksplisit; --colab tidak
+  # memasangnya, jadi slot agent.title tetap mengikuti agent (Gemini).
+  if [[ "$WITH_GPU_LLM" -eq 1 && " $GPU_AKTIF " == *" ollama "* ]]; then
     tambah_provider_gpu_yml openmaic.yml ollama ollama "${GPU_OLLAMA_URL:-}" "${GPU_OLLAMA_MODELS:-}"
     # Judul percakapan: tugas pendek dan berulang, jadi jalankan di GPU lokal
     # (slot configOnly, tidak butuh tool calling) agar GPU terpakai dan kuota
@@ -1665,6 +1719,13 @@ siapkan_provider_google() {
 
 siapkan_openmaic_yml
 konfigurasi_gpu_openmaic_yml
+# --colab tidak memasang LLM lokal; provider/slot ollama yang tertinggal dari
+# run lama dibiarkan (file milik user) tetapi diberi peringatan agar tidak
+# menunjuk endpoint mati.
+if [[ "$WITH_COLAB" -eq 1 && "$WITH_GPU_LLM" -ne 1 && -f openmaic.yml ]] \
+  && grep -qE '^[[:space:]]*(ollama:|preset:[[:space:]]*ollama|model:[[:space:]]*ollama:)' openmaic.yml; then
+  warn "openmaic.yml masih memuat provider/slot ollama; --colab tidak memasang LLM lokal, jadi endpoint itu tidak hidup. Hapus/nonaktifkan manual bila tidak dipakai."
+fi
 if [[ "$WITH_COLAB" -eq 1 && -z "$GPU_AKTIF" && -f openmaic.yml ]] \
   && grep -qE '^[[:space:]]*baseUrl:[[:space:]]*https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)' openmaic.yml; then
   warn "openmaic.yml memuat provider lokal; preset --colab tidak mengubah file milik user. Nonaktifkan manual bila tidak dipakai."

@@ -400,10 +400,15 @@ build. Playwright is not installed (add `--with-playwright` after `--colab` for
 e2e), and `--no-start` performs the build and asset sync without launching the
 PM2 process.
 
-Docker, Ollama, and locally hosted model services are deliberately excluded
-because they are not available on a Colab host: the Docker `render-service`,
-Ollama/Lemonade, FunASR, Lemonade/VoxCPM TTS, Lemonade images, ComfyUI, and
-SearXNG are disabled. Video export still works through the downloadable project
+Docker, Ollama, and the local LLM are deliberately excluded: chat runs on
+Gemini, so the installer installs no local LLM weights and leaves
+`OLLAMA_BASE_URL`/`OLLAMA_MODELS` empty even on a GPU host (`--with-gpu` is the
+explicit opt-in that adds Ollama). Locally hosted **media** models are the
+exception when the runtime has an NVIDIA GPU: `install.sh --colab` then runs
+`scripts/gpu-services.sh` for ComfyUI (images), FunASR (ASR) and VoxCPM2 (TTS)
+and registers only the services that answered their health check. On a CPU-only
+host those stay off too, as do the Docker `render-service`, Lemonade and
+SearXNG. Video export still works through the downloadable project
 ZIP, and media extraction uses the host `ffmpeg` when present. Cloud providers
 and the CLI transports (OpenCode, Codex, Antigravity) remain available; fill in
 their API keys or sign in from the Pro Workbench. If `DATABASE_URL` is not set,
