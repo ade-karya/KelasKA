@@ -1544,6 +1544,7 @@
     "providerBrowserNative": "Browser Native ASR",
     "providerQwenASR": "Qwen ASR (Alibaba Cloud Bailian)",
     "providerFunASRASR": "FunASR (Local)",
+    "providerGoogleASR": "Gemini Transcribe (Cloud)",
     "providerLemonadeASR": "Lemonade ASR (Local)",
     "providerAzureASR": "Azure STT",
     "providerUnpdf": "unpdf (Built-in)",

@@ -1544,6 +1544,7 @@
     "providerBrowserNative": "Reconnaissance vocale native du navigateur",
     "providerQwenASR": "Qwen ASR (Alibaba Cloud Bailian)",
     "providerFunASRASR": "FunASR (local)",
+    "providerGoogleASR": "Gemini Transcribe (cloud)",
     "providerLemonadeASR": "Lemonade ASR (local)",
     "providerAzureASR": "Azure STT",
     "providerUnpdf": "unpdf (intégré)",

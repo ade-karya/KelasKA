@@ -205,6 +205,9 @@ export async function transcribeAudio(
     case 'xiaomi-asr':
       return await transcribeXiaomiASR(config, audioBuffer);
 
+    case 'google-asr':
+      return await transcribeGeminiASR(config, audioBuffer);
+
     default:
       if (isCustomASRProvider(config.providerId)) {
         return await transcribeCustomOpenAICompatibleASR(config, audioBuffer);
@@ -756,6 +759,95 @@ async function transcribeXiaomiASR(
   const text = data?.choices?.[0]?.message?.content;
   return { text: typeof text === 'string' ? text : '' };
 }
+
+/**
+ * Gemini native transcription over `generateContent` with an inline WAV part.
+ *
+ * Unlike the OpenAI-compatible ASR providers this is not a multipart upload:
+ * Gemini takes the audio as base64 `inline_data` and the dedicated
+ * `gemini-3.5-transcribe` model answers with `audioTranscription.text` parts
+ * (the Flash fallbacks answer with plain `text` parts, so both are read).
+ *
+ * This is the Indonesian path: the local FunASR models (SenseVoiceSmall,
+ * Paraformer, Fun-ASR-Nano) are zh/en/yue/ja/ko only and return gibberish for
+ * Indonesian speech, while Gemini auto-detects the language and needs no hint.
+ */
+async function transcribeGeminiASR(
+  config: ASRModelConfig,
+  audioBuffer: Buffer | Blob,
+): Promise<ASRTranscriptionResult> {
+  const baseUrl = (config.baseUrl || ASR_PROVIDERS['google-asr'].defaultBaseUrl || '').replace(
+    /\/+$/,
+    '',
+  );
+  const modelId = config.modelId?.trim() || ASR_PROVIDERS['google-asr'].defaultModelId;
+
+  const audioBlob = await toAudioBlob(audioBuffer);
+  // The bytes decide, never the client-declared Content-Type.
+  if (!(await isWavAudio(audioBlob))) {
+    throw new Error(
+      'Gemini ASR supports WAV input only (browser recordings are transcoded to WAV before upload).',
+    );
+  }
+  const base64 = Buffer.from(await audioBlob.arrayBuffer()).toString('base64');
+  // Gemini's inline_data request ceiling is 20 MB; leave headroom for the
+  // prompt envelope so long narrations fail with our message, not a 413.
+  if (base64.length > MAX_GEMINI_ASR_ENCODED_BYTES) {
+    throw new Error(
+      `Gemini ASR audio exceeds the 20 MB inline request limit ` +
+        `(${Math.round(base64.length / 1024 / 1024)} MB encoded). Shorten the audio.`,
+    );
+  }
+
+  const response = await audioProviderFetch(
+    `${baseUrl}/models/${encodeURIComponent(modelId)}:generateContent`,
+    {
+      method: 'POST',
+      headers: {
+        // Header instead of ?key= so the secret never lands in a request URL
+        // that an error or proxy log could echo.
+        'x-goog-api-key': config.apiKey?.trim() ?? '',
+        'Content-Type': 'application/json; charset=utf-8',
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ inline_data: { mime_type: 'audio/wav', data: base64 } }] }],
+      }),
+      ...(asrFetchSignal.getStore() ? { signal: asrFetchSignal.getStore() } : {}),
+    },
+    audioEndpointPolicy(config),
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Gemini ASR API error: ${errorText || response.statusText}`);
+  }
+
+  const data = (await response.json()) as {
+    candidates?: Array<{
+      finishReason?: string;
+      content?: {
+        parts?: Array<{ text?: string; audioTranscription?: { text?: string } }>;
+      };
+    }>;
+    promptFeedback?: { blockReason?: string };
+  };
+  const candidate = data.candidates?.[0];
+  const text = (candidate?.content?.parts ?? [])
+    .map((part) => part.audioTranscription?.text ?? part.text ?? '')
+    .join('')
+    .trim();
+  if (!text) {
+    const reason = data.promptFeedback?.blockReason ?? candidate?.finishReason;
+    if (reason && reason !== 'STOP') {
+      throw new Error(`Gemini ASR produced no transcript (${reason})`);
+    }
+    return { text: '' };
+  }
+  return { text };
+}
+
+/** Gemini inline_data caps the whole request at 20 MB; encoded audio stays under it. */
+const MAX_GEMINI_ASR_ENCODED_BYTES = 18 * 1024 * 1024;
 
 /**
  * The mime types MiMo ASR accepts — the documented wav and mp3 only — detected

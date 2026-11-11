@@ -20,6 +20,8 @@ Guidance for coding agents working in this repository, including the automated C
 ## Build and Test Resources
 
 - `/KelasKA_Colab_Setup_v2.ipynb` snapshots the live `.env.local` + `openmaic.yml` (Gemini key, Supabase/DB, HF credentials), so it stays in `.gitignore` and is regenerated from the host files instead of edited by hand; never commit it.
+- Indonesian audio paths: the local FunASR models (SenseVoiceSmall, Paraformer, Fun-ASR-Nano) are zh/en/yue/ja/ko only and return gibberish for Indonesian, so the `asr` slot uses the `google-asr` provider, which posts inline WAV to `generateContent` and reads both `audioTranscription` and plain `text` parts. VoxCPM2 TTS is fine in Indonesian (a Gemini round-trip transcribed its sample exactly).
+- Gemini free-tier quotas on the current key (RPM/RPD): `gemini-3.6-flash` and `gemini-3.8-flash` 5/20, `gemini-3.5-flash-lite` and `gemini-3.1-flash-lite` 15/500, `gemini-3.5-transcribe` 3/25, all TTS 3/10, every Nano Banana/image model **0** (free tier excludes image output), Gemini 3+ search grounding 0. Therefore `llm`/`agent` default to `gemini-3.5-flash-lite` (500 RPD) and `asr` to `gemini-3.1-flash-lite` (500 RPD, verified byte-identical to the dedicated transcribe model on the Indonesian sample); 3.6/3.8 stay selectable for one-off quality runs. Image stays on local ComfyUI/SDXL because Gemini image calls return `429 ... limit: 0`.
 - Maximize the RAM a memory-heavy Node task may use instead of leaving Node's default heap. The Next.js production build type-checks a large module graph and can exceed the default ~2 GB limit, failing with `FATAL ERROR: Reached heap limit`.
 - Check `free -h` first, then set `NODE_OPTIONS` below the available RAM so the OS keeps headroom. On the 12 GB Colab host, use:
   ```bash

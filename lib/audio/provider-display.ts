@@ -21,6 +21,7 @@ const ASR_PROVIDER_NAME_KEYS: Record<string, string> = {
   'funasr-asr': 'settings.providerFunASRASR',
   'lemonade-asr': 'settings.providerLemonadeASR',
   'xiaomi-asr': 'settings.providerXiaomiASR',
+  'google-asr': 'settings.providerGoogleASR',
 };
 
 const TTS_PROVIDER_NAME_KEYS: Record<string, string> = {

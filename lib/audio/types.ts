@@ -216,7 +216,9 @@ export type BuiltInASRProviderId =
   | 'funasr-asr'
   | 'lemonade-asr'
   | 'azure-asr'
-  | 'xiaomi-asr';
+  | 'xiaomi-asr'
+  /** Gemini native transcription (audio or video input, 100+ languages). */
+  | 'google-asr';
 
 export type ASRProviderId = BuiltInASRProviderId | `custom-asr-${string}`;
 

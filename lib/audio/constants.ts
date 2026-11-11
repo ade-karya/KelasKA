@@ -1631,6 +1631,49 @@ export const ASR_PROVIDERS: Record<BuiltInASRProviderId, ASRProviderConfig> = {
     // 10 MB input_audio cap with headroom for the WAV header.
     maxChunkSeconds: 180,
   },
+
+  'google-asr': {
+    id: 'google-asr',
+    name: 'Gemini Transcribe',
+    requiresApiKey: true,
+    defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+    icon: '/logos/gemini.svg',
+    // All of them auto-detect the language, so Indonesian needs no hint. The
+    // free tier is the reason the quota-rich Flash-Lite is the default: the
+    // dedicated model is the most accurate but allows only 25 requests/day,
+    // while Flash-Lite allows 500 and transcribed the Indonesian sample
+    // byte-for-byte.
+    models: [
+      { id: 'gemini-3.5-transcribe', name: 'Gemini 3.5 Transcribe' },
+      { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite' },
+    ],
+    defaultModelId: 'gemini-3.1-flash-lite',
+    // Gemini documents 100+ input languages; these are the ones this app's
+    // locales and course content use, with 'id' first because the local
+    // FunASR models cannot transcribe Indonesian at all.
+    supportedLanguages: [
+      'auto',
+      'id',
+      'en',
+      'zh',
+      'ja',
+      'ko',
+      'ar',
+      'de',
+      'es',
+      'fr',
+      'hi',
+      'it',
+      'pt',
+      'ru',
+      'vi',
+    ],
+    // Same WAV-only contract as the local servers: recordings are converted
+    // before upload, and the inline_data request caps at 20 MB.
+    supportedFormats: ['wav'],
+    // ~100 audio tokens/second; keep a chunk well under the 20 MB inline limit.
+    maxChunkSeconds: 300,
+  },
 };
 
 /**

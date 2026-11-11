@@ -1543,6 +1543,7 @@
     "providerBrowserNative": "ASR bawaan browser",
     "providerQwenASR": "Qwen ASR (Alibaba Cloud Bailian)",
     "providerFunASRASR": "FunASR (Lokal)",
+    "providerGoogleASR": "Gemini Transcribe (Cloud)",
     "providerLemonadeASR": "Lemonade ASR (Lokal)",
     "providerAzureASR": "Azure STT",
     "providerUnpdf": "unpdf (Bawaan)",

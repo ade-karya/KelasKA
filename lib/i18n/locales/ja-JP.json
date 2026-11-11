@@ -1544,6 +1544,7 @@
     "providerBrowserNative": "ブラウザネイティブASR",
     "providerQwenASR": "Qwen ASR（Alibaba Cloud百錬）",
     "providerFunASRASR": "FunASR（ローカル）",
+    "providerGoogleASR": "Gemini Transcribe（クラウド）",
     "providerLemonadeASR": "Lemonade ASR（ローカル）",
     "providerAzureASR": "Azure STT",
     "providerUnpdf": "unpdf（組み込み）",
