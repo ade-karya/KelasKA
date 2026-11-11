@@ -163,8 +163,13 @@ gpu_untuk() {
   total="$(jumlah_gpu)"
   [[ "$total" =~ ^[0-9]+$ ]] || total=1
   if [[ "$total" -lt 2 ]]; then printf '0'; return; fi
+  # SDXL di ComfyUI memakai puncak ~10.6 GiB dari 15 GiB (bobot ~7 GiB saat
+  # idle, ~3.6 GiB transient saat sampling), jadi Ollama tidak boleh berbagi
+  # GPU 0: satu model 3B (~4 GiB) membuat totalnya ~14.7 GiB dan OOM.
+  # GPU 0 = ComfyUI saja; GPU 1 = Ollama + FunASR + VoxCPM (bursty, jarang
+  # bersamaan karena judul percakapan hanya dipanggil saat chat).
   case "$peran" in
-    comfyui|ollama) printf '0' ;;
+    comfyui) printf '0' ;;
     *) printf '1' ;;
   esac
 }
@@ -207,8 +212,16 @@ pasang_ollama() {
   export OLLAMA_HOST="127.0.0.1:${OLLAMA_PORT}"
   mkdir -p "$OLLAMA_MODELS"
   if ! port_terbuka "$OLLAMA_PORT"; then
+    # NUM_PARALLEL: beberapa permintaan (mis. judul percakapan) sekaligus pada
+    # satu GPU. MAX_LOADED_MODELS=1 supaya GPU 1 hanya memuat satu model
+    # sekaligus. KEEP_ALIVE menahan model di VRAM agar panggilan berikutnya
+    # tidak memuat ulang dari disk; 10m cukup untuk jeda antar-percakapan.
     start_bg ollama "$LOG_DIR/ollama.log" env OLLAMA_MODELS="$OLLAMA_MODELS" \
-      OLLAMA_HOST="$OLLAMA_HOST" CUDA_VISIBLE_DEVICES="$(gpu_untuk ollama)" ollama serve
+      OLLAMA_HOST="$OLLAMA_HOST" \
+      OLLAMA_NUM_PARALLEL="${GPU_OLLAMA_NUM_PARALLEL:-4}" \
+      OLLAMA_MAX_LOADED_MODELS="${GPU_OLLAMA_MAX_LOADED_MODELS:-1}" \
+      OLLAMA_KEEP_ALIVE="${GPU_OLLAMA_KEEP_ALIVE:-10m}" \
+      CUDA_VISIBLE_DEVICES="$(gpu_untuk ollama)" ollama serve
   fi
   wait_http "http://127.0.0.1:${OLLAMA_PORT}/api/tags" 60 2 || { warn "Ollama tidak menjawab."; return 1; }
   if ! ollama list 2>/dev/null | awk 'NR>1 {print $1}' | grep -qx "$OLLAMA_MODEL"; then
@@ -216,6 +229,12 @@ pasang_ollama() {
     OLLAMA_HOST="$OLLAMA_HOST" ollama pull "$OLLAMA_MODEL" >>"$LOG_DIR/ollama.log" 2>&1 \
       || { warn "pull ${OLLAMA_MODEL} gagal."; return 1; }
   fi
+  # Muat bobot ke VRAM sekarang, bukan pada permintaan pertama aplikasi
+  # (pemuatan dingin dari disk bisa >2 menit dan melewati batas waktu judul).
+  curl -fsS --max-time 600 "http://127.0.0.1:${OLLAMA_PORT}/v1/chat/completions" \
+    -H 'Content-Type: application/json' \
+    -d "{\"model\":\"${OLLAMA_MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":1}" \
+    >>"$LOG_DIR/ollama.log" 2>&1 || warn "pemanasan model Ollama gagal."
   return 0
 }
 

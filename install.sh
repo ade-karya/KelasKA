@@ -1434,6 +1434,11 @@ konfigurasi_gpu_openmaic_yml() {
   local ditambah=""
   if [[ " $GPU_AKTIF " == *" ollama "* ]]; then
     tambah_provider_gpu_yml openmaic.yml ollama ollama "${GPU_OLLAMA_URL:-}" "${GPU_OLLAMA_MODELS:-}"
+    # Judul percakapan: tugas pendek dan berulang, jadi jalankan di GPU lokal
+    # (slot configOnly, tidak butuh tool calling) agar GPU terpakai dan kuota
+    # provider cloud tidak habis untuk hal sepele. Slot yang sudah diisi user
+    # tidak ditimpa.
+    pastikan_slot_yml openmaic.yml agent.title "ollama:${GPU_OLLAMA_MODELS%%,*}"
     ditambah+=" ollama"
   fi
   if [[ " $GPU_AKTIF " == *" funasr "* ]]; then
