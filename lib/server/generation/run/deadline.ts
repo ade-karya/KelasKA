@@ -20,8 +20,12 @@ export const STEP_DEADLINES_MS = {
   sceneContent: 300_000,
   /** Per attempt. */
   sceneActions: 60_000,
-  /** Per clip attempt (POST /api/generate/tts). */
-  narrationClip: 30_000,
+  /**
+   * Per clip attempt (POST /api/generate/tts). One GPU service serializes
+   * requests, so a clip queued behind a batch of five waits ~40 s before it
+   * even starts; the HTTP budget in lib/audio/tts-providers.ts matches this.
+   */
+  narrationClip: 120_000,
 } as const;
 
 /** A step ran out of its budget. A gateway timeout to the retries: retried. */
