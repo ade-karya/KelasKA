@@ -16,6 +16,7 @@ import type { AgentConfig } from '@/lib/orchestration/registry/types';
 import { slotTTSProvidersConfig, slotVoxCPMBackend } from '@/lib/audio/tts-selection';
 import { getEnabledProvidersWithVoices } from '@/lib/audio/voice-resolver';
 import { getVoxCPMProfileVoiceId } from '@/lib/audio/voxcpm';
+import { resetAutoVoiceReferenceForTests } from '@/lib/audio/voxcpm-voices';
 import { modelCapabilities, type EffectiveTarget } from '@/lib/model-settings/capabilities';
 
 import { modelSettingsViewFor } from '../helpers/model-settings-view';
@@ -62,7 +63,10 @@ describe('the VoxCPM backend on the client', () => {
 });
 
 describe('auto voices follow the backend', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetAutoVoiceReferenceForTests();
+  });
 
   const teacher = {
     id: 't',
@@ -71,8 +75,16 @@ describe('auto voices follow the backend', () => {
     voiceDesign: { identity: 'calm teacher', texture: 'warm', delivery: 'slow' },
   } as unknown as AgentConfig;
 
-  async function optionsFor(backend: string) {
-    const fetch = vi.fn(async () => Response.json({ voiceId: 'registered-1' }));
+  async function optionsFor(backend: string, clip?: string) {
+    // vllm-omni registers via /api/generate/voice; python-api bootstraps one
+    // reference clip inline via /api/generate/tts.
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (backend === 'python-api' && url.endsWith('/api/generate/tts')) {
+        return Response.json({ success: true, format: 'wav', base64: clip ?? null });
+      }
+      return Response.json({ voiceId: 'registered-1' });
+    });
     vi.stubGlobal('fetch', fetch);
     const options = await resolveAgentVoiceOptions(teacher, {
       providerId: 'voxcpm-tts',
@@ -88,10 +100,23 @@ describe('auto voices follow the backend', () => {
     expect(options).toMatchObject({ backend: 'vllm-omni', registeredVoiceId: 'registered-1' });
   });
 
-  it('keeps the inline voice prompt on a backend without it', async () => {
-    const { options, fetch } = await optionsFor('python-api');
-    expect(fetch).not.toHaveBeenCalled();
+  it('pins an inline reference clip where the backend has no voice registry', async () => {
+    const clip = Buffer.from('reference').toString('base64');
+    const { options, fetch } = await optionsFor('python-api', clip);
+    expect(fetch).toHaveBeenCalledWith('/api/generate/tts', expect.anything());
+    expect(options).toMatchObject({
+      backend: 'python-api',
+      voiceMode: 'auto',
+      referenceAudioBase64: clip,
+    });
+    expect(options).not.toHaveProperty('registeredVoiceId');
+  });
+
+  it('falls back to the inline voice prompt when the reference clip fails', async () => {
+    const { options, fetch } = await optionsFor('python-api', undefined);
+    expect(fetch).toHaveBeenCalledWith('/api/generate/tts', expect.anything());
     expect(options).toMatchObject({ backend: 'python-api', voiceMode: 'auto' });
     expect(options).not.toHaveProperty('registeredVoiceId');
+    expect(options).not.toHaveProperty('referenceAudioBase64');
   });
 });

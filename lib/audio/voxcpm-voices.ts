@@ -7,6 +7,7 @@ import {
   VOXCPM_AUTO_VOICE,
   VOXCPM_AUTO_VOICE_ID,
   VOXCPM_TTS_PROVIDER_ID,
+  buildAutoVoxCPMVoicePrompt,
   getVoxCPMProfileIdFromVoiceId,
   getVoxCPMProfileVoiceId,
   voxCPMBackendSupportsVoiceRegistration,
@@ -36,6 +37,104 @@ export const QWEN_DECODER_PADDING_TOLERANCE_SECONDS = 0.5;
 export function preserveRecordedVoiceName(currentName: string, defaultName: string): string {
   return currentName.trim() ? currentName : defaultName;
 }
+
+/**
+ * Inline timbre pinning for backends without a voice registry (python-api).
+ * vLLM registers the design once and references it by id; python-api can only
+ * clone, and a fresh synthesis without a reference is a fresh timbre. So the
+ * first call for a voice design synthesizes one short reference clip (through
+ * the same server route the discussion already uses) and every later call
+ * threads it inline as `reference_audio` — same narrator, same agent, for the
+ * rest of the course's discussion. The clip stays in this page's memory.
+ */
+interface AutoVoiceReference {
+  referenceAudioBase64: string;
+  referenceAudioMimeType: 'audio/wav';
+  referenceAudioName: 'agent-voice.wav';
+}
+
+const AUTO_VOICE_REFERENCE_MAX = 64;
+const autoVoiceReferenceCache = new Map<string, AutoVoiceReference>();
+const autoVoiceReferenceInflight = new Map<string, Promise<AutoVoiceReference | null>>();
+
+function autoVoiceKey(context: VoxCPMVoicePromptContext | undefined, sample: string): string {
+  const voicePrompt = buildAutoVoxCPMVoicePrompt(context);
+  const raw = `${sample}|${voicePrompt}`;
+  // djb2 — short, stable, good enough for a session-scoped cache key.
+  let hash = 5381;
+  for (let index = 0; index < raw.length; index += 1) {
+    hash = (hash * 33) ^ raw.charCodeAt(index);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function indonesianLike(language: string | undefined): boolean {
+  if (!language) return false;
+  return /indones|bahasa\s*indon|^id(-ID)?$/i.test(language);
+}
+
+async function ensureAutoVoiceReference(
+  context: VoxCPMVoicePromptContext | undefined,
+): Promise<AutoVoiceReference | null> {
+  if (typeof fetch !== 'function') return null;
+  const sample = indonesianLike(context?.language ?? context?.locale) ? 'id' : 'en';
+  const text = sample === 'id' ? SAMPLE_ID : SAMPLE_EN;
+  const key = autoVoiceKey(context, sample);
+
+  const cached = autoVoiceReferenceCache.get(key);
+  if (cached) return cached;
+  const running = autoVoiceReferenceInflight.get(key);
+  if (running) return running;
+
+  const bootstrap: Promise<AutoVoiceReference | null> = (async () => {
+    try {
+      const response = await fetch('/api/generate/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          audioId: `voxcpm-pin-${key}`,
+          ttsVoice: VOXCPM_AUTO_VOICE_ID,
+          ttsProviderOptions: {
+            ...(context?.backend ? { backend: context.backend } : {}),
+            voicePrompt: buildAutoVoxCPMVoicePrompt(context),
+          },
+        }),
+      });
+      const data = (await response.json().catch(() => null)) as { base64?: string } | null;
+      if (!response.ok || !data || typeof data.base64 !== 'string') return null;
+      return {
+        referenceAudioBase64: data.base64,
+        referenceAudioMimeType: 'audio/wav',
+        referenceAudioName: 'agent-voice.wav',
+      };
+    } catch {
+      return null;
+    }
+  })();
+
+  autoVoiceReferenceInflight.set(key, bootstrap);
+  try {
+    const value = await bootstrap;
+    if (!value) return null;
+    if (autoVoiceReferenceCache.size >= AUTO_VOICE_REFERENCE_MAX) {
+      autoVoiceReferenceCache.delete(autoVoiceReferenceCache.keys().next().value as string);
+    }
+    autoVoiceReferenceCache.set(key, value);
+    return value;
+  } finally {
+    autoVoiceReferenceInflight.delete(key);
+  }
+}
+
+/** Test hook: drop the session-scoped reference clips. */
+export function resetAutoVoiceReferenceForTests(): void {
+  autoVoiceReferenceCache.clear();
+  autoVoiceReferenceInflight.clear();
+}
+
+const SAMPLE_ID = 'Halo, selamat datang di pelajaran hari ini.';
+const SAMPLE_EN = "Hello, welcome to today's lesson.";
 
 function notifyVoiceProfilesChanged(): void {
   window.dispatchEvent(new Event(VOICE_PROFILES_CHANGED));
@@ -438,10 +537,15 @@ export async function getVoxCPMProviderOptions(
           request!,
         ).catch(() => undefined)
       : undefined;
+    // Backends without registration (python-api): clone inline with a per-voice
+    // reference clip so every line is the same agent, not a fresh timbre.
+    const reference = canRegister ? undefined : await ensureAutoVoiceReference(context);
     return {
       // The inline fallback is always set.
       ...voxCPMPromptProviderOptions(voiceId, context),
+      // The reference clip, when the bootstrap succeeded, makes it stable.
       ...(registeredVoiceId ? { registeredVoiceId } : {}),
+      ...(reference ?? {}),
     };
   }
 
