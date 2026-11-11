@@ -9,6 +9,7 @@ import { nanoid } from 'nanoid';
 import { callLLM } from '@/lib/ai/llm';
 import { AGENT_COLOR_PALETTE } from '@/lib/constants/agent-defaults';
 import { normalizeVoiceDesign } from '@/lib/audio/voice-design';
+import { alignVoiceDesignGenderToAvatar, avatarGender } from '@/lib/audio/avatar-gender';
 import { isQwenCloneVoice, resolveTTSModelForVoice } from '@/lib/audio/constants';
 
 import { StepRefusal, type StepContext, type StepLanguageModel } from './context';
@@ -221,6 +222,18 @@ ${genderMatchRules}  - Try to use different voices for each agent`
       : `,\n      "voice": "string (voice id from available list, e.g. '${advertisedVoiceToken(availableVoices![0])}')"`
     : '';
 
+  // The avatars the step may pick from, each with the gender of their artwork
+  // (the avatars the course sees were drawn as either a man or a woman — the
+  // list pins which, so the model does not have to guess).
+  const avatarList =
+    avatarDescriptions && avatarDescriptions.length > 0
+      ? avatarDescriptions.map((avatar) => ({
+          path: avatar.path,
+          description: avatar.desc,
+          gender: avatarGender(avatar.path),
+        }))
+      : availableAvatars.map((path) => ({ path, description: '', gender: avatarGender(path) }));
+
   const userPrompt = `Generate agent profiles for the following course:
 
 Course name: ${stageInfo.name}
@@ -233,10 +246,12 @@ Requirements:
 - Each agent needs: name, role, persona (2-3 sentences describing personality and teaching/learning style)
 - Language directive for this course: ${languageDirective}
   Agent names and personas must follow this language directive.
-- Each agent must be assigned one avatar from this list: ${JSON.stringify(avatarDescriptions && avatarDescriptions.length > 0 ? avatarDescriptions.map((a) => ({ path: a.path, description: a.desc })) : availableAvatars)}
+- Each agent must be assigned one avatar from this list: ${JSON.stringify(avatarList)}
   - Pick an avatar that visually matches the agent's personality and role
   - Try to use different avatars for each agent
   - Use the "path" value as the avatar field in the output
+  - Every avatar in the list has a "gender" field (male or female). The voiceDesign.gender of the agent MUST equal the gender of the avatar chosen, and the voiceDesign.identity must name the same gender
+  - An avatar with a gender field must never pair with an opposite-gender voiceDesign
 - Each agent must be assigned one color from this list: ${JSON.stringify(AGENT_COLOR_PALETTE)}
   - Each agent must have a different color
 - Each agent needs a "voiceDesign" object describing their VOCAL identity (not personality), written following the language directive and consistent with the persona, as short comma-free phrases:
@@ -327,6 +342,7 @@ Return a JSON object with this exact structure:
     // the LLM must never reassign it. Everyone else resolves only an
     // advertised voice token so provider/model/voice remain bound together.
     let voiceConfig: VoiceBinding | undefined;
+    const chosenAvatar = agent.avatar || availableAvatars[index % availableAvatars.length];
     if (agent.role === 'teacher' && narratorBinding) {
       voiceConfig = narratorBinding;
     } else if (agent.voice !== undefined && agent.voice !== null) {
@@ -348,14 +364,27 @@ Return a JSON object with this exact structure:
       }
     }
 
-    const voiceDesign = normalizeVoiceDesign(agent.voiceDesign);
+    let voiceDesign = normalizeVoiceDesign(agent.voiceDesign);
+    const gender = avatarGender(chosenAvatar);
+    if (voiceDesign && gender) {
+      // An avatar drawn as a man/woman must never ship with the opposite
+      // gendered design. The prompt rule leads, but a mismatched answer is
+      // still corrected here instead of reaching the narrator.
+      const aligned = alignVoiceDesignGenderToAvatar(voiceDesign, gender);
+      if (aligned.gender !== voiceDesign.gender || aligned.identity !== voiceDesign.identity) {
+        log.warn(
+          `[AgentProfiles] Aligned voiceDesign.gender to the avatar (${gender}) for "${agent.name}"`,
+        );
+      }
+      voiceDesign = aligned;
+    }
 
     return {
       id: `gen-${nanoid(8)}`,
       name: agent.name,
       role: agent.role,
       persona: agent.persona,
-      avatar: agent.avatar || availableAvatars[index % availableAvatars.length],
+      avatar: chosenAvatar,
       color: agent.color || AGENT_COLOR_PALETTE[index % AGENT_COLOR_PALETTE.length],
       priority:
         agent.priority ?? (agent.role === 'teacher' ? 10 : agent.role === 'assistant' ? 7 : 5),
