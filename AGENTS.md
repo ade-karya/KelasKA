@@ -19,6 +19,7 @@ Guidance for coding agents working in this repository, including the automated C
 
 ## Build and Test Resources
 
+- `/KelasKA_Colab_Setup_v2.ipynb` snapshots the live `.env.local` + `openmaic.yml` (Gemini key, Supabase/DB, HF credentials), so it stays in `.gitignore` and is regenerated from the host files instead of edited by hand; never commit it.
 - Maximize the RAM a memory-heavy Node task may use instead of leaving Node's default heap. The Next.js production build type-checks a large module graph and can exceed the default ~2 GB limit, failing with `FATAL ERROR: Reached heap limit`.
 - Check `free -h` first, then set `NODE_OPTIONS` below the available RAM so the OS keeps headroom. On the 12 GB Colab host, use:
   ```bash
