@@ -57,8 +57,8 @@ providers:
   #   models: [gpt-5.6-codex]
 
   # The same trick with the Google Antigravity CLI: install it with
-  # `curl -fsSL https://antigravity.google/cli/install.sh | bash` (install.sh
-  # does this too) and sign in with `agy`. ANTIGRAVITY_MODELS feeds the
+  # `curl -fsSL https://antigravity.google/cli/install.sh | bash` (or
+  # `./install.sh --with-antigravity`) and sign in with `agy`. ANTIGRAVITY_MODELS feeds the
   # workbench picker as an operator allowlist; the picker shows the live
   # `agy models` output of the signed-in account.
   # antigravity:

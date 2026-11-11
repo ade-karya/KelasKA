@@ -33,6 +33,9 @@
 #      providernya jelas; secret tetap di .env.local dan dirujuk ${VAR}.
 #      File yang sudah ada tidak pernah ditimpa (lewati: --no-openmaic-yml);
 #      provider/slot GPU yang belum ada ditambahkan tanpa mengubah isi user.
+#      Default: provider Gemini native `google` (--google-key/GOOGLE_API_KEY),
+#      slot llm/agent = gemini-3.6-flash + fallback 3.5-flash-lite, classroom
+#      = 3.5-flash-lite. Transport CLI (opencode/codex/antigravity) OFF.
 #   5. Dependensi JS via `bun install`. Installer menambahkan `workspaces`
 #      (dari pnpm-workspace.yaml) dan `trustedDependencies` ke package.json
 #      agar monorepo + modul native bekerja di Bun, lalu menulis bun.lock.
@@ -99,10 +102,18 @@
 #   --no-browser-tts      TTS browser-native OFF (butuh provider TTS ber-key).
 #   --bun-version=X       Pin versi Bun, mis. --bun-version=1.4.4.
 #   --min-bun-version=X   Ubah versi minimum Bun (default: 1.3.14).
-#   --no-model-refresh    Jangan segarkan OPENCODE_MODELS/CODEX_MODELS dari
-#                         CLI lokal; daftar di .env.local dibiarkan apa adanya.
-#   --no-antigravity      Lewati Google Antigravity CLI (agy).
-#   --with-antigravity    Paksa instalasi Antigravity CLI (default ON).
+#   --with-google         Aktifkan provider Gemini native `google` (default ON).
+#   --no-google           Lewati provider Gemini sepenuhnya.
+#   --google-key=KEY      Tulis GOOGLE_API_KEY ke .env.local. Tanpa flag ini
+#                         installer memakai GOOGLE_API_KEY/GEMINI_API_KEY dari
+#                         environment atau nilai yang sudah ada di .env.local.
+#   --no-model-refresh    Jangan segarkan katalog model dari CLI lokal.
+#   --with-opencode       Aktifkan transport OpenCode CLI (default OFF).
+#   --no-opencode         Matikan transport OpenCode CLI (default).
+#   --with-codex          Aktifkan transport Codex SDK (default OFF).
+#   --no-codex            Matikan transport Codex SDK (default).
+#   --with-antigravity    Pasang + aktifkan Google Antigravity CLI (default OFF).
+#   --no-antigravity      Lewati Google Antigravity CLI (agy) (default).
 #   -h, --help            Tampilkan bantuan ini.
 #
 # Catatan:
@@ -118,9 +129,24 @@
 #     tidak ada dua sumber kebenaran. File openmaic.yml milik user tidak
 #     pernah ditimpa; blok models: milik installer disegarkan. Pakai
 #     --no-openmaic-yml untuk tetap legacy.
-#   - Setiap run menyegarkan katalog model dari CLI lokal: `opencode models`
-#     mengisi OPENCODE_MODELS/OPENCODE_GO_MODELS, `codex app-server` mengisi
-#     CODEX_MODELS, lalu blok models: di openmaic.yml (milik installer)
+#   - Default deployment memakai Gemini lewat preset native `google`
+#     (bukan endpoint OpenAI-compatible: Pi classroom menolaknya). Installer
+#     menulis GOOGLE_API_KEY + GOOGLE_MODELS dan slot llm/agent ke
+#     google:gemini-3.6-flash dengan fallback gemini-3.5-flash-lite; slot
+#     classroom memakai gemini-3.5-flash-lite (kuota harian besar).
+#     gemini-3.8-flash (kualitas #1) tetap ada di allowlist untuk dipilih
+#     manual saat kapasitasnya tersedia. Kuota free tier: 3.8/3.6 = 20 RPD,
+#     *-flash-lite = 500 RPD.
+#   - Transport CLI lokal (OpenCode, Codex, Antigravity) NONAKTIF secara
+#     default: tidak ada discovery `opencode models`/`codex app-server`/
+#     `agy models`, tidak ada blok provider-nya di openmaic.yml, dan agy tidak
+#     dipasang. Aktifkan satu per satu dengan --with-opencode, --with-codex,
+#     atau --with-antigravity. Konfigurasi lama tidak dihapus, hanya tidak
+#     disegarkan/diperbarui.
+#   - Setiap run (bila satu transport CLI diaktifkan) menyegarkan katalognya:
+#     `opencode models` mengisi OPENCODE_MODELS/OPENCODE_GO_MODELS,
+#     `codex app-server` mengisi CODEX_MODELS, `agy models` mengisi
+#     ANTIGRAVITY_MODELS, lalu blok models: di openmaic.yml (milik installer)
 #     diperbarui. Discovery gagal/offline -> daftar lama dipertahankan.
 #   - Sinkron katalog model menulis .env.local/openmaic.yml dan tidak dibaca
 #     oleh build, jadi pada --build/--with-pm2 discovery berjalan paralel dengan
@@ -128,20 +154,15 @@
 #   - Bila --colab/--with-pm2 dijalankan saat dev server hasil --dev masih
 #     hidup, installer menghentikannya (grup proses di data/dev-server.pid)
 #     sebelum PM2 memakai PORT yang sama.
-#   - Antigravity memakai Google Antigravity CLI (agy) yang dipasang dari
-#     antigravity.google; login Google lewat 'agy' (interaktif). Lewati dengan
-#     --no-antigravity.
 #   - pgAdmin4 tidak termasuk di installer Bun ini; gunakan install-node.sh
 #     bila membutuhkannya. OpenCode CLI juga tidak termasuk (install-node.sh).
-#   - Codex CLI (@openai/codex) kini termasuk sebagai dependency dan akan
-#     terpasang via `bun install`; autentikasinya (API key / device code)
-#     dilakukan dari UI Pro Workbench (ikon kunci di header chat pane), bukan
-#     dari terminal.
-#   - Google Antigravity CLI (agy) adalah transport antigravity-kli: turn
-#     berjalan lewat `agy` dengan mode tool-call yang diurai harness (sama
-#     seperti `opencode run`). Login Google lewat `agy` secara interaktif di
-#     terminal; kredensial disimpan oleh CLI di server. Lewati dengan
-#     --no-antigravity.
+#   - Codex CLI (@openai/codex) tetap ikut `bun install` bila transport codex
+#     diaktifkan; autentikasinya (API key / device code) dilakukan dari UI Pro
+#     Workbench (ikon kunci di header chat pane), bukan dari terminal.
+#   - Google Antigravity CLI (agy) adalah transport antigravity: turn berjalan
+#     lewat `agy` dengan mode tool-call yang diurai harness. Login Google lewat
+#     `agy` secara interaktif di terminal; kredensial disimpan oleh CLI di
+#     server. Hanya dipasang dengan --with-antigravity.
 #   - Layanan GPU dijalankan detached dengan PID di <gpu-dir>/pids dan log di
 #     <gpu-dir>/logs; skripnya bisa dipakai ulang tanpa installer:
 #       ./scripts/gpu-services.sh --status
@@ -193,8 +214,14 @@ WITH_POSTGRES=auto
 WITH_INSTALL=1
 WITH_OPENMAIC_YML=1
 WITH_MODEL_REFRESH=1
-WITH_ANTIGRAVITY=1
+# Transport CLI lokal nonaktif secara default (opt-in lewat --with-*).
+WITH_OPENCODE=0
+WITH_CODEX=0
+WITH_ANTIGRAVITY=0
 WITH_ANTIGRAVITY_EXPLICIT=0
+# Gemini native adalah provider default.
+WITH_GOOGLE=1
+GOOGLE_KEY_ARG=""
 WITH_BUILD=0
 WITH_PLAYWRIGHT=0
 WITH_PM2=0
@@ -259,6 +286,13 @@ for arg in "$@"; do
     --no-model-refresh)  WITH_MODEL_REFRESH=0 ;;
     --no-antigravity)    WITH_ANTIGRAVITY=0; WITH_ANTIGRAVITY_EXPLICIT=1 ;;
     --with-antigravity)  WITH_ANTIGRAVITY=1; WITH_ANTIGRAVITY_EXPLICIT=1 ;;
+    --with-opencode)     WITH_OPENCODE=1 ;;
+    --no-opencode)       WITH_OPENCODE=0 ;;
+    --with-codex)        WITH_CODEX=1 ;;
+    --no-codex)          WITH_CODEX=0 ;;
+    --with-google)       WITH_GOOGLE=1 ;;
+    --no-google)         WITH_GOOGLE=0 ;;
+    --google-key=*)      GOOGLE_KEY_ARG="${arg#*=}" ;;
     --build)             WITH_BUILD=1 ;;
     --with-pm2)          WITH_PM2=1 ;;
     --with-playwright)   WITH_PLAYWRIGHT=1 ;;
@@ -285,10 +319,6 @@ for arg in "$@"; do
       fail "pgAdmin4 tidak didukung installer Bun ini. Gunakan ./install-node.sh --with-pgadmin." ;;
     --no-pgadmin)
       info "pgAdmin4 tidak termasuk installer Bun ini — dilewati." ;;
-    --with-opencode)
-      fail "OpenCode CLI tidak diinstal oleh installer Bun ini. Gunakan ./install-node.sh bila membutuhkannya." ;;
-    --no-opencode)
-      info "OpenCode CLI tidak termasuk installer Bun ini — dilewati." ;;
     --no-upstream|--with-upstream|--upstream-url=*)
       info "Remote git upstream tidak diatur installer Bun ini — dilewati." ;;
     --with-ollama)
@@ -663,10 +693,23 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
     echo "  - tanpa PostgreSQL lokal (DATABASE_URL sudah ada / --no-postgres)"
   fi
   echo "  - siapkan .env.local + data/ + bun install (workspaces dimigrasikan)"
+  if [[ "$WITH_GOOGLE" -eq 1 ]]; then
+    echo "  - LLM Gemini (preset google): gemini-3.6-flash -> gemini-3.5-flash-lite"
+  else
+    echo "  - tanpa provider Gemini (--no-google)"
+  fi
+  _transport_cli=""
+  [[ "$WITH_OPENCODE" -eq 1 ]] && _transport_cli+=" opencode"
+  [[ "$WITH_CODEX" -eq 1 ]] && _transport_cli+=" codex"
+  [[ "$WITH_ANTIGRAVITY" -eq 1 ]] && _transport_cli+=" antigravity"
+  if [[ -n "$_transport_cli" ]]; then
+    echo "  - transport CLI lokal ON:${_transport_cli}"
+  else
+    echo "  - transport CLI lokal (opencode/codex/antigravity) OFF"
+  fi
+  unset _transport_cli
   if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
     echo "  - pasang Google Antigravity CLI (agy)"
-  else
-    echo "  - tanpa Google Antigravity CLI (--no-antigravity)"
   fi
   if [[ "$WITH_PLAYWRIGHT" -eq 1 ]]; then echo "  - instal browser Chromium Playwright"; fi
   if [[ "$WITH_BUILD" -eq 1 ]]; then echo "  - jalankan build produksi Bun"; fi
@@ -1259,6 +1302,16 @@ siapkan_openmaic_yml() {
     opencode|opencode-go) api_line="    api: opencode-cli" ;;
     codex)                api_line="    api: codex-sdk" ;;
     antigravity)          api_line="    api: antigravity-sdk" ;;
+    google)
+      # Preset native: tanpa baris `api` (endpoint OpenAI-compatible ditolak).
+      if [[ -n "$(env_get .env.local GOOGLE_API_KEY)" ]]; then
+        api_line=""
+        key_var="GOOGLE_API_KEY"
+      else
+        info "openmaic.yml tidak dibuat: provider 'google' butuh GOOGLE_API_KEY."
+        return 0
+      fi
+      ;;
     *)
       key_var="${prefix}_API_KEY"
       if [[ -n "$(env_get .env.local "$key_var")" || -n "${!key_var:-}" ]]; then
@@ -1402,6 +1455,206 @@ konfigurasi_gpu_openmaic_yml() {
   if [[ -n "$ditambah" ]]; then
     info "openmaic.yml: provider/slot GPU ditambahkan untuk${ditambah}."
     info "  Slot yang sudah diisi user tidak ditimpa; nilai kosong diisi otomatis."
+  fi
+}
+
+# --- Provider Gemini native (google) ---------------------------------------
+# Gemini dipakai lewat preset native `google`; endpoint OpenAI-compatible
+# ditolak Pi classroom (gemini_native_required). Urutan allowlist = kualitas
+# tertinggi dulu, lalu model berkuota besar sebagai cadangan:
+#   gemini-3.8-flash       5 RPM /  20 RPD  -> kualitas #1 (manual; sering 503)
+#   gemini-3.6-flash       5 RPM /  20 RPD  -> model utama (andal)
+#   gemini-3.5-flash-lite 15 RPM / 500 RPD  -> workhorse kuota
+#   gemini-3.1-flash-lite 15 RPM / 500 RPD  -> cadangan terakhir
+GOOGLE_MODELS_DEFAULT="gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash-lite,gemini-3.1-flash-lite"
+GOOGLE_MODEL_UTAMA="gemini-3.6-flash"
+GOOGLE_MODEL_FALLBACK="gemini-3.5-flash-lite"
+GOOGLE_MODEL_CLASSROOM="gemini-3.5-flash-lite"
+
+# Blok provider google + apiKey, diletakkan sebelum `slots:`.
+tambah_provider_google_yml() {
+  local file="$1" csv="$2" tmp block id
+  local -a ids
+  grep -qE "^  google:" "$file" && return 0
+  tmp="$(mktemp)"
+  block="$(mktemp)"
+  {
+    printf '  # Gemini native (Google AI Studio). Urutan allowlist = kualitas:\n'
+    printf '  # 3.8 > 3.6 > 3.5-flash-lite > 3.1-flash-lite. Free tier: 3.8/3.6 =\n'
+    printf '  # 20 request/hari, *-flash-lite = 500/hari.\n'
+    printf '  google:\n    preset: google\n    apiKey: ${GOOGLE_API_KEY}\n    models:\n'
+    printf '      # >>> models:google (dikelola install.sh)\n'
+    IFS=',' read -r -a ids <<< "$csv"
+    for id in "${ids[@]}"; do
+      id="${id//[[:space:]]/}"
+      [[ -n "$id" ]] && printf '      - %s\n' "$id"
+    done
+    printf '      # <<< models:google\n\n'
+  } >"$block"
+  awk -v block="$block" '
+    BEGIN { while ((getline l < block) > 0) b = b l "\n" }
+    !done && /^slots:[[:space:]]*$/ { printf "%s", b; done=1 }
+    { print }
+    END { if (!done) printf "\n%s", b }
+  ' "$file" >"$tmp"
+  mv "$tmp" "$file"
+  rm -f "$block"
+}
+
+# Baca model yang sedang dipakai sebuah slot (string atau blok model:).
+baca_slot_model_yml() {
+  local file="$1" slot="$2"
+  awk -v slot="$slot" '
+    /^slots:[[:space:]]*$/ { in_slots=1; next }
+    in_slots && /^[^[:space:]#]/ { exit }
+    in_slots && $0 ~ ("^  " slot ":[[:space:]]*$") { inblk=1; next }
+    inblk && /^  [A-Za-z0-9_.-]+:/ { exit }
+    inblk && /^    model:[[:space:]]*/ {
+      line=$0; sub(/^    model:[[:space:]]*/, "", line); sub(/[[:space:]]*#.*/, "", line)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line); print line; exit
+    }
+    in_slots && $0 ~ ("^  " slot ":[[:space:]]*[^[:space:]]") {
+      line=$0; sub(/^  [A-Za-z0-9_.-]+:[[:space:]]*/, "", line); sub(/[[:space:]]*#.*/, "", line)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line); print line; exit
+    }
+  ' "$file"
+}
+
+# Tulis slot sebagai string (tanpa fallback) atau blok model+fallback.
+tulis_slot_model_yml() {
+  local file="$1" slot="$2" model="$3" fallback="${4:-}" tmp
+  [[ -f "$file" ]] || return 0
+  if ! grep -qE "^slots:[[:space:]]*$" "$file"; then printf '\nslots:\n' >>"$file"; fi
+  tmp="$(mktemp)"
+  if grep -qE "^  ${slot}:" "$file"; then
+    awk -v slot="$slot" -v model="$model" -v fb="$fallback" '
+      BEGIN { inblock=0; done=0 }
+      inblock {
+        if ($0 ~ /^  [A-Za-z0-9_.-]+:[[:space:]]*/ || $0 ~ /^[^[:space:]#]/) { inblock=0 }
+        else { next }
+      }
+      !done && $0 ~ ("^  " slot ":[[:space:]]*") {
+        if (fb != "") {
+          print "  " slot ":"
+          print "    model: " model
+          print "    fallback: " fb
+          inblock=1
+        } else {
+          print "  " slot ": " model
+        }
+        done=1
+        next
+      }
+      { print }
+    ' "$file" >"$tmp"
+  else
+    awk -v slot="$slot" -v model="$model" -v fb="$fallback" '
+      function cetak() {
+        if (done) return
+        if (fb != "") {
+          print "  " slot ":"
+          print "    model: " model
+          print "    fallback: " fb
+        } else {
+          print "  " slot ": " model
+        }
+        done=1
+      }
+      /^slots:[[:space:]]*$/ { in_slots=1; print; next }
+      in_slots && /^[^[:space:]#]/ { cetak(); in_slots=0 }
+      { print }
+      END { cetak() }
+    ' "$file" >"$tmp"
+  fi
+  mv "$tmp" "$file"
+}
+
+# Isi/timpa slot transport CLI yang nonaktif dengan model Gemini.
+siapkan_provider_google() {
+  if [[ "$WITH_GOOGLE" -ne 1 ]]; then
+    info "Provider Gemini dilewati (--no-google); konfigurasi lain tidak diubah."
+    return 0
+  fi
+  local key models dm saat slot target migrasi=0
+  key="$GOOGLE_KEY_ARG"
+  [[ -n "$key" ]] || key="${GOOGLE_API_KEY:-${GEMINI_API_KEY:-}}"
+  [[ -n "$key" ]] || key="$(env_get .env.local GOOGLE_API_KEY)"
+  if [[ -z "$key" ]]; then
+    warn "GOOGLE_API_KEY kosong — provider Gemini tidak disiapkan. Isi: --google-key=... atau GOOGLE_API_KEY di environment."
+    return 0
+  fi
+  if [[ -n "$GOOGLE_KEY_ARG" ]]; then
+    # Flag eksplisit menang, termasuk menimpa nilai lama.
+    set_env_value .env.local GOOGLE_API_KEY "$GOOGLE_KEY_ARG"
+  else
+    # Nilai aktif yang sudah ada tidak ditimpa; placeholder komentar diisi.
+    pastikan_var_env .env.local GOOGLE_API_KEY "$key"
+  fi
+  models="$(env_get .env.local GOOGLE_MODELS)"
+  if [[ -z "$models" ]]; then
+    models="$GOOGLE_MODELS_DEFAULT"
+    set_env_value .env.local GOOGLE_MODELS "$models"
+  fi
+  info "Gemini aktif: GOOGLE_API_KEY terisi, GOOGLE_MODELS=${models}"
+
+  # DEFAULT_MODEL legacy yang menunjuk transport CLI nonaktif diabaikan begitu
+  # openmaic.yml ada; komentari supaya tidak menyesatkan.
+  dm="$(env_get .env.local DEFAULT_MODEL)"
+  case "$dm" in
+    opencode:*|opencode-go:*|codex:*|antigravity:*)
+      komentari_env_model DEFAULT_MODEL "transport CLI nonaktif; model di openmaic.yml -> slots.llm"
+      ;;
+  esac
+
+  if [[ "$WITH_OPENMAIC_YML" -ne 1 ]]; then
+    info "openmaic.yml dilewati (--no-openmaic-yml); daftarkan provider google manual di Settings."
+    return 0
+  fi
+  if [[ ! -f openmaic.yml ]]; then
+    {
+      echo "# ============================================================================="
+      echo "# openmaic.yml — konfigurasi model/provider deployment (dibuat oleh install.sh)."
+      echo "# Secret tetap di .env.local dan dirujuk \${VAR}; file ini hanya provider/slot."
+      echo "# Dibaca sekali saat start — setelah mengubah:"
+      echo "#   pm2 startOrReload ecosystem.bun.config.cjs --update-env"
+      echo "# ============================================================================="
+      echo "providers:"
+      echo ""
+      echo "slots:"
+    } >openmaic.yml
+    tambah_provider_google_yml openmaic.yml "$models"
+    info "openmaic.yml dibuat untuk provider google."
+  elif ! grep -q "dibuat oleh install.sh" openmaic.yml; then
+    info "openmaic.yml ada tetapi bukan milik installer — provider/slot tidak disentuh."
+    return 0
+  elif grep -qE "^  google:" openmaic.yml; then
+    if grep -qE "^[[:space:]]*# >>> models:google([[:space:]]|$)" openmaic.yml; then
+      ganti_blok_model openmaic.yml google "$models"
+    fi
+  else
+    tambah_provider_google_yml openmaic.yml "$models"
+    info "openmaic.yml: provider google ditambahkan."
+  fi
+
+  # Pindahkan slot yang kosong atau masih menunjuk transport CLI nonaktif.
+  for slot in llm agent classroom; do
+    if [[ "$slot" == "classroom" ]]; then target="$GOOGLE_MODEL_CLASSROOM"; else target="$GOOGLE_MODEL_UTAMA"; fi
+    saat="$(baca_slot_model_yml openmaic.yml "$slot")"
+    case "$saat" in
+      google:*) continue ;;
+      ''|opencode:*|opencode-go:*|codex:*|antigravity:*)
+        if [[ "$slot" == "llm" || "$slot" == "agent" ]]; then
+          tulis_slot_model_yml openmaic.yml "$slot" "google:${target}" "google:${GOOGLE_MODEL_FALLBACK}"
+        else
+          tulis_slot_model_yml openmaic.yml "$slot" "google:${target}"
+        fi
+        info "slots.${slot}: ${saat:-<kosong>} -> google:${target}"
+        migrasi=1
+        ;;
+    esac
+  done
+  if [[ "$migrasi" -eq 1 ]]; then
+    info "Gemini menjadi model default (utama ${GOOGLE_MODEL_UTAMA}, fallback ${GOOGLE_MODEL_FALLBACK})."
   fi
 }
 
@@ -1758,8 +2011,13 @@ set_slot_agent() {
 
 # Buat openmaic.yml installer-owned dari hasil discovery (belum ada file).
 buat_openmaic_yml() {
-  local op_list="$1" go_list="$2" cx_list="$3" ag_list="${4:-}" default_model
-  default_model="opencode:$(pilih_default_opencode "$op_list")"
+  local op_list="$1" go_list="$2" cx_list="$3" ag_list="${4:-}" default_model google_list=""
+  if [[ "$WITH_GOOGLE" -eq 1 ]]; then
+    google_list="$(env_get .env.local GOOGLE_MODELS)"
+    default_model="google:${GOOGLE_MODEL_UTAMA}"
+  else
+    default_model="opencode:$(pilih_default_opencode "$op_list")"
+  fi
   {
     cat <<'EOF'
 # =============================================================================
@@ -1778,16 +2036,33 @@ buat_openmaic_yml() {
 # =============================================================================
 providers:
 EOF
-    blok_provider_yml opencode opencode "$op_list"
-    if [[ -n "$go_list" ]]; then
-      printf '  # OpenCode Go (butuh `opencode auth login`).\n'
-      blok_provider_yml opencode-go opencode-go "$go_list"
+    if [[ -n "$google_list" ]]; then
+      printf '  # Gemini native (Google AI Studio). Urutan allowlist = kualitas:\n'
+      printf '  # 3.8 > 3.6 > 3.5-flash-lite > 3.1-flash-lite. Free tier: 3.8/3.6 =\n'
+      printf '  # 20 request/hari, *-flash-lite = 500/hari.\n'
+      printf '  google:\n    preset: google\n    apiKey: ${GOOGLE_API_KEY}\n    models:\n'
+      printf '      # >>> models:google (dikelola install.sh)\n'
+      local _gid
+      local -a _gids
+      IFS=',' read -r -a _gids <<< "$google_list"
+      for _gid in "${_gids[@]}"; do
+        _gid="${_gid//[[:space:]]/}"
+        [[ -n "$_gid" ]] && printf '      - %s\n' "$_gid"
+      done
+      printf '      # <<< models:google\n\n'
     fi
-    if [[ -n "$cx_list" ]]; then
+    if [[ "$WITH_OPENCODE" -eq 1 && -n "$op_list" ]]; then
+      blok_provider_yml opencode opencode "$op_list"
+      if [[ -n "$go_list" ]]; then
+        printf '  # OpenCode Go (butuh `opencode auth login`).\n'
+        blok_provider_yml opencode-go opencode-go "$go_list"
+      fi
+    fi
+    if [[ "$WITH_CODEX" -eq 1 && -n "$cx_list" ]]; then
       printf '  # Codex SDK (auth lewat `codex login` / CODEX_API_KEY).\n'
       blok_provider_yml codex codex "$cx_list"
     fi
-    if [[ -n "$ag_list" ]]; then
+    if [[ "$WITH_ANTIGRAVITY" -eq 1 && -n "$ag_list" ]]; then
       printf '  # Google Antigravity CLI (agy; login Google lewat `agy`).\n'
       blok_provider_yml antigravity antigravity "$ag_list"
     fi
@@ -1795,13 +2070,27 @@ EOF
 
 slots:
   # Default chat: chat classic + seluruh slot course/classroom yang mengikutinya.
-  llm: ${default_model}
+EOF
+    if [[ "$WITH_GOOGLE" -eq 1 ]]; then
+      printf '  llm:\n    model: %s\n    fallback: google:%s\n' "$default_model" "$GOOGLE_MODEL_FALLBACK"
+    else
+      printf '  llm: %s\n' "$default_model"
+    fi
+    cat <<EOF
 
   # Pro Workbench / agent runtime (butuh tool calling).
   agent:
     model: ${default_model}
-    api: opencode-cli
 EOF
+    if [[ "$WITH_GOOGLE" -eq 1 ]]; then
+      printf '    fallback: google:%s\n' "$GOOGLE_MODEL_FALLBACK"
+    else
+      printf '    api: opencode-cli\n'
+    fi
+    if [[ "$WITH_GOOGLE" -eq 1 ]]; then
+      printf '\n  # Classroom: banyak turn; pakai model kuota besar.\n'
+      printf '  classroom: google:%s\n' "$GOOGLE_MODEL_CLASSROOM"
+    fi
   } > openmaic.yml
   info "openmaic.yml dibuat dari katalog: slot llm+agent = ${default_model}."
   komentari_env_model DEFAULT_MODEL "dipindah ke openmaic.yml -> slots.llm"
@@ -1818,6 +2107,10 @@ sinkron_model() {
     info "Sinkron katalog model dilewati (--no-model-refresh)."
     return 0
   fi
+  if [[ "$WITH_OPENCODE" -ne 1 && "$WITH_CODEX" -ne 1 && "$WITH_ANTIGRAVITY" -ne 1 ]]; then
+    info "Katalog model CLI tidak disegarkan: transport opencode/codex/antigravity nonaktif."
+    return 0
+  fi
 
   LANGKAH="sinkron katalog model"
   # Antigravity: model ditemukan dari `agy models` (login-aware), sama seperti
@@ -1825,19 +2118,27 @@ sinkron_model() {
   ag_list="$(env_get .env.local ANTIGRAVITY_MODELS)"
   dir="$(mktemp -d)"
   chmod 0755 "$dir"
-  tulis_probe_codex "${dir}/codex-probe.mjs"
-  chmod 0644 "${dir}/codex-probe.mjs"
+  if [[ "$WITH_CODEX" -eq 1 ]]; then
+    tulis_probe_codex "${dir}/codex-probe.mjs"
+    chmod 0644 "${dir}/codex-probe.mjs"
+  fi
 
   # Paralel: `opencode models` bisa puluhan detik; Codex hanya ~1 detik.
-  ( kumpulkan_model_opencode "$dir" ) &
-  pid_op=$!
-  ( kumpulkan_model_codex "$dir" ) &
-  pid_cx=$!
-  ( kumpulkan_model_antigravity "$dir" ) &
-  pid_ag=$!
-  wait "$pid_op" 2>/dev/null || true
-  wait "$pid_cx" 2>/dev/null || true
-  wait "$pid_ag" 2>/dev/null || true
+  if [[ "$WITH_OPENCODE" -eq 1 ]]; then
+    ( kumpulkan_model_opencode "$dir" ) &
+    pid_op=$!
+  fi
+  if [[ "$WITH_CODEX" -eq 1 ]]; then
+    ( kumpulkan_model_codex "$dir" ) &
+    pid_cx=$!
+  fi
+  if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
+    ( kumpulkan_model_antigravity "$dir" ) &
+    pid_ag=$!
+  fi
+  if [[ -n "${pid_op:-}" ]]; then wait "$pid_op" 2>/dev/null || true; fi
+  if [[ -n "${pid_cx:-}" ]]; then wait "$pid_cx" 2>/dev/null || true; fi
+  if [[ -n "${pid_ag:-}" ]]; then wait "$pid_ag" 2>/dev/null || true; fi
 
   if [[ -f "${dir}/opencode.ok" ]]; then op_ok=1; fi
   if [[ -f "${dir}/codex.ok" ]]; then cx_ok=1; fi
@@ -1847,24 +2148,30 @@ sinkron_model() {
   if [[ "$cx_ok" -eq 1 ]]; then cx_list="$(cat "${dir}/codex.list")"; fi
   if [[ "$ag_ok" -eq 1 ]]; then ag_list="$(cat "${dir}/antigravity.list")"; fi
 
-  if [[ "$op_ok" -eq 1 ]]; then
-    sinkron_env_model OPENCODE_MODELS "$op_list"
-    sinkron_env_model OPENCODE_GO_MODELS "$go_list"
-    info "Katalog opencode: ${op_list//,/, }"
-  else
-    info "Katalog opencode tidak tersedia — OPENCODE_MODELS dipertahankan."
+  if [[ "$WITH_OPENCODE" -eq 1 ]]; then
+    if [[ "$op_ok" -eq 1 ]]; then
+      sinkron_env_model OPENCODE_MODELS "$op_list"
+      sinkron_env_model OPENCODE_GO_MODELS "$go_list"
+      info "Katalog opencode: ${op_list//,/, }"
+    else
+      info "Katalog opencode tidak tersedia — OPENCODE_MODELS dipertahankan."
+    fi
   fi
-  if [[ "$cx_ok" -eq 1 ]]; then
-    sinkron_env_model CODEX_MODELS "$cx_list"
-    info "Katalog codex: ${cx_list//,/, }"
-  else
-    info "Katalog codex tidak tersedia — CODEX_MODELS dipertahankan."
+  if [[ "$WITH_CODEX" -eq 1 ]]; then
+    if [[ "$cx_ok" -eq 1 ]]; then
+      sinkron_env_model CODEX_MODELS "$cx_list"
+      info "Katalog codex: ${cx_list//,/, }"
+    else
+      info "Katalog codex tidak tersedia — CODEX_MODELS dipertahankan."
+    fi
   fi
-  if [[ "$ag_ok" -eq 1 ]]; then
-    sinkron_env_model ANTIGRAVITY_MODELS "$ag_list"
-    info "Katalog antigravity: ${ag_list//,/, }"
-  else
-    info "Katalog antigravity tidak tersedia — ANTIGRAVITY_MODELS dipertahankan."
+  if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
+    if [[ "$ag_ok" -eq 1 ]]; then
+      sinkron_env_model ANTIGRAVITY_MODELS "$ag_list"
+      info "Katalog antigravity: ${ag_list//,/, }"
+    else
+      info "Katalog antigravity tidak tersedia — ANTIGRAVITY_MODELS dipertahankan."
+    fi
   fi
 
   if [[ "$WITH_OPENMAIC_YML" -ne 1 ]]; then
@@ -1876,10 +2183,10 @@ sinkron_model() {
     dm="$(env_get .env.local DEFAULT_MODEL)"
     if [[ -n "$dm" && "$dm" != opencode:* && "$dm" != opencode-go:* && "$dm" != codex:* && "$dm" != antigravity:* ]]; then
       info "openmaic.yml belum ada; DEFAULT_MODEL=${dm} bukan transport CLI — tidak dibuat otomatis."
-    elif [[ "$op_ok" -eq 1 && -n "$op_list" ]]; then
+    elif [[ "$op_ok" -eq 1 && -n "$op_list" ]] || [[ "$WITH_GOOGLE" -eq 1 && -n "$(env_get .env.local GOOGLE_MODELS)" ]]; then
       buat_openmaic_yml "$op_list" "$go_list" "$cx_list" "$ag_list"
     else
-      info "openmaic.yml belum ada dan katalog opencode tidak tersedia — tidak dibuat."
+      info "openmaic.yml belum ada dan tidak ada katalog provider — tidak dibuat."
     fi
     rm -rf "$dir"
     return 0
@@ -1891,20 +2198,20 @@ sinkron_model() {
     return 0
   fi
 
-  # Segarkan blok model tiap provider yang berhasil didiscovery.
-  if [[ "$op_ok" -eq 1 ]]; then
+  # Segarkan blok model tiap provider yang diaktifkan dan berhasil didiscovery.
+  if [[ "$WITH_OPENCODE" -eq 1 && "$op_ok" -eq 1 ]]; then
     pastikan_marker_yml openmaic.yml opencode || tambah_provider_yml openmaic.yml opencode opencode "$op_list"
     ganti_blok_model openmaic.yml opencode "$op_list"
+    if [[ -n "$go_list" ]]; then
+      pastikan_marker_yml openmaic.yml opencode-go || tambah_provider_yml openmaic.yml opencode-go opencode-go "$go_list"
+      ganti_blok_model openmaic.yml opencode-go "$go_list"
+    fi
   fi
-  if [[ "$op_ok" -eq 1 && -n "$go_list" ]]; then
-    pastikan_marker_yml openmaic.yml opencode-go || tambah_provider_yml openmaic.yml opencode-go opencode-go "$go_list"
-    ganti_blok_model openmaic.yml opencode-go "$go_list"
-  fi
-  if [[ "$cx_ok" -eq 1 ]]; then
+  if [[ "$WITH_CODEX" -eq 1 && "$cx_ok" -eq 1 ]]; then
     pastikan_marker_yml openmaic.yml codex || tambah_provider_yml openmaic.yml codex codex "$cx_list"
     ganti_blok_model openmaic.yml codex "$cx_list"
   fi
-  if [[ -n "$ag_list" ]]; then
+  if [[ "$WITH_ANTIGRAVITY" -eq 1 && "$ag_ok" -eq 1 ]]; then
     pastikan_marker_yml openmaic.yml antigravity || tambah_provider_yml openmaic.yml antigravity antigravity "$ag_list"
     ganti_blok_model openmaic.yml antigravity "$ag_list"
   fi
@@ -1928,6 +2235,10 @@ sinkron_model() {
   info "Katalog model disinkronkan ke .env.local dan openmaic.yml."
   rm -rf "$dir"
 }
+
+# Gemini disiapkan setelah helper YAML di atas terdefinisi (ganti_blok_model,
+# baca_slot_model_yml) dan sebelum server/PM2 membaca .env.local + openmaic.yml.
+siapkan_provider_google
 
 # ============================================================ 5. Direktori data
 LANGKAH="direktori data/"
@@ -2076,8 +2387,10 @@ if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
     pastikan_var_env .env.local ANTIGRAVITY_MODELS "$ANTIGRAVITY_MODELS_DEFAULT"
   fi
 else
-  set_env_value .env.local ANTIGRAVITY_MODELS ""
-  info "Google Antigravity CLI dilewati (--no-antigravity)."
+  # Transport antigravity nonaktif: agy tidak dipasang dan katalognya tidak
+  # disegarkan. Nilai ANTIGRAVITY_MODELS yang sudah ada dibiarkan (tidak
+  # mengubah konfigurasi user); aktifkan dengan --with-antigravity.
+  info "Google Antigravity CLI dilewati (transport antigravity OFF)."
 fi
 colab_mark "antigravity selesai"
 
@@ -2088,6 +2401,11 @@ colab_mark "antigravity selesai"
 # produksi tidak membaca kedua file itu: saat build berjalan, discovery
 # dijalankan paralel dan log-nya diputar setelah build selesai.
 sinkron_model_di_latar() {
+  if [[ "$WITH_OPENCODE" -ne 1 && "$WITH_CODEX" -ne 1 && "$WITH_ANTIGRAVITY" -ne 1 ]]; then
+    info "Katalog model CLI tidak disegarkan: transport opencode/codex/antigravity nonaktif."
+    SYNC_MODEL_DONE=1
+    return 0
+  fi
   MODEL_SYNC_LOG="$(mktemp)"
   MODEL_SYNC_RC_FILE="${MODEL_SYNC_LOG}.rc"
   rm -f "$MODEL_SYNC_RC_FILE"
@@ -2489,10 +2807,12 @@ if command -v ffmpeg >/dev/null 2>&1; then
 else
   info "  ffmpeg: tidak ada (--no-ffmpeg)"
 fi
-if [[ -d node_modules/@openai/codex ]]; then
-  info "  Codex CLI: OK (auth via UI Pro Workbench: ikon kunci)"
-else
-  warn "Codex CLI tidak terdeteksi — fitur transport codex-sdk tidak akan jalan."
+if [[ "$WITH_CODEX" -eq 1 ]]; then
+  if [[ -d node_modules/@openai/codex ]]; then
+    info "  Codex CLI: OK (auth via UI Pro Workbench: ikon kunci)"
+  else
+    warn "Codex CLI tidak terdeteksi — fitur transport codex-sdk tidak akan jalan."
+  fi
 fi
 if [[ "$WITH_ANTIGRAVITY" -eq 1 ]]; then
   if command -v agy >/dev/null 2>&1; then
