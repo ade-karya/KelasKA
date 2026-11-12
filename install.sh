@@ -32,6 +32,13 @@
 #      Gemini dan VRAM GPU dipakai model media; hanya --with-gpu eksplisit yang
 #      memasukkannya. Model disimpan di --gpu-dir (default /opt/gpu-models),
 #      bukan di repo. Endpoint mati tidak pernah masuk .env.local/openmaic.yml.
+#   4h. Kredensial GitHub: `scripts/github-credentials.sh` mengisi
+#      GITHUB_TOKEN/GH_TOKEN di .env.local dan memasang helper kredensial git,
+#      jadi `git push/pull` tidak meminta password. Sumber token: flag
+#      --github-token=, environment, file seed ~/.config/kelaska/github.env,
+#      atau `gh auth token`. Host baru cukup membawa file seed (mode 600) atau
+#      memakai --github-token=; tidak ada token yang ditulis ke dalam repo.
+#      Langkah ini non-fatal: tanpa token installer tetap berjalan.
 #   4b. `openmaic.yml` (model/provider/slot) dibuat dari DEFAULT_MODEL bila
 #      providernya jelas; secret tetap di .env.local dan dirujuk ${VAR}.
 #      File yang sudah ada tidak pernah ditimpa (lewati: --no-openmaic-yml);
@@ -112,6 +119,12 @@
 #   --google-key=KEY      Tulis GOOGLE_API_KEY ke .env.local. Tanpa flag ini
 #                         installer memakai GOOGLE_API_KEY/GEMINI_API_KEY dari
 #                         environment atau nilai yang sudah ada di .env.local.
+#   --github-token=KEY    Tulis GITHUB_TOKEN + GH_TOKEN ke .env.local, pasang
+#                         helper kredensial git, dan simpan token ke file seed
+#                         ~/.config/kelaska/github.env (mode 600) agar bisa
+#                         dibawa ke host lain. Tanpa flag ini installer memakai
+#                         GITHUB_TOKEN/GH_TOKEN dari environment, file seed,
+#                         atau `gh auth token`. Tidak ada token di repo.
 #   --no-model-refresh    Jangan segarkan katalog model dari CLI lokal.
 #   --with-opencode       Aktifkan transport OpenCode CLI (default OFF).
 #   --no-opencode         Matikan transport OpenCode CLI (default).
@@ -241,6 +254,8 @@ WITH_ANTIGRAVITY_EXPLICIT=0
 # Gemini native adalah provider default.
 WITH_GOOGLE=1
 GOOGLE_KEY_ARG=""
+# Kredensial GitHub: flag eksplisit menang; tanpa flag, skrip membaca env/seed/gh.
+GITHUB_TOKEN_ARG=""
 WITH_BUILD=0
 WITH_PLAYWRIGHT=0
 WITH_PM2=0
@@ -325,6 +340,7 @@ for arg in "$@"; do
     --with-google)       WITH_GOOGLE=1 ;;
     --no-google)         WITH_GOOGLE=0 ;;
     --google-key=*)      GOOGLE_KEY_ARG="${arg#*=}" ;;
+    --github-token=*)    GITHUB_TOKEN_ARG="${arg#*=}" ;;
     --build)             WITH_BUILD=1 ;;
     --with-pm2)          WITH_PM2=1 ;;
     --with-playwright)   WITH_PLAYWRIGHT=1 ;;
@@ -1136,6 +1152,29 @@ if [[ -n "$DB_URL_EFEKTIF" ]]; then
 else
   pastikan_var_env .env.local OPENMAIC_AGENT_RUNTIME_ENABLED "false"
   warn "DATABASE_URL kosong: persistence/agent runtime nonaktif. Pasang --with-postgres atau isi DATABASE_URL."
+fi
+
+# ====================== 4h. Kredensial GitHub (git push/pull + GITHUB_TOKEN)
+# Dijalankan setelah .env.local ada dan sebelum build/PM2, jadi token ikut
+# dimuat ecosystem.bun.config.cjs. Non-fatal: host tanpa token tetap bisa
+# install — token bisa ditambahkan belakangan tanpa mengulang installer.
+# Token tidak pernah dicetak; ringkasan hanya memakai sidik jari sha256.
+LANGKAH="kredensial GitHub"
+if [[ -f scripts/github-credentials.sh ]]; then
+  _gh_args=()
+  if [[ -n "$GITHUB_TOKEN_ARG" ]]; then
+    # Flag eksplisit juga menyimpan seed agar host berikutnya cukup menyalin
+    # satu file (atau memakai flag yang sama).
+    _gh_args+=(--token="$GITHUB_TOKEN_ARG" --write-seed)
+  fi
+  if bash scripts/github-credentials.sh "${_gh_args[@]}"; then
+    info "Kredensial GitHub siap (token tidak pernah ditampilkan)."
+  else
+    warn "Kredensial GitHub tidak tersimpan; ulangi kapan saja: scripts/github-credentials.sh --token=..."
+  fi
+  unset _gh_args
+else
+  warn "scripts/github-credentials.sh tidak ada — kredensial GitHub dilewati."
 fi
 
 # ========================= 4g. Layanan model lokal GPU (ComfyUI/FunASR/…)
@@ -3058,6 +3097,7 @@ echo "  cd $ROOT_DIR"
 echo "  bun --bun run dev     # pengembangan  -> http://localhost:3000"
 echo "  bun --bun run build   # build produksi"
 echo "  bun --bun run start   # jalankan hasil build -> http://localhost:3000"
+echo "  scripts/github-credentials.sh --check   # status token GitHub + helper git"
 if [[ "$WITH_PM2" -eq 1 ]]; then
   echo ""
   echo "PM2 (produksi, runtime Bun):"
