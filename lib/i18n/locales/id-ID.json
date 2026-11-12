@@ -1,5 +1,6 @@
 {
   "common": {
+    "back": "Kembali",
     "you": "Anda",
     "confirm": "Konfirmasi",
     "cancel": "Batal",
@@ -9,16 +10,9 @@
     "retry": "Coba lagi",
     "close": "Tutup",
     "decrease": "Kurangi",
-    "increase": "Tambah",
-    "back": "Kembali"
+    "increase": "Tambah"
   },
   "home": {
-    "slogan": "Pembelajaran Generatif di Kelas Interaktif Multi-Agen",
-    "greetingWithName": "Hai, {{name}}",
-    "vocationalTestBadge": "Fitur Uji",
-    "vocationalTestLabel": "Tugas Vokasi",
-    "vocationalTestTooltip": "Kirim uji latihan praktik vokasi dari kolom input saat ini",
-    "footer": "Kelas Kecerdasan Artifisial",
     "resumeGeneration": "Lanjutkan pembuatan",
     "emptyLibraryTitle": "Kelas Anda dimulai di sini",
     "emptyLibraryBody": "Buat kursus di halaman beranda. Anda dapat kembali ke sini untuk melanjutkan belajar.",
@@ -33,7 +27,13 @@
     "allSettings": "Semua pengaturan",
     "examplesLabel": "Coba contoh",
     "examplePython": "Belajar Python dari nol",
-    "exampleFourier": "Jelaskan transformasi Fourier dengan contoh yang intuitif"
+    "exampleFourier": "Jelaskan transformasi Fourier dengan contoh yang intuitif",
+    "slogan": "Pembelajaran Generatif di Kelas Interaktif Multi-Agen",
+    "greetingWithName": "Hai, {{name}}",
+    "vocationalTestBadge": "Fitur Uji",
+    "vocationalTestLabel": "Tugas Vokasi",
+    "vocationalTestTooltip": "Kirim uji latihan praktik vokasi dari kolom input saat ini",
+    "footer": "Kelas Kecerdasan Artifisial"
   },
   "toolbar": {
     "pdfParser": "Parser",
@@ -94,6 +94,7 @@
     "exportFailed": "Ekspor gagal",
     "classroomZip": "Ekspor ZIP kelas",
     "classroomZipDesc": "Struktur kursus + file media",
+    "viewerCopyHint": "Ingin salinan yang bisa diedit? Unduh dengan “{{zip}}”, lalu gunakan “{{importLabel}}” di {{courses}}.",
     "html": "Ekspor sebagai HTML",
     "htmlDesc": "Satu file offline, tanpa narasi",
     "htmlWithNarration": "Dengan narasi dan video",
@@ -118,6 +119,7 @@
       "emptyClassroom": "Kelas ini tidak memiliki adegan.",
       "unsupportedScene": "Adegan ini tidak tersedia dalam ekspor offline.",
       "interactiveTitle": "Adegan interaktif",
+      "interactiveMoreBelow": "Selengkapnya di bawah",
       "videoUnavailable": "Video tidak disertakan dalam ekspor offline",
       "quizSubmit": "Kirim",
       "quizRetry": "Coba lagi",
@@ -253,7 +255,9 @@
       "emptyAgentResponses": "Agent terus-menerus tidak merespons, diskusi telah dihentikan. Silakan coba lagi atau periksa konfigurasi model.",
       "streamInterrupted": "Aliran data terputus tiba-tiba, diskusi tidak selesai. Silakan coba lagi.",
       "rateLimited": "Model sedang menerima terlalu banyak permintaan. Tunggu sebentar, lalu coba lagi.",
-      "providerUnavailable": "Layanan model sedang tidak tersedia untuk sementara. Silakan coba lagi nanti."
+      "providerUnavailable": "Layanan model sedang tidak tersedia untuk sementara. Silakan coba lagi nanti.",
+      "teacherNoResponse": "Guru tidak merespons. Silakan coba lagi.",
+      "teacherIncomplete": "Guru tidak dapat menyelesaikan jawabannya. Silakan coba lagi."
     },
     "elementReference": {
       "whiteboardChanged": "Elemen papan tulis yang dirujuk telah berubah atau tidak tersedia. Pilih ulang atau hapus rujukan sebelum mengirim.",
@@ -292,7 +296,8 @@
       "qa": "Q&A",
       "discussion": "Diskusi",
       "lecture": "Kuliah"
-    }
+    },
+    "interactiveMoreBelow": "Selengkapnya di bawah"
   },
   "actions": {
     "names": {
@@ -366,12 +371,25 @@
     "confirmSwitchTitle": "Pindah halaman",
     "confirmSwitchMessage": "Topik saat ini sedang berlangsung. Berpindah halaman akan mengakhiri topik saat ini. Yakin ingin berpindah?",
     "generatingNextPage": "Adegan sedang dibuat, harap tunggu...",
-    "courseComplete": "Kursus selesai",
     "fullscreen": "Layar penuh",
     "exitFullscreen": "Keluar dari layar penuh",
     "editCourse": "Edit kursus",
     "doneEditing": "Selesai mengedit",
-    "proModeDisabledHint": "Halaman ini tidak mendukung pengeditan — buka halaman kursus mana pun untuk mengedit dengan mode Pro."
+    "editDisabledHint": "Pengeditan tidak tersedia di halaman ini — buka slide kursus untuk mengeditnya.",
+    "editToggle": "Edit",
+    "openInWorkspace": "Buka di ruang kerja",
+    "openInWorkspaceHint": "Buka di ruang kerja untuk melanjutkan kelas ini dalam percakapan",
+    "makeOwnCourse": "Buat kelas Anda sendiri",
+    "makeOwnCourseHint": "Mulai kelas Anda sendiri di ruang kerja",
+    "dock": {
+      "collapse": "Ciutkan dok",
+      "expand": "Bentangkan dok",
+      "resize": "Ubah ukuran dok"
+    },
+    "chatPanel": {
+      "expand": "Tampilkan panel percakapan",
+      "collapse": "Sembunyikan panel percakapan"
+    }
   },
   "edit": {
     "proMode": "Mode profesional",
@@ -505,8 +523,6 @@
       "addSlide": "Tambah slide",
       "duplicate": "Gandakan",
       "delete": "Hapus",
-      "deleted": "Telah dihapus",
-      "undo": "Urungkan",
       "copySuffix": "(salinan)",
       "untitledSlide": "Slide tanpa judul",
       "collapse": "Ciutkan",
@@ -516,10 +532,10 @@
       "moreActions": "Tindakan lainnya",
       "rename": "Ganti nama",
       "sceneIncomplete": "Konten halaman ini belum lengkap",
+      "sceneHasErrors": "Halaman ini memiliki kesalahan",
       "addPage": "Tambah halaman",
       "nextPage": "Halaman berikutnya",
-      "prevPage": "Halaman sebelumnya",
-      "sceneHasErrors": "Halaman ini memiliki kesalahan"
+      "prevPage": "Halaman sebelumnya"
     },
     "zorder": {
       "toFront": "Bawa ke depan",
@@ -613,7 +629,19 @@
       "whiteboardLatex": "Rumus",
       "whiteboardTable": "Tabel",
       "action": "Tindakan",
-      "discussion": "Diskusi"
+      "discussion": "Diskusi",
+      "playVideo": "Putar video",
+      "whiteboardChart": "Grafik papan tulis",
+      "whiteboardLine": "Garis papan tulis",
+      "whiteboardClear": "Bersihkan papan tulis",
+      "whiteboardDelete": "Hapus dari papan tulis",
+      "whiteboardClose": "Tutup papan tulis",
+      "whiteboardCode": "Blok kode",
+      "whiteboardEditCode": "Edit kode",
+      "widgetHighlight": "Sorot di aktivitas",
+      "widgetSetState": "Atur status aktivitas",
+      "widgetAnnotation": "Beri anotasi aktivitas",
+      "widgetReveal": "Tampilkan di aktivitas"
     },
     "element": {
       "toolbar": "Bilah alat elemen",
@@ -678,12 +706,6 @@
     "timeline": {
       "title": "Naskah narasi",
       "regenAllTts": "Buat ulang semua sulih suara",
-      "voiceAll": "Isi semua suara",
-      "counts": "{{speech}} narasi · {{cue}} aksi",
-      "panLeft": "Geser tampilan ke kiri",
-      "panRight": "Geser tampilan ke kanan",
-      "collapseAxis": "Ciutkan menjadi sumbu",
-      "expandTrack": "Bentangkan trek",
       "emptyHint": "Seret aksi di atas ke sumbu untuk mulai menyusun, atau minta MAIC Agent membuat narasi.",
       "speechPlaceholder": "Masukkan kalimat narasi ini…",
       "reorder": "Seret untuk menyusun ulang",
@@ -695,13 +717,15 @@
       "fieldElement": "Elemen",
       "fieldContent": "Konten",
       "addDiscussionExists": "Setiap adegan hanya mendukung satu diskusi",
-      "discussionTerminal": "Akhir",
       "discussionTerminalHint": "Diskusi selalu berada di akhir adegan, satu per adegan",
-      "discussionTopicPlaceholder": "Topik diskusi (wajib)",
-      "discussionPromptPlaceholder": "Panduan (opsional)",
+      "discussionTopicPlaceholder": "Wajib",
+      "discussionPromptPlaceholder": "Opsional",
+      "discussionTopicLabel": "Topik diskusi",
+      "discussionPromptLabel": "Petunjuk panduan",
       "discussionAgent": "Pemulai",
       "discussionAgentUnset": "Tidak ditentukan",
-      "addAction": "Tambah aksi"
+      "addAction": "Tambah aksi",
+      "fieldState": "Status"
     },
     "picker": {
       "title": "Sisipkan aksi",
@@ -785,8 +809,7 @@
       "moveDown": "Pindah ke bawah",
       "removeFromClass": "Keluarkan dari kelas",
       "aiClassmates": "Teman sekelas AI · {{count}}",
-      "addRole": "Tambah peran",
-      "shortTitle": "Daftar"
+      "addRole": "Tambah peran"
     },
     "elementRef": {
       "remove": "Hapus rujukan {{label}}",
@@ -1183,7 +1206,8 @@
     "runOutlining": "Menyusun kerangka…",
     "runAwaitingConfirmation": "Menunggu konfirmasi",
     "runGenerating": "Membuat {{completed}}/{{total}}",
-    "runPaused": "Dijeda"
+    "runPaused": "Dijeda",
+    "saveRefused": "Perubahan Anda tidak tersimpan: Anda tidak memiliki izin untuk mengedit kelas ini."
   },
   "upload": {
     "pdfSizeLimit": "Mendukung file PDF hingga 50MB",
@@ -1203,6 +1227,7 @@
     "materialTooLarge": "{{name}} terlalu besar: satu materi maksimal {{size}}."
   },
   "generation": {
+    "qwenCloneNewGenerationHint": "Suara tersimpan ini harus dikloning ulang. Unggah audio referensi yang sesuai di pengaturan suara, pilih suara baru, lalu mulai pembuatan baru. Mencoba lagi proses yang dijeda ini akan tetap memakai suara aslinya.",
     "quotaExhausted": "Kuota pembuatan telah habis. Periksa jatah paket atau saldo akun Anda, atau hubungi administrator sebelum mencoba lagi.",
     "pdfLoadFailed": "Gagal memuat file PDF, silakan coba lagi",
     "pdfParseFailed": "Gagal mengurai PDF",
@@ -1319,8 +1344,7 @@
     "runLoadFailed": "Gagal memuat pembuatan ini",
     "runLoadRetrying": "Mencoba lagi…",
     "mediaGenerationFailed": "Gagal membuat media",
-    "mediaGenerationDisabled": "Pembuatan dinonaktifkan",
-    "qwenCloneNewGenerationHint": "Suara tersimpan ini harus dikloning ulang. Unggah audio referensi yang sesuai di pengaturan suara, pilih suara baru, lalu mulai pembuatan baru. Mencoba lagi proses yang dijeda ini akan tetap memakai suara aslinya."
+    "mediaGenerationDisabled": "Pembuatan dinonaktifkan"
   },
   "settings": {
     "title": "Pengaturan",
@@ -1415,14 +1439,14 @@
       "ollama": "Ollama (Lokal)",
       "tavily": "Tavily",
       "exa": "Exa",
+      "firecrawl": "Firecrawl",
       "bocha": "Bocha",
       "brave": "Brave Search",
       "baidu": "Baidu",
       "claude": "Claude",
       "searxng": "SearXNG",
       "opencode": "OpenCode CLI",
-      "builtin": "Pembaca bawaan",
-      "firecrawl": "Firecrawl"
+      "builtin": "Pembaca bawaan"
     },
     "modelCount": "model",
     "modelSingular": "model",
@@ -1485,6 +1509,8 @@
     "providerDoubaoTTS": "Doubao TTS 2.0 (Volcengine)",
     "providerElevenLabsTTS": "ElevenLabs TTS",
     "providerMiniMaxTTS": "MiniMax TTS",
+    "providerXiaomiTTS": "Xiaomi MiMo TTS",
+    "providerXiaomiASR": "Xiaomi MiMo ASR",
     "providerGoogleTTS": "Google Gemini TTS",
     "providerLemonadeTTS": "Lemonade TTS (Lokal)",
     "providerBrowserNativeTTS": "TTS bawaan browser",
@@ -1531,6 +1557,7 @@
     "qwenCloneVoicesTitle": "Suara kloning Qwen TTS",
     "qwenCloneUploadShort": "Unggah",
     "qwenCloneRefAudioHint": "Gunakan sampel suara yang bersih berdurasi 1–60 detik, disarankan 10–20 detik; audio akan dikonversi ke PCM WAV mono 24 kHz.",
+    "qwenCloneMigrationHint": "Suara tersimpan ini perlu dikloning ulang. Unggah audio referensinya di pengaturan suara.",
     "qwenCloneSaved": "Suara kloning Qwen telah didaftarkan dan disimpan",
     "qwenCloneSaveFailed": "Gagal mendaftarkan suara kloning Qwen",
     "qwenCloneUnsupported": "Browser saat ini tidak mendukung perekaman, unggah file audio sebagai gantinya.",
@@ -2403,145 +2430,9 @@
     "webFetchSettings": "Pengambilan halaman web",
     "webFetchHint": "Pilih cara halaman web dibaca. Pembaca terkelola hanya menerima URL publik yang disetujui dalam sesi. Hasilnya tetap dianggap tidak tepercaya, dan kegagalan tidak mengalihkan pembaca.",
     "webFetchApiKey": "API Key",
-    "webFetchSharedKeyHint": "Kunci ini juga digunakan untuk chat dengan penyedia ini. Mengubah atau menghapusnya akan memengaruhi chat.",
-    "providerXiaomiTTS": "Xiaomi MiMo TTS",
-    "providerXiaomiASR": "Xiaomi MiMo ASR",
-    "qwenCloneMigrationHint": "Suara tersimpan ini perlu dikloning ulang. Unggah audio referensinya di pengaturan suara."
+    "webFetchSharedKeyHint": "Kunci ini juga digunakan untuk chat dengan penyedia ini. Mengubah atau menghapusnya akan memengaruhi chat."
   },
   "workspace": {
-    "untitledCourse": "Kelas tanpa nama",
-    "sceneCount": "{{count}} halaman",
-    "sceneCount_one": "{{count}} halaman",
-    "sceneCount_other": "{{count}} halaman",
-    "courseLinkHint": "Buka \"{{name}}\" di panel kanan",
-    "courseLinkMore": "Masih ada {{count}} kelas",
-    "courseMention": {
-      "title": "Rujuk kelas untuk pesan ini",
-      "empty": "Tidak ada kelas yang cocok",
-      "alreadyNamed": "Sudah dirujuk",
-      "remove": "Hapus {{name}}",
-      "pillHint": "Pesan ini merujuk ke “{{name}}”",
-      "notAccepted": "Layanan sementara tidak tersedia, silakan coba lagi nanti.",
-      "reference": "Rujuk “{{name}}”",
-      "capped": "Hanya menampilkan {{count}} pertama, terus ketik untuk mempersempit",
-      "search": "Cari kelas dan materi",
-      "searchMaterials": "Cari materi",
-      "searchClassrooms": "Cari kelas",
-      "courseOrder": "Kelas yang dibuka lebih dulu, lalu yang terbaru diperbarui",
-      "materialOrder": "Unggahan terbaru lebih dulu",
-      "titleBoth": "Rujuk kelas atau lampirkan materi basis pengetahuan ke pesan ini",
-      "titleMaterials": "Lampirkan materi basis pengetahuan ke pesan ini",
-      "classrooms": "Kelas",
-      "knowledgeBase": "Basis pengetahuan",
-      "emptyWithMaterials": "Tidak ada kelas atau materi yang cocok",
-      "attachMaterial": "Lampirkan {{name}} ke pesan ini",
-      "materialUnavailable": "{{name}} tidak dapat dilampirkan ({{reason}}). Buka basis pengetahuan untuk melihat penyebabnya lalu uraikan lagi.",
-      "materialAttached": "Sudah ada di percakapan ini",
-      "materialStaged": "Sudah ada di pesan ini",
-      "materialsCapped": "Menampilkan {{count}} materi pertama — terus ketik untuk mempersempit",
-      "materialUnavailableGuidance": "{{name}} tidak dapat dilampirkan. {{guidance}} Anda dapat mengelolanya di halaman basis pengetahuan."
-    },
-    "heroTitle": "Ingin menciptakan apa hari ini?",
-    "heroSubtitle": "Sampaikan ide Anda dan ubah menjadi perjalanan belajar yang bisa dialami langsung",
-    "newSession": "Percakapan baru",
-    "sections": {
-      "courses": "Kursus",
-      "sessions": "Percakapan"
-    },
-    "coursesEmpty": "Belum ada kursus",
-    "sessionsEmpty": "Belum ada percakapan",
-    "loading": "Memuat",
-    "loadFailed": "Gagal memuat",
-    "retry": "Coba lagi",
-    "untitledSession": "Percakapan tanpa nama",
-    "pagePosition": "Halaman {{index}} / {{total}}",
-    "exitPro": "Keluar dari Pro",
-    "navAria": "Navigasi ruang kerja",
-    "homeAria": "Kembali ke beranda",
-    "currentSession": "Percakapan saat ini",
-    "startLearning": "Mulai belajar",
-    "time": {
-      "justNow": "Baru saja",
-      "minutesAgo": "{{count}} menit lalu",
-      "hoursAgo": "{{count}} jam lalu",
-      "daysAgo": "{{count}} hari lalu"
-    },
-    "sessionStatus": {
-      "connecting": "Menghubungkan",
-      "queued": "Dalam antrean",
-      "running": "Berjalan",
-      "succeeded": "Siap",
-      "failed": "Perlu perhatian",
-      "cancelled": "Dihentikan"
-    },
-    "backToWorkspace": "Kembali ke ruang kerja",
-    "searchPlaceholder": "Filter menurut nama",
-    "searchAria": "Cari di {{section}}",
-    "searchEmpty": "Tidak ada konten yang cocok",
-    "showMore": "Tampilkan {{count}} lainnya",
-    "showLess": "Ciutkan",
-    "utilitiesAria": "Preferensi dan akun",
-    "resizeAria": "Seret untuk menyesuaikan lebar bilah sisi",
-    "chatPaneAria": "Panel percakapan",
-    "classroomPaneAria": "Kelas",
-    "collapseNav": "Ciutkan navigasi",
-    "expandNav": "Bentangkan navigasi",
-    "expandNavInto": "Bentangkan navigasi · {{section}}",
-    "collapseChat": "Ciutkan percakapan",
-    "expandChat": "Percakapan",
-    "collapseClassroom": "Ciutkan kelas",
-    "expandClassroom": "Kelas",
-    "readOnlyBadge": "Hanya baca",
-    "courseGeneratingTitle": "Kursus ini masih dibuat",
-    "coursePausedTitle": "Pembuatan kursus ini dijeda",
-    "courseGeneratingDesc": "Akan terbuka otomatis di sini setelah pembuatan selesai, lalu Anda dapat mengeditnya.",
-    "coursePausedDesc": "Satu halaman gagal dibuat. Coba lagi di kelas; kursus akan terbuka di sini setelah pembuatan selesai.",
-    "viewGenerationProgress": "Lihat progres pembuatan",
-    "openToRetry": "Buka untuk mencoba lagi",
-    "courseGeneratingRowHint": "Tersedia setelah pembuatan selesai",
-    "noCourseTitle": "Belum ada kelas yang dibuka",
-    "noCourseHint": "Buka dari tautan kursus di percakapan, atau pilih dari daftar di sebelah kiri; percakapan akan tetap di sini",
-    "resizeChatAria": "Seret untuk menyesuaikan lebar panel percakapan",
-    "firstPageLanding": "Halaman pertama sedang disimpan…",
-    "autoSaving": "Menyimpan otomatis…",
-    "autoSaved": "Tersimpan",
-    "collapsedTitle": "Kedua panel diciutkan",
-    "collapsedHint": "Gunakan tab di sebelah kiri untuk membuka kembali percakapan atau kelas",
-    "moreUtilities": "Lainnya",
-    "rowMore": "Tindakan lainnya untuk {{name}}",
-    "folderDeleteHint": "Kursus di dalam folder akan kembali ke tingkat teratas daftar, tidak dihapus.",
-    "dropToUnfile": "Letakkan di sini untuk mengeluarkan dari folder",
-    "renameInvalid": "Nama harus 1–120 karakter",
-    "renameForbidden": "Kelas ini bukan buatan Anda, tidak dapat diganti namanya",
-    "renameGone": "Kelas tidak ada atau telah dihapus",
-    "renameSession": "Ganti nama percakapan",
-    "renameSessionAria": "Ganti nama percakapan “{{name}}”",
-    "renameSessionFailed": "Gagal mengganti nama, silakan coba lagi",
-    "delete": "Hapus",
-    "confirmDelete": "Konfirmasi hapus",
-    "deleting": "Menghapus…",
-    "deleteFailed": "Gagal menghapus, silakan coba lagi",
-    "tabsAria": "Percakapan dan kursus",
-    "courseTabsAria": "Tab kolom kanan",
-    "courseTabClose": "Tutup tab \"{{name}}\"",
-    "courseTabRunning": "Membuat",
-    "foldersUnavailable": "Versi ini tidak mendukung folder",
-    "modelPicker": {
-      "empty": "Daftar model kosong.",
-      "loadFailed": "Gagal memuat daftar model.",
-      "selectFailed": "Gagal memilih model ({{status}})",
-      "activeToast": "Model aktif: {{name}} (berlaku untuk run berikutnya)",
-      "selectFailedFallback": "Gagal memilih model",
-      "thinkingSaveFailed": "Gagal menyimpan varian thinking",
-      "loading": "Memuat…",
-      "loadError": "Gagal memuat model",
-      "choose": "Pilih model",
-      "ariaLabel": "Pilih model Pro Workbench",
-      "activeToastSession": "Model aktif: {{name}} (berlaku untuk percakapan ini)",
-      "footerConnected": "Model AI terhubung",
-      "footerLabel": "Hubungkan model AI",
-      "footerDescription": "OpenCode Console / Antigravity / Codex"
-    },
     "knowledgeBase": {
       "title": "Basis pengetahuan",
       "topLevel": "Tingkat teratas",
@@ -2673,11 +2564,144 @@
         "serviceUnavailable": "Belum ada parser yang dikonfigurasi untuk jenis file ini. Minta administrator mengonfigurasinya."
       }
     },
+    "untitledCourse": "Kelas tanpa nama",
+    "sceneCount": "{{count}} halaman",
+    "sceneCount_one": "{{count}} halaman",
+    "sceneCount_other": "{{count}} halaman",
+    "courseLinkHint": "Buka \"{{name}}\" di panel kanan",
+    "courseLinkMore": "Masih ada {{count}} kelas",
+    "courseMention": {
+      "search": "Cari kelas dan materi",
+      "searchMaterials": "Cari materi",
+      "searchClassrooms": "Cari kelas",
+      "courseOrder": "Kelas yang dibuka lebih dulu, lalu yang terbaru diperbarui",
+      "materialOrder": "Unggahan terbaru lebih dulu",
+      "title": "Rujuk kelas untuk pesan ini",
+      "titleBoth": "Rujuk kelas atau lampirkan materi basis pengetahuan ke pesan ini",
+      "titleMaterials": "Lampirkan materi basis pengetahuan ke pesan ini",
+      "empty": "Tidak ada kelas yang cocok",
+      "alreadyNamed": "Sudah dirujuk",
+      "remove": "Hapus {{name}}",
+      "pillHint": "Pesan ini merujuk ke “{{name}}”",
+      "notAccepted": "Layanan sementara tidak tersedia, silakan coba lagi nanti.",
+      "reference": "Rujuk “{{name}}”",
+      "capped": "Hanya menampilkan {{count}} pertama, terus ketik untuk mempersempit",
+      "classrooms": "Kelas",
+      "knowledgeBase": "Basis pengetahuan",
+      "emptyWithMaterials": "Tidak ada kelas atau materi yang cocok",
+      "attachMaterial": "Lampirkan {{name}} ke pesan ini",
+      "materialUnavailable": "{{name}} tidak dapat dilampirkan ({{reason}}). Buka basis pengetahuan untuk melihat penyebabnya lalu uraikan lagi.",
+      "materialAttached": "Sudah ada di percakapan ini",
+      "materialStaged": "Sudah ada di pesan ini",
+      "materialsCapped": "Menampilkan {{count}} materi pertama — terus ketik untuk mempersempit",
+      "materialUnavailableGuidance": "{{name}} tidak dapat dilampirkan. {{guidance}} Anda dapat mengelolanya di halaman basis pengetahuan."
+    },
+    "heroTitle": "Ingin menciptakan apa hari ini?",
+    "heroSubtitle": "Sampaikan ide Anda dan ubah menjadi perjalanan belajar yang bisa dialami langsung",
+    "newSession": "Percakapan baru",
+    "sections": {
+      "sessions": "Percakapan"
+    },
+    "coursesEmpty": "Belum ada kursus",
+    "sessionsEmpty": "Belum ada percakapan",
+    "loading": "Memuat",
+    "loadFailed": "Gagal memuat",
+    "retry": "Coba lagi",
+    "untitledSession": "Percakapan tanpa nama",
+    "pagePosition": "Halaman {{index}} / {{total}}",
+    "exitPro": "Keluar dari Pro",
+    "navAria": "Navigasi ruang kerja",
+    "homeAria": "Kembali ke beranda",
+    "currentSession": "Percakapan saat ini",
+    "startLearning": "Mulai belajar",
     "classroomMode": "Mode kelas",
     "learningMode": "Belajar",
     "editingMode": "Edit",
     "editingUnavailableGenerating": "Pengeditan tidak tersedia selama kursus ini sedang dibuat.",
     "fullscreenLearning": "Belajar layar penuh",
+    "time": {
+      "justNow": "Baru saja",
+      "minutesAgo": "{{count}} menit lalu",
+      "hoursAgo": "{{count}} jam lalu",
+      "daysAgo": "{{count}} hari lalu"
+    },
+    "sessionStatus": {
+      "connecting": "Menghubungkan",
+      "queued": "Dalam antrean",
+      "running": "Berjalan",
+      "succeeded": "Siap",
+      "failed": "Perlu perhatian",
+      "cancelled": "Dihentikan",
+      "awaitingAnswer": "Menunggu jawaban Anda"
+    },
+    "backToWorkspace": "Kembali ke ruang kerja",
+    "searchPlaceholder": "Filter menurut nama",
+    "searchAria": "Cari di {{section}}",
+    "searchEmpty": "Tidak ada konten yang cocok",
+    "showMore": "Tampilkan {{count}} lainnya",
+    "showLess": "Ciutkan",
+    "utilitiesAria": "Preferensi dan akun",
+    "resizeAria": "Seret untuk menyesuaikan lebar bilah sisi",
+    "chatPaneAria": "Panel percakapan",
+    "classroomPaneAria": "Kelas",
+    "collapseNav": "Ciutkan navigasi",
+    "expandNav": "Bentangkan navigasi",
+    "expandNavInto": "Bentangkan navigasi · {{section}}",
+    "collapseChat": "Ciutkan percakapan",
+    "expandChat": "Percakapan",
+    "collapseClassroom": "Ciutkan kelas",
+    "expandClassroom": "Kelas",
+    "readOnlyBadge": "Hanya baca",
+    "courseGeneratingTitle": "Kursus ini masih dibuat",
+    "coursePausedTitle": "Pembuatan kursus ini dijeda",
+    "courseGeneratingDesc": "Akan terbuka otomatis di sini setelah pembuatan selesai, lalu Anda dapat mengeditnya.",
+    "coursePausedDesc": "Satu halaman gagal dibuat. Coba lagi di kelas; kursus akan terbuka di sini setelah pembuatan selesai.",
+    "viewGenerationProgress": "Lihat progres pembuatan",
+    "openToRetry": "Buka untuk mencoba lagi",
+    "courseGeneratingRowHint": "Tersedia setelah pembuatan selesai",
+    "noCourseTitle": "Belum ada kelas yang dibuka",
+    "noCourseHint": "Buka dari tautan kursus di percakapan, atau pilih dari daftar di sebelah kiri; percakapan akan tetap di sini",
+    "resizeChatAria": "Seret untuk menyesuaikan lebar panel percakapan",
+    "firstPageLanding": "Halaman pertama sedang disimpan…",
+    "autoSaving": "Menyimpan otomatis…",
+    "autoSaved": "Tersimpan",
+    "collapsedTitle": "Kedua panel diciutkan",
+    "collapsedHint": "Gunakan tab di sebelah kiri untuk membuka kembali percakapan atau kelas",
+    "moreUtilities": "Lainnya",
+    "rowMore": "Tindakan lainnya untuk {{name}}",
+    "folderDeleteHint": "Kursus di dalam folder akan kembali ke tingkat teratas daftar, tidak dihapus.",
+    "dropToUnfile": "Letakkan di sini untuk mengeluarkan dari folder",
+    "renameInvalid": "Nama harus 1–120 karakter",
+    "renameForbidden": "Kelas ini bukan buatan Anda, tidak dapat diganti namanya",
+    "renameGone": "Kelas tidak ada atau telah dihapus",
+    "renameSession": "Ganti nama percakapan",
+    "renameSessionAria": "Ganti nama percakapan “{{name}}”",
+    "renameSessionFailed": "Gagal mengganti nama, silakan coba lagi",
+    "delete": "Hapus",
+    "confirmDelete": "Konfirmasi hapus",
+    "deleting": "Menghapus…",
+    "deleteFailed": "Gagal menghapus, silakan coba lagi",
+    "tabsAria": "Percakapan dan kursus",
+    "courseTabsAria": "Tab kolom kanan",
+    "courseTabClose": "Tutup tab \"{{name}}\"",
+    "courseTabRunning": "Membuat",
+    "foldersUnavailable": "Versi ini tidak mendukung folder",
+    "modelPicker": {
+      "empty": "Daftar model kosong.",
+      "loadFailed": "Gagal memuat daftar model.",
+      "selectFailed": "Gagal memilih model ({{status}})",
+      "activeToast": "Model aktif: {{name}} (berlaku untuk run berikutnya)",
+      "selectFailedFallback": "Gagal memilih model",
+      "thinkingSaveFailed": "Gagal menyimpan varian thinking",
+      "loading": "Memuat…",
+      "loadError": "Gagal memuat model",
+      "choose": "Pilih model",
+      "ariaLabel": "Pilih model Pro Workbench",
+      "activeToastSession": "Model aktif: {{name}} (berlaku untuk percakapan ini)",
+      "footerConnected": "Model AI terhubung",
+      "footerLabel": "Hubungkan model AI",
+      "footerDescription": "OpenCode Console / Antigravity / Codex"
+    },
     "auth": {
       "connectTitle": "Hubungkan model AI",
       "connectDescription": "Masuk dengan akun yang sudah kamu punya. Kredensial disimpan di server dan tidak pernah dikirim ke browser.",
@@ -2749,6 +2773,177 @@
       "showSecret": "Tampilkan kunci",
       "hideSecret": "Sembunyikan kunci",
       "apiKeyInputAria": "OpenAI API key"
+    },
+    "courseLinkOpen": "Buka",
+    "editGuide": "Panduan pengeditan",
+    "talkAboutCourse": "Edit dengan AI",
+    "talkAboutCourseHint": "Buka percakapan baru tentang kelas ini",
+    "composer": {
+      "attach": "Tambah materi",
+      "mentionCourse": "Rujuk kelas",
+      "mentionCourseOrMaterial": "Rujuk kelas atau materi basis pengetahuan",
+      "loadSkill": "Muat skill",
+      "skillMenuTitle": "Pilih skill desain kursus",
+      "skillsLoading": "Memuat skill…",
+      "noSkillsAvailable": "Belum ada skill yang tersedia",
+      "userSkillsGroup": "Skill Saya",
+      "builtinSkillsGroup": "Skill Bawaan",
+      "skillsLoadFailed": "Gagal memuat Skill, klik untuk mencoba lagi",
+      "retrySkills": "Coba lagi",
+      "noSkillMatch": "Tidak ada Skill yang cocok dengan “{{query}}”",
+      "launchPlaceholder": "Deskripsikan pengalaman belajar yang ingin Anda buat",
+      "launchSend": "Mulai Membangun"
+    },
+    "nav": {
+      "search": "Cari",
+      "myCourses": "Kelas saya"
+    },
+    "search": {
+      "placeholder": "Cari percakapan, kelas, dan materi",
+      "recentChats": "Percakapan terbaru",
+      "recentCourses": "Kelas terbaru",
+      "courses": "Kelas",
+      "materials": "Materi",
+      "actions": "Aksi cepat",
+      "searching": "Mencari…",
+      "empty": "Tidak ada yang cocok dengan “{{query}}”",
+      "materialsFailed": "Gagal mencari di basis pengetahuan",
+      "themeAction": "Tema: {{name}}",
+      "languageAction": "Bahasa: {{name}}"
+    },
+    "account": {
+      "signIn": "Masuk",
+      "menu": "Akun dan pengaturan",
+      "profileSaved": "Tersimpan",
+      "language": "Bahasa",
+      "about": "Tentang Kelas KA",
+      "aboutBody": "Platform sumber terbuka yang mengubah topik apa pun menjadi kelas interaktif dengan guru dan teman sekelas AI. Dirilis di bawah lisensi MIT.",
+      "viewOnGithub": "Lihat di GitHub",
+      "docs": "Dokumentasi",
+      "signOut": "Keluar",
+      "onboarding": "Panduan memulai"
+    },
+    "coursesPage": {
+      "searchPlaceholder": "Cari kelas saya",
+      "results": "Hasil pencarian",
+      "allCourses": "Semua kelas",
+      "emptyHint": "Jelaskan sebuah topik di beranda dan kelas pertama Anda akan muncul di sini.",
+      "makeCourse": "Buat kelas",
+      "pin": "Sematkan ke atas",
+      "unpin": "Lepas sematan",
+      "pinned": "Disematkan"
+    },
+    "fullscreen": {
+      "expand": "Layar penuh",
+      "collapse": "Keluar dari layar penuh (Esc)"
+    },
+    "onboarding": {
+      "paneTitle": "Belajar atau edit",
+      "paneLearn": "Belajar: guru AI memandu Anda melewati kelas. Tanyakan kapan saja.",
+      "paneEdit": "Edit: ubah halamannya secara langsung.",
+      "paneChat": "Atau cukup minta di percakapan, seperti “buat halaman 2 lebih sederhana”.",
+      "gotIt": "Mengerti"
+    },
+    "tour": {
+      "skip": "Lewati",
+      "prev": "Kembali",
+      "next": "Berikutnya",
+      "done": "Ketik sendiri",
+      "count": "{{index}} / {{total}}",
+      "openGuide": "Ikuti kelas contoh",
+      "welcome": {
+        "title": "Selamat datang di Kelas KA",
+        "body": "Katakan apa yang ingin Anda pelajari, dan Kelas KA akan membuat kelas interaktif dengan guru dan teman sekelas AI."
+      },
+      "start": {
+        "title": "Mulai di sini",
+        "body": "Percakapan baru memulai kelas baru. Cari (⌘K) untuk menemukan kelas, percakapan, dan materi."
+      },
+      "courses": {
+        "title": "Kelas contoh",
+        "body": "Kelas 5 menit ini juga dibuat dengan Kelas KA. Buka untuk melihat di mana sebuah kelas berlangsung."
+      },
+      "library": {
+        "title": "Basis pengetahuan",
+        "body": "Unggah handout dan PDF sekali, lalu rujuk di kelas mana pun."
+      },
+      "conversations": {
+        "title": "Percakapan",
+        "body": "Setiap kelas dibuat dalam sebuah percakapan. Untuk mengubah kelas, kembali ke percakapannya dan minta."
+      },
+      "mode": {
+        "title": "Belajar atau edit",
+        "body": "Belajar menjalani kelas bersama guru AI; Edit mengubahnya halaman demi halaman."
+      },
+      "dock": {
+        "title": "Ruang kelas",
+        "body": "Putar dan balik halaman, tanyakan apa saja kepada guru AI, dan teman sekelas akan ikut berdiskusi."
+      },
+      "chat": {
+        "title": "Ubah dengan mengobrol",
+        "body": "Cukup katakan “buat halaman 2 lebih sederhana” di percakapan di sampingnya, dan AI akan mengedit kelasnya."
+      },
+      "account": {
+        "title": "Akun dan pengaturan",
+        "body": "Profil, pengaturan, bahasa, dan tema ada di sini, begitu juga panduan ini."
+      },
+      "try": {
+        "title": "Coba kelas sekarang",
+        "body": "Ketik topik, atau pilih contoh untuk langsung mulai.",
+        "attach": "Materi: unggah handout sebagai dasar pembuatan kelas",
+        "mention": "Rujukan: @ kelas atau materi basis pengetahuan",
+        "skill": "Skill: pilih gaya mengajar, seperti Interaktif Mendalam"
+      },
+      "examples": {
+        "sky": {
+          "label": "Mengapa langit berwarna biru?",
+          "prompt": "Mengapa langit berwarna biru? Jelaskan dengan hal-hal yang saya lihat setiap hari"
+        },
+        "interest": {
+          "label": "Cara kerja bunga majemuk",
+          "prompt": "Jelaskan cara kerja bunga majemuk, dengan contoh sehari-hari"
+        },
+        "teach": {
+          "label": "Ajar: teorema Pythagoras, kelas 8",
+          "prompt": "Kelas tentang teorema Pythagoras untuk siswa kelas 8, dengan kuis singkat di akhir"
+        }
+      },
+      "coursesNav": {
+        "title": "Kelas saya",
+        "body": "Kelas yang sudah selesai ada di sini. Klik untuk melihatnya."
+      },
+      "openLook": "Buka",
+      "edit": {
+        "canvas": {
+          "title": "Halaman",
+          "body": "Klik teks, gambar, atau bentuk mana pun di halaman untuk mengubahnya; seret untuk memindahkan atau mengubah ukuran."
+        },
+        "pages": {
+          "title": "Halaman",
+          "body": "Buka daftar halaman di sini: tambah halaman, seret untuk mengurutkan, hapus."
+        },
+        "bar": {
+          "title": "Bilah kontrol",
+          "body": "Tambahkan aksi, isi suara narasi, balik dan tambah halaman, atur guru dan teman sekelas; di sebelah kanan, lasso elemen untuk diubah AI."
+        },
+        "timeline": {
+          "title": "Jalur aksi",
+          "body": "Setiap kartu adalah satu aksi: narasi, sorotan, diskusi. Seret untuk mengurutkan, klik untuk mengedit."
+        },
+        "dock": {
+          "title": "Dok",
+          "body": "Seret tepi atasnya untuk mengubah ukuran, atau lipat untuk memberi halaman lebih banyak ruang."
+        },
+        "learn": {
+          "title": "Pratinjau",
+          "body": "Kembali ke Belajar untuk melihat kelas seperti yang dilihat siswa."
+        },
+        "chat": {
+          "title": "Minta AI saja",
+          "body": "Tidak ingin melakukannya manual? Katakan di percakapan, seperti “tambahkan latihan di halaman 2”."
+        }
+      },
+      "editDone": "Mulai mengedit"
     }
   },
   "profile": {
@@ -2818,6 +3013,7 @@
       "sourcePath": "File ini berada di luar file sumber proyek.",
       "sourceCount": "Proyek pembelajaran mendukung maksimal 256 file sumber.",
       "sourceSize": "Isi sumber proyek tidak boleh melebihi 1 MiB.",
+      "commandSize": "Perintah build atau uji yang dihasilkan terlalu besar untuk dijalankan di sandbox.",
       "teachingContextSize": "Konteks pengajaran terlalu besar. Persingkat PLAN.md atau pertanyaan ulasan lalu coba lagi.",
       "commandActive": "Hentikan perintah yang berjalan dan kumpulkan hasilnya sebelum membaca atau menyimpan snapshot workspace.",
       "terminalActive": "Tutup terminal sebelum membaca atau menyimpan snapshot workspace.",
@@ -3124,7 +3320,25 @@
       "file-edit": "Penyuntingan file",
       "workspace-run": "Eksekusi workspace"
     },
+    "overview": {
+      "title": "Ringkasan proyek",
+      "expand": "Bentangkan",
+      "collapse": "Ciutkan",
+      "projectGoal": "Tujuan proyek",
+      "finishedWork": "Aplikasi Anda yang sudah jadi",
+      "roadmap": "Peta jalan proyek",
+      "goalAndResult": "Tujuan dan hasil",
+      "goal": "Tujuan",
+      "result": "Hasil",
+      "eachStage": "Di setiap tahap",
+      "yourRole": "Anda mengambil keputusan dan meninjau; AI membantu menulis rencana dan kode.",
+      "preview": "Coba aplikasi Anda di panel pratinjau dan periksa hasil yang Anda buat.",
+      "advance": "Tombol ungu di atas kolom input muncul hanya saat langkah saat ini siap dilanjutkan. Klik untuk melanjutkan."
+    },
     "journey": {
+      "currentMilestone": "Tonggak saat ini",
+      "milestoneGoal": "Tujuan:",
+      "milestoneResult": "Hasil:",
       "completionHandoff": "Langkah ini selesai. Lihat bilah tugas di bagian bawah panel Asisten Belajar untuk tindakan berikutnya.",
       "startConversation": "Asisten Anda akan membuka langkah ini saat lingkungan belajar siap.",
       "latest": "Pergi ke pesan terbaru",
@@ -3166,8 +3380,10 @@
       "notReflected": "Refleksi belum tercatat",
       "taskDetails": "Detail tugas saat ini",
       "closeDetails": "Tutup detail tugas",
+      "reviewDetails": "Tinjau detail",
       "milestoneSteps": "Langkah belajar per tonggak",
       "enterStep": "Lanjut ke {{step}}",
+      "enterMilestone": "Masuk ke tonggak berikutnya",
       "planArtifact": "Buka PLAN.md di IDE untuk membaca rencana saat ini. Diskusikan, tinjau, dan setujui dalam percakapan.",
       "codeArtifact": "Periksa file proyek saat ini di IDE. Tinjau implementasi dan simpan perubahan sebelum melanjutkan.",
       "taskTitle": "Tugas saat ini",
@@ -3180,8 +3396,7 @@
       "planReview": "Tinjauan dan persetujuan rencana",
       "codeReview": "Tinjauan dan konfirmasi implementasi",
       "reviewApproved": "Dikonfirmasi",
-      "reviewPending": "Menunggu tinjauan",
-      "enterMilestone": "Masuk ke tonggak berikutnya"
+      "reviewPending": "Menunggu tinjauan"
     },
     "activity": {
       "read": "Membaca file proyek",
@@ -3294,8 +3509,11 @@
       "completedMilestones": "Tonggak yang diselesaikan",
       "completedSteps": "Langkah yang diselesaikan",
       "concepts": "Konsep yang dilatih",
-      "skills": "Keterampilan yang dipraktikkan",
-      "practiceNotice": "Catatan ini menunjukkan apa yang Anda latih, bukan sertifikasi penguasaan.",
+      "projectResults": "Apa yang kamu buat",
+      "workflow": "Bagaimana kamu bekerja",
+      "decisionQuestion": "Pertanyaan keputusan",
+      "decisionChoice": "Keputusanmu",
+      "decisionReason": "Alasanmu",
       "viewWorkbench": "Lihat workbench hanya baca",
       "completedTitle": "Proyek selesai",
       "completionHint": "Karya Anda tersimpan. Jelajahi laporan belajar Anda atau kunjungi kembali workbench.",
@@ -3313,12 +3531,7 @@
       "shareTitle": "Momen yang layak dibagikan",
       "shareHint": "Simpan pencapaian dan sorotan Anda sebagai kartu untuk membagikan progres Anda.",
       "recordsTitle": "Lihat catatan belajar",
-      "recordsHint": "Jelajahi keputusan, karya, dan percakapan yang tersimpan, atau ikuti referensi analisis secara langsung.",
-      "projectResults": "Apa yang kamu buat",
-      "workflow": "Bagaimana kamu bekerja",
-      "decisionQuestion": "Pertanyaan keputusan",
-      "decisionChoice": "Keputusanmu",
-      "decisionReason": "Alasanmu"
+      "recordsHint": "Jelajahi keputusan, karya, dan percakapan yang tersimpan, atau ikuti referensi analisis secara langsung."
     },
     "draftStorageUnavailable": "Penyimpanan draf browser tidak tersedia. Halaman ini menyimpan teks Anda; simpan file ke workspace dan salin teks yang belum terkirim sebelum meninggalkan halaman.",
     "pendingActions": {
@@ -3355,10 +3568,10 @@
       "discussion": "Tahap ini untuk mendiskusikan keputusan. Pengeditan file tersedia selama perencanaan dan pengodean.",
       "quiz": "Ini adalah kuis pemahaman. File proyek bersifat hanya baca.",
       "recap": "Ini adalah tahap refleksi. File proyek bersifat hanya baca.",
-      "assessment": "Ini adalah tahap uji. File bersifat hanya baca; kegagalan yang tercatat akan membuka perbaikan kode.",
+      "assessment": "Ini adalah tahap uji. File bersifat hanya baca sampai kegagalan membuka perbaikan.",
       "stage": "File proyek bersifat hanya baca pada tahap ini.",
       "planOnly": "Perencanaan hanya mengizinkan pengeditan pada PLAN.md. File sumber bersifat hanya baca.",
-      "planLocked": "PLAN.md telah disetujui dan bersifat hanya baca selama pengodean atau perbaikan uji.",
+      "planLocked": "PLAN.md telah disetujui dan bersifat hanya baca selama pengodean.",
       "planEditable": "Anda dapat mengedit PLAN.md. Perubahan disimpan otomatis.",
       "codeEditable": "Anda dapat mengedit file sumber. Perubahan disimpan otomatis.",
       "stale": "Lingkungan atau file berubah. Draf Anda tetap tersimpan; salin atau muat ulang sebelum mengedit.",
@@ -3448,16 +3661,7 @@
       "testsPassed": "Tes perilaku lolos",
       "decisionsLabel": "Keputusan dibuat",
       "quizLabel": "Kuis",
-      "skillsMetric": "Keterampilan yang dilatih",
-      "skillsSection": "Tantangan yang diselesaikan",
       "conceptsLabel": "Konsep yang dibuka",
-      "skillLabels": {
-        "decisions": "Mengambil keputusan teknis",
-        "planReview": "Meninjau rencana",
-        "codeReview": "Meninjau implementasi",
-        "verification": "Memverifikasi perilaku dengan tes",
-        "reflection": "Merefleksikan berdasarkan bukti"
-      },
       "workshop": "Vibe Coding Workshop",
       "entryLabel": "Kursus pengantar Vibe Coding Workshop"
     },
@@ -3493,6 +3697,16 @@
         }
       },
       "close": "Tutup panduan"
+    }
+  },
+  "classroomEnd": {
+    "close": "Kembali ke halaman terakhir",
+    "learned": "{{count}} halaman selesai",
+    "result": "{{correct}} / {{total}} benar",
+    "actions": {
+      "reviewWrong": "Tinjau kesalahan",
+      "doQuiz": "Kerjakan kuis",
+      "restart": "Mulai ulang"
     }
   }
 }

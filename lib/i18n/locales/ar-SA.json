@@ -118,6 +118,7 @@
       "emptyClassroom": "لا يحتوي هذا الفصل على أي مشاهد.",
       "unsupportedScene": "هذا المشهد غير متاح في التصدير دون اتصال.",
       "interactiveTitle": "مشهد تفاعلي",
+      "interactiveMoreBelow": "يوجد المزيد بالأسفل",
       "videoUnavailable": "الفيديو غير مضمّن في التصدير دون اتصال",
       "quizSubmit": "إرسال",
       "quizRetry": "حاول مجددًا",
@@ -216,7 +217,8 @@
       "pblDesc": "نشاط قائم على المشاريع بأدوار ذكاء اصطناعي. افتحه عبر الإنترنت أو امسح رمز QR.",
       "pblGoal": "الهدف: {{goal}}",
       "pblMilestoneCount": "المراحل: {{count}}"
-    }
+    },
+    "viewerCopyHint": "هل تريد نسخة قابلة للتعديل؟ نزّلها عبر «{{zip}}»، ثم استخدم «{{importLabel}}» في {{courses}}."
   },
   "import": {
     "classroom": "استيراد فصل",
@@ -253,7 +255,9 @@
       "emptyAgentResponses": "أعاد الوكلاء استجابات فارغة; توقف النقاش. حاول مرة أخرى أو راجع إعدادات النموذج.",
       "streamInterrupted": "انتهى تدفق البيانات بشكل غير متوقع; لم يكتمل النقاش. يرجى المحاولة مرة أخرى.",
       "rateLimited": "يتلقى النموذج عددًا كبيرًا من الطلبات حاليًا. يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.",
-      "providerUnavailable": "خدمة النموذج غير متاحة مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل."
+      "providerUnavailable": "خدمة النموذج غير متاحة مؤقتًا. يرجى المحاولة مرة أخرى بعد قليل.",
+      "teacherNoResponse": "لم يرد المعلم. يُرجى المحاولة مرة أخرى.",
+      "teacherIncomplete": "لم يتمكن المعلم من إكمال الرد. يُرجى المحاولة مرة أخرى."
     },
     "elementReference": {
       "whiteboardChanged": "تغيّر عنصر السبورة المشار إليه أو لم يعد متاحًا. اختره مجددًا أو أزل الإشارة قبل الإرسال.",
@@ -292,7 +296,8 @@
       "qa": "أسئلة",
       "discussion": "نقاش",
       "lecture": "محاضرة"
-    }
+    },
+    "interactiveMoreBelow": "يوجد المزيد بالأسفل"
   },
   "actions": {
     "names": {
@@ -366,12 +371,25 @@
     "confirmSwitchTitle": "تبديل المشهد",
     "confirmSwitchMessage": "يوجد موضوع قيد التقدم حاليًا. سيؤدي تبديل المشهد إلى إنهاء الموضوع الحالي. هل أنت متأكد؟",
     "generatingNextPage": "جارٍ توليد المشهد، يرجى الانتظار...",
-    "courseComplete": "اكتملت الدورة",
     "fullscreen": "ملء الشاشة",
     "exitFullscreen": "الخروج من ملء الشاشة",
     "editCourse": "تحرير الدورة",
     "doneEditing": "إنهاء التحرير",
-    "proModeDisabledHint": "التحرير غير متاح في هذه الصفحة — افتح شريحة من الدورة للتحرير باستخدام وضع Pro."
+    "editDisabledHint": "التحرير غير متاح في هذه الصفحة — افتح شريحة من الدورة لتحريرها.",
+    "editToggle": "تحرير",
+    "openInWorkspace": "فتح في مساحة العمل",
+    "openInWorkspaceHint": "افتح في مساحة العمل لمتابعة العمل على هذه الدورة في محادثة",
+    "makeOwnCourse": "أنشئ درسك",
+    "makeOwnCourseHint": "أنشئ درسك الخاص في مساحة العمل",
+    "dock": {
+      "collapse": "طي الشريط",
+      "expand": "توسيع الشريط",
+      "resize": "تغيير ارتفاع الشريط"
+    },
+    "chatPanel": {
+      "expand": "إظهار لوحة المحادثة",
+      "collapse": "إخفاء لوحة المحادثة"
+    }
   },
   "edit": {
     "proMode": "احترافي",
@@ -611,7 +629,19 @@
       "whiteboardLatex": "صيغة",
       "whiteboardTable": "جدول",
       "action": "إجراء",
-      "discussion": "مناقشة"
+      "discussion": "مناقشة",
+      "playVideo": "تشغيل الفيديو",
+      "whiteboardChart": "مخطط",
+      "whiteboardLine": "رسم خط",
+      "whiteboardClear": "مسح اللوحة",
+      "whiteboardDelete": "إزالة عنصر",
+      "whiteboardClose": "إغلاق اللوحة",
+      "whiteboardCode": "كتلة شيفرة",
+      "whiteboardEditCode": "تعديل الشيفرة",
+      "widgetHighlight": "تمييز في النشاط",
+      "widgetSetState": "ضبط حالة النشاط",
+      "widgetAnnotation": "إضافة تعليق في النشاط",
+      "widgetReveal": "إظهار في النشاط"
     },
     "element": {
       "toolbar": "شريط أدوات العنصر",
@@ -676,12 +706,6 @@
     "timeline": {
       "title": "نص السرد",
       "regenAllTts": "إعادة توليد كل التعليق الصوتي",
-      "voiceAll": "صوّت الكل",
-      "counts": "{{speech}} سرد · {{cue}} إجراءات",
-      "panLeft": "تحريك لليسار",
-      "panRight": "تحريك لليمين",
-      "collapseAxis": "طي إلى المحور",
-      "expandTrack": "توسيع المسار",
       "emptyHint": "اسحب الإجراءات إلى المحور للبدء، أو دع MAIC Agent يولّد السرد.",
       "speechPlaceholder": "أدخل سطر السرد هذا…",
       "reorder": "اسحب لإعادة الترتيب",
@@ -693,13 +717,15 @@
       "fieldElement": "عنصر",
       "fieldContent": "المحتوى",
       "addDiscussionExists": "مناقشة واحدة فقط لكل مشهد",
-      "discussionTerminal": "النهاية",
       "discussionTerminalHint": "تبقى المناقشة في نهاية المشهد (واحدة لكل مشهد)",
-      "discussionTopicPlaceholder": "موضوع المناقشة (مطلوب)",
-      "discussionPromptPlaceholder": "توجيه (اختياري)",
+      "discussionTopicPlaceholder": "مطلوب",
+      "discussionPromptPlaceholder": "اختياري",
+      "discussionTopicLabel": "موضوع المناقشة",
+      "discussionPromptLabel": "توجيه",
       "discussionAgent": "المُبادر",
       "discussionAgentUnset": "غير محدد",
-      "addAction": "إضافة إجراء"
+      "addAction": "إضافة إجراء",
+      "fieldState": "الحالة"
     },
     "picker": {
       "title": "إدراج إجراء",
@@ -783,8 +809,7 @@
       "moveDown": "نقل لأسفل",
       "removeFromClass": "إزالة من الفصل",
       "aiClassmates": "زملاء AI · {{count}}",
-      "addRole": "إضافة دور",
-      "shortTitle": "التشكيلة"
+      "addRole": "إضافة دور"
     },
     "elementRef": {
       "remove": "移除引用 {{label}}",
@@ -1181,7 +1206,8 @@
     "runOutlining": "جارٍ إعداد المخطط…",
     "runAwaitingConfirmation": "بانتظار التأكيد",
     "runGenerating": "جارٍ التوليد {{completed}}/{{total}}",
-    "runPaused": "متوقف مؤقتًا"
+    "runPaused": "متوقف مؤقتًا",
+    "saveRefused": "لم تُحفظ تغييراتك: ليست لديك صلاحية تعديل هذا الدرس."
   },
   "upload": {
     "pdfSizeLimit": "يدعم ملفات PDF حتى 50 ميغابايت",
@@ -2574,7 +2600,6 @@
     "heroSubtitle": "Share an idea and turn it into a learning journey people can step into",
     "newSession": "New chat",
     "sections": {
-      "courses": "Courses",
       "sessions": "Chats"
     },
     "coursesEmpty": "No courses yet",
@@ -2606,7 +2631,8 @@
       "running": "Running",
       "succeeded": "Ready",
       "failed": "Needs attention",
-      "cancelled": "Stopped"
+      "cancelled": "Stopped",
+      "awaitingAnswer": "بانتظار إجابتك"
     },
     "backToWorkspace": "Back to workspace",
     "searchPlaceholder": "Filter by name",
@@ -2747,6 +2773,177 @@
       "showSecret": "إظهار المفتاح",
       "hideSecret": "إخفاء المفتاح",
       "apiKeyInputAria": "مفتاح API من OpenAI"
+    },
+    "courseLinkOpen": "فتح",
+    "editGuide": "دليل التحرير",
+    "talkAboutCourse": "حرّر مع الذكاء الاصطناعي",
+    "talkAboutCourseHint": "ابدأ محادثة جديدة حول هذا الدرس",
+    "composer": {
+      "attach": "إرفاق مواد",
+      "mentionCourse": "引用课堂",
+      "mentionCourseOrMaterial": "الإشارة إلى فصل أو مادة من قاعدة المعرفة",
+      "loadSkill": "加载 skill",
+      "skillMenuTitle": "选择课程设计技能",
+      "skillsLoading": "正在加载 skill…",
+      "noSkillsAvailable": "暂无可用 skill",
+      "userSkillsGroup": "我的 Skill",
+      "builtinSkillsGroup": "内置 Skill",
+      "skillsLoadFailed": "Skill 加载失败，点击重试",
+      "retrySkills": "重试",
+      "noSkillMatch": "没有匹配“{{query}}”的 Skill",
+      "launchPlaceholder": "صِف تجربة التعلم التي تريد إنشاءها",
+      "launchSend": "بدء الإنشاء"
+    },
+    "nav": {
+      "search": "بحث",
+      "myCourses": "دوراتي"
+    },
+    "search": {
+      "placeholder": "ابحث في المحادثات والدورات والمواد",
+      "recentChats": "المحادثات الأخيرة",
+      "recentCourses": "الدورات الأخيرة",
+      "courses": "الدورات",
+      "materials": "المواد",
+      "actions": "إجراءات سريعة",
+      "searching": "جارٍ البحث…",
+      "empty": "لا توجد نتائج تطابق “{{query}}”",
+      "materialsFailed": "تعذّر البحث في قاعدة المعرفة",
+      "themeAction": "المظهر: {{name}}",
+      "languageAction": "اللغة: {{name}}"
+    },
+    "account": {
+      "signIn": "تسجيل الدخول",
+      "menu": "الحساب والإعدادات",
+      "profileSaved": "تم الحفظ",
+      "language": "اللغة",
+      "about": "حول OpenMAIC",
+      "aboutBody": "منصة مفتوحة المصدر تحوّل أي موضوع إلى فصل دراسي تفاعلي مع معلمين وزملاء بالذكاء الاصطناعي. صادرة بموجب ترخيص MIT.",
+      "viewOnGithub": "عرض على GitHub",
+      "docs": "الوثائق",
+      "signOut": "تسجيل الخروج",
+      "onboarding": "دليل البدء"
+    },
+    "coursesPage": {
+      "searchPlaceholder": "البحث في دوراتي",
+      "results": "نتائج البحث",
+      "allCourses": "كل الدورات",
+      "emptyHint": "صف موضوعًا في الصفحة الرئيسية وسيظهر درسك الأول هنا.",
+      "makeCourse": "أنشئ درسًا",
+      "pin": "تثبيت في الأعلى",
+      "unpin": "إلغاء التثبيت",
+      "pinned": "مثبّت"
+    },
+    "fullscreen": {
+      "expand": "ملء الشاشة",
+      "collapse": "الخروج من ملء الشاشة (Esc)"
+    },
+    "onboarding": {
+      "paneTitle": "تعلّم أو تحرير",
+      "paneLearn": "«تعلّم»: يقودك معلم الذكاء الاصطناعي في الدرس، واسأل في أي وقت.",
+      "paneEdit": "«تحرير»: عدّل الصفحات مباشرة.",
+      "paneChat": "أو اطلب في المحادثة، مثل «اجعل الصفحة 2 أبسط».",
+      "gotIt": "حسنًا"
+    },
+    "tour": {
+      "skip": "تخطٍّ",
+      "prev": "السابق",
+      "next": "التالي",
+      "done": "سأكتب بنفسي",
+      "count": "{{index}} / {{total}}",
+      "openGuide": "ابدأ الدرس التجريبي",
+      "welcome": {
+        "title": "مرحبًا بك في OpenMAIC",
+        "body": "قل ما تريد تعلّمه، وسيصنع OpenMAIC درسًا تفاعليًا مع معلم ذكاء اصطناعي وزملاء."
+      },
+      "start": {
+        "title": "ابدأ من هنا",
+        "body": "«محادثة جديدة» تبدأ درسًا جديدًا، والبحث (⌘K) يجد الدروس والمحادثات والمواد."
+      },
+      "courses": {
+        "title": "الدرس التجريبي",
+        "body": "هذا الدرس ذو الدقائق الخمس صُنع أيضًا بـ OpenMAIC. افتحه لترى أين يجري الدرس."
+      },
+      "library": {
+        "title": "قاعدة المعرفة",
+        "body": "ارفع الملفات وملفات PDF مرة واحدة واستخدمها في أي درس."
+      },
+      "conversations": {
+        "title": "المحادثات",
+        "body": "كل درس يُصنع داخل محادثة. لتعديله، عد إلى محادثته واطلب ذلك."
+      },
+      "mode": {
+        "title": "تعلّم أو تحرير",
+        "body": "«تعلّم» مع معلم الذكاء الاصطناعي، و«تحرير» صفحةً صفحة."
+      },
+      "dock": {
+        "title": "الفصل",
+        "body": "شغّل وقلّب الصفحات واسأل المعلم في أي وقت، ويشارك الزملاء في النقاش."
+      },
+      "chat": {
+        "title": "عدّل بالمحادثة",
+        "body": "قل في المحادثة المجاورة «اجعل الصفحة 2 أبسط» وسيعدّل الذكاء الاصطناعي الدرس."
+      },
+      "account": {
+        "title": "الحساب والإعدادات",
+        "body": "الملف الشخصي والإعدادات واللغة والمظهر هنا، وهذا الدليل أيضًا."
+      },
+      "try": {
+        "title": "جرّب الآن",
+        "body": "اكتب موضوعًا أو اختر مثالًا لتبدأ فورًا.",
+        "attach": "مادة: ارفع ملفًا ليُبنى عليه الدرس",
+        "mention": "إشارة: @ درسًا أو مادة من قاعدة المعرفة",
+        "skill": "المهارات: اختر أسلوب تدريس مثل التفاعل العميق"
+      },
+      "examples": {
+        "sky": {
+          "label": "لماذا السماء زرقاء؟",
+          "prompt": "لماذا السماء زرقاء؟ اشرح ذلك بظواهر أراها كل يوم"
+        },
+        "interest": {
+          "label": "كيف تعمل الفائدة المركبة",
+          "prompt": "اشرح كيف تعمل الفائدة المركبة بأمثلة من الحياة اليومية"
+        },
+        "teach": {
+          "label": "درّس: فيثاغورس، الصف الثامن",
+          "prompt": "درس عن نظرية فيثاغورس لطلاب الصف الثامن مع اختبار قصير في النهاية"
+        }
+      },
+      "coursesNav": {
+        "title": "دوراتي",
+        "body": "دروسك المكتملة هنا. انقر لتلقي نظرة."
+      },
+      "openLook": "افتحه",
+      "edit": {
+        "canvas": {
+          "title": "الصفحة",
+          "body": "انقر على أي نص أو صورة أو شكل لتعديله، واسحب للتحريك أو تغيير الحجم."
+        },
+        "pages": {
+          "title": "الصفحات",
+          "body": "افتح قائمة الصفحات من هنا: أضف واسحب لإعادة الترتيب واحذف."
+        },
+        "bar": {
+          "title": "شريط التحكم",
+          "body": "أضف إجراءً، وسجّل الشرح، وقلّب الصفحات وأضفها، واختر المعلم والزملاء؛ وعلى اليمين حدّد عناصر ليعدّلها الذكاء الاصطناعي."
+        },
+        "timeline": {
+          "title": "مسار الإجراءات",
+          "body": "كل بطاقة إجراء واحد: شرح أو تسليط ضوء أو نقاش. اسحب لإعادة الترتيب، وانقر للتعديل."
+        },
+        "dock": {
+          "title": "الشريط السفلي",
+          "body": "اسحب حافته العليا لتغيير الارتفاع، أو اطوه لإفساح المجال للصفحة."
+        },
+        "learn": {
+          "title": "معاينة",
+          "body": "ارجع إلى «تعلّم» لترى الدرس كما يراه الطالب."
+        },
+        "chat": {
+          "title": "اطلب من الذكاء الاصطناعي",
+          "body": "لا تريد التعديل يدويًا؟ قلها في المحادثة، مثل «أضف تمرينًا إلى الصفحة 2»."
+        }
+      },
+      "editDone": "ابدأ التحرير"
     }
   },
   "profile": {
@@ -2816,6 +3013,7 @@
       "sourcePath": "هذا الملف خارج نطاق ملفات مصدر المشروع.",
       "sourceCount": "تدعم المشاريع التعليمية 256 ملف مصدر كحد أقصى.",
       "sourceSize": "يجب ألا يتجاوز إجمالي محتوى مصدر المشروع 1 MiB.",
+      "commandSize": "أمر البناء أو الاختبار الذي أنشأه النظام أكبر من الحد المسموح به في بيئة التشغيل المعزولة.",
       "teachingContextSize": "سياق التعلم طويل جدًا. اختصر PLAN.md أو سؤال المراجعة ثم حاول مرة أخرى.",
       "commandActive": "أوقف الأوامر قيد التشغيل واحصل على نتائجها قبل قراءة لقطة لمساحة العمل أو حفظها.",
       "terminalActive": "أغلق الطرفيات قبل قراءة لقطة لمساحة العمل أو حفظها.",
@@ -3122,7 +3320,25 @@
       "file-edit": "File edit",
       "workspace-run": "Workspace run"
     },
+    "overview": {
+      "title": "نظرة عامة على المشروع",
+      "expand": "توسيع",
+      "collapse": "طي",
+      "projectGoal": "هدف المشروع",
+      "finishedWork": "تطبيقك المكتمل",
+      "roadmap": "خطة المشروع",
+      "goalAndResult": "الهدف والنتيجة",
+      "goal": "الهدف",
+      "result": "النتيجة",
+      "eachStage": "خطوات كل مرحلة",
+      "yourRole": "أنت تتخذ القرارات وتراجع؛ ويساعدك الذكاء الاصطناعي في كتابة الخطة والكود.",
+      "preview": "جرّب تطبيقك في منطقة المعاينة وتحقق مما بنيته.",
+      "advance": "لا يظهر الزر البنفسجي فوق حقل الإدخال إلا عندما تصبح الخطوة الحالية جاهزة للتقدّم. عند ظهوره، اضغط عليه للمتابعة."
+    },
     "journey": {
+      "currentMilestone": "المرحلة الحالية",
+      "milestoneGoal": "الهدف:",
+      "milestoneResult": "النتيجة:",
       "completionHandoff": "This step is complete. See the task bar at the bottom of the Learning Assistant pane for the next action.",
       "startConversation": "Your assistant will open this step when the learning environment is ready.",
       "latest": "Go to the latest message",
@@ -3164,6 +3380,7 @@
       "notReflected": "Reflection not yet recorded",
       "taskDetails": "Current task details",
       "closeDetails": "Close task details",
+      "reviewDetails": "مراجعة التفاصيل",
       "milestoneSteps": "Milestone learning steps",
       "enterStep": "Continue to {{step}}",
       "enterMilestone": "المرحلة التالية",
@@ -3351,10 +3568,10 @@
       "discussion": "This step is for discussing decisions. File editing opens during planning and coding.",
       "quiz": "This is the understanding quiz. Project files are read-only.",
       "recap": "This is the reflection step. Project files are read-only.",
-      "assessment": "This is the test step. Files are read-only; a recorded failure opens code repair.",
+      "assessment": "This is the test step. Files are read-only until a failure opens repair.",
       "stage": "Project files are read-only in this step.",
       "planOnly": "Planning allows edits to PLAN.md only. Source files are read-only.",
-      "planLocked": "PLAN.md is approved and read-only during coding or test repair.",
+      "planLocked": "PLAN.md is approved and read-only during coding.",
       "planEditable": "You can edit PLAN.md. Changes are saved automatically.",
       "codeEditable": "You can edit source files. Changes are saved automatically.",
       "stale": "The environment or file changed. Your draft is kept; copy it or reload before editing.",
@@ -3480,6 +3697,16 @@
         }
       },
       "close": "إغلاق الدليل"
+    }
+  },
+  "classroomEnd": {
+    "close": "العودة إلى الصفحة الأخيرة",
+    "learned": "اكتملت {{count}} صفحة",
+    "result": "{{correct}} / {{total}} صحيحة",
+    "actions": {
+      "reviewWrong": "مراجعة الأخطاء",
+      "doQuiz": "إلى الاختبار",
+      "restart": "البدء من جديد"
     }
   }
 }

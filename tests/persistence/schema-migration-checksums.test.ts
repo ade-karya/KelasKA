@@ -180,6 +180,20 @@ const SHIPPED: readonly (readonly [
     'f0cacce08a67451848878babbe0499f10982a706e50c3b3bfeee591aa6433d49',
   ],
   [
+    'agent-session',
+    4,
+    'driver_model',
+    true,
+    '740679b8710145d1088c24df7887453f39e69bc43d01c65ce275ef1335fee188',
+  ],
+  [
+    'agent-session',
+    5,
+    'open_question_seq',
+    true,
+    '857da1dbde2235b46e7a94e7c93ec59c217f7b8a9df6571027d5ae00c9fab96f',
+  ],
+  [
     'agent-session-material',
     1,
     'baseline',

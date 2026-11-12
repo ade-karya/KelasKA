@@ -66,6 +66,8 @@ export interface CallLlmStreamFnOptions {
   languageModel: LanguageModel;
   /** Only explicitly vision-capable models receive tool images; unknown defaults to omission. */
   supportsToolImages?: boolean;
+  /** Opt-in user image transport; existing authoring callers remain text-only. */
+  includeUserImages?: boolean;
   maxOutputTokens?: number;
   /**
    * When true, never send a max output tokens cap on the wire, even when pi
@@ -366,6 +368,7 @@ async function pump(
         messages: toModelMessages(context.messages, {
           includeReasoning: preservesReasoningForModel(opts.languageModel),
           includeToolImages: opts.supportsToolImages,
+          includeUserImages: opts.includeUserImages,
         }),
         tools: toAiTools(context.tools ?? []),
         toolChoice: 'auto',
@@ -435,7 +438,11 @@ function errorMessage(error: unknown, fallback: string): string {
 /** pi Message[] -> AI SDK ModelMessage[]. */
 export function toModelMessages(
   messages: PiMessage[],
-  options: { includeReasoning?: boolean; includeToolImages?: boolean } = {},
+  options: {
+    includeReasoning?: boolean;
+    includeToolImages?: boolean;
+    includeUserImages?: boolean;
+  } = {},
 ): ModelMessage[] {
   const out: ModelMessage[] = [];
   let pendingImages: Array<
@@ -452,6 +459,17 @@ export function toModelMessages(
     // This is a transport-only view; do not change the durable Pi history.
     if (m.role !== 'toolResult') flushImages();
     if (m.role === 'user') {
+      if (options.includeUserImages === true && Array.isArray(m.content)) {
+        out.push({
+          role: 'user',
+          content: m.content.map((part) =>
+            part.type === 'text'
+              ? { type: 'text' as const, text: part.text }
+              : { type: 'image' as const, image: part.data, mediaType: part.mimeType },
+          ),
+        });
+        continue;
+      }
       const content =
         typeof m.content === 'string'
           ? m.content
