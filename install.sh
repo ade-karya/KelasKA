@@ -21,7 +21,9 @@
 #      dilengkapi ACCESS_CODE, OPENMAIC_SECRET_KEY, flag TTS browser-native,
 #      ALLOW_LOCAL_NETWORKS, dan setelan persistence bila DATABASE_URL ada.
 #      Nilai yang sudah diisi user tidak ditimpa (kecuali flag installer).
-#      Pada --colab, preset produksi memaksa feature flag aplikasi ON. Endpoint
+#      Pada --colab, preset produksi memaksa feature flag aplikasi ON, kecuali
+#      workbench: upstream default-nya classic home, jadi hanya
+#      --with-workbench yang menulis NEXT_PUBLIC_WORKBENCH_ENABLED=true. Endpoint
 #      model lokal/Docker dikosongkan HANYA bila host tidak punya GPU NVIDIA;
 #      dengan GPU, langkah 4g menyalakan layanan media lokal dan endpoint yang
 #      hidup.
@@ -81,7 +83,8 @@
 #   --no-fast             Paksa build penuh (default; berguna setelah --fast).
 #   --colab               Preset Colab produksi: --yes --with-pm2 (build
 #                         standalone + PM2) dengan semua feature flag aplikasi
-#                         ON. PostgreSQL mengikuti mode otomatis (bisa
+#                         ON — kecuali workbench (opt-in, lihat
+#                         --with-workbench). PostgreSQL mengikuti mode otomatis (bisa
 #                         dioverride flag lain). Bila host punya NVIDIA GPU,
 #                         layanan model media lokal (ComfyUI/FunASR/VoxCPM2)
 #                         otomatis disiapkan dan diaktifkan; Ollama/LLM lokal
@@ -99,6 +102,13 @@
 #   --gpu-ollama-model=M  Model Ollama untuk --with-gpu (default: llama3.2:3b).
 #   --gpu-image-model=M   Checkpoint ComfyUI (default: sd_xl_base_1.0.safetensors;
 #                         "none" melewati unduhan ~6.9 GB).
+#   --with-workbench      Pakai workbench sebagai beranda (`/`): tulis
+#                         NEXT_PUBLIC_WORKBENCH_ENABLED=true (nama upstream;
+#                         setara instruksi README upstream). Default OFF, jadi
+#                         beranda adalah classic home seperti default upstream.
+#   --no-workbench        Pastikan beranda = classic home: kosongkan nama baru
+#                         DAN nama lama NEXT_PUBLIC_PRO_WORKBENCH_ENABLED yang
+#                         dipaksa ON oleh preset versi sebelumnya.
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
 #                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
 #                         latar belakang (log: data/dev-server.log, PID:
@@ -271,6 +281,11 @@ GPU_AKTIF=""
 # LLM lokal (Ollama) bukan bagian preset --colab: chat memakai Gemini dan VRAM
 # GPU dipakai model media. "auto" = hanya ikut bila --with-gpu diminta eksplisit.
 WITH_GPU_LLM="auto"
+# Workbench sebagai beranda: opt-in mengikuti upstream (default OFF -> classic
+# home di `/`). Preset lama memaksa NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=true;
+# nama itu kini deprecated upstream (dibaca hanya bila nama baru kosong).
+WITH_WORKBENCH=0
+WITH_WORKBENCH_EXPLICIT=0
 WITH_DEV=0
 WITH_SERVER_START=1
 FAST_BUILD="auto"
@@ -353,6 +368,8 @@ for arg in "$@"; do
     --gpu-dir=*)         GPU_DIR="${arg#*=}" ;;
     --gpu-ollama-model=*) GPU_OLLAMA_MODEL="${arg#*=}"; GPU_OLLAMA_MODEL_DIMINTA=1 ;;
     --gpu-image-model=*) GPU_IMAGE_MODEL="${arg#*=}" ;;
+    --with-workbench)    WITH_WORKBENCH=1; WITH_WORKBENCH_EXPLICIT=1 ;;
+    --no-workbench)      WITH_WORKBENCH=0; WITH_WORKBENCH_EXPLICIT=1 ;;
     --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
     --no-start)          WITH_SERVER_START=0 ;;
     --with-ffmpeg)       WITH_FFMPEG=1 ;;
@@ -568,6 +585,36 @@ kosongkan_var_env() {
   sed -i -E "s|^[[:space:]]*${key}=.*|${key}=|" "$file"
 }
 
+# Workbench sebagai beranda (`/`) — opt-in mengikuti upstream: default OFF, dan
+# README upstream menyalakannya dengan NEXT_PUBLIC_WORKBENCH_ENABLED=true.
+# Preset versi lama memaksa NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=true (nama yang
+# kini deprecated upstream), jadi --no-workbench mengosongkan KEDUA nama:
+# nama baru menang bila terisi, nama lama hanya dibaca bila nama baru kosong.
+terapkan_flag_workbench() {
+  local file=".env.local" baru lama
+  if [[ "$WITH_WORKBENCH" -eq 1 ]]; then
+    set_env_value "$file" NEXT_PUBLIC_WORKBENCH_ENABLED "true"
+    kosongkan_var_env "$file" NEXT_PUBLIC_PRO_WORKBENCH_ENABLED
+    info "Workbench ON: NEXT_PUBLIC_WORKBENCH_ENABLED=true (beranda = workspace)."
+    return 0
+  fi
+  if [[ "$WITH_WORKBENCH_EXPLICIT" -eq 1 ]]; then
+    kosongkan_var_env "$file" NEXT_PUBLIC_WORKBENCH_ENABLED
+    kosongkan_var_env "$file" NEXT_PUBLIC_PRO_WORKBENCH_ENABLED
+    info "Workbench OFF: beranda = classic home (kedua nama flag dikosongkan)."
+    return 0
+  fi
+  [[ -f "$file" ]] || return 0
+  baru="$(env_get "$file" NEXT_PUBLIC_WORKBENCH_ENABLED)"
+  lama="$(env_get "$file" NEXT_PUBLIC_PRO_WORKBENCH_ENABLED)"
+  if [[ -z "$baru" && ( "$lama" == "true" || "$lama" == "1" ) ]]; then
+    warn "NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=$lama (nama lama) masih aktif — beranda tetap workbench."
+    warn "  Upstream default = classic home: jalankan --no-workbench untuk kembali ke classic,"
+    warn "  atau --with-workbench untuk mempertahankannya dengan nama baru."
+  fi
+  return 0
+}
+
 version_gte() {
   local have="$1" want="$2" h1 h2 h3 w1 w2 w3
   IFS=. read -r h1 h2 h3 <<<"${have%%[^0-9.]*}"
@@ -777,9 +824,9 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   if [[ "$WITH_PM2" -eq 1 ]]; then echo "  - instal PM2 via Bun + jalankan aplikasi standalone"; fi
   if [[ "$WITH_COLAB" -eq 1 ]]; then
     if [[ "$WITH_GPU" -eq 1 ]]; then
-      echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON + layanan GPU media lokal"
+      echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON (workbench opt-in) + layanan GPU media lokal"
     else
-      echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON (Docker/Ollama/model lokal OFF)"
+      echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON (workbench opt-in) (Docker/Ollama/model lokal OFF)"
     fi
   fi
   if [[ "$WITH_GPU" -eq 1 ]]; then
@@ -1461,9 +1508,10 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   LANGKAH="preset fitur Colab"
   # Daftar ini mengikuti FORCE_ON di
   # deploy-dev-node-native-full-features.ipynb; gate aktifnya ada di
-  # lib/config/feature-flags.ts.
+  # lib/config/feature-flags.ts. Workbench SENGAJA tidak di sini: upstream
+  # menjadikan beranda classic home secara default, dan workbench hanya opt-in
+  # lewat --with-workbench (lihat terapkan_flag_workbench).
   FITUR_COLAB_ON=(
-    NEXT_PUBLIC_PRO_WORKBENCH_ENABLED
     NEXT_PUBLIC_MAIC_EDITOR_ENABLED
     NEXT_PUBLIC_MAIC_EDITOR_RENDERER_ENABLED
     NEXT_PUBLIC_MAIC_PLAYBACK_RENDERER_ENABLED
@@ -1552,9 +1600,10 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   unset _render_url
 
   info "Preset Colab produksi: semua feature flag aplikasi ON (build + PM2 di bagian 8-10)."
-  info "  ON: Pro workbench, MAIC editor/renderer, playback renderer, Pi chat, courseware reference,"
+  info "  ON: MAIC editor/renderer, playback renderer, Pi chat, courseware reference,"
   info "      vocational (server+UI), video export, PPTX import, Pi native child/spotlight,"
   info "      persistence + agent runtime (bila DATABASE_URL terisi)."
+  info "  Workbench (beranda) opt-in seperti upstream: --with-workbench menyalakannya."
   if [[ -n "$GPU_AKTIF" ]]; then
     info "  ON (GPU lokal):${GPU_AKTIF}."
     info "  OFF (tidak dipakai preset): Docker render-service, SearXNG, Lemonade, Ollama (LLM lokal)."
@@ -1566,6 +1615,10 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
     info "  OFF (tidak tersedia di host): Docker render-service, Ollama, Lemonade, FunASR, VoxCPM, ComfyUI, SearXNG."
   fi
 fi
+
+# Preset selesai: workbench/classic home diputuskan untuk SEMUA mode (bukan
+# hanya --colab), sebelum build yang memanggang NEXT_PUBLIC_*.
+terapkan_flag_workbench
 
 if [[ "$WITH_POSTGRES" -eq 1 && -n "$PGPORT" && -f .env.local ]]; then
   _DB_URL_AKTIF="$(env_get .env.local DATABASE_URL)"
@@ -3006,10 +3059,10 @@ else
 fi
 if [[ "$WITH_COLAB" -eq 1 ]]; then
   if [[ -n "$GPU_AKTIF" ]]; then
-    info "  Preset Colab: produksi (build standalone + PM2) + semua feature flag ON"
+    info "  Preset Colab: produksi (build standalone + PM2) + semua feature flag ON (workbench opt-in)"
     info "  Layanan GPU lokal:${GPU_AKTIF} (status: $GPU_DIR/gpu-services.env)"
   else
-    info "  Preset Colab: produksi (build standalone + PM2) + semua feature flag ON; Docker/Ollama/model lokal OFF"
+    info "  Preset Colab: produksi (build standalone + PM2) + semua feature flag ON (workbench opt-in); Docker/Ollama/model lokal OFF"
   fi
 fi
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then

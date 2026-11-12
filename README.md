@@ -392,11 +392,15 @@ A new `PORT` in `.env.local` only needs
 
 The `--colab` preset is tuned for Colab's root, systemd-less, non-interactive
 runtimes and is a **production** preset: it runs non-interactively, enables
-every application feature flag (Pro workbench, MAIC editor and renderers, Pi
+every application feature flag (MAIC editor and renderers, Pi
 chat, courseware reference, vocational engine/UI, video export, PPTX import,
 Pi native child runtime/spotlight, persistence and the agent runtime when a
 database is available), builds the Next.js standalone server, and serves it
-through PM2 on `PORT` (default 3000). Because `NEXT_PUBLIC_*` values are baked
+through PM2 on `PORT` (default 3000). The workbench home is the one exception:
+upstream keeps the classic home as the default entry, so the preset leaves the
+workbench off unless you pass `--with-workbench` (which writes
+`NEXT_PUBLIC_WORKBENCH_ENABLED=true`), or `--no-workbench` to clear it again.
+Because `NEXT_PUBLIC_*` values are baked
 in at build time, the feature flags are written to `.env.local` before the
 build. Playwright is not installed (add `--with-playwright` after `--colab` for
 e2e), and `--no-start` performs the build and asset sync without launching the

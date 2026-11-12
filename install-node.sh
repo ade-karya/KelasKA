@@ -96,6 +96,12 @@
 #                       ON; flag ini no-op, disediakan agar eksplisit).
 #   --upstream-url=URL  Paksa URL remote `upstream` (default:
 #                       https://github.com/THU-MAIC/OpenMAIC.git).
+#   --with-workbench     Pakai workbench sebagai beranda (`/`) —
+#                       NEXT_PUBLIC_WORKBENCH_ENABLED=true (opt-in, mengikuti
+#                       upstream; default OFF = classic home).
+#   --no-workbench       Default: beranda = classic home; kedua nama flag
+#                       (baru + nama lama NEXT_PUBLIC_PRO_WORKBENCH_ENABLED)
+#                       ditulis/ dibiarkan nonaktif.
 #   --no-install        Lewati `pnpm install` (hanya siapkan sistem + env).
 #   --build             Jalankan `npm run build` di akhir sebagai pembuktian.
 #   --with-pm2          Instal PM2 + pastikan build produksi + jalankan
@@ -201,6 +207,10 @@ WITH_FFMPEG=1
 WITH_OPENCODE=1
 WITH_BROWSER_TTS=1
 WITH_UPSTREAM=1
+# Workbench sebagai beranda (`/`): opt-in mengikuti upstream (default OFF ->
+# classic home). Dibuat interaktif di template env via WORKBENCH_FLAG_LINE.
+WITH_WORKBENCH=0
+WITH_WORKBENCH_EXPLICIT=0
 # Remote git upstream (repo asli OpenMAIC). Bisa dioverride via
 # --upstream-url=URL atau env UPSTREAM_URL.
 UPSTREAM_URL="${UPSTREAM_URL:-https://github.com/THU-MAIC/OpenMAIC.git}"
@@ -258,6 +268,8 @@ for arg in "$@"; do
     --upstream-url=*)  UPSTREAM_URL="${arg#*=}"; [[ -n "$UPSTREAM_URL" ]] || fail "--upstream-url butuh nilai (contoh: --upstream-url=https://github.com/THU-MAIC/OpenMAIC.git)." ;;
     --pg-major=*)      PG_MAJOR="${arg#*=}" ;;
     --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (tier gratis: opencode:deepseek-v4.1-flash-free). Hapus flag tersebut dan ulangi." ;;
+    --with-workbench)  WITH_WORKBENCH=1; WITH_WORKBENCH_EXPLICIT=1 ;;
+    --no-workbench)    WITH_WORKBENCH=0; WITH_WORKBENCH_EXPLICIT=1 ;;
     --pg-password=*)   PG_PASSWORD="${arg#*=}"; [[ -n "$PG_PASSWORD" ]] || fail "--pg-password butuh nilai (contoh: --pg-password=rahasia)." ;;
     -h|--help)         tampilkan_help; exit 0 ;;
     *) fail "Opsi tidak dikenal: $arg (lihat --help)." ;;
@@ -285,6 +297,57 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   colab_mark() { local _now; _now="$(date +%s)"; info "waktu +$((_now - COLAB_T0))s: $*"; }
 else
   colab_mark() { :; }
+fi
+
+# Workbench sebagai beranda (`/`). Upstream: default OFF (classic home) dan
+# README upstream menyalakannya dengan NEXT_PUBLIC_WORKBENCH_ENABLED=true.
+# Nama lama NEXT_PUBLIC_PRO_WORKBENCH_ENABLED masih dibaca upstream hanya bila
+# nama baru kosong (dihapus di 1.6.0). `--with-workbench` menulis nama baru
+# untuk file baru/divisi fresh; `--no-workbench` mengosongkan KEDUANYA; tanpa
+# flag eksplisit, file .env.local yang ada dibiarkan apa adanya (nilai user
+# tidak ditimpa), tapi nilai lama yang masih aktif diperingatkan.
+terapkan_flag_workbench() {
+  local file="${1:-.env.local}" baru lama
+  if [[ "$WITH_WORKBENCH" -eq 1 ]]; then
+    if grep -qE '^[[:space:]]*NEXT_PUBLIC_WORKBENCH_ENABLED=' "$file"; then
+      sed -i -E 's|^[[:space:]]*NEXT_PUBLIC_WORKBENCH_ENABLED=.*|NEXT_PUBLIC_WORKBENCH_ENABLED=true|' "$file"
+    else
+      printf 'NEXT_PUBLIC_WORKBENCH_ENABLED=true\n' >> "$file"
+    fi
+    if grep -qE '^[[:space:]]*NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=' "$file"; then
+      sed -i -E 's|^[[:space:]]*NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=.*|NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=|' "$file"
+    fi
+    info "Workbench ON: NEXT_PUBLIC_WORKBENCH_ENABLED=true (beranda = workspace)."
+    return 0
+  fi
+  if [[ "$WITH_WORKBENCH_EXPLICIT" -eq 1 ]]; then
+    for _key in NEXT_PUBLIC_WORKBENCH_ENABLED NEXT_PUBLIC_PRO_WORKBENCH_ENABLED; do
+      if grep -qE "^[[:space:]]*${_key}=" "$file"; then
+        sed -i -E "s|^[[:space:]]*${_key}=.*|${_key}=|" "$file"
+      fi
+    done
+    unset _key
+    info "Workbench OFF: beranda = classic home (kedua nama flag dikosongkan)."
+    return 0
+  fi
+  [[ -f "$file" ]] || return 0
+  baru="$(grep -E '^[[:space:]]*NEXT_PUBLIC_WORKBENCH_ENABLED=' "$file" | tail -1 | cut -d= -f2- | tr -d '[:space:]"' | sed -e "s/'//g")"
+  lama="$(grep -E '^[[:space:]]*NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=' "$file" | tail -1 | cut -d= -f2- | tr -d '[:space:]"' | sed -e "s/'//g")"
+  if [[ -z "$baru" && ( "$lama" == "true" || "$lama" == "1" ) ]]; then
+    warn "NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=$lama (nama lama) masih aktif — beranda tetap workbench."
+    warn "  Upstream default = classic home: jalankan install.sh --no-workbench untuk kembali ke classic,"
+    warn "  atau --with-workbench untuk mempertahankan workbench dengan nama baru."
+  fi
+  return 0
+}
+if [[ "$WITH_WORKBENCH" -eq 1 ]]; then
+  WORKBENCH_FLAG_LINE="NEXT_PUBLIC_WORKBENCH_ENABLED=true"
+  WORKBENCH_LEGACY_LINE="# NEXT_PUBLIC_PRO_WORKBENCH_ENABLED= (nama lama, tidak dipakai)"
+else
+  # Placeholder komentar: bila workbench ingin aktifkan, jalankan ulang
+  # install.sh --with-workbench. Baris aktif tidak ditulis sama sekali.
+  WORKBENCH_FLAG_LINE="# NEXT_PUBLIC_WORKBENCH_ENABLED=true  (aktifkan: --with-workbench)"
+  WORKBENCH_LEGACY_LINE="# NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=true  (nama lama, deprecated — hapus)"
 fi
 
 # ---------------------------------------------------------------- sudo / root
@@ -1233,7 +1296,8 @@ OPENCODE_GO_MODELS=${tier_gopin}
 
 # --- Feature Flags: client (NEXT_PUBLIC_*) ------------------------------------
 # Nilai NEXT_PUBLIC_* dibaca saat start (dev) / saat build (produksi).
-NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=true
+${WORKBENCH_FLAG_LINE}
+${WORKBENCH_LEGACY_LINE}
 NEXT_PUBLIC_MAIC_EDITOR_ENABLED=true
 NEXT_PUBLIC_MAIC_EDITOR_RENDERER_ENABLED=true
 NEXT_PUBLIC_MAIC_PLAYBACK_RENDERER_ENABLED=true
@@ -2308,6 +2372,7 @@ fi
 # ter-seal di DB menjadi tak terbaca (insiden 2026-10-08). Idempoten: nilai
 # yang sudah ada tidak disentuh; file secret yang hidup diadopsi.
 LANGKAH="instance-secret"
+terapkan_flag_workbench .env.local
 pastikan_instance_secret .env.local
 chmod 600 .env.local 2>/dev/null || true
 
