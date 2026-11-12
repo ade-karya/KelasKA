@@ -156,6 +156,12 @@
 #   - Sinkron katalog model menulis .env.local/openmaic.yml dan tidak dibaca
 #     oleh build, jadi pada --build/--with-pm2 discovery berjalan paralel dengan
 #     build produksi; log-nya diputar setelah build selesai.
+#   - Langkah berat tidak dijalankan serial: 4g melepas gpu-services.sh ke latar
+#     (unduhan SDXL ~6.9 GB + pip) lalu `bun install` jalan bersamaan, bootstrap
+#     skema database berjalan selama build, dua verifikasi dependensi paralel,
+#     dan scripts/build-packages.mjs memakai 3 build paralel di host >= 4 vCPU /
+#     12 GB. Fase 2 (terapkan_layanan_gpu) tetap menunggu health check sebelum
+#     4a/4b menulis endpoint, karena NEXT_PUBLIC_* dipanggang saat build.
 #   - Bila --colab/--with-pm2 dijalankan saat dev server hasil --dev masih
 #     hidup, installer menghentikannya (grup proses di data/dev-server.pid)
 #     sebelum PM2 memakai PORT yang sama.
@@ -200,6 +206,12 @@ on_exit() {
   local rc=$?
   if [[ -n "${MODEL_SYNC_PID:-}" ]]; then
     kill "$MODEL_SYNC_PID" 2>/dev/null || true
+  fi
+  if [[ -n "${GPU_SYNC_PID:-}" ]]; then
+    kill "$GPU_SYNC_PID" 2>/dev/null || true
+  fi
+  if [[ -n "${BOOTSTRAP_PID:-}" ]]; then
+    kill "$BOOTSTRAP_PID" 2>/dev/null || true
   fi
   [[ "$rc" -eq 0 || "$rc" -eq 141 ]] && return 0
   if [[ "$FAILED_BY_FAIL" -eq 0 ]]; then
@@ -252,6 +264,15 @@ SYNC_MODEL_DONE=0
 MODEL_SYNC_PID=""
 MODEL_SYNC_LOG=""
 MODEL_SYNC_RC_FILE=""
+# Layanan GPU dan bootstrap skema database berjalan di latar agar tumpang
+# tindih dengan `bun install`/build (host dengan beberapa vCPU + RAM besar).
+GPU_SYNC_PID=""
+GPU_SYNC_LOG=""
+GPU_SYNC_RC_FILE=""
+BOOTSTRAP_PID=""
+BOOTSTRAP_LOG=""
+BOOTSTRAP_RC_FILE=""
+BOOTSTRAP_DONE=0
 WITH_FFMPEG=1
 WITH_BROWSER_TTS=1
 PG_MAJOR="${PG_MAJOR:-18}"
@@ -1118,64 +1139,276 @@ else
 fi
 
 # ========================= 4g. Layanan model lokal GPU (ComfyUI/FunASR/…)
-# Dijalankan sebelum preset fitur supaya 4a/4b hanya mengaktifkan endpoint yang
-# benar-benar merespons. Skrip menulis <gpu-dir>/gpu-services.env; kegagalan
-# satu layanan tidak menggagalkan instalasi aplikasi.
-if [[ "$WITH_GPU" -eq 1 ]]; then
-  LANGKAH="layanan model lokal GPU"
+# Dua fase supaya bisa paralel: unduhan model (SDXL ~6.9 GB, pip FunASR/VoxCPM)
+# tidak lagi menahan `bun install`. Fase 1 (mulai_layanan_gpu) melepas
+# scripts/gpu-services.sh ke latar; fase 2 (terapkan_layanan_gpu) menunggu,
+# membaca <gpu-dir>/gpu-services.env, dan baru mengisi 4a/4b — sehingga build
+# tetap melihat endpoint yang benar-benar merespons health check.
+mulai_layanan_gpu() {
   GPU_SCRIPT="${ROOT_DIR}/scripts/gpu-services.sh"
   if [[ ! -f "$GPU_SCRIPT" ]]; then
     warn "scripts/gpu-services.sh tidak ada — layanan GPU dilewati."
     WITH_GPU=0
-  elif [[ "$WITH_SERVER_START" -ne 1 ]]; then
+    return 0
+  fi
+  if [[ "$WITH_SERVER_START" -ne 1 ]]; then
     info "--no-start: layanan GPU tidak dijalankan, jadi endpoint lokal tidak diaktifkan."
     WITH_GPU=0
+    return 0
+  fi
+  local -a gpu_args=(--dir "$GPU_DIR" --image-model "$GPU_IMAGE_MODEL")
+  if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
+    gpu_args+=(--ollama-model "$GPU_OLLAMA_MODEL")
+    info "Menyiapkan layanan GPU di ${GPU_DIR} (Ollama, ComfyUI, FunASR, VoxCPM2) di latar..."
   else
-    GPU_SCRIPT_ARGS=(--dir "$GPU_DIR" --image-model "$GPU_IMAGE_MODEL")
-    if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
-      GPU_SCRIPT_ARGS+=(--ollama-model "$GPU_OLLAMA_MODEL")
-      info "Menyiapkan layanan GPU di ${GPU_DIR} (Ollama, ComfyUI, FunASR, VoxCPM2)..."
-    else
-      # LLM lokal tidak dipasang: chat memakai Gemini dan VRAM GPU dipakai
-      # model media, jadi Ollama dilewati (bukan cuma tidak diaktifkan).
-      GPU_SCRIPT_ARGS+=(--skip ollama)
-      info "Menyiapkan layanan GPU di ${GPU_DIR} (ComfyUI, FunASR, VoxCPM2; Ollama/LLM dilewati)..."
+    # LLM lokal tidak dipasang: chat memakai Gemini dan VRAM GPU dipakai
+    # model media, jadi Ollama dilewati (bukan cuma tidak diaktifkan).
+    gpu_args+=(--skip ollama)
+    info "Menyiapkan layanan GPU di ${GPU_DIR} (ComfyUI, FunASR, VoxCPM2; Ollama/LLM dilewati) di latar..."
+  fi
+  colab_mark "mulai layanan GPU (latar, paralel dengan dependensi)"
+  GPU_SYNC_LOG="$(mktemp)"
+  GPU_SYNC_RC_FILE="${GPU_SYNC_LOG}.rc"
+  rm -f "$GPU_SYNC_RC_FILE"
+  (
+    _gpu_rc=0
+    run_as_root env GPU_MODELS_DIR="$GPU_DIR" bash "$GPU_SCRIPT" "${gpu_args[@]}" || _gpu_rc=$?
+    printf '%s\n' "$_gpu_rc" > "$GPU_SYNC_RC_FILE"
+  ) >"$GPU_SYNC_LOG" 2>&1 &
+  GPU_SYNC_PID=$!
+  info "Layanan GPU berjalan di latar (PID ${GPU_SYNC_PID}); log dicetak saat fase 2."
+}
+
+terapkan_layanan_gpu() {
+  local _gpu_rc=0 _gpu_boleh=1
+  if [[ -n "$GPU_SYNC_PID" ]]; then
+    wait "$GPU_SYNC_PID" 2>/dev/null || true
+    GPU_SYNC_PID=""
+    [[ -n "$GPU_SYNC_LOG" && -f "$GPU_SYNC_LOG" ]] && cat "$GPU_SYNC_LOG"
+    if [[ -f "$GPU_SYNC_RC_FILE" ]]; then
+      _gpu_rc="$(cat "$GPU_SYNC_RC_FILE" 2>/dev/null || echo 1)"
     fi
-    colab_mark "mulai layanan GPU"
-    if run_as_root env GPU_MODELS_DIR="$GPU_DIR" bash "$GPU_SCRIPT" "${GPU_SCRIPT_ARGS[@]}"; then
-      GPU_STATE_FILE="${GPU_DIR}/gpu-services.env"
-      if [[ -f "$GPU_STATE_FILE" ]]; then
-        set -a
-        # shellcheck disable=SC1090,SC1091
-        . "$GPU_STATE_FILE"
-        set +a
-      fi
-    else
+    if [[ -n "$GPU_SYNC_LOG" ]]; then rm -f "$GPU_SYNC_LOG"; fi
+    if [[ -n "$GPU_SYNC_RC_FILE" ]]; then rm -f "$GPU_SYNC_RC_FILE"; fi
+    GPU_SYNC_LOG=""
+    GPU_SYNC_RC_FILE=""
+    if [[ "$_gpu_rc" != "0" ]]; then
+      _gpu_boleh=0
       warn "Skrip layanan GPU keluar dengan error; endpoint lokal tidak diaktifkan."
     fi
-    unset GPU_SCRIPT_ARGS
-    GPU_LAYANAN_AKTIF=(comfyui funasr voxcpm)
-    if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
-      GPU_LAYANAN_AKTIF=(ollama "${GPU_LAYANAN_AKTIF[@]}")
-    else
-      # Status lama dari run sebelumnya tidak boleh menghidupkan kembali Ollama.
-      if [[ "${GPU_OLLAMA_STATUS:-down}" == "up" ]]; then
-        warn "Ollama dari run sebelumnya masih hidup (${GPU_OLLAMA_URL:-port 11434}); hentikan manual bila VRAM GPU dibutuhkan ComfyUI."
-      fi
-      unset GPU_OLLAMA_URL GPU_OLLAMA_MODELS GPU_OLLAMA_STATUS
-    fi
-    for _svc in "${GPU_LAYANAN_AKTIF[@]}"; do
-      _key="GPU_$(printf '%s' "$_svc" | tr '[:lower:]' '[:upper:]')_STATUS"
-      if [[ "${!_key:-down}" == "up" ]]; then GPU_AKTIF+=" $_svc"; fi
-    done
-    unset _svc _key GPU_LAYANAN_AKTIF
-    if [[ -n "$GPU_AKTIF" ]]; then
-      info "Layanan GPU aktif:${GPU_AKTIF}"
-    else
-      warn "Tidak ada layanan GPU yang siap; fitur model lokal tidak diaktifkan."
-    fi
-    colab_mark "layanan GPU selesai"
   fi
+  [[ "$WITH_GPU" -eq 1 ]] || return 0
+  if [[ "$_gpu_boleh" -eq 1 ]]; then
+    GPU_STATE_FILE="${GPU_DIR}/gpu-services.env"
+    if [[ -f "$GPU_STATE_FILE" ]]; then
+      set -a
+      # shellcheck disable=SC1090,SC1091
+      . "$GPU_STATE_FILE"
+      set +a
+    fi
+  fi
+  GPU_LAYANAN_AKTIF=(comfyui funasr voxcpm)
+  if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
+    GPU_LAYANAN_AKTIF=(ollama "${GPU_LAYANAN_AKTIF[@]}")
+  else
+    # Status lama dari run sebelumnya tidak boleh menghidupkan kembali Ollama.
+    if [[ "${GPU_OLLAMA_STATUS:-down}" == "up" ]]; then
+      warn "Ollama dari run sebelumnya masih hidup (${GPU_OLLAMA_URL:-port 11434}); hentikan manual bila VRAM GPU dibutuhkan ComfyUI."
+    fi
+    unset GPU_OLLAMA_URL GPU_OLLAMA_MODELS GPU_OLLAMA_STATUS
+  fi
+  for _svc in "${GPU_LAYANAN_AKTIF[@]}"; do
+    _key="GPU_$(printf '%s' "$_svc" | tr '[:lower:]' '[:upper:]')_STATUS"
+    if [[ "${!_key:-down}" == "up" ]]; then GPU_AKTIF+=" $_svc"; fi
+  done
+  unset _svc _key GPU_LAYANAN_AKTIF
+  if [[ -n "$GPU_AKTIF" ]]; then
+    info "Layanan GPU aktif:${GPU_AKTIF}"
+  else
+    warn "Tidak ada layanan GPU yang siap; fitur model lokal tidak diaktifkan."
+  fi
+  colab_mark "layanan GPU selesai (fase 2)"
+}
+
+if [[ "$WITH_GPU" -eq 1 ]]; then
+  LANGKAH="layanan model lokal GPU"
+  mulai_layanan_gpu
+fi
+
+# ============================================================ 5. Direktori data
+# (dijalankan sebelum 4a/4b karena menumpang fase latar layanan GPU: dependensi
+# JS tidak bergantung pada feature flag hasil health check GPU.)
+# Bootstrap skema database juga berjalan di latar: skrip hanya menulis skema ke
+# DATABASE_URL dan `next build` tidak membacanya, jadi cukup ditunggu sebelum
+# PM2 menyalakan server.
+bootstrap_db_di_latar() {
+  BOOTSTRAP_DONE=0
+  if [[ -z "${DB_URL_EFEKTIF:-}" || ! -f scripts/bootstrap-db-schema.mts ]]; then
+    BOOTSTRAP_DONE=1
+    return 0
+  fi
+  BOOTSTRAP_LOG="$(mktemp)"
+  BOOTSTRAP_RC_FILE="${BOOTSTRAP_LOG}.rc"
+  rm -f "$BOOTSTRAP_RC_FILE"
+  (
+    _boot_rc=0
+    as_owner env DATABASE_URL="$DB_URL_EFEKTIF" "$BUN_BIN" scripts/bootstrap-db-schema.mts || _boot_rc=$?
+    printf '%s\n' "$_boot_rc" > "$BOOTSTRAP_RC_FILE"
+  ) >"$BOOTSTRAP_LOG" 2>&1 &
+  BOOTSTRAP_PID=$!
+  info "Bootstrap skema database berjalan di latar (PID ${BOOTSTRAP_PID})."
+}
+
+pastikan_bootstrap_db() {
+  [[ "$BOOTSTRAP_DONE" -eq 1 ]] && return 0
+  if [[ -n "$BOOTSTRAP_PID" ]]; then
+    LANGKAH="bootstrap skema database"
+    wait "$BOOTSTRAP_PID" 2>/dev/null || true
+    BOOTSTRAP_PID=""
+    [[ -n "$BOOTSTRAP_LOG" && -f "$BOOTSTRAP_LOG" ]] && cat "$BOOTSTRAP_LOG"
+    local _boot_rc=0
+    if [[ -f "$BOOTSTRAP_RC_FILE" ]]; then
+      _boot_rc="$(cat "$BOOTSTRAP_RC_FILE" 2>/dev/null || echo 1)"
+    fi
+    if [[ -n "$BOOTSTRAP_LOG" ]]; then rm -f "$BOOTSTRAP_LOG"; fi
+    if [[ -n "$BOOTSTRAP_RC_FILE" ]]; then rm -f "$BOOTSTRAP_RC_FILE"; fi
+    BOOTSTRAP_LOG=""
+    BOOTSTRAP_RC_FILE=""
+    if [[ "$_boot_rc" == "0" ]]; then
+      info "Skema database: OK."
+    else
+      warn "Bootstrap skema database gagal; skema dibuat lazy saat server jalan."
+    fi
+  fi
+  BOOTSTRAP_DONE=1
+  colab_mark "bootstrap skema database selesai"
+}
+
+LANGKAH="direktori data/"
+info "Menyiapkan direktori data/..."
+mkdir -p data/classrooms data/classroom-jobs
+
+# ============================================================ 6. Dependensi JS
+if [[ "$WITH_INSTALL" -eq 1 ]]; then
+  LANGKAH="bun: manifest workspace"
+  info "Menyiapkan package.json untuk Bun (workspaces + trustedDependencies)..."
+  # Bun membaca workspaces dari package.json, bukan pnpm-workspace.yaml.
+  # Blok ini idempoten dan hanya menulis bila ada yang berubah.
+  as_owner "$BUN_BIN" -e '
+const fs = require("node:fs");
+const root = process.cwd();
+const pkgPath = `${root}/package.json`;
+const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+let changed = false;
+
+function bacaWorkspacePnpm() {
+  const file = `${root}/pnpm-workspace.yaml`;
+  if (!fs.existsSync(file)) return null;
+  const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
+  const hasil = [];
+  let dalamPackages = false;
+  for (const line of lines) {
+    if (/^\s*packages\s*:/.test(line)) { dalamPackages = true; continue; }
+    if (dalamPackages && /^\S/.test(line) && !/^\s*#/.test(line)) dalamPackages = false;
+    if (!dalamPackages) continue;
+    const m = line.match(/^\s*-\s*["\x27]?([^"\x27#]+?)["\x27]?\s*(?:#.*)?$/);
+    if (m) hasil.push(m[1].trim());
+  }
+  return hasil.length ? hasil : null;
+}
+
+if (!Array.isArray(pkg.workspaces) || pkg.workspaces.length === 0) {
+  pkg.workspaces = bacaWorkspacePnpm() || [
+    "packages/*",
+    "packages/@openmaic/*",
+    "!packages/docs",
+  ];
+  changed = true;
+}
+
+const perluTrust = [
+  "@alicloud/openapi-core",
+  "@biomejs/biome",
+  "@google/genai",
+  "canvas",
+  "esbuild",
+  "onnxruntime-node",
+  "protobufjs",
+  "sharp",
+  "unrs-resolver",
+];
+const trust = new Set(pkg.trustedDependencies || []);
+for (const nama of perluTrust) trust.add(nama);
+const trustBaru = [...trust].sort();
+if (JSON.stringify(trustBaru) !== JSON.stringify(pkg.trustedDependencies || [])) {
+  pkg.trustedDependencies = trustBaru;
+  changed = true;
+}
+
+if (changed) {
+  fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+  console.log("package.json: workspaces/trustedDependencies disiapkan");
+} else {
+  console.log("package.json: sudah siap untuk Bun");
+}
+'
+  as_owner "$BUN_BIN" -e 'const p=require("./package.json"); console.log("workspaces:", JSON.stringify(p.workspaces)); console.log("trustedDependencies:", (p.trustedDependencies||[]).length + " paket");'
+
+  LANGKAH="bun install"
+  info "Menjalankan bun install (postinstall membangun packages + sync vendor)..."
+  BUN_INSTALL_ARGS=(--no-progress)
+  if [[ -f bun.lock ]]; then BUN_INSTALL_ARGS+=(--frozen-lockfile); fi
+  BUN_CACHE="$(as_owner "$BUN_BIN" pm cache 2>/dev/null || true)"
+  if [[ -n "$BUN_CACHE" && -d "$BUN_CACHE" ]] && [[ -n "$(ls -A "$BUN_CACHE" 2>/dev/null)" ]]; then
+    BUN_INSTALL_ARGS+=(--prefer-offline)
+    info "Cache Bun terisi — memakai --prefer-offline."
+  fi
+
+  bun_install() {
+    as_owner env "${BUILD_ENV[@]}" "$BUN_BIN" install "$@"
+  }
+
+  if ! bun_install "${BUN_INSTALL_ARGS[@]}"; then
+    warn "bun install gagal — mencoba ulang tanpa --frozen-lockfile..."
+    BUN_INSTALL_ARGS_RETRY=(--no-progress)
+    if [[ " ${BUN_INSTALL_ARGS[*]} " == *" --prefer-offline "* ]]; then
+      BUN_INSTALL_ARGS_RETRY+=(--prefer-offline)
+    fi
+    if ! bun_install "${BUN_INSTALL_ARGS_RETRY[@]}"; then
+      warn "bun install masih gagal — mengulang tanpa lifecycle script lalu build manual..."
+      bun_install --no-progress --ignore-scripts
+      as_owner env "${BUILD_ENV[@]}" "$BUN_BIN" run build:packages
+    fi
+  fi
+
+  LANGKAH="verifikasi dependensi"
+  # Dua verifikasi ini independen (vendor bundle vs kontrak engine): jalankan
+  # bersamaan supaya tidak saling menunggu.
+  info "Verifikasi vendor bundle PPTX + kontrak engine (paralel)..."
+  _vendor_rc=0
+  _engine_rc=0
+  as_owner "$BUN_BIN" scripts/assert-vendor-maic-importer.mjs &
+  _vendor_pid=$!
+  as_owner "$BUN_BIN" scripts/check-node-engine-contract.mjs &
+  _engine_pid=$!
+  wait "$_vendor_pid" || _vendor_rc=$?
+  wait "$_engine_pid" || _engine_rc=$?
+  [[ "$_vendor_rc" -eq 0 ]] || fail "Vendor bundle PPTX tidak valid (lihat pesan di atas)."
+  [[ "$_engine_rc" -eq 0 ]] || fail "Kontrak engine Node tidak terpenuhi (lihat pesan di atas)."
+  unset _vendor_pid _engine_pid _vendor_rc _engine_rc
+  colab_mark "bun install selesai"
+
+  LANGKAH="bootstrap skema database"
+  bootstrap_db_di_latar
+else
+  info "Lewati bun install (--no-install). Jalankan manual nanti: bun install"
+fi
+
+# Tunggu layanan GPU (berjalan paralel dengan dependensi di atas) sebelum 4a
+# mengisi endpoint lokal dan build memanggang NEXT_PUBLIC_*.
+if [[ "$WITH_GPU" -eq 1 ]]; then
+  LANGKAH="layanan model lokal GPU"
+  terapkan_layanan_gpu
 fi
 
 # ================================= 4a. Preset fitur --colab (produksi)
@@ -2306,125 +2539,6 @@ sinkron_model() {
 # baca_slot_model_yml) dan sebelum server/PM2 membaca .env.local + openmaic.yml.
 siapkan_provider_google
 
-# ============================================================ 5. Direktori data
-LANGKAH="direktori data/"
-info "Menyiapkan direktori data/..."
-mkdir -p data/classrooms data/classroom-jobs
-
-# ============================================================ 6. Dependensi JS
-if [[ "$WITH_INSTALL" -eq 1 ]]; then
-  LANGKAH="bun: manifest workspace"
-  info "Menyiapkan package.json untuk Bun (workspaces + trustedDependencies)..."
-  # Bun membaca workspaces dari package.json, bukan pnpm-workspace.yaml.
-  # Blok ini idempoten dan hanya menulis bila ada yang berubah.
-  as_owner "$BUN_BIN" -e '
-const fs = require("node:fs");
-const root = process.cwd();
-const pkgPath = `${root}/package.json`;
-const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-let changed = false;
-
-function bacaWorkspacePnpm() {
-  const file = `${root}/pnpm-workspace.yaml`;
-  if (!fs.existsSync(file)) return null;
-  const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
-  const hasil = [];
-  let dalamPackages = false;
-  for (const line of lines) {
-    if (/^\s*packages\s*:/.test(line)) { dalamPackages = true; continue; }
-    if (dalamPackages && /^\S/.test(line) && !/^\s*#/.test(line)) dalamPackages = false;
-    if (!dalamPackages) continue;
-    const m = line.match(/^\s*-\s*["\x27]?([^"\x27#]+?)["\x27]?\s*(?:#.*)?$/);
-    if (m) hasil.push(m[1].trim());
-  }
-  return hasil.length ? hasil : null;
-}
-
-if (!Array.isArray(pkg.workspaces) || pkg.workspaces.length === 0) {
-  pkg.workspaces = bacaWorkspacePnpm() || [
-    "packages/*",
-    "packages/@openmaic/*",
-    "!packages/docs",
-  ];
-  changed = true;
-}
-
-const perluTrust = [
-  "@alicloud/openapi-core",
-  "@biomejs/biome",
-  "@google/genai",
-  "canvas",
-  "esbuild",
-  "onnxruntime-node",
-  "protobufjs",
-  "sharp",
-  "unrs-resolver",
-];
-const trust = new Set(pkg.trustedDependencies || []);
-for (const nama of perluTrust) trust.add(nama);
-const trustBaru = [...trust].sort();
-if (JSON.stringify(trustBaru) !== JSON.stringify(pkg.trustedDependencies || [])) {
-  pkg.trustedDependencies = trustBaru;
-  changed = true;
-}
-
-if (changed) {
-  fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
-  console.log("package.json: workspaces/trustedDependencies disiapkan");
-} else {
-  console.log("package.json: sudah siap untuk Bun");
-}
-'
-  as_owner "$BUN_BIN" -e 'const p=require("./package.json"); console.log("workspaces:", JSON.stringify(p.workspaces)); console.log("trustedDependencies:", (p.trustedDependencies||[]).length + " paket");'
-
-  LANGKAH="bun install"
-  info "Menjalankan bun install (postinstall membangun packages + sync vendor)..."
-  BUN_INSTALL_ARGS=(--no-progress)
-  if [[ -f bun.lock ]]; then BUN_INSTALL_ARGS+=(--frozen-lockfile); fi
-  BUN_CACHE="$(as_owner "$BUN_BIN" pm cache 2>/dev/null || true)"
-  if [[ -n "$BUN_CACHE" && -d "$BUN_CACHE" ]] && [[ -n "$(ls -A "$BUN_CACHE" 2>/dev/null)" ]]; then
-    BUN_INSTALL_ARGS+=(--prefer-offline)
-    info "Cache Bun terisi — memakai --prefer-offline."
-  fi
-
-  bun_install() {
-    as_owner env "${BUILD_ENV[@]}" "$BUN_BIN" install "$@"
-  }
-
-  if ! bun_install "${BUN_INSTALL_ARGS[@]}"; then
-    warn "bun install gagal — mencoba ulang tanpa --frozen-lockfile..."
-    BUN_INSTALL_ARGS_RETRY=(--no-progress)
-    if [[ " ${BUN_INSTALL_ARGS[*]} " == *" --prefer-offline "* ]]; then
-      BUN_INSTALL_ARGS_RETRY+=(--prefer-offline)
-    fi
-    if ! bun_install "${BUN_INSTALL_ARGS_RETRY[@]}"; then
-      warn "bun install masih gagal — mengulang tanpa lifecycle script lalu build manual..."
-      bun_install --no-progress --ignore-scripts
-      as_owner env "${BUILD_ENV[@]}" "$BUN_BIN" run build:packages
-    fi
-  fi
-
-  LANGKAH="verifikasi dependensi"
-  info "Verifikasi vendor bundle PPTX..."
-  as_owner "$BUN_BIN" scripts/assert-vendor-maic-importer.mjs
-  info "Verifikasi kontrak engine..."
-  as_owner "$BUN_BIN" scripts/check-node-engine-contract.mjs
-  colab_mark "bun install selesai"
-
-  if [[ -n "$DB_URL_EFEKTIF" && -f scripts/bootstrap-db-schema.mts ]]; then
-    LANGKAH="bootstrap skema database"
-    info "Bootstrap skema database (eager)..."
-    if as_owner env DATABASE_URL="$DB_URL_EFEKTIF" "$BUN_BIN" scripts/bootstrap-db-schema.mts; then
-      info "Skema database: OK."
-    else
-      warn "Bootstrap skema database gagal; skema dibuat lazy saat server jalan."
-    fi
-  colab_mark "bootstrap skema database selesai"
-  fi
-else
-  info "Lewati bun install (--no-install). Jalankan manual nanti: bun install"
-fi
-
 # ================================= 6a. Google Antigravity CLI (agy)
 # Transport `antigravity` berjalan native lewat CLI `agy` (turn diproses
 # `agy`, tool-loop tetap milik harness). Model ditemukan dari `agy models`
@@ -2562,6 +2676,9 @@ if [[ "$WITH_BUILD" -eq 1 ]]; then
   fi
   jalankan_build
 fi
+# Skema database berjalan di latar sejak bun install; build tidak membutuhkannya
+# tetapi PM2 (di bawah) butuh skema siap saat server start.
+pastikan_bootstrap_db
 
 # ============================================================ 9. Kepemilikan
 LANGKAH="kepemilikan file"
