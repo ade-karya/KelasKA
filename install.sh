@@ -26,8 +26,10 @@
 #      --with-workbench yang menulis NEXT_PUBLIC_WORKBENCH_ENABLED=true. Endpoint
 #      model lokal/Docker dikosongkan HANYA bila host tidak punya GPU NVIDIA;
 #      dengan GPU, langkah 4g menyalakan layanan media lokal dan endpoint yang
-#      hidup.
-#   4g. Layanan model lokal GPU (--with-gpu, atau --colab di host NVIDIA):
+#      hidup. Pada --kaggle, preset produksi TIDAK memaksa feature flag: nilai
+#      aplikasi mengikuti default upstream, dan installer hanya mengisi endpoint
+#      media lokal yang benar-benar lolos health check.
+#   4g. Layanan model lokal GPU (--with-gpu, atau --colab/--kaggle di host NVIDIA):
 #      scripts/gpu-services.sh memasang + menjalankan ComfyUI (gambar), FunASR
 #      (ASR, CUDA) dan VoxCPM2 (TTS), lalu installer hanya mengaktifkan layanan
 #      yang lolos health check. LLM lokal (Ollama) TIDAK ikut: chat memakai
@@ -94,10 +96,26 @@
 #                         Playwright tidak dipasang (tambahkan sendiri untuk
 #                         e2e); --no-start hanya menyiapkan build tanpa
 #                         menjalankan PM2 maupun layanan GPU.
+#   --kaggle              Preset produksi untuk notebook Kaggle: --yes --with-pm2
+#                         (build standalone + PM2) TANPA memaksa feature flag —
+#                         flag aplikasi mengikuti default upstream (semua OFF,
+#                         workbench = classic home). PostgreSQL mengikuti mode
+#                         otomatis. Di host NVIDIA layanan media lokal
+#                         (ComfyUI/FunASR/VoxCPM2) ikut disiapkan seperti
+#                         --colab; Ollama/LLM lokal tetap tidak dipasang.
+#                         Kaggle juga dikenali otomatis (/kaggle atau
+#                         KAGGLE_KERNEL_RUN_TYPE): ringkasan memakai instruksi
+#                         port Kaggle (bukan output.serve_kernel_port_as_window
+#                         milik Colab), unit systemd dilewati, dan default
+#                         --gpu-dir menjadi /kaggle/working/gpu-models —
+#                         tambahkan --gpu-dir=/kaggle/temp/gpu-models agar bobot
+#                         ~GB tidak ikut tersimpan saat "Save Version" (kuota
+#                         output 20 GB). Playwright tidak dipasang; --no-start
+#                         tetap membuat build tanpa PM2/layanan GPU.
 #   --with-gpu            Paksa langkah layanan model lokal GPU walau tanpa
-#                         --colab. Butuh NVIDIA GPU (nvidia-smi). Flag eksplisit
+#                         --colab/--kaggle. Butuh NVIDIA GPU (nvidia-smi). Flag eksplisit
 #                         ini juga memasang Ollama + model LLM lokal (opt-in).
-#   --no-gpu              Jangan sentuh layanan GPU lokal (menang atas --colab).
+#   --no-gpu              Jangan sentuh layanan GPU lokal (menang atas --colab/--kaggle).
 #   --gpu-dir=DIR         Direktori model/layanan GPU (default: /opt/gpu-models).
 #   --gpu-ollama-model=M  Model Ollama untuk --with-gpu (default: llama3.2:3b).
 #   --gpu-image-model=M   Checkpoint ComfyUI (default: sd_xl_base_1.0.safetensors;
@@ -116,7 +134,7 @@
 #                         (default 3000). Butuh Chromium e2e? Tambahkan
 #                         --with-playwright.
 #   --no-start            Jangan jalankan server otomatis: pada --dev dev server
-#                         tidak diluncurkan, pada --colab/--with-pm2 build tetap
+#                         tidak diluncurkan, pada --colab/--kaggle/--with-pm2 build tetap
 #                         dibuat tetapi proses PM2 tidak dijalankan.
 #   --with-ffmpeg         Instal ffmpeg (default ON; no-op).
 #   --no-ffmpeg           Lewati ffmpeg (ekstraksi media lokal mati).
@@ -185,7 +203,7 @@
 #     dan scripts/build-packages.mjs memakai 3 build paralel di host >= 4 vCPU /
 #     12 GB. Fase 2 (terapkan_layanan_gpu) tetap menunggu health check sebelum
 #     4a/4b menulis endpoint, karena NEXT_PUBLIC_* dipanggang saat build.
-#   - Bila --colab/--with-pm2 dijalankan saat dev server hasil --dev masih
+#   - Bila --colab/--kaggle/--with-pm2 dijalankan saat dev server hasil --dev masih
 #     hidup, installer menghentikannya (grup proses di data/dev-server.pid)
 #     sebelum PM2 memakai PORT yang sama.
 #   - pgAdmin4 tidak termasuk di installer Bun ini; gunakan install-node.sh
@@ -201,7 +219,7 @@
 #     <gpu-dir>/logs; skripnya bisa dipakai ulang tanpa installer:
 #       ./scripts/gpu-services.sh --status
 #       ./scripts/gpu-services.sh --only comfyui
-#     Ollama/LLM lokal hanya ikut pada --with-gpu eksplisit; --colab tidak
+#     Ollama/LLM lokal hanya ikut pada --with-gpu eksplisit; --colab/--kaggle tidak
 #     memasang maupun mengaktifkannya (chat tetap di Gemini).
 #     Status terakhir ada di <gpu-dir>/gpu-services.env. Setelah reboot host,
 #     jalankan ulang installer (idempoten) atau skrip itu untuk start ulang.
@@ -270,15 +288,20 @@ WITH_BUILD=0
 WITH_PLAYWRIGHT=0
 WITH_PM2=0
 WITH_COLAB=0
-# Layanan model lokal GPU: "auto" = aktif hanya pada --colab + NVIDIA GPU.
+WITH_KAGGLE=0
+# KAGGLE_ENV = sedang berjalan di notebook Kaggle (dideteksi atau --kaggle).
+KAGGLE_ENV=0
+# Layanan model lokal GPU: "auto" = aktif hanya pada --colab/--kaggle + NVIDIA GPU.
 WITH_GPU="auto"
 WITH_GPU_EXPLICIT=0
 GPU_DIR="${GPU_MODELS_DIR:-/opt/gpu-models}"
+GPU_DIR_DIMINTA=0
+if [[ -n "${GPU_MODELS_DIR:-}" ]]; then GPU_DIR_DIMINTA=1; fi
 GPU_OLLAMA_MODEL="${GPU_OLLAMA_MODEL:-llama3.2:3b}"
 GPU_OLLAMA_MODEL_DIMINTA=0
 GPU_IMAGE_MODEL="${GPU_IMAGE_MODEL:-sd_xl_base_1.0.safetensors}"
 GPU_AKTIF=""
-# LLM lokal (Ollama) bukan bagian preset --colab: chat memakai Gemini dan VRAM
+# LLM lokal (Ollama) bukan bagian preset --colab/--kaggle: chat memakai Gemini dan VRAM
 # GPU dipakai model media. "auto" = hanya ikut bila --with-gpu diminta eksplisit.
 WITH_GPU_LLM="auto"
 # Workbench sebagai beranda: opt-in mengikuti upstream (default OFF -> classic
@@ -328,6 +351,9 @@ Contoh:
   sudo ./install.sh --colab --with-playwright
   sudo ./install.sh --colab --gpu-image-model=none
   sudo ./install.sh --colab --no-gpu
+  sudo ./install.sh --kaggle
+  sudo ./install.sh --kaggle --gpu-dir=/kaggle/temp/gpu-models
+  sudo ./install.sh --kaggle --no-start
   sudo ./install.sh --dev
   sudo ./install.sh --dev --no-start
   sudo ./install.sh --yes --full
@@ -363,9 +389,10 @@ for arg in "$@"; do
     --fast)              FAST_BUILD=1 ;;
     --no-fast)           FAST_BUILD=0 ;;
     --colab)             WITH_COLAB=1; ASSUME_YES=1; WITH_BUILD=1; WITH_PM2=1; WITH_DEV=0 ;;
+    --kaggle)            WITH_KAGGLE=1; ASSUME_YES=1; WITH_BUILD=1; WITH_PM2=1; WITH_DEV=0 ;;
     --with-gpu)          WITH_GPU=1; WITH_GPU_EXPLICIT=1 ;;
     --no-gpu)            WITH_GPU=0; WITH_GPU_EXPLICIT=1 ;;
-    --gpu-dir=*)         GPU_DIR="${arg#*=}" ;;
+    --gpu-dir=*)         GPU_DIR="${arg#*=}"; GPU_DIR_DIMINTA=1 ;;
     --gpu-ollama-model=*) GPU_OLLAMA_MODEL="${arg#*=}"; GPU_OLLAMA_MODEL_DIMINTA=1 ;;
     --gpu-image-model=*) GPU_IMAGE_MODEL="${arg#*=}" ;;
     --with-workbench)    WITH_WORKBENCH=1; WITH_WORKBENCH_EXPLICIT=1 ;;
@@ -398,8 +425,25 @@ done
 [[ "$BUN_MIN_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
   || fail "--min-bun-version harus semver 3 angka (contoh: --min-bun-version=1.3.14)."
 
-# --colab adalah preset produksi; build cepat hanya dipakai bila --fast diminta
-# eksplisit. --fast/--no-fast menang terlepas dari urutan argumen.
+# ------------------------------------------------------------- deteksi Kaggle
+# --kaggle adalah preset produksi untuk notebook Kaggle. Environment Kaggle
+# juga dikenali otomatis (/kaggle atau KAGGLE_KERNEL_RUN_TYPE), supaya --colab
+# atau instalasi biasa di Kaggle mendapat perilaku yang sama (instruksi port
+# Kaggle, tanpa unit systemd, default --gpu-dir) tanpa flag tambahan.
+if [[ "$WITH_KAGGLE" -eq 1 || -d /kaggle || -n "${KAGGLE_KERNEL_RUN_TYPE:-}" ]]; then
+  KAGGLE_ENV=1
+fi
+if [[ "$WITH_COLAB" -eq 1 && "$WITH_KAGGLE" -eq 1 ]]; then
+  warn "--colab + --kaggle: feature flag fork ikut ON karena --colab; --kaggle hanya menambah perilaku Kaggle (port, systemd, --gpu-dir)."
+fi
+# Bobot model di Kaggle: /kaggle/working adalah output notebook (kuota 20 GB),
+# jadi nilai itu hanya default — user bisa memilih /kaggle/temp lewat --gpu-dir.
+if [[ "$KAGGLE_ENV" -eq 1 && "$GPU_DIR_DIMINTA" -eq 0 && -d /kaggle/working ]]; then
+  GPU_DIR="/kaggle/working/gpu-models"
+fi
+
+# --colab/--kaggle adalah preset produksi; build cepat hanya dipakai bila
+# --fast diminta eksplisit. --fast/--no-fast menang terlepas dari urutan argumen.
 if [[ "$FAST_BUILD" == "auto" ]]; then
   FAST_BUILD=0
 fi
@@ -413,22 +457,22 @@ if [[ "$FAST_BUILD" -eq 1 ]]; then
 fi
 
 # --dev dan PM2 sama-sama menjalankan server di PORT yang sama; jalankan salah
-# satu agar tidak ada dua proses berebut port. --colab sekarang preset
+# satu agar tidak ada dua proses berebut port. --colab/--kaggle sekarang preset
 # produksi (PM2), jadi menggabungkannya dengan --dev adalah kesalahan konfigurasi.
 if [[ "$WITH_DEV" -eq 1 && "$WITH_PM2" -eq 1 ]]; then
-  fail "--dev tidak bisa digabung dengan --colab/--with-pm2 (dua server di port yang sama). Pilih --colab (produksi) atau --dev."
+  fail "--dev tidak bisa digabung dengan --colab/--kaggle/--with-pm2 (dua server di port yang sama). Pilih --colab/--kaggle (produksi) atau --dev."
 fi
 if [[ "$WITH_DEV" -eq 1 && "$WITH_BUILD" -eq 1 ]]; then
   info "Mode dev: --build tetap dijalankan, tetapi dev server memakai next dev (build tidak wajib)."
 fi
 
-# Penanda waktu antar-langkah khusus --colab (best-effort, agar bottleneck
-# terlihat di log; no-op bila bukan colab agar log server tetap bersih).
-if [[ "$WITH_COLAB" -eq 1 ]]; then
-  COLAB_T0="$(date +%s)"
-  colab_mark() { local _now; _now="$(date +%s)"; info "waktu +$((_now - COLAB_T0))s: $*"; }
+# Penanda waktu antar-langkah khusus preset produksi notebook (--colab/--kaggle,
+# best-effort agar bottleneck terlihat di log; no-op di mode lain).
+if [[ "$WITH_COLAB" -eq 1 || "$WITH_KAGGLE" -eq 1 ]]; then
+  PRESET_T0="$(date +%s)"
+  preset_mark() { local _now; _now="$(date +%s)"; info "waktu +$((_now - PRESET_T0))s: $*"; }
 else
-  colab_mark() { :; }
+  preset_mark() { :; }
 fi
 # Default Postgres: otomatis. Aplikasi menolak start tanpa DATABASE_URL, jadi
 # pasang lokal hanya bila belum ada URL (file atau environment).
@@ -747,10 +791,11 @@ gpu_nvidia_ada() {
 }
 
 # --with-gpu/--no-gpu eksplisit menang; "auto" menyalakan layanan GPU hanya
-# untuk --colab di host NVIDIA. Host tanpa GPU mempertahankan perilaku lama
-# (endpoint lokal dikosongkan), jadi preset tetap aman di Colab CPU.
+# untuk preset notebook (--colab/--kaggle) di host NVIDIA. Host tanpa GPU
+# mempertahankan perilaku lama (endpoint lokal dikosongkan), jadi preset tetap
+# aman di runtime CPU.
 if [[ "$WITH_GPU" == "auto" ]]; then
-  if [[ "$WITH_COLAB" -eq 1 ]] && gpu_nvidia_ada; then
+  if [[ "$WITH_COLAB" -eq 1 || "$WITH_KAGGLE" -eq 1 ]] && gpu_nvidia_ada; then
     WITH_GPU=1
   else
     WITH_GPU=0
@@ -767,7 +812,7 @@ if [[ "$WITH_GPU" -eq 1 ]]; then
     GPU_DIR="${ROOT_DIR}/${GPU_DIR}"
   fi
 fi
-# --with-gpu eksplisit mengikutkan LLM lokal (Ollama); jalur "auto" (--colab di
+# --with-gpu eksplisit mengikutkan LLM lokal (Ollama); jalur "auto" (--colab/--kaggle di
 # host NVIDIA) dan --no-gpu tidak pernah memasang maupun mengaktifkannya.
 if [[ "$WITH_GPU_LLM" == "auto" ]]; then
   if [[ "$WITH_GPU" -eq 1 && "$WITH_GPU_EXPLICIT" -eq 1 ]]; then
@@ -829,6 +874,13 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
       echo "  - preset Colab: produksi (build + PM2) + semua feature flag ON (workbench opt-in) (Docker/Ollama/model lokal OFF)"
     fi
   fi
+  if [[ "$WITH_KAGGLE" -eq 1 ]]; then
+    if [[ "$WITH_GPU" -eq 1 ]]; then
+      echo "  - preset Kaggle: produksi (build + PM2), feature flag default upstream (workbench opt-in) + layanan GPU media lokal"
+    else
+      echo "  - preset Kaggle: produksi (build + PM2), feature flag default upstream (workbench opt-in) (Ollama/model lokal OFF)"
+    fi
+  fi
   if [[ "$WITH_GPU" -eq 1 ]]; then
     if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
       echo "  - layanan GPU lokal: Ollama (LLM), ComfyUI (SDXL), FunASR, VoxCPM2 di ${GPU_DIR}"
@@ -866,14 +918,6 @@ if [[ "$WITH_FFMPEG" -eq 1 ]] && ! command -v ffmpeg >/dev/null 2>&1; then
   APT_PKGS+=(ffmpeg)
 fi
 
-apt_semua_terpasang() {
-  local p
-  for p in "$@"; do
-    dpkg -s "$p" >/dev/null 2>&1 || return 1
-  done
-  return 0
-}
-
 apt_update() {
   info "Memperbarui daftar paket (apt-get update)..."
   run_as_root apt-get update -o Acquire::Retries=3
@@ -884,12 +928,21 @@ apt_install() {
     apt-get install -y --no-install-recommends -o Acquire::Retries=3 "$@"
 }
 
-if apt_semua_terpasang "${APT_PKGS[@]}"; then
+# Hanya paket yang belum terpasang yang diminta ke apt: image notebook (Colab/
+# Kaggle) sudah membawa sebagian besar paket, dan `apt-get install` tetap
+# melewati yang sudah ada — tetapi daftar pendek membuat log dan waktu install
+# jujur, terutama di Kaggle yang tidak punya paket dev cairo/pango.
+APT_HILANG=()
+for _pkg in "${APT_PKGS[@]}"; do
+  dpkg -s "$_pkg" >/dev/null 2>&1 || APT_HILANG+=("$_pkg")
+done
+unset _pkg
+if [[ "${#APT_HILANG[@]}" -eq 0 ]]; then
   info "Paket sistem sudah lengkap — lewati apt-get update/install."
   APT_PERLU_UPDATE=0
 else
   # Lewati apt-get update bila cache lists masih segar (<24 jam) — penghemat
-  # terbesar di run ulang Colab (install-node.sh pola yang sama).
+  # terbesar di run ulang Colab/Kaggle (install-node.sh pola yang sama).
   APT_PERLU_UPDATE=1
   if [[ -d /var/lib/apt/lists ]] \
     && [[ -n "$(find /var/lib/apt/lists -maxdepth 1 -name '*InRelease' -mmin -1440 2>/dev/null)" ]]; then
@@ -899,14 +952,14 @@ else
   if [[ "$APT_PERLU_UPDATE" -eq 1 ]]; then
     apt_update
   fi
-  info "Menginstal paket sistem: ${APT_PKGS[*]}"
-  if ! apt_install "${APT_PKGS[@]}"; then
+  info "Menginstal paket sistem yang belum ada: ${APT_HILANG[*]}"
+  if ! apt_install "${APT_HILANG[@]}"; then
     warn "Daftar paket lama/tidak lengkap — memperbarui apt lalu mencoba lagi."
     apt_update
-    apt_install "${APT_PKGS[@]}" || fail "Instalasi paket sistem gagal."
+    apt_install "${APT_HILANG[@]}" || fail "Instalasi paket sistem gagal."
   fi
 fi
-colab_mark "paket sistem selesai"
+preset_mark "paket sistem selesai"
 
 # PGDG hanya bila Postgres diminta.
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then
@@ -1252,7 +1305,7 @@ mulai_layanan_gpu() {
     gpu_args+=(--skip ollama)
     info "Menyiapkan layanan GPU di ${GPU_DIR} (ComfyUI, FunASR, VoxCPM2; Ollama/LLM dilewati) di latar..."
   fi
-  colab_mark "mulai layanan GPU (latar, paralel dengan dependensi)"
+  preset_mark "mulai layanan GPU (latar, paralel dengan dependensi)"
   GPU_SYNC_LOG="$(mktemp)"
   GPU_SYNC_RC_FILE="${GPU_SYNC_LOG}.rc"
   rm -f "$GPU_SYNC_RC_FILE"
@@ -1313,7 +1366,7 @@ terapkan_layanan_gpu() {
   else
     warn "Tidak ada layanan GPU yang siap; fitur model lokal tidak diaktifkan."
   fi
-  colab_mark "layanan GPU selesai (fase 2)"
+  preset_mark "layanan GPU selesai (fase 2)"
 }
 
 if [[ "$WITH_GPU" -eq 1 ]]; then
@@ -1367,7 +1420,7 @@ pastikan_bootstrap_db() {
     fi
   fi
   BOOTSTRAP_DONE=1
-  colab_mark "bootstrap skema database selesai"
+  preset_mark "bootstrap skema database selesai"
 }
 
 LANGKAH="direktori data/"
@@ -1482,7 +1535,7 @@ if (changed) {
   [[ "$_vendor_rc" -eq 0 ]] || fail "Vendor bundle PPTX tidak valid (lihat pesan di atas)."
   [[ "$_engine_rc" -eq 0 ]] || fail "Kontrak engine Node tidak terpenuhi (lihat pesan di atas)."
   unset _vendor_pid _engine_pid _vendor_rc _engine_rc
-  colab_mark "bun install selesai"
+  preset_mark "bun install selesai"
 
   LANGKAH="bootstrap skema database"
   bootstrap_db_di_latar
@@ -1616,8 +1669,41 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   fi
 fi
 
+# ================================= 4a-bis. Preset fitur --kaggle (produksi)
+# --kaggle sengaja TIDAK memaksa feature flag: nilai aplikasi mengikuti default
+# upstream (semua OFF, home = classic home) dan .env.local milik user tidak
+# disentuh. Yang perlu diisi hanyalah endpoint media lokal yang benar-benar
+# hidup (4g), karena openmaic.yml akan mendaftarkan provider/slot GPU dan slot
+# tanpa endpoint hidup hanya akan gagal saat dipakai.
+if [[ "$WITH_KAGGLE" -eq 1 ]]; then
+  LANGKAH="preset fitur Kaggle"
+  if [[ -n "$GPU_AKTIF" ]]; then
+    set_env_value .env.local ALLOW_LOCAL_NETWORKS "true"
+    if [[ " $GPU_AKTIF " == *" funasr "* && -n "${GPU_FUNASR_URL:-}" ]]; then
+      set_env_value .env.local ASR_FUNASR_BASE_URL "$GPU_FUNASR_URL"
+    fi
+    if [[ " $GPU_AKTIF " == *" comfyui "* ]]; then
+      set_env_value .env.local IMAGE_COMFYUI_ENABLED "true"
+    fi
+    # VoxCPM2 butuh openmaic.yml (options.backend: python-api); var legacy ini
+    # tidak bisa memilih backend, jadi tidak pernah diisi oleh installer.
+    kosongkan_var_env .env.local TTS_VOXCPM_BASE_URL
+    unset ALLOW_LOCAL_NETWORKS IMAGE_COMFYUI_ENABLED 2>/dev/null || true
+  fi
+  info "Preset Kaggle produksi: build standalone + PM2, feature flag mengikuti default upstream."
+  info "  Workbench (beranda) opt-in seperti upstream: --with-workbench menyalakannya."
+  if [[ -n "$GPU_AKTIF" ]]; then
+    info "  ON (GPU lokal):${GPU_AKTIF}; chat tetap di provider yang ada di .env.local/openmaic.yml."
+    if [[ "$WITH_GPU_LLM" -eq 1 ]]; then
+      info "  Ollama (LLM lokal) ikut karena --with-gpu eksplisit."
+    fi
+  else
+    info "  OFF (tidak tersedia di host): Ollama, FunASR, VoxCPM, ComfyUI."
+  fi
+fi
+
 # Preset selesai: workbench/classic home diputuskan untuk SEMUA mode (bukan
-# hanya --colab), sebelum build yang memanggang NEXT_PUBLIC_*.
+# hanya --colab/--kaggle), sebelum build yang memanggang NEXT_PUBLIC_*.
 terapkan_flag_workbench
 
 if [[ "$WITH_POSTGRES" -eq 1 && -n "$PGPORT" && -f .env.local ]]; then
@@ -1809,7 +1895,7 @@ konfigurasi_gpu_openmaic_yml() {
     info "openmaic.yml dibuat untuk provider GPU lokal."
   fi
   local ditambah=""
-  # Ollama/LLM lokal hanya ada pada --with-gpu eksplisit; --colab tidak
+  # Ollama/LLM lokal hanya ada pada --with-gpu eksplisit; --colab/--kaggle tidak
   # memasangnya, jadi slot agent.title tetap mengikuti agent (Gemini).
   if [[ "$WITH_GPU_LLM" -eq 1 && " $GPU_AKTIF " == *" ollama "* ]]; then
     tambah_provider_gpu_yml openmaic.yml ollama ollama "${GPU_OLLAMA_URL:-}" "${GPU_OLLAMA_MODELS:-}"
@@ -2044,16 +2130,16 @@ siapkan_provider_google() {
 
 siapkan_openmaic_yml
 konfigurasi_gpu_openmaic_yml
-# --colab tidak memasang LLM lokal; provider/slot ollama yang tertinggal dari
-# run lama dibiarkan (file milik user) tetapi diberi peringatan agar tidak
-# menunjuk endpoint mati.
-if [[ "$WITH_COLAB" -eq 1 && "$WITH_GPU_LLM" -ne 1 && -f openmaic.yml ]] \
+# Preset notebook (--colab/--kaggle) tidak memasang LLM lokal; provider/slot
+# ollama yang tertinggal dari run lama dibiarkan (file milik user) tetapi diberi
+# peringatan agar tidak menunjuk endpoint mati.
+if [[ ( "$WITH_COLAB" -eq 1 || "$WITH_KAGGLE" -eq 1 ) && "$WITH_GPU_LLM" -ne 1 && -f openmaic.yml ]] \
   && grep -qE '^[[:space:]]*(ollama:|preset:[[:space:]]*ollama|model:[[:space:]]*ollama:)' openmaic.yml; then
-  warn "openmaic.yml masih memuat provider/slot ollama; --colab tidak memasang LLM lokal, jadi endpoint itu tidak hidup. Hapus/nonaktifkan manual bila tidak dipakai."
+  warn "openmaic.yml masih memuat provider/slot ollama; preset --colab/--kaggle tidak memasang LLM lokal, jadi endpoint itu tidak hidup. Hapus/nonaktifkan manual bila tidak dipakai."
 fi
-if [[ "$WITH_COLAB" -eq 1 && -z "$GPU_AKTIF" && -f openmaic.yml ]] \
+if [[ ( "$WITH_COLAB" -eq 1 || "$WITH_KAGGLE" -eq 1 ) && -z "$GPU_AKTIF" && -f openmaic.yml ]] \
   && grep -qE '^[[:space:]]*baseUrl:[[:space:]]*https?://(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|host\.docker\.internal)' openmaic.yml; then
-  warn "openmaic.yml memuat provider lokal; preset --colab tidak mengubah file milik user. Nonaktifkan manual bila tidak dipakai."
+  warn "openmaic.yml memuat provider lokal; preset --colab/--kaggle tidak mengubah file milik user. Nonaktifkan manual bila tidak dipakai."
 fi
 if [[ "$WITH_COLAB" -eq 1 ]]; then
   _model_lokal="$(env_get .env.local DEFAULT_MODEL)"
@@ -2664,7 +2750,7 @@ else
   # mengubah konfigurasi user); aktifkan dengan --with-antigravity.
   info "Google Antigravity CLI dilewati (transport antigravity OFF)."
 fi
-colab_mark "antigravity selesai"
+preset_mark "antigravity selesai"
 
 # ======================================= 6b. Sinkron katalog model (OpenCode/Codex)
 # Dijalankan setelah dependensi agar binary Codex sudah tersedia. Menulis
@@ -2707,7 +2793,7 @@ pastikan_sinkron_model() {
     sinkron_model
   fi
   SYNC_MODEL_DONE=1
-  colab_mark "sinkron katalog model selesai"
+  preset_mark "sinkron katalog model selesai"
 }
 
 if [[ "$WITH_DEV" -ne 1 ]] && { [[ "$WITH_BUILD" -eq 1 ]] || [[ "$WITH_PM2" -eq 1 ]]; }; then
@@ -2757,7 +2843,7 @@ jalankan_build() {
   info "Menjalankan build produksi Bun (bun --bun run build)..."
   as_owner env NEXT_TELEMETRY_DISABLED=1 "${BUILD_ENV[@]}" "$BUN_BIN" --bun run build
   BUILD_DONE=1
-  colab_mark "build produksi selesai"
+  preset_mark "build produksi selesai"
   # PM2 menyalin openmaic.yml setelah build; pastikan discovery sudah selesai.
   if [[ "$SYNC_MODEL_PARALLEL" -eq 1 ]]; then pastikan_sinkron_model; fi
 }
@@ -2923,9 +3009,13 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
   fi
   pm2_as_owner save || warn "pm2 save gagal; jalankan manual: pm2 save"
   info "Aplikasi berjalan via PM2 (proses: kelaska, runtime Bun)."
-  colab_mark "PM2 start selesai"
+  preset_mark "PM2 start selesai"
   LANGKAH="pm2: startup systemd"
-  if [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
+  if [[ "$KAGGLE_ENV" -eq 1 ]]; then
+    # Kaggle tidak menyediakan systemd dan sesinya berbatas 12 jam; unit
+    # pm2-<user>.service hanya akan gagal atau basi.
+    info "Kaggle: tanpa unit systemd (sesi notebook berakhir <12 jam) — setelah sesi habis, jalankan ulang installer/notebook."
+  elif [[ -d /run/systemd/system ]] && command -v systemctl >/dev/null 2>&1; then
     PM2_HOME_USER="${OWNER_HOME}/.pm2"
     PM2_UNIT="/etc/systemd/system/pm2-${PM2_USER}.service"
     PM2_UNIT_TMP="$(mktemp)"
@@ -3065,6 +3155,20 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
     info "  Preset Colab: produksi (build standalone + PM2) + semua feature flag ON (workbench opt-in); Docker/Ollama/model lokal OFF"
   fi
 fi
+if [[ "$WITH_KAGGLE" -eq 1 ]]; then
+  if [[ -n "$GPU_AKTIF" ]]; then
+    info "  Preset Kaggle: produksi (build standalone + PM2), feature flag default upstream (workbench opt-in)"
+    info "  Layanan GPU lokal:${GPU_AKTIF} (status: $GPU_DIR/gpu-services.env)"
+  else
+    info "  Preset Kaggle: produksi (build standalone + PM2), feature flag default upstream; Ollama/model lokal OFF"
+  fi
+fi
+# Kaggle: /kaggle/working ikut tersimpan saat "Save Version" (kuota output
+# 20 GB), jadi bobot model beberapa GB sebaiknya di /kaggle/temp.
+if [[ "$KAGGLE_ENV" -eq 1 && "$WITH_GPU" -eq 1 && "$GPU_DIR" == /kaggle/working/* ]]; then
+  warn "GPU_DIR=${GPU_DIR} berada di /kaggle/working (output notebook, kuota 20 GB)."
+  warn "  Bobot model ikut tersimpan saat Save Version; pakai --gpu-dir=/kaggle/temp/gpu-models bila tidak diinginkan."
+fi
 if [[ "$WITH_POSTGRES" -eq 1 ]]; then
   if [[ -n "$PGPORT" ]] && pg_isready -h localhost -p "$PGPORT" >/dev/null 2>&1; then
     info "  Postgres ${PG_MAJOR}: OK (localhost:${PGPORT})"
@@ -3167,32 +3271,42 @@ if [[ "$WITH_DEV" -eq 1 ]]; then
   echo "  kill -- -\$(cat data/dev-server.pid)             # hentikan dev server"
   echo "  bun --bun run dev                               # jalankan manual (foreground)"
 fi
-if [[ "$WITH_COLAB" -eq 1 ]]; then
+if [[ "$WITH_COLAB" -eq 1 || "$WITH_KAGGLE" -eq 1 ]]; then
   echo ""
-  echo "Colab: server produksi berjalan via PM2 (standalone, NODE_ENV=production)."
+  echo "Server produksi berjalan via PM2 (standalone, NODE_ENV=production)."
   echo "  curl http://localhost:${PM2_PORT:-3000}/api/health   # cek status"
   echo "  pm2 logs kelaska --lines 100              # ikuti log"
   echo "  pm2 restart kelaska --update-env          # terapkan .env.local baru"
   echo ""
-  echo "Colab: ekspos port ${PM2_PORT:-3000} ke browser dengan sel Python:"
-  echo "  from google.colab import output"
-  echo "  output.serve_kernel_port_as_window(${PM2_PORT:-3000})"
+  if [[ "$KAGGLE_ENV" -eq 1 ]]; then
+    echo "Kaggle: tidak ada helper port seperti google.colab.output. Buka port"
+    echo "  ${PM2_PORT:-3000} lewat proxy notebook atau tunnel:"
+    echo "  - proxy Jupyter (bila instance mendukung):"
+    echo "    https://<instance>.kaggleusercontent.com/proxy/${PM2_PORT:-3000}/"
+    echo "  - tunnel ke http://127.0.0.1:${PM2_PORT:-3000} (cloudflared/ngrok/localtunnel)"
+    echo "  Sesi Kaggle berakhir setelah 12 jam (idle ~20 menit), jadi jaga kernel"
+    echo "  tetap berjalan dan jalankan ulang installer/notebook setelah sesi habis."
+  else
+    echo "Colab: ekspos port ${PM2_PORT:-3000} ke browser dengan sel Python:"
+    echo "  from google.colab import output"
+    echo "  output.serve_kernel_port_as_window(${PM2_PORT:-3000})"
+    echo ""
+    echo "Colab: jaga runtime tetap hidup (anti-idle) dengan sel Python looping:"
+    echo "  from IPython.display import display, Javascript"
+    echo "  import threading, time"
+    echo "  display(Javascript(\"(function(){if(window.__openmaicKeepAlive)return;window.__openmaicKeepAlive=true;function tick(){try{const x=Math.floor(Math.random()*window.innerWidth),y=Math.floor(Math.random()*window.innerHeight);['mousemove','mousedown','mouseup','click'].forEach(function(t){document.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));window.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));});window.scrollBy(0,1);window.scrollBy(0,-1);document.querySelectorAll('colab-connect-button,colab-toolbar-button,button[aria-label*=\"Connect\" i],button[aria-label*=\"Reconnect\" i]').forEach(function(el){if(el&&!el.disabled)try{el.click();}catch(e){}});fetch('http://localhost:${PM2_PORT:-3000}/api/health',{mode:'no-cors'}).catch(function(){});console.log('[keep-alive] tick',new Date().toISOString());}catch(e){console.warn('[keep-alive] err',e);}} tick();setInterval(tick,30000);})()\")"
+    echo "  def _hb():"
+    echo "      while True:"
+    echo "          print('[keep-alive] kernel heartbeat', time.strftime('%H:%M:%S'), flush=True); time.sleep(120)"
+    echo "  threading.Thread(target=_hb, daemon=True).start()"
+  fi
   echo ""
-  echo "Colab: autentikasi OpenCode Console / Antigravity / Codex dilakukan di"
+  echo "Autentikasi OpenCode Console / Antigravity / Codex dilakukan di"
   echo "  UI Pro Workbench: buka pemilih model (di atas composer / header chat"
   echo "  pane), lalu pilih 'Hubungkan model AI' di bagian bawah popover — tidak"
   echo "  perlu terminal. Login OpenCode Console memakai device code otomatis;"
   echo "  kredensial disimpan oleh CLI. Pemilih model hanya menampilkan model"
   echo "  yang bisa dipakai akun yang login."
-  echo ""
-  echo "Colab: jaga runtime tetap hidup (anti-idle) dengan sel Python looping:"
-  echo "  from IPython.display import display, Javascript"
-  echo "  import threading, time"
-  echo "  display(Javascript(\"(function(){if(window.__openmaicKeepAlive)return;window.__openmaicKeepAlive=true;function tick(){try{const x=Math.floor(Math.random()*window.innerWidth),y=Math.floor(Math.random()*window.innerHeight);['mousemove','mousedown','mouseup','click'].forEach(function(t){document.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));window.dispatchEvent(new MouseEvent(t,{bubbles:true,clientX:x,clientY:y}));});window.scrollBy(0,1);window.scrollBy(0,-1);document.querySelectorAll('colab-connect-button,colab-toolbar-button,button[aria-label*=\"Connect\" i],button[aria-label*=\"Reconnect\" i]').forEach(function(el){if(el&&!el.disabled)try{el.click();}catch(e){}});fetch('http://localhost:${PM2_PORT:-3000}/api/health',{mode:'no-cors'}).catch(function(){});console.log('[keep-alive] tick',new Date().toISOString());}catch(e){console.warn('[keep-alive] err',e);}} tick();setInterval(tick,30000);})()\")"
-  echo "  def _hb():"
-  echo "      while True:"
-  echo "          print('[keep-alive] kernel heartbeat', time.strftime('%H:%M:%S'), flush=True); time.sleep(120)"
-  echo "  threading.Thread(target=_hb, daemon=True).start()"
 fi
 echo ""
 echo "Catatan:"
