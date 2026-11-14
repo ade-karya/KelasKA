@@ -24,6 +24,7 @@ export type BuiltInProviderId =
   | 'tencent-hunyuan'
   | 'xiaomi'
   | 'tokendance'
+  | 'coarena'
   | 'opencode'
   | 'opencode-go'
   | 'codex'

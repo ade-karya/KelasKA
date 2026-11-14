@@ -78,6 +78,7 @@ export const MONO_LOGO_PROVIDERS: ReadonlySet<string> = new Set([
   'openrouter',
   'ollama',
   'atlascloud',
+  'coarena',
 ]);
 
 /**
@@ -1604,6 +1605,167 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         id: 'minimax-m3',
         name: 'MiniMax M3',
         contextWindow: 1000000,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+    ],
+  },
+
+  coarena: {
+    id: 'coarena',
+    name: 'Coarena',
+    type: 'openai',
+    // Free, zero-cost Model API. The Anthropic-compatible endpoint
+    // (https://coarena.ai/api) serves the same catalog, but this app's chat
+    // transport speaks the OpenAI-compatible endpoint
+    // (https://coarena.ai/api/v1), which also exposes GET /v1/models.
+    defaultBaseUrl: 'https://coarena.ai/api/v1',
+    supportsModelDiscovery: true,
+    requiresApiKey: true,
+    icon: '/logos/coarena.svg',
+    // Snapshot of GET https://coarena.ai/api/v1/models (2026-11-14): every
+    // row is zero-cost with 128k input, 16k output, tool calls, images and
+    // reasoning text. Thinking effort per model comes from model-metadata
+    // (the gateway takes OpenAI's `reasoning_effort`). `supportsModelDiscovery`
+    // picks up newer ids from the live catalog.
+    models: [
+      {
+        id: 'claude-fable-5',
+        name: 'Claude Fable 5',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'claude-fable-5-1',
+        name: 'Claude Fable 5.1',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'claude-fable-5-2',
+        name: 'Claude Fable 5.2',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'claude-haiku-5-5',
+        name: 'Claude Haiku 5.5',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'claude-opus-5-5',
+        name: 'Claude Opus 5.5',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'claude-sonnet-5-5',
+        name: 'Claude Sonnet 5.5',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'deepseek-v4-1-flash-1017',
+        name: 'DeepSeek V4.1 Flash 1017',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'gemini-3-8-flash',
+        name: 'Gemini 3.8 Flash',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'gemini-4-argon',
+        name: 'Gemini 4 Argon',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'gemini-4-carbon',
+        name: 'Gemini 4 Carbon',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'glm-5-3-flash',
+        name: 'GLM 5.3 Flash',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'gpt-6-1-sol',
+        name: 'GPT-6.1 Sol',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'gpt-6-1-terra',
+        name: 'GPT-6.1 Terra',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'gpt-6-astra',
+        name: 'GPT-6 Astra',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'gpt-6-luna',
+        name: 'GPT-6 Luna',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'grok-4-7',
+        name: 'Grok 4.7',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'hy4',
+        name: 'Hy4',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'kimi-k3-1-pro',
+        name: 'Kimi K3.1 Pro',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'mimo-v2-6-pro',
+        name: 'MiMo V2.6 Pro',
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
+      },
+      {
+        id: 'minimax-m3-1-flash',
+        name: 'MiniMax M3.1 Flash',
+        contextWindow: 128000,
+        outputWindow: 16384,
         capabilities: { streaming: true, tools: true, vision: true },
       },
     ],

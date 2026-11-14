@@ -163,6 +163,25 @@ const kimiK3Effort = effortCapability('openai', ['low', 'high', 'max'], 'max');
 
 // TokenDance 网关统一 reasoning_effort（见 THINKING_CAPABILITIES 末尾的注释）
 const tokendanceEffort = effortCapability('openai', ['low', 'medium', 'high'], 'medium');
+
+// Coarena Model API (free, OpenAI-compatible) publishes each model's
+// `capabilities.efforts` on GET /v1/models; the gateway takes OpenAI's unified
+// `reasoning_effort`. The ladders below mirror that snapshot exactly, so the
+// picker never offers a depth the model does not list.
+const coarenaEffortLMH = effortCapability('openai', ['low', 'medium', 'high'], 'medium');
+const coarenaEffortLMHX = effortCapability('openai', ['low', 'medium', 'high', 'xhigh'], 'medium');
+const coarenaEffortLMHXMax = effortCapability(
+  'openai',
+  ['low', 'medium', 'high', 'xhigh', 'max'],
+  'medium',
+);
+const coarenaEffortNoNoneLMHX = effortCapability(
+  'openai',
+  ['none', 'low', 'medium', 'high', 'xhigh'],
+  'medium',
+);
+const coarenaEffortLH = effortCapability('openai', ['low', 'high'], 'high');
+const coarenaEffortNoNoneHMax = effortCapability('openai', ['none', 'high', 'max'], 'high');
 const grok46Effort = effortCapability('openai', ['low', 'medium', 'high', 'xhigh'], 'high');
 const grok45Effort = effortCapability('openai', ['low', 'medium', 'high'], 'high');
 const grok43Effort = effortCapability('openai', ['none', 'low', 'medium', 'high'], 'none');
@@ -714,6 +733,30 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
     ['none', 'low', 'medium', 'high', 'max'],
     'medium',
   ),
+
+  // Coarena's free catalog: the request adapter is `openai` because the
+  // gateway serializes thinking as `reasoning_effort`; the ladders match each
+  // row's advertised `capabilities.efforts`.
+  [getModelMetadataKey('coarena', 'claude-fable-5')]: coarenaEffortLMHXMax,
+  [getModelMetadataKey('coarena', 'claude-fable-5-1')]: coarenaEffortLMHXMax,
+  [getModelMetadataKey('coarena', 'claude-fable-5-2')]: coarenaEffortLMHXMax,
+  [getModelMetadataKey('coarena', 'claude-haiku-5-5')]: coarenaEffortLMHXMax,
+  [getModelMetadataKey('coarena', 'claude-opus-5-5')]: coarenaEffortLMHXMax,
+  [getModelMetadataKey('coarena', 'claude-sonnet-5-5')]: coarenaEffortLMHXMax,
+  [getModelMetadataKey('coarena', 'deepseek-v4-1-flash-1017')]: coarenaEffortNoNoneHMax,
+  [getModelMetadataKey('coarena', 'gemini-3-8-flash')]: coarenaEffortLMHXMax,
+  [getModelMetadataKey('coarena', 'gemini-4-argon')]: coarenaEffortLMHXMax,
+  [getModelMetadataKey('coarena', 'gemini-4-carbon')]: coarenaEffortLMHXMax,
+  [getModelMetadataKey('coarena', 'glm-5-3-flash')]: coarenaEffortLMH,
+  [getModelMetadataKey('coarena', 'gpt-6-1-sol')]: coarenaEffortLMHX,
+  [getModelMetadataKey('coarena', 'gpt-6-1-terra')]: coarenaEffortNoNoneLMHX,
+  [getModelMetadataKey('coarena', 'gpt-6-astra')]: coarenaEffortLMHX,
+  [getModelMetadataKey('coarena', 'gpt-6-luna')]: coarenaEffortNoNoneLMHX,
+  [getModelMetadataKey('coarena', 'grok-4-7')]: coarenaEffortLMHX,
+  [getModelMetadataKey('coarena', 'hy4')]: coarenaEffortLMH,
+  [getModelMetadataKey('coarena', 'kimi-k3-1-pro')]: coarenaEffortLH,
+  [getModelMetadataKey('coarena', 'mimo-v2-6-pro')]: coarenaEffortLMH,
+  [getModelMetadataKey('coarena', 'minimax-m3-1-flash')]: coarenaEffortLMH,
 };
 
 export function getCatalogThinkingCapability(
