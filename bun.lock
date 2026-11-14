@@ -27,17 +27,14 @@
         "@fontsource-variable/inter": "^5.2.8",
         "@fontsource/jetbrains-mono": "^5.2.8",
         "@fontsource/literata": "^5.2.8",
-        "@fontsource/lxgw-wenkai": "^5.2.5",
         "@fontsource/merriweather": "^5.2.11",
         "@fontsource/montserrat": "^5.2.8",
         "@fontsource/noto-sans-kr": "^5.2.9",
         "@fontsource/noto-sans-sc": "^5.2.9",
-        "@fontsource/noto-serif-sc": "^5.2.8",
         "@fontsource/open-sans": "^5.2.7",
         "@fontsource/roboto": "^5.2.10",
         "@fontsource/source-sans-3": "^5.2.9",
         "@fontsource/source-serif-4": "^5.2.9",
-        "@fontsource/zcool-kuaile": "^5.2.8",
         "@joplin/turndown-plugin-gfm": "^1.0.67",
         "@langchain/core": "^1.1.16",
         "@modelcontextprotocol/sdk": "^1.27.1",
@@ -248,7 +245,7 @@
     },
     "packages/@openmaic/generation": {
       "name": "@openmaic/generation",
-      "version": "0.3.29",
+      "version": "0.3.32",
       "dependencies": {
         "@openmaic/dsl": "workspace:^",
         "@openmaic/geometry": "workspace:^",
@@ -324,7 +321,7 @@
     },
     "packages/@openmaic/renderer": {
       "name": "@openmaic/renderer",
-      "version": "0.2.0",
+      "version": "0.2.2",
       "dependencies": {
         "@openmaic/dsl": "workspace:^",
         "@openmaic/geometry": "workspace:^",
@@ -367,7 +364,7 @@
     },
     "packages/@openmaic/storage": {
       "name": "@openmaic/storage",
-      "version": "0.39.3",
+      "version": "0.39.4",
       "dependencies": {
         "@openmaic/dsl": "workspace:^",
       },
@@ -1061,8 +1058,6 @@
 
     "@fontsource/literata": ["@fontsource/literata@5.2.8", "", {}, "sha512-Rj3eEQeu7+yBw9ZjXxcRiKDDrhbhpCyb0b79VJVCjDF1fdgJ8gDr9C1SRFLwfi+VaHEkhJDnRGm25fq1Yk+wNg=="],
 
-    "@fontsource/lxgw-wenkai": ["@fontsource/lxgw-wenkai@5.2.5", "", {}, "sha512-lIBouZW7qNw3VdVnjc0NC80iDfxjU7OnaKGaz6QHiHjC8z0fv9MyrHpeBMzkPnyEVabcpUu4Wf8DnaihfGVYtw=="],
-
     "@fontsource/merriweather": ["@fontsource/merriweather@5.2.11", "", {}, "sha512-ZiIMeUh5iT8d73o6xlSF8GKgjV5pgiFrufYc5jZTVAfExtWKqM2vQHnsqXSFMv4ELhAcjt6Vf+5T3oVGXhAizQ=="],
 
     "@fontsource/montserrat": ["@fontsource/montserrat@5.2.8", "", {}, "sha512-xTjLxSbSfCycDB0pwmNsfNvdfWPaDaRQ2LC6yt/ZI7SdvXG52zHnzNYC/09mzuAuWNJyShkteutfCoDgym56hQ=="],
@@ -1075,8 +1070,6 @@
 
     "@fontsource/noto-sans-sc": ["@fontsource/noto-sans-sc@5.2.9", "", {}, "sha512-bTUIWGBgJDpwi5qAr+x0/lcgv80IHTB9vl6s2f6EymZEa7qYV99yNRBZuKFT+SYDKVunZrjCEhWtpxqmbXWl5Q=="],
 
-    "@fontsource/noto-serif-sc": ["@fontsource/noto-serif-sc@5.2.8", "", {}, "sha512-C7fAr+d1GjOAw1qIbntsnqbA3l5dkdzcmNNgeCXLC8QZ7VNubL7MTrX8UcYKHceX4mI//z8gGtXbOeeQrB6P7g=="],
-
     "@fontsource/open-sans": ["@fontsource/open-sans@5.2.7", "", {}, "sha512-8yfgDYjE5O0vmTPdrcjV35y4yMnctsokmi9gN49Gcsr0sjzkMkR97AnKDe6OqZh2SFkYlR28fxOvi21bYEgMSw=="],
 
     "@fontsource/roboto": ["@fontsource/roboto@5.2.10", "", {}, "sha512-8HlA5FtSfz//oFSr2eL7GFXAiE7eIkcGOtx7tjsLKq+as702x9+GU7K95iDeWFapHC4M2hv9RrpXKRTGGBI8Zg=="],
@@ -1084,8 +1077,6 @@
     "@fontsource/source-sans-3": ["@fontsource/source-sans-3@5.2.9", "", {}, "sha512-u3ymIq4rfmCCyB9MEw/sFR5lPVJ1yTNXmIMbUz+9kVCFIHvNtfzXOEBuvkg3Tk0zhmioPeJ28ZK5smZ7TurezQ=="],
 
     "@fontsource/source-serif-4": ["@fontsource/source-serif-4@5.2.9", "", {}, "sha512-er/Pym9emsEVJNf947umJ4kXarXfsiN6CN7kTYinefKRaHLwiquiiHOZvKvxWgkV8JMCf3pV3g0NcsPFpVCH9w=="],
-
-    "@fontsource/zcool-kuaile": ["@fontsource/zcool-kuaile@5.2.8", "", {}, "sha512-pIeFNRM0rwrJkO+TP7WG+KXvqy0YFRrPecNNzHTNOQLYhxrqN67/wzyx3fH+Ky63Y/Am5heB5XIzsEx/Io+P4w=="],
 
     "@gar/promise-retry": ["@gar/promise-retry@1.0.3", "", {}, "sha512-GmzA9ckNokPypTg10pgpeHNQe7ph+iIKKmhKu3Ob9ANkswreCx7R3cKmY781K8QK3AqVL3xVh9A42JvIAbkkSA=="],
 
