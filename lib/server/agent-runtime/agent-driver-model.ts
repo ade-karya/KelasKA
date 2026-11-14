@@ -2,9 +2,10 @@ import type { Api, Model } from '@earendil-works/pi-ai';
 import { getModelInfo } from '@/lib/ai/providers';
 import type { ProviderId } from '@/lib/types/provider';
 
-import { slotLanguageModel } from '@/lib/server/model-config/llm';
+import { languageModelFor, slotLanguageModel } from '@/lib/server/model-config/llm';
 import {
   lookupSlot,
+  savedProviderTarget,
   SlotDisabledError,
   SlotUnassignedError,
 } from '@/lib/server/model-config/runtime';
@@ -14,17 +15,23 @@ import {
   activatedDriverModelsDynamic,
   driverApiFor,
   isActivatedDriverModel,
+  isHttpDriverApi,
   normalizeStoredDriverModel,
   parseDriverModelInput,
+  parseHttpModelInput,
   readActiveModelOverride,
 } from './opencode-models';
+import { isSettingsChatModel } from './settings-chat-models';
 
 /** The conversation's own persisted choice (agent_sessions.driver_model), if any. */
-export type SessionDriverModelSelection = {
-  model?: unknown;
-  api?: unknown;
-  thinking?: unknown;
-} | null | undefined;
+export type SessionDriverModelSelection =
+  | {
+      model?: unknown;
+      api?: unknown;
+      thinking?: unknown;
+    }
+  | null
+  | undefined;
 
 export const AGENT_DRIVER_STAGE = 'maic-agent-driver' as const;
 export const UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS = 8_192;
@@ -224,6 +231,43 @@ export async function resolveAgentDriverModel(
     preferred = normalizeStoredDriverModel(sessionDriver) ?? preferred;
   }
   if (resolution.status === 'disabled') throw new SlotDisabledError('agent');
+
+  // A model picked from the model settings (an HTTP provider — Gemini, Coarena,
+  // Ollama, a workspace provider, …) drives the turn over the keyed HTTP path,
+  // exactly like the agent slot does. It applies unless the operator locked the
+  // slot; a locked subtree stays the administrator's choice. The selection is
+  // re-checked against the settings every turn, so a provider removed from the
+  // settings falls back to the slot instead of failing the conversation.
+  if (preferred && isHttpDriverApi(preferred.api)) {
+    const http = parseHttpModelInput(preferred.modelString);
+    const userMayChoose =
+      resolution.status === 'assigned' ? resolution.source !== 'locked' : !resolution.locked;
+    if (http && userMayChoose) {
+      try {
+        if (await isSettingsChatModel(http.modelString, workspaceId)) {
+          // Resolve through the same deployment/workspace layers the settings
+          // view shows, so a provider the settings offer actually runs: the
+          // key lives in the layer, never in the picker.
+          const target = await savedProviderTarget(http.modelString, 'chat', workspaceId);
+          const connection = await languageModelFor(target, undefined);
+          const piModel = buildPiDriverModel(connection, DEFAULT_DRIVER_API, undefined);
+          const outputWindow = connection.modelInfo?.outputWindow;
+          return {
+            connection,
+            piModel,
+            wireMaxOutputTokens: outputWindow,
+            reservedOutputTokens: outputWindow ?? UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS,
+            isCliDriver: false,
+            driverTransport: 'http',
+            teaching: { piModel, wireMaxOutputTokens: outputWindow },
+          };
+        }
+      } catch {
+        // An unusable settings model must not break an existing conversation;
+        // fall through to the configured slot.
+      }
+    }
+  }
 
   // An unassigned agent slot can still be driven by the Pro Workbench's
   // override (the model picked in the workbench picker) or, failing that, by

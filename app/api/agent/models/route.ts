@@ -5,14 +5,21 @@ import { withRequestOwner } from '@/lib/server/identity/with-owner';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 import { NextResponse, type NextRequest } from 'next/server';
 import {
+  HTTP_DRIVER_API,
   activatedDriverModelsDynamic,
   defaultTier3ModelString,
   normalizeDriverModelSelection,
   normalizeStoredDriverModel,
+  parseHttpModelInput,
   readActiveModelOverride,
-  writeActiveModelOverride,
+  writeActiveModelOverrideSelection,
 } from '@/lib/server/agent-runtime/opencode-models';
+import {
+  isSettingsChatModel,
+  listSettingsChatModels,
+} from '@/lib/server/agent-runtime/settings-chat-models';
 import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
+import { resolveRequestOwner } from '@/lib/server/identity/resolve';
 
 export const runtime = 'nodejs';
 
@@ -24,6 +31,14 @@ export interface AgentModelItem {
   thinking?: ThinkingCapability;
   contextWindow?: number;
   outputWindow?: number;
+  /** Provider display name and logo for models that are not local CLIs. */
+  providerName?: string;
+  icon?: string;
+  /**
+   * `cli` — a local transport discovered live (opencode/codex/antigravity);
+   * `http` — a chat model from the model settings, driven over HTTP.
+   */
+  transport?: 'cli' | 'http';
 }
 
 /**
@@ -73,6 +88,53 @@ async function resolveSlotSelection(): Promise<SlotResolution> {
   return { model: '' };
 }
 
+/**
+ * The request owner, for the workspace providers the settings view includes.
+ * Uses the shared resolution directly (not the route wrapper) so a model
+ * picker never runs the auto-claim side effects.
+ */
+async function requestOwnerId(req?: NextRequest): Promise<string | null> {
+  if (!req) return null;
+  try {
+    const outcome = await resolveRequestOwner(req);
+    return outcome.ok ? outcome.principal.ownerId : null;
+  } catch {
+    return null;
+  }
+}
+
+/** CLI discovery plus the HTTP chat models the model settings offer. */
+async function driverPickerModels(req?: NextRequest): Promise<AgentModelItem[]> {
+  const [cli, ownerId] = await Promise.all([activatedDriverModelsDynamic(), requestOwnerId(req)]);
+  const settings = await listSettingsChatModels(ownerId);
+  return [
+    ...cli.map((model) => ({ ...model, transport: 'cli' as const })),
+    ...settings.map((model) => ({ ...model, transport: 'http' as const })),
+  ];
+}
+
+/**
+ * Validate a picker selection: a local CLI transport (live discovery), else a
+ * chat model the model settings offer, driven over HTTP. The HTTP branch keeps
+ * no thinking effort: the agent contract forbids `reasoning_effort` alongside
+ * function tools on the keyed path.
+ */
+async function normalizePickerSelection(
+  raw: string,
+  thinkingRaw: unknown,
+  ownerId: string | null,
+): Promise<{ modelString: string; api: string; thinking?: ThinkingConfig }> {
+  try {
+    return normalizeDriverModelSelection(raw, thinkingRaw);
+  } catch (error) {
+    const http = parseHttpModelInput(raw);
+    if (http && (await isSettingsChatModel(http.modelString, ownerId))) {
+      return { modelString: http.modelString, api: HTTP_DRIVER_API };
+    }
+    throw error;
+  }
+}
+
 function buildSlotFallback(
   slot: SlotResolution,
   models: AgentModelItem[],
@@ -105,7 +167,7 @@ export async function GET(req?: NextRequest) {
     return new Response('Not found', { status: 404 });
   }
   const sessionId = req ? new URL(req.url).searchParams.get('sessionId')?.trim() || null : null;
-  const models = await activatedDriverModelsDynamic();
+  const models = await driverPickerModels(req);
   const slot = await resolveSlotSelection();
   if (!sessionId) {
     const fallback = buildSlotFallback(slot, models);
@@ -185,7 +247,7 @@ export async function POST(req: NextRequest) {
       }
       let selection: ReturnType<typeof normalizeDriverModelSelection>;
       try {
-        selection = normalizeDriverModelSelection(raw, thinkingRaw);
+        selection = await normalizePickerSelection(raw, thinkingRaw, ownerId);
       } catch (error) {
         return apiError(
           'INVALID_REQUEST',
@@ -206,7 +268,7 @@ export async function POST(req: NextRequest) {
           ...(selection.thinking ? { thinking: selection.thinking } : {}),
           source: 'session',
           sessionId,
-          models: await activatedDriverModelsDynamic(),
+          models: await driverPickerModels(req),
         },
         { status: 200, headers: responseHeaders },
       );
@@ -214,13 +276,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const saved = writeActiveModelOverride(raw, thinkingRaw);
+    const ownerId = await requestOwnerId(req);
+    const selection = await normalizePickerSelection(raw, thinkingRaw, ownerId);
+    const saved = writeActiveModelOverrideSelection(selection);
     return apiSuccess(
       {
         active: saved.modelString,
         driverApi: saved.api,
         ...(saved.thinking ? { thinking: saved.thinking } : {}),
-        models: await activatedDriverModelsDynamic(),
+        models: await driverPickerModels(req),
       },
       200,
     );

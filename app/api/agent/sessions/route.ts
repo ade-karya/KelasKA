@@ -17,9 +17,13 @@ import { getAgentSessionStore } from '@/lib/server/agent-runtime/store';
 import { isPBLRoleSession } from '@/lib/pbl/v3/session-kind';
 import { scheduleConversationTitle } from '@/lib/server/agent-runtime/conversation-title-task';
 import {
+  HTTP_DRIVER_API,
   activatedDriverModelsDynamic,
   normalizeDriverModelSelection,
+  parseHttpModelInput,
 } from '@/lib/server/agent-runtime/opencode-models';
+import { isSettingsChatModel } from '@/lib/server/agent-runtime/settings-chat-models';
+import { resolveRequestOwner } from '@/lib/server/identity/resolve';
 import {
   bindOwnerMaterialsToSession,
   SessionMaterialBindingError,
@@ -118,9 +122,7 @@ export async function POST(req: NextRequest) {
           ? ((raw as { model: string }).model ?? '')
           : '';
     const rawThinking =
-      raw && typeof raw === 'object'
-        ? (raw as { thinking?: unknown }).thinking
-        : undefined;
+      raw && typeof raw === 'object' ? (raw as { thinking?: unknown }).thinking : undefined;
     if (rawModel.trim()) {
       try {
         // Live discovery decides what this account may use; run it before
@@ -133,7 +135,24 @@ export async function POST(req: NextRequest) {
           ...(normalized.thinking ? { thinking: normalized.thinking } : {}),
         };
       } catch {
-        driverModel = undefined;
+        // A chat model picked from the model settings rides the keyed HTTP
+        // path; membership is re-checked by the runner before a turn.
+        const http = parseHttpModelInput(rawModel);
+        let accepted = false;
+        if (http) {
+          try {
+            const outcome = await resolveRequestOwner(req);
+            accepted =
+              (await isSettingsChatModel(
+                http.modelString,
+                outcome.ok ? outcome.principal.ownerId : null,
+              )) || false;
+          } catch {
+            accepted = false;
+          }
+        }
+        driverModel =
+          accepted && http ? { model: http.modelString, api: HTTP_DRIVER_API } : undefined;
       }
     }
   }

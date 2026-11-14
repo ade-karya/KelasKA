@@ -14,6 +14,10 @@ interface AgentModelItem {
   modelString: string;
   name: string;
   thinking?: ThinkingCapability;
+  /** Display name/logo for chat models served by an HTTP provider. */
+  providerName?: string;
+  icon?: string;
+  transport?: 'cli' | 'http';
 }
 
 interface AgentModelsResponse {
@@ -44,6 +48,9 @@ const PROVIDER_GROUP_NAMES: Record<string, string> = {
   antigravity: 'Antigravity',
 };
 
+/** Local transports lead the picker; HTTP providers follow in settings order. */
+const CLI_GROUP_ORDER = ['opencode', 'opencode-go', 'codex', 'antigravity'] as const;
+
 /** "Muse Spark 1.3 Free (Zen)" -> "Muse Spark 1.3 Free". */
 function displayNameOf(model: Pick<AgentModelItem, 'id' | 'name'>): string {
   const name = (model.name || '').trim();
@@ -62,15 +69,16 @@ function prettifyId(id: string): string {
     .join(' ');
 }
 
-/** "opencode-go:gpt-6-luna" -> { providerId: "opencode-go", modelId: "gpt-6-luna" }. */
+/** "google:gemini-3.5-flash-lite" -> { providerId: "google", modelId: "gemini-3.5-flash-lite" }. */
 function splitModelString(modelString: string): { providerId: string; modelId: string } {
-  const lower = modelString.toLowerCase();
-  for (const providerId of ['opencode-go', 'codex', 'antigravity'] as const) {
-    if (lower.startsWith(`${providerId}:`) || lower.startsWith(`${providerId}/`)) {
-      return { providerId, modelId: modelString.slice(providerId.length + 1) };
-    }
+  const colon = modelString.indexOf(':');
+  if (colon > 0 && colon < modelString.length - 1) {
+    return { providerId: modelString.slice(0, colon), modelId: modelString.slice(colon + 1) };
   }
-  return { providerId: 'opencode', modelId: modelString.replace(/^opencode[/:]/i, '') };
+  const lower = modelString.toLowerCase();
+  const cli = ['opencode-go', 'opencode'].find((p) => lower.startsWith(`${p}/`));
+  const prefix = cli ?? 'opencode';
+  return { providerId: prefix, modelId: modelString.replace(/^opencode[/:]/i, '') };
 }
 
 /**
@@ -79,8 +87,12 @@ function splitModelString(modelString: string): { providerId: string; modelId: s
  * dan perilaku identik.
  *
  * Hanya model yang benar-benar bisa dipakai akun yang login yang tampil:
- * daftar selalu hasil penemuan live (`opencode models`, `model/list` Codex,
- * `agy models`), sehingga grup provider yang belum login tampil kosong.
+ * model transport lokal selalu hasil penemuan live (`opencode models`,
+ * `model/list` Codex, `agy models`), sehingga grup provider yang belum login
+ * tampil kosong. Model HTTP dari pengaturan model (deployment + ruang kerja,
+ * capability chat, wajib bisa tool calls) ikut tampil di bawah grup vendor-
+ * nya; pemilihannya tersimpan per percakapan/global dan ditempuh lewat jalur
+ * HTTP ber-key, seperti slot `agent`.
  *
  * Dua mode:
  * - tanpa `sessionId` (home composer): pilihan menjadi default untuk
@@ -262,9 +274,14 @@ export function WorkbenchModelPicker({ sessionId = null }: { sessionId?: string 
         const next = await save(modelString, thinking);
         const picked = models.find((m) => m.modelString === next);
         toast.success(
-          t(sessionId ? 'workspace.modelPicker.activeToastSession' : 'workspace.modelPicker.activeToast', {
-            name: picked ? displayNameOf(picked) : next,
-          }),
+          t(
+            sessionId
+              ? 'workspace.modelPicker.activeToastSession'
+              : 'workspace.modelPicker.activeToast',
+            {
+              name: picked ? displayNameOf(picked) : next,
+            },
+          ),
         );
       } catch (err) {
         toast.error(
@@ -291,15 +308,45 @@ export function WorkbenchModelPicker({ sessionId = null }: { sessionId?: string 
 
   const activeSplit = active ? splitModelString(active) : null;
 
-  const groups = (['opencode', 'opencode-go', 'codex', 'antigravity'] as const)
-    .map((providerId) => ({
-      id: providerId,
-      name: PROVIDER_GROUP_NAMES[providerId] ?? providerId,
-      models: models
-        .filter((m) => (m.provider || 'opencode') === providerId)
-        .map((m) => ({ id: m.id, name: displayNameOf(m), thinking: m.thinking })),
-    }))
-    .filter((g) => g.models.length > 0);
+  // Local CLI transports first (the order they always showed), then every HTTP
+  // provider the model settings offer, in settings order.
+  const groups = useMemo(() => {
+    const order: string[] = [];
+    const byProvider = new Map<string, AgentModelItem[]>();
+    for (const model of models) {
+      const providerId = model.provider || 'opencode';
+      const bucket = byProvider.get(providerId);
+      if (bucket) bucket.push(model);
+      else {
+        byProvider.set(providerId, [model]);
+        order.push(providerId);
+      }
+    }
+    const cliRank = (providerId: string) => {
+      const index = CLI_GROUP_ORDER.indexOf(providerId);
+      return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+    };
+    return [...order]
+      .sort((a, b) => cliRank(a) - cliRank(b))
+      .map((providerId) => {
+        const list = byProvider.get(providerId)!;
+        const name =
+          PROVIDER_GROUP_NAMES[providerId] ??
+          list.find((model) => model.providerName)?.providerName ??
+          providerId;
+        const icon = list.find((model) => model.icon)?.icon;
+        return {
+          id: providerId,
+          name,
+          icon,
+          models: list.map((m) => ({
+            id: m.id,
+            name: displayNameOf(m),
+            thinking: m.thinking,
+          })),
+        };
+      });
+  }, [models]);
 
   return (
     <>

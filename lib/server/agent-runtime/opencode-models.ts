@@ -84,6 +84,12 @@ export const OPENCODE_DRIVER_API = 'opencode-cli' as const;
 export const CODEX_DRIVER_API = 'codex-sdk' as const;
 /** Route api of the Antigravity CLI transport (lib/ai/antigravity-cli.ts); the name is a documented wire alias. */
 export const ANTIGRAVITY_DRIVER_API = 'antigravity-sdk' as const;
+/**
+ * Route api of a chat model picked from the model settings (an HTTP provider,
+ * not a local CLI transport). The selection is stored with this marker so the
+ * runner resolves it over the keyed HTTP path instead of the CLI envelope.
+ */
+export const HTTP_DRIVER_API = 'http' as const;
 export const OPENCODE_ACTIVE_MODEL_FILE = 'agent-driver-model.json';
 
 function dataDir(): string {
@@ -431,6 +437,34 @@ export function parseDriverModelInput(raw: string): ParsedDriverModel | null {
   return { provider: 'opencode', bare, modelString: `opencode:${bare}` };
 }
 
+export interface ParsedHttpModel {
+  provider: string;
+  bare: string;
+  modelString: string;
+}
+
+/** True when a stored selection names the keyed HTTP transport. */
+export function isHttpDriverApi(api: string | undefined): boolean {
+  return !!api && api.trim() === HTTP_DRIVER_API;
+}
+
+/**
+ * Parse a `provider:model` reference to a chat model from the model settings.
+ * CLI providers are refused here: their transports are parsed by
+ * {@link parseDriverModelInput} and validated against live discovery.
+ */
+export function parseHttpModelInput(raw: string): ParsedHttpModel | null {
+  const trimmed = (raw ?? '').trim();
+  if (!trimmed || /[\s"{}]/.test(trimmed)) return null;
+  const colon = trimmed.indexOf(':');
+  if (colon <= 0 || colon === trimmed.length - 1) return null;
+  const provider = trimmed.slice(0, colon).trim();
+  const bare = trimmed.slice(colon + 1).trim();
+  if (!provider || !bare || /[\s"{}]/.test(bare)) return null;
+  if ((DRIVER_PROVIDERS as readonly string[]).includes(provider.toLowerCase())) return null;
+  return { provider, bare, modelString: `${provider}:${bare}` };
+}
+
 /** Parse input provider CLI OpenCode saja (kompatibel lama). */
 export function parseOpencodeModelInput(raw: string): ParsedOpencodeModel | null {
   const parsed = parseDriverModelInput(raw);
@@ -516,6 +550,13 @@ export function readActiveModelOverride(): {
     const parsed = JSON.parse(
       fs.readFileSync(/*turbopackIgnore: true*/ file, 'utf8'),
     ) as ActiveModelFile;
+    // A model picked from the model settings is stored with the HTTP marker;
+    // membership in the settings is validated by the runner before a turn.
+    if (isHttpDriverApi(parsed.api)) {
+      const http = parseHttpModelInput(parsed.model ?? '');
+      if (!http) return null;
+      return { modelString: http.modelString, api: HTTP_DRIVER_API };
+    }
     const input = parseDriverModelInput(parsed.model ?? '');
     if (!input || !isActivatedDriverModel(input.provider, input.bare)) return null;
     const out: { modelString: string; api: string; thinking?: ThinkingConfig } = {
@@ -575,6 +616,13 @@ export function normalizeStoredDriverModel(
   stored: { model?: unknown; api?: unknown; thinking?: unknown } | null | undefined,
 ): { modelString: string; api: string; thinking?: ThinkingConfig } | null {
   if (!stored || typeof stored.model !== 'string') return null;
+  // A conversation that chose a model from the model settings keeps it without
+  // the CLI allowlist: the runner checks the settings before a turn.
+  if (isHttpDriverApi(typeof stored.api === 'string' ? stored.api : undefined)) {
+    const http = parseHttpModelInput(stored.model);
+    if (!http) return null;
+    return { modelString: http.modelString, api: HTTP_DRIVER_API };
+  }
   try {
     const normalized = normalizeDriverModelSelection(stored.model, stored.thinking);
     if (typeof stored.api === 'string' && stored.api.trim()) {
@@ -595,7 +643,19 @@ export function writeActiveModelOverride(
   rawModel: string,
   rawThinking?: unknown,
 ): { modelString: string; api: string; thinking?: ThinkingConfig } {
-  const normalized = normalizeDriverModelSelection(rawModel, rawThinking);
+  return writeActiveModelOverrideSelection(normalizeDriverModelSelection(rawModel, rawThinking));
+}
+
+/**
+ * Persist an already validated selection (CLI transport or a settings HTTP
+ * model). Callers that validate against the model settings use this instead of
+ * {@link writeActiveModelOverride}, which only knows the CLI allowlist.
+ */
+export function writeActiveModelOverrideSelection(normalized: {
+  modelString: string;
+  api: string;
+  thinking?: ThinkingConfig;
+}): { modelString: string; api: string; thinking?: ThinkingConfig } {
   const dir = dataDir();
   fs.mkdirSync(/*turbopackIgnore: true*/ dir, { recursive: true });
   const payload: ActiveModelFile = {
