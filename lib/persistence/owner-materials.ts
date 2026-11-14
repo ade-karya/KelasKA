@@ -271,6 +271,11 @@ ALTER TABLE owner_material ADD COLUMN IF NOT EXISTS touched_at DOUBLE PRECISION;
  * library read and extraction claim fails with `column "asset_id" does not
  * exist`. Re-adding it here heals such a database without touching the
  * shipped version 5.
+ *
+ * The ledger is not sufficient on its own: the same repair runs after every
+ * migration pass ({@link ensureOwnerMaterialSchema}) because a restored or
+ * externally migrated database can record version 6 itself while the column
+ * is still gone, and a recorded migration never runs again.
  */
 const OWNER_MATERIAL_ASSET_ID_REPAIR = `
 ALTER TABLE owner_material ADD COLUMN IF NOT EXISTS asset_id TEXT;
@@ -377,6 +382,12 @@ export const OWNER_MATERIAL_MIGRATIONS: SchemaMigrationSet = {
 
 export async function ensureOwnerMaterialSchema(queryable: Queryable): Promise<void> {
   await applySchemaMigrations(queryable, OWNER_MATERIAL_MIGRATIONS);
+  // A database can record version 6 and still miss the column (restored or
+  // externally migrated), and the ledger never reruns a recorded migration.
+  // `ADD COLUMN IF NOT EXISTS` is a metadata check, so it is safe on every boot
+  // — including the eager `install.sh` bootstrap — and heals that database
+  // before the first library read.
+  await queryable.query(OWNER_MATERIAL_ASSET_ID_REPAIR);
   // Registration fences on the claim records (./owner-merges.ts).
   await ensureOwnerMergeSchema(queryable);
 }

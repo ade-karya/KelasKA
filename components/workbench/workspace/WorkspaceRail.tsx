@@ -74,6 +74,7 @@ import {
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useBrand } from '@/lib/brand/brand-context';
+import { BrandLogo } from '@/components/brand-logo';
 import type { HomeDiscoveryState } from '@/lib/hooks/use-home-discovery';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -503,12 +504,7 @@ export function WorkspaceRail({
       <div className="flex h-14 shrink-0 items-center gap-2 pl-4 pr-3">
         {/* The wordmark is the way home: back to the bare workspace. */}
         <HomeLink testId="pro-nav-home" onGoHome={onGoHome} className="-ml-1.5 px-1.5 py-1">
-          <img
-            src={brand.logoSrc}
-            alt=""
-            aria-hidden="true"
-            className="ws-wordmark h-[22px] w-auto max-w-[128px] shrink-0"
-          />
+          <BrandLogo size="xs" />
         </HomeLink>
         {/* THE rail's header, and therefore where the rail folds — the same
             button, in the same place, that the conversation and the classroom

@@ -109,6 +109,23 @@ it('restores asset_id when the library migration is recorded but the column is g
   expect(await listOwnerLibrary(db, 'owner')).toEqual([]);
 }, 30_000);
 
+it('restores asset_id even when the repair migration itself is recorded', async () => {
+  db = new PGlite();
+  await db.waitReady;
+  // A restored or externally migrated database can carry the whole ledger,
+  // version 6 included, while the column is gone: no migration will run again.
+  await applySchemaMigrations(db, OWNER_MATERIAL_MIGRATIONS);
+  await db.query(`ALTER TABLE owner_material DROP COLUMN asset_id`);
+  await ensureOwnerMaterialSchema(db);
+  await ensureOwnerMaterialSchema(db);
+  const columns = await db.query<{ column_name: string }>(
+    `SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'owner_material' AND column_name = 'asset_id'`,
+  );
+  expect(columns.rows).toHaveLength(1);
+  expect(await listOwnerLibrary(db, 'owner')).toEqual([]);
+}, 30_000);
+
 it('cleanup keeps all successful uploads regardless of historical retention', async () => {
   db = new PGlite();
   await db.waitReady;

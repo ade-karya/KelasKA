@@ -18,9 +18,11 @@
  * page nobody reads. Discovery runs in `discover-only` mode: folders, courses
  * and sessions are managed in the navigation tree, never twice on one screen.
  *
- * The hero is the CLASSIC home's hero, not a composed one: the horizontal
- * logo, the tagline and the GitHub link, sized for a column that is narrower
- * than a full page but not shrunk out of the page's weight class.
+ * The hero is the fork's Kelas KA lockup, not upstream's horizontal wordmark:
+ * the two government logos (Kemendikdasmen and DPRD) beside the product name,
+ * then the tagline and the GitHub link, sized for a column that is narrower
+ * than a full page but not shrunk out of the page's weight class. `BrandLogo`
+ * owns those sizes so the hero, the rail and the About dialog stay in step.
  *
  * Under the composer, a host may add a section of its own (a featured-course
  * strip, say) through `WorkbenchShellExtensions.homeSection`. Upstream has no
@@ -32,8 +34,8 @@ import { Github, Star } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useWorkbenchShellExtensions } from '@/lib/workbench/shell-extensions';
 import { OPENMAIC_GITHUB_URL } from '@/lib/workbench/shell-links';
+import { BrandLogo } from '@/components/brand-logo';
 import { GITHUB_STARS_ENDPOINT, formatStarCount } from '@/lib/workbench/github-stars';
-import { useBrand, useIsDesktop } from '@/lib/brand/brand-context';
 import { ProLaunchPanel, type PromptSeed } from '@/components/workbench/ProLaunchPanel';
 import type { CourseMentionSource } from '@/lib/workbench/course-mention';
 import type { MaterialSeed } from '@/components/workbench/compose-extras';
@@ -65,8 +67,6 @@ export function WorkspaceHome({
   readonly onPromptSeedConsumed?: (key: number) => void;
 }) {
   const { t } = useI18n();
-  const brand = useBrand();
-  const isDesktop = useIsDesktop();
   const { homeSection } = useWorkbenchShellExtensions();
 
   return (
@@ -77,7 +77,7 @@ export function WorkspaceHome({
     >
       {/* Below `md` the sidebar is gone, so the brand needs a home. */}
       <div className="flex h-12 shrink-0 items-center px-4 md:hidden">
-        <img src={brand.logoSrc} alt={brand.productName} className="h-5 w-auto" />
+        <BrandLogo size="xs" />
       </div>
 
       {/* One column, not two. The discover feed used to run to 1180px under a
@@ -99,26 +99,7 @@ export function WorkspaceHome({
           {/* Beat one: the lockup. */}
           <div className="ws-enter ws-d1 flex flex-col items-center">
             <div className="relative w-fit" data-testid="pro-workspace-hero-lockup">
-              {isDesktop && !brand.logoHasWordmark ? (
-                // A brand whose mark carries no wordmark gets the product name
-                // beside it, exactly as the classic hero does.
-                <div className="flex items-center gap-3">
-                  <img src={brand.markSrc} alt={brand.productName} className="size-11 md:size-14" />
-                  <span
-                    className="text-xl font-semibold tracking-tight md:text-2xl"
-                    style={{ color: brand.themeColor }}
-                  >
-                    {brand.productName}
-                  </span>
-                </div>
-              ) : (
-                <img
-                  src={brand.logoSrc}
-                  alt={brand.productName}
-                  data-testid="pro-workspace-hero-logo"
-                  className="ws-hero-logo ws-wordmark"
-                />
-              )}
+              <BrandLogo size="lg" />
             </div>
 
             <div className="mt-3.5 flex flex-wrap items-center justify-center gap-3">

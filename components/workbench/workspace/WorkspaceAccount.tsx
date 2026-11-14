@@ -39,9 +39,9 @@ import {
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { supportedLocales } from '@/lib/i18n';
-import { useBrand } from '@/lib/brand/brand-context';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 import { UserProfileCard } from '@/components/user-profile';
+import { BrandLogo } from '@/components/brand-logo';
 import {
   useWorkbenchShellExtensions,
   type WorkbenchShellMenuItem,
@@ -648,12 +648,11 @@ function AboutDialog({
   readonly onOpenChange: (open: boolean) => void;
 }) {
   const { t } = useI18n();
-  const brand = useBrand();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-testid="workspace-about" className="sm:max-w-[400px]">
         <div className="flex flex-col items-center gap-3 px-2 pb-1 pt-3 text-center">
-          <img src={brand.logoSrc} alt="" aria-hidden="true" className="h-9 w-auto" />
+          <BrandLogo size="md" />
           <DialogTitle className="sr-only">{t('workspace.account.about')}</DialogTitle>
           <p className="text-sm text-muted-foreground">{t('home.slogan')}</p>
           <DialogDescription className="text-[13px] leading-relaxed text-foreground/80">
