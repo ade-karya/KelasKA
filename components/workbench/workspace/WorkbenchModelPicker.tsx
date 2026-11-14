@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { KeyRound } from 'lucide-react';
 import { ModelPicker } from '@/components/settings/model-picker';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { WorkbenchAuthDialog } from './WorkbenchAuthDialog';
 import type { ThinkingCapability, ThinkingConfig } from '@/lib/types/provider';
 
 interface AgentModelItem {
@@ -42,19 +40,24 @@ function storageKeys(sessionId: string | null): { model: string; thinking: strin
 }
 
 const PROVIDER_GROUP_NAMES: Record<string, string> = {
-  opencode: 'OpenCode',
-  'opencode-go': 'OpenCode Go',
   codex: 'Codex',
   antigravity: 'Antigravity',
 };
 
 /** Local transports lead the picker; HTTP providers follow in settings order. */
-const CLI_GROUP_ORDER: readonly string[] = [
-  'opencode',
-  'opencode-go',
-  'codex',
-  'antigravity',
-] as const;
+const CLI_GROUP_ORDER: readonly string[] = ['codex', 'antigravity'] as const;
+
+/**
+ * Providers this deployment keeps out of the picker.
+ *
+ * `opencode`/`opencode-go` need the OpenCode Console login that the fork no
+ * longer offers, so their models could be listed but never used, while
+ * `ollama` here is a title-only slot (`agent.title`) whose weights are not
+ * meant to serve a conversation on the same GPU as the media models. Slots in
+ * `openmaic.yml` still reference them; the picker just stops advertising them
+ * as choices for a conversation.
+ */
+const HIDDEN_PROVIDER_IDS = new Set(['opencode', 'opencode-go', 'ollama']);
 
 /** "Muse Spark 1.3 Free (Zen)" -> "Muse Spark 1.3 Free". */
 function displayNameOf(model: Pick<AgentModelItem, 'id' | 'name'>): string {
@@ -92,12 +95,13 @@ function splitModelString(modelString: string): { providerId: string; modelId: s
  * dan perilaku identik.
  *
  * Hanya model yang benar-benar bisa dipakai akun yang login yang tampil:
- * model transport lokal selalu hasil penemuan live (`opencode models`,
- * `model/list` Codex, `agy models`), sehingga grup provider yang belum login
- * tampil kosong. Model HTTP dari pengaturan model (deployment + ruang kerja,
- * capability chat, wajib bisa tool calls) ikut tampil di bawah grup vendor-
- * nya; pemilihannya tersimpan per percakapan/global dan ditempuh lewat jalur
- * HTTP ber-key, seperti slot `agent`.
+ * model transport lokal selalu hasil penemuan live (`model/list` Codex,
+ * `agy models`), sehingga grup provider yang belum login tampil kosong. Model
+ * HTTP dari pengaturan model (deployment + ruang kerja, capability chat, wajib
+ * bisa tool calls) ikut tampil di bawah grup vendor-nya; pemilihannya
+ * tersimpan per percakapan/global dan ditempuh lewat jalur HTTP ber-key,
+ * seperti slot `agent`. Provider di {@link HIDDEN_PROVIDER_IDS} tidak
+ * ditawarkan sama sekali.
  *
  * Dua mode:
  * - tanpa `sessionId` (home composer): pilihan menjadi default untuk
@@ -109,9 +113,10 @@ function splitModelString(modelString: string): { providerId: string; modelId: s
  * Dipakai di home composer dan header chat pane — satu komponen untuk
  * seluruh halaman /workspace.
  *
- * Aksi login (OpenCode Console / Antigravity / Codex) dipasang sebagai aksi
- * footer di popover yang sama, tepat di bawah daftar model, sehingga pintu
- * masuk kredensial selalu berdampingan dengan provider yang dibukanya.
+ * Tidak ada aksi login di popover: deployment ini memakai satu provider HTTP
+ * (Gemini) yang key-nya datang dari `.env.local`, jadi dialog "Hubungkan model
+ * AI" (OpenCode Console / Antigravity / Codex) tidak dipasang lagi. Route
+ * `/api/agent/auth*` tetap ada bila suatu saat pintu masuknya dikembalikan.
  */
 export function WorkbenchModelPicker({ sessionId = null }: { sessionId?: string | null }) {
   const { t } = useI18n();
@@ -122,38 +127,6 @@ export function WorkbenchModelPicker({ sessionId = null }: { sessionId?: string 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [authOpen, setAuthOpen] = useState(false);
-  const [authConnected, setAuthConnected] = useState(false);
-
-  // Green dot for the footer login action, seeded once on mount and kept in
-  // sync by the dialog afterwards.
-  useEffect(() => {
-    let active = true;
-    void (async () => {
-      try {
-        const res = await fetch('/api/agent/auth', { credentials: 'include' });
-        if (!res.ok) return;
-        const body = (await res.json().catch(() => ({}))) as {
-          codex?: { loggedIn?: boolean };
-          antigravity?: { authenticated?: boolean };
-          opencode?: { authenticated?: boolean };
-        };
-        if (!active) return;
-        setAuthConnected(
-          Boolean(
-            body?.antigravity?.authenticated ||
-            body?.codex?.loggedIn ||
-            body?.opencode?.authenticated,
-          ),
-        );
-      } catch {
-        // The login action is still reachable; the panels report real errors.
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -320,6 +293,7 @@ export function WorkbenchModelPicker({ sessionId = null }: { sessionId?: string 
     const byProvider = new Map<string, AgentModelItem[]>();
     for (const model of models) {
       const providerId = model.provider || 'opencode';
+      if (HIDDEN_PROVIDER_IDS.has(providerId)) continue;
       const bucket = byProvider.get(providerId);
       if (bucket) bucket.push(model);
       else {
@@ -354,41 +328,25 @@ export function WorkbenchModelPicker({ sessionId = null }: { sessionId?: string 
   }, [models]);
 
   return (
-    <>
-      <ModelPicker
-        groups={groups}
-        // Resolusi nama/badge ditangani ModelPicker (grup provider eksak dulu,
-        // lalu lintas-grup bila id sama di dua provider).
-        value={activeSplit}
-        onSelect={(providerId, modelId) => void choose(`${providerId}:${modelId}`)}
-        placeholder={
-          loading
-            ? t('workspace.modelPicker.loading')
-            : loadError
-              ? t('workspace.modelPicker.loadError')
-              : t('workspace.modelPicker.choose')
-        }
-        disabled={loading || saving}
-        thinkingConfig={thinking}
-        onThinkingChange={(config) => void changeThinking(config)}
-        ariaLabel={t('workspace.modelPicker.ariaLabel')}
-        footerAction={{
-          label: authConnected
-            ? t('workspace.modelPicker.footerConnected')
-            : t('workspace.modelPicker.footerLabel'),
-          description: t('workspace.modelPicker.footerDescription'),
-          icon: <KeyRound className="size-4" />,
-          connected: authConnected,
-          onClick: () => setAuthOpen(true),
-        }}
-        className="w-auto min-w-0 max-w-full shrink-0"
-        t={t}
-      />
-      <WorkbenchAuthDialog
-        open={authOpen}
-        onOpenChange={setAuthOpen}
-        onStatusChange={setAuthConnected}
-      />
-    </>
+    <ModelPicker
+      groups={groups}
+      // Resolusi nama/badge ditangani ModelPicker (grup provider eksak dulu,
+      // lalu lintas-grup bila id sama di dua provider).
+      value={activeSplit}
+      onSelect={(providerId, modelId) => void choose(`${providerId}:${modelId}`)}
+      placeholder={
+        loading
+          ? t('workspace.modelPicker.loading')
+          : loadError
+            ? t('workspace.modelPicker.loadError')
+            : t('workspace.modelPicker.choose')
+      }
+      disabled={loading || saving}
+      thinkingConfig={thinking}
+      onThinkingChange={(config) => void changeThinking(config)}
+      ariaLabel={t('workspace.modelPicker.ariaLabel')}
+      className="w-auto min-w-0 max-w-full shrink-0"
+      t={t}
+    />
   );
 }
