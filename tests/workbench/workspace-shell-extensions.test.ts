@@ -247,7 +247,6 @@ describe('the host extension slots', () => {
       'workspace-account-theme-system',
       'workspace-account-about',
       'workspace-account-docs',
-      'workspace-account-github',
     ]) {
       expect(menu.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
     }

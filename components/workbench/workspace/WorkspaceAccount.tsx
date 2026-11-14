@@ -5,8 +5,8 @@
  *
  * The workspace has no top bar, so everything the classic home keeps in its
  * floating corner controls lives here: the interface language, the theme, the
- * model and provider settings, and the ways out to the project (about, docs,
- * GitHub). A deployment with accounts adds who is signed in, a sign-in entry,
+ * model and provider settings, and the ways out to the project (about, docs).
+ * A deployment with accounts adds who is signed in, a sign-in entry,
  * its own menu entries and a summary line through the shell extensions
  * (`lib/workbench/shell-extensions.tsx`); without them the block shows the
  * local learner profile, which is the identity a single-owner deployment has.
@@ -23,7 +23,6 @@ import {
   ChevronDown,
   ChevronsUpDown,
   Compass,
-  Github,
   Info,
   Languages,
   LogIn,
@@ -46,7 +45,6 @@ import {
   useWorkbenchShellExtensions,
   type WorkbenchShellMenuItem,
 } from '@/lib/workbench/shell-extensions';
-import { OPENMAIC_GITHUB_URL } from '@/lib/workbench/shell-links';
 import { docsHref } from '@/lib/docs-link';
 import { cn } from '@/lib/utils/cn';
 import {
@@ -540,18 +538,6 @@ function AccountMenu({
               <SquareArrowOutUpRight className="size-3 opacity-50" aria-hidden="true" />
             </a>
           </DropdownMenuItem>
-          <DropdownMenuItem {...HOLD_FOCUS} asChild className="ws-menu-item">
-            <a
-              href={OPENMAIC_GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid="workspace-account-github"
-            >
-              <Github className="size-4" aria-hidden="true" />
-              <span className="flex-1">GitHub</span>
-              <SquareArrowOutUpRight className="size-3 opacity-50" aria-hidden="true" />
-            </a>
-          </DropdownMenuItem>
 
           {onSignOut ? (
             <>
@@ -658,15 +644,6 @@ function AboutDialog({
           <DialogDescription className="text-[13px] leading-relaxed text-foreground/80">
             {t('workspace.account.aboutBody')}
           </DialogDescription>
-          <a
-            href={OPENMAIC_GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-muted"
-          >
-            <Github className="size-3.5" aria-hidden="true" />
-            {t('workspace.account.viewOnGithub')}
-          </a>
         </div>
       </DialogContent>
     </Dialog>

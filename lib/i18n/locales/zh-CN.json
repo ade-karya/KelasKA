@@ -2819,7 +2819,6 @@
       "language": "语言",
       "about": "关于 OpenMAIC",
       "aboutBody": "开源的多智能体互动课堂平台：输入任何主题，AI 老师和同学陪你一起学。基于 MIT 许可证发布。",
-      "viewOnGithub": "在 GitHub 上查看",
       "docs": "文档",
       "signOut": "退出登录",
       "onboarding": "新手引导"

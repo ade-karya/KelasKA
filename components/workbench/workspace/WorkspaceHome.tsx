@@ -20,22 +20,18 @@
  *
  * The hero is the fork's Kelas KA lockup, not upstream's horizontal wordmark:
  * the two government logos (Kemendikdasmen and DPRD) beside the product name,
- * then the tagline and the GitHub link, sized for a column that is narrower
- * than a full page but not shrunk out of the page's weight class. `BrandLogo`
- * owns those sizes so the hero, the rail and the About dialog stay in step.
+ * then the tagline, sized for a column that is narrower than a full page but
+ * not shrunk out of the page's weight class. `BrandLogo` owns those sizes so
+ * the hero, the rail and the About dialog stay in step.
  *
  * Under the composer, a host may add a section of its own (a featured-course
  * strip, say) through `WorkbenchShellExtensions.homeSection`. Upstream has no
  * feed of other people's courses, so by default nothing follows the composer.
  */
 
-import { useEffect, useState } from 'react';
-import { Github, Star } from 'lucide-react';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { useWorkbenchShellExtensions } from '@/lib/workbench/shell-extensions';
-import { OPENMAIC_GITHUB_URL } from '@/lib/workbench/shell-links';
 import { BrandLogo } from '@/components/brand-logo';
-import { GITHUB_STARS_ENDPOINT, formatStarCount } from '@/lib/workbench/github-stars';
 import { ProLaunchPanel, type PromptSeed } from '@/components/workbench/ProLaunchPanel';
 import type { CourseMentionSource } from '@/lib/workbench/course-mention';
 import type { MaterialSeed } from '@/components/workbench/compose-extras';
@@ -102,22 +98,9 @@ export function WorkspaceHome({
               <BrandLogo size="lg" />
             </div>
 
-            <div className="mt-3.5 flex flex-wrap items-center justify-center gap-3">
-              <p className="ws-tagline" data-testid="pro-workspace-hero-tagline">
-                {t('home.slogan')}
-              </p>
-              <a
-                href={OPENMAIC_GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="pro-workspace-hero-github"
-                className="ws-gh-pill"
-              >
-                <Github className="size-3.5" aria-hidden="true" />
-                GitHub
-                <GitHubStarCount />
-              </a>
-            </div>
+            <p className="ws-tagline mt-3.5 text-center" data-testid="pro-workspace-hero-tagline">
+              {t('home.slogan')}
+            </p>
           </div>
 
           {/* Beat two: the composer, the one object on this page with real
@@ -162,34 +145,5 @@ export function WorkspaceHome({
         </section>
       </div>
     </main>
-  );
-}
-
-/**
- * The repository's star count, appended to the GitHub pill. Until it arrives,
- * or when it cannot be had, nothing renders, so the pill looks as it always did.
- */
-function GitHubStarCount() {
-  const [stars, setStars] = useState<number | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch(GITHUB_STARS_ENDPOINT, { signal: controller.signal })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: { stars?: unknown } | null) => {
-        if (typeof body?.stars === 'number') setStars(body.stars);
-      })
-      .catch(() => {
-        // The count is decoration; the pill stands without it.
-      });
-    return () => controller.abort();
-  }, []);
-
-  if (stars === null) return null;
-  return (
-    <span className="ws-gh-stars" data-testid="pro-workspace-hero-github-stars">
-      <Star className="size-3 fill-amber-400 text-amber-400" aria-hidden="true" />
-      {formatStarCount(stars)}
-    </span>
   );
 }
