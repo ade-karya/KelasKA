@@ -1559,9 +1559,9 @@ fi
 # endpoint lokal dikosongkan seperti perilaku lama.
 if [[ "$WITH_COLAB" -eq 1 ]]; then
   LANGKAH="preset fitur Colab"
-  # Daftar ini mengikuti FORCE_ON di
-  # deploy-dev-node-native-full-features.ipynb; gate aktifnya ada di
-  # lib/config/feature-flags.ts. Workbench SENGAJA tidak di sini: upstream
+  # Daftar ini adalah sumber kebenaran preset --colab (dulu mengikuti FORCE_ON
+  # di deploy-dev-node-native-full-features.ipynb, yang sudah dihapus); gate
+  # aktifnya ada di lib/config/feature-flags.ts. Workbench SENGAJA tidak di sini: upstream
   # menjadikan beranda classic home secara default, dan workbench hanya opt-in
   # lewat --with-workbench (lihat terapkan_flag_workbench).
   FITUR_COLAB_ON=(
@@ -1581,7 +1581,7 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
     set_env_value .env.local "$_flag" "true"
   done
   unset _flag FITUR_COLAB_ON
-  # Default CTA video export dari notebook; tujuan milik user dipertahankan.
+  # Default CTA video export dari preset --colab; tujuan milik user dipertahankan.
   pastikan_var_env .env.local NEXT_PUBLIC_VIDEO_EXPORT_CTA_DESTINATION "open.maic.chat"
 
   # Persistence + agent runtime hanya bisa ON bila ada database. --colab
