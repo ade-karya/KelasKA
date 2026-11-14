@@ -642,6 +642,101 @@ async function fetchGeminiModelsCandidate(
   return { data: accumulated.map((a) => ({ id: a.id, display_name: a.displayName })) };
 }
 
+/**
+ * Whether a discovery target is CrowLLM's gateway (`crowllm` preset or the
+ * `crowllm.com` host). Its `/v1/models` is the whole catalogue — 196 ids on
+ * 2026-11-14 — whether or not the caller's key may run them; only
+ * `/api/pricing` reports which plan groups a model belongs to.
+ */
+export function isCrowllmTarget(baseUrl: string, providerId?: string): boolean {
+  if (providerId === 'crowllm') return true;
+  try {
+    return /(^|\.)crowllm\.com$/i.test(new URL(baseUrl).hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** One `/api/pricing` row, as CrowLLM publishes it. */
+interface CrowllmPricingRow {
+  model_name?: string;
+  /** Plan groups that may call the model, e.g. `["free","pro"]`. */
+  enable_groups?: string[];
+}
+
+interface CrowllmPricingResponse {
+  success?: boolean;
+  /** The plan groups this deployment offers to the caller, e.g. `{ free: "" }`. */
+  usable_group?: Record<string, unknown>;
+  data?: CrowllmPricingRow[];
+}
+
+const CROWLLM_PRICING_TIMEOUT_MS = 10_000;
+
+/**
+ * The ids a CrowLLM key may actually call, from `GET /api/pricing`.
+ *
+ * CrowLLM's `/v1/models` answers with the entire catalogue for any key (it is
+ * public: no key answers too, an invalid one is 401), so the list alone shows
+ * models the key cannot run — the fixed 18-of-30 paid rows the built-in
+ * snapshot used to offer for a free key. `/api/pricing` is the authoritative
+ * entitlement source: each row names its `enable_groups`, and `usable_group`
+ * names the groups the deployment offers (the free group only, as of
+ * 2026-11-14). A model is returned when the two intersect.
+ *
+ * Returns null when the endpoint cannot be read (network failure, a non-2xx,
+ * a malformed body, an empty group list): the caller then keeps the models it
+ * discovered rather than hiding a working key's catalogue.
+ */
+export async function fetchCrowllmUsableModelIds(
+  baseUrl: string,
+  apiKey: string,
+  opts: { fetchImpl?: ModelFetchTransport } = {},
+): Promise<Set<string> | null> {
+  let pricingUrl: string;
+  try {
+    // Drop the API path (`/v1`) and any query: the pricing endpoint is at the
+    // origin, not under the OpenAI-compatible base.
+    pricingUrl = new URL('/api/pricing', baseUrl.trim()).href;
+  } catch {
+    return null;
+  }
+  const fetchImpl = opts.fetchImpl ?? pinnedModelsFetch;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(discoveryTimeout()), CROWLLM_PRICING_TIMEOUT_MS);
+  try {
+    const res = await fetchImpl(pricingUrl, {
+      method: 'GET',
+      headers: {
+        ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        ...appAttributionHeaders(pricingUrl),
+      },
+      redirect: 'manual',
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as CrowllmPricingResponse;
+    if (!body || body.success === false || !Array.isArray(body.data)) return null;
+    const groups = Object.keys(body.usable_group ?? {}).filter(Boolean);
+    // No advertised group (an older deployment): the free group is the one
+    // every key can use, and it is what the snapshot ships.
+    const usableGroups = groups.length ? groups : ['free'];
+    const usable = new Set<string>();
+    for (const row of body.data) {
+      const id = row.model_name?.trim();
+      if (!id) continue;
+      if ((row.enable_groups ?? []).some((group) => usableGroups.includes(group))) usable.add(id);
+    }
+    return usable.size ? usable : null;
+  } catch {
+    // Never fail discovery over an entitlement lookup: the route keeps the list.
+    return null;
+  } finally {
+    clearTimeout(timer);
+    controller.abort();
+  }
+}
+
 /** Error carrying the upstream HTTP status so the route can map it (401 vs 404). */
 export class ModelFetchError extends Error {
   constructor(

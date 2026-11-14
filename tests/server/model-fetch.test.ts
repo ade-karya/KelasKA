@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildModelsUrlCandidates, fetchModels, ModelFetchError } from '@/lib/server/model-fetch';
+import {
+  buildModelsUrlCandidates,
+  fetchCrowllmUsableModelIds,
+  fetchModels,
+  isCrowllmTarget,
+  ModelFetchError,
+} from '@/lib/server/model-fetch';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -297,5 +303,103 @@ describe('gemini native discovery (per ai.google.dev docs)', () => {
       'gemma-4-31b-it',
       'gemini-flash-latest',
     ]);
+  });
+});
+
+describe('crowllm entitlement', () => {
+  const PRICING = {
+    success: true,
+    // What the deployment advertises to this caller: the free group.
+    usable_group: { free: '' },
+    data: [
+      { model_name: 'gemini-3.8-flash:free', enable_groups: ['free', 'pro'] },
+      { model_name: 'grok-4.7:free', enable_groups: ['free', 'starter', 'pro'] },
+      { model_name: 'gpt-6-sol', enable_groups: ['pro'] },
+      { model_name: 'claude-opus-5-5', enable_groups: ['pro'] },
+    ],
+  };
+
+  function pricingFetch(body: unknown, init: { status?: number } = {}) {
+    return vi.fn().mockResolvedValue({
+      ok: (init.status ?? 200) < 300,
+      status: init.status ?? 200,
+      json: vi.fn().mockResolvedValue(body),
+    } as unknown as Response);
+  }
+
+  it('recognises the preset id and the crowllm.com host, not a lookalike', () => {
+    expect(isCrowllmTarget('https://crowllm.com/v1', undefined)).toBe(true);
+    expect(isCrowllmTarget('https://api.example.com/v1', 'crowllm')).toBe(true);
+    expect(isCrowllmTarget('https://crowllm.com.evil.example/v1')).toBe(false);
+    expect(isCrowllmTarget('https://notcrowllm.com/v1')).toBe(false);
+    expect(isCrowllmTarget('not a url', undefined)).toBe(false);
+  });
+
+  it('keeps only the ids the advertised groups may run', async () => {
+    const fetchMock = pricingFetch(PRICING);
+
+    const usable = await fetchCrowllmUsableModelIds('https://crowllm.com/v1', 'sk-test', {
+      fetchImpl: fetchMock as never,
+    });
+
+    expect([...(usable ?? [])].sort()).toEqual(['gemini-3.8-flash:free', 'grok-4.7:free']);
+    // The pricing endpoint lives at the origin, not under the API base.
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://crowllm.com/api/pricing',
+      expect.objectContaining({
+        method: 'GET',
+        headers: expect.objectContaining({ Authorization: 'Bearer sk-test' }),
+      }),
+    );
+  });
+
+  it('follows the groups the deployment advertises for a paid key', async () => {
+    const fetchMock = pricingFetch({ ...PRICING, usable_group: { free: '', pro: '' } });
+
+    const usable = await fetchCrowllmUsableModelIds('https://crowllm.com/v1', 'sk-paid', {
+      fetchImpl: fetchMock as never,
+    });
+
+    expect([...(usable ?? [])].sort()).toEqual([
+      'claude-opus-5-5',
+      'gemini-3.8-flash:free',
+      'gpt-6-sol',
+      'grok-4.7:free',
+    ]);
+  });
+
+  it('falls back to the free group when no group is advertised', async () => {
+    const fetchMock = pricingFetch({ ...PRICING, usable_group: undefined });
+
+    const usable = await fetchCrowllmUsableModelIds('https://crowllm.com/v1', '', {
+      fetchImpl: fetchMock as never,
+    });
+
+    expect([...(usable ?? [])].sort()).toEqual(['gemini-3.8-flash:free', 'grok-4.7:free']);
+  });
+
+  it('returns null when the pricing endpoint cannot be read', async () => {
+    const failing = vi.fn().mockRejectedValue(new TypeError('network down'));
+
+    await expect(
+      fetchCrowllmUsableModelIds('https://crowllm.com/v1', 'sk-test', {
+        fetchImpl: failing as never,
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      fetchCrowllmUsableModelIds('https://crowllm.com/v1', 'sk-test', {
+        fetchImpl: pricingFetch(PRICING, { status: 500 }) as never,
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      fetchCrowllmUsableModelIds('https://crowllm.com/v1', 'sk-test', {
+        fetchImpl: pricingFetch({ success: false }) as never,
+      }),
+    ).resolves.toBeNull();
+    await expect(
+      fetchCrowllmUsableModelIds('https://crowllm.com/v1', 'sk-test', {
+        fetchImpl: pricingFetch({ ...PRICING, data: [] }) as never,
+      }),
+    ).resolves.toBeNull();
   });
 });

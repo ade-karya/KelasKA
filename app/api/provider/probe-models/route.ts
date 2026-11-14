@@ -5,7 +5,9 @@ import { validateClientBaseUrl, validateUrlForSSRF } from '@/lib/server/ssrf-gua
 import {
   compareGeminiNewestFirst,
   compareOpenRouterNewestFirst,
+  fetchCrowllmUsableModelIds,
   fetchModels,
+  isCrowllmTarget,
   isFreeModelId,
   isZeroCostPricing,
   ModelFetchError,
@@ -55,6 +57,9 @@ function isOpenRouterTarget(baseUrl: string, providerId?: string, modelsUrl?: st
  * OpenRouter targets return FREE models only (`pricing` all $0 per
  * https://openrouter.ai/docs/api_reference/overview → list-models) with
  * proper catalog `name`s as display names.
+ * CrowLLM targets return the models the key's plan group may run: its
+ * `/v1/models` is the whole catalogue, so `/api/pricing`'s `enable_groups`
+ * decides (see {@link fetchCrowllmUsableModelIds}).
  * Returns the lit-up list, or a typed status so the UI can fall back to
  * manual model entry.
  */
@@ -122,7 +127,7 @@ export async function POST(req: NextRequest) {
     // when they are not OpenRouter targets — but here isOpenRouter is true,
     // so strict applies). Non-text outputs are never chat models.
     const isOpenRouter = isOpenRouterTarget(baseUrl, providerId, modelsUrl);
-    const chatModels = models.filter((m) => {
+    let chatModels = models.filter((m) => {
       if (NON_CHAT_PATTERN.test(m.id)) return false;
       if (isGemini && GEMINI_NON_TEXT_PATTERN.test(m.id)) return false;
       if (isOpenRouter) {
@@ -144,6 +149,15 @@ export async function POST(req: NextRequest) {
       }
       return true;
     });
+
+    // CrowLLM's `/v1/models` is the whole catalogue for every key, paid rows
+    // included, so the discovered list is narrowed to the ids the key's plan
+    // groups may run (`/api/pricing` → `enable_groups` ∩ `usable_group`). A
+    // pricing read that fails returns null and leaves the list untouched.
+    if (isCrowllmTarget(baseUrl, providerId)) {
+      const usable = await fetchCrowllmUsableModelIds(baseUrl, apiKey || '');
+      if (usable) chatModels = chatModels.filter((m) => usable.has(m.id));
+    }
 
     // Display contract: newest first. `fetchModels` already sorts Gemini
     // (version desc) and OpenRouter (`created` desc), and `filter` preserves

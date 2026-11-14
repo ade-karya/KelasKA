@@ -3,40 +3,27 @@ import { PROVIDERS } from '@/lib/ai/providers';
 
 /**
  * CrowLLM is an OpenAI-compatible gateway ("one key, every model") at
- * https://crowllm.com/v1. GET /v1/models answered 196 chat ids on 2026-11-14
- * (a free group plus paid tiers), so the built-in catalogue is a curated
- * flagship-per-vendor snapshot; "Fetch models" appends the rest from the live
- * endpoint. CrowLLM publishes no context window, output cap or vision flag,
- * and exposes reasoning as separate `*-thinking` ids, so no row carries a
- * `contextWindow` or a `thinking` control. Refresh the ids below from the live
- * catalogue instead of guessing them.
+ * https://crowllm.com/v1. GET /v1/models answered 196 ids on 2026-11-14, but
+ * it is the whole catalogue for every key: GET /api/pricing marks 83 of those
+ * `pro` only, so a free key that picks one is refused. The built-in snapshot
+ * therefore lists only ids the free group may run (every one of them ends in
+ * `:free`); "Fetch models" adds the rest of the key's own plan via
+ * `/api/pricing`, and a paid id can still be added by hand. CrowLLM publishes
+ * no context window, output cap or vision flag, and exposes reasoning as
+ * separate `*-thinking` ids, so no row carries a `contextWindow` or a
+ * `thinking` control. Refresh the ids below from the live catalogue instead of
+ * guessing them.
  */
 const CATALOG_IDS = `
-gpt-6-sol
 gpt-5.6-sol:free
-claude-opus-5-5
-claude-sonnet-5-5
-claude-haiku-5-5
-gemini-3.8-flash
 gemini-3.8-flash:free
 gemini-3.1-pro:free
-deepseek-v4.1-flash
 deepseek-v4.1-flash:free
-deepseek-v4-pro
-qwen3.8-max
 qwen-3.8-max:free
-qwen3.8-flash
-kimi-k3.1-pro
-kimi-k2.6
-glm-5.3
 glm-5.3-flash:free
-minimax-m3
 minimax-m3.1-flash:free
-grok-4.7
 grok-4.7:free
-hy4-preview
 hy4:free
-mimo-v2.6-pro
 mimo-v2.6-flash:free
 nemotron-3-ultra-550b-a55b:free
 llama-3.3-70b-instruct:free
@@ -58,10 +45,15 @@ describe('crowllm provider', () => {
     });
   });
 
-  it('lists the curated flagship ids without duplicates', () => {
+  it('lists only free-group ids, without duplicates', () => {
     const ids = PROVIDERS.crowllm.models.map((model) => model.id);
     expect(ids).toEqual(CATALOG_IDS);
     expect(new Set(ids).size).toBe(ids.length);
+    for (const id of ids) {
+      // The free group is the only group a key without a plan may run, so the
+      // shipped snapshot must not offer a paid row (they end in `:free`).
+      expect(id.endsWith(':free'), id).toBe(true);
+    }
   });
 
   it('claims only the capabilities every listed chat model shares', () => {

@@ -1776,9 +1776,13 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     name: 'CrowLLM',
     type: 'openai',
     // OpenAI-compatible gateway ("one key, every model") at
-    // https://crowllm.com/v1. GET /v1/models answered 196 ids on 2026-11-14
-    // (a free group plus paid tiers), so the static rows below are only the
-    // current flagship of each vendor; "Fetch models" appends the rest.
+    // https://crowllm.com/v1. GET /v1/models answered 196 ids on 2026-11-14,
+    // but it is the whole catalogue for every key: the paid rows need a plan
+    // (GET /api/pricing → `enable_groups`, 83 ids on 2026-11-14 are `pro`
+    // only), so a free key that picks one gets a 403. The snapshot therefore
+    // carries only ids the free group may run; "Fetch models" adds the rest of
+    // the key's own plan (see `fetchCrowllmUsableModelIds`) and any paid id
+    // can still be added by hand.
     // CrowLLM publishes no context window, output cap or vision flag, and
     // ships reasoning as separate `*-thinking` ids instead of a
     // `reasoning_effort` knob, so a row only claims what these chat models
@@ -1789,33 +1793,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     icon: '/logos/crowllm.svg',
     models: [
       {
-        id: 'gpt-6-sol',
-        name: 'GPT-6 Sol',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
         id: 'gpt-5.6-sol:free',
         name: 'GPT-5.6 Sol (Free)',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'claude-opus-5-5',
-        name: 'Claude Opus 5.5',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'claude-sonnet-5-5',
-        name: 'Claude Sonnet 5.5',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'claude-haiku-5-5',
-        name: 'Claude Haiku 5.5',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'gemini-3.8-flash',
-        name: 'Gemini 3.8 Flash',
         capabilities: { streaming: true, tools: true },
       },
       {
@@ -1829,23 +1808,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         capabilities: { streaming: true, tools: true },
       },
       {
-        id: 'deepseek-v4.1-flash',
-        name: 'DeepSeek V4.1 Flash',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
         id: 'deepseek-v4.1-flash:free',
         name: 'DeepSeek V4.1 Flash (Free)',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'deepseek-v4-pro',
-        name: 'DeepSeek V4 Pro',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'qwen3.8-max',
-        name: 'Qwen3.8 Max',
         capabilities: { streaming: true, tools: true },
       },
       {
@@ -1854,33 +1818,8 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         capabilities: { streaming: true, tools: true },
       },
       {
-        id: 'qwen3.8-flash',
-        name: 'Qwen3.8 Flash',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'kimi-k3.1-pro',
-        name: 'Kimi K3.1 Pro',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'kimi-k2.6',
-        name: 'Kimi K2.6',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'glm-5.3',
-        name: 'GLM-5.3',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
         id: 'glm-5.3-flash:free',
         name: 'GLM-5.3 Flash (Free)',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'minimax-m3',
-        name: 'MiniMax M3',
         capabilities: { streaming: true, tools: true },
       },
       {
@@ -1889,28 +1828,13 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         capabilities: { streaming: true, tools: true },
       },
       {
-        id: 'grok-4.7',
-        name: 'Grok 4.7',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
         id: 'grok-4.7:free',
         name: 'Grok 4.7 (Free)',
         capabilities: { streaming: true, tools: true },
       },
       {
-        id: 'hy4-preview',
-        name: 'Tencent Hy4 Preview',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
         id: 'hy4:free',
         name: 'Tencent Hy4 (Free)',
-        capabilities: { streaming: true, tools: true },
-      },
-      {
-        id: 'mimo-v2.6-pro',
-        name: 'MiMo V2.6 Pro',
         capabilities: { streaming: true, tools: true },
       },
       {

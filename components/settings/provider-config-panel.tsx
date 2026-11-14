@@ -121,11 +121,11 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
   }, [entry.id, models, t]);
 
   // Ask the provider which models it serves (on the server, with its stored
-  // key) and add them to its list. Gemini and OpenRouter probes return
-  // newest-first (Gemini version desc, OpenRouter `created` desc) with fresh
-  // `displayName`s: the list is replaced by the probe (stale models and their
-  // old labels go away) instead of merged, and the fresh labels are shown
-  // until the server view reloads.
+  // key) and add them to its list. Gemini, OpenRouter and CrowLLM probes are
+  // authoritative — Gemini/OpenRouter return newest-first with fresh
+  // `displayName`s, CrowLLM returns only the ids the key may run — so those
+  // replace the list (stale models and their old labels go away) instead of
+  // merging, and the fresh labels are shown until the server view reloads.
   const handleFetchModels = useCallback(async () => {
     setFetchStatus('fetching');
     setFetchMessage('');
@@ -141,11 +141,13 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
         const ids: string[] = probed.map((m) => m.id).filter(Boolean);
         const current = models.map((model) => model.id);
         const additions = ids.filter((id) => !current.includes(id));
-        const isNewestFirst =
+        const probeReplacesList =
           entry.registryId === 'google' ||
           entry.registryId === 'openrouter' ||
+          entry.registryId === 'crowllm' ||
           entry.id === 'google' ||
-          entry.id === 'openrouter';
+          entry.id === 'openrouter' ||
+          entry.id === 'crowllm';
         // Fresh labels for this fetch only: ignore a label that merely
         // repeats the id (the old display).
         const freshNames: Record<string, string> = {};
@@ -153,12 +155,12 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
           const label = m.displayName?.trim();
           if (label && label !== m.id) freshNames[m.id] = label;
         }
-        // Gemini/OpenRouter: the probe is authoritative — replace the list
-        // (probe order, already newest-first) so models it no longer serves
-        // disappear instead of lingering with their old display. Other
+        // Gemini/OpenRouter/CrowLLM: the probe is authoritative — replace the
+        // list (probe order) so models it no longer serves, or the key may not
+        // run, disappear instead of lingering with their old display. Other
         // providers keep the merge behaviour (append additions).
-        const nextIds = isNewestFirst ? [...ids] : [...current, ...additions];
-        if (isNewestFirst) {
+        const nextIds = probeReplacesList ? [...ids] : [...current, ...additions];
+        if (probeReplacesList) {
           // The old display goes away with the old list: replace, don't merge.
           setFetchedNames(freshNames);
         } else if (Object.keys(freshNames).length) {
@@ -166,7 +168,7 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
         }
         // Report models as added only once the server saved them; a refused
         // or lost write leaves a failure the user can retry.
-        const needsSave = isNewestFirst
+        const needsSave = probeReplacesList
           ? ids.length > 0 &&
             (nextIds.length !== current.length || nextIds.some((id, i) => id !== current[i]))
           : additions.length > 0;
@@ -175,9 +177,9 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
           setFetchMessage(t('settings.serverConfig.fetchNotSaved'));
           return;
         }
-        // An empty Gemini/OpenRouter probe keeps the current list (nothing
-        // authoritative to replace it with); the stale labels are still gone
-        // above so the next successful fetch starts clean.
+        // An empty Gemini/OpenRouter/CrowLLM probe keeps the current list
+        // (nothing authoritative to replace it with); the stale labels are
+        // still gone above so the next successful fetch starts clean.
         setFetchStatus('success');
         setFetchMessage(
           t('settings.fetchModelsResult')

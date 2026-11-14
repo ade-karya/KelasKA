@@ -18,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Features
 
-- Chat providers: CrowLLM (`crowllm`) joins the built-in OpenAI-compatible gateways. One `CROWLLM_API_KEY` reaches the free group (`:free` model ids) and the paid tiers through `https://crowllm.com/v1`; the preset ships a flagship-per-vendor snapshot and **Model Services → Fetch models** appends the live `GET /v1/models` catalogue (196 ids on 2026-11-14). CrowLLM exposes reasoning as separate `*-thinking` model ids instead of a `reasoning_effort` parameter and publishes no context windows, so its rows use the app's 128k prompt budget.
+- Chat providers: CrowLLM (`crowllm`) joins the built-in OpenAI-compatible gateways. One `CROWLLM_API_KEY` reaches the free group and the paid tiers through `https://crowllm.com/v1`. Its `GET /v1/models` is the whole catalogue for every key (196 ids on 2026-11-14), so the model list is narrowed to what the key may actually run: **Model Services → Fetch models** intersects the discovered ids with `GET /api/pricing`'s `enable_groups` for the groups the deployment advertises (`usable_group`, the free group on 2026-11-14) and replaces the list, and the shipped snapshot carries only free-group ids — picking a paid id with a free key used to fail with a 403. A paid id can still be added by hand. CrowLLM exposes reasoning as separate `*-thinking` model ids instead of a `reasoning_effort` parameter and publishes no context windows, so its rows use the app's 128k prompt budget.
 
 ## [1.5.0-rc.2] - 2026-11-12
 

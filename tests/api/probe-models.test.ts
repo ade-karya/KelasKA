@@ -226,6 +226,70 @@ describe('POST /api/provider/probe-models', () => {
       });
     });
 
+    it('narrows a CrowLLM probe to the ids the key may run', async () => {
+      const provider = await startLoopback((req, res) => {
+        if (req.url === '/api/pricing') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              success: true,
+              // The deployment advertises the free group to this key.
+              usable_group: { free: '' },
+              data: [
+                { model_name: 'gemini-3.8-flash:free', enable_groups: ['free', 'pro'] },
+                { model_name: 'gpt-6-sol', enable_groups: ['pro'] },
+              ],
+            }),
+          );
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ data: [{ id: 'gpt-6-sol' }, { id: 'gemini-3.8-flash:free' }] }));
+      });
+
+      const res = await postProbeModels({
+        baseUrl: provider.origin,
+        apiKey: 'test-key',
+        providerId: 'crowllm',
+      });
+
+      expect(res).toEqual({
+        status: 200,
+        json: {
+          success: true,
+          models: [{ id: 'gemini-3.8-flash:free', ownedBy: undefined }],
+          total: 2,
+          filtered: 1,
+        },
+      });
+      // One /v1/models request plus the pricing read that decides the list.
+      expect(provider.requests()).toBe(2);
+    });
+
+    it('keeps the CrowLLM catalogue when the pricing read fails', async () => {
+      const provider = await startLoopback((req, res) => {
+        if (req.url === '/api/pricing') {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end('{"message":"upstream"}');
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ data: [{ id: 'gpt-6-sol' }, { id: 'gemini-3.8-flash:free' }] }));
+      });
+
+      const res = await postProbeModels({
+        baseUrl: provider.origin,
+        apiKey: 'test-key',
+        providerId: 'crowllm',
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.json.models.map((m: { id: string }) => m.id)).toEqual([
+        'gemini-3.8-flash:free',
+        'gpt-6-sol',
+      ]);
+    });
+
     it('reports only the status class of other errors, never the body', async () => {
       const provider = await answering(500, 'internal-secret-body');
 

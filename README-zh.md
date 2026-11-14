@@ -206,7 +206,7 @@ slots:
   llm: crowllm:gemini-3.8-flash:free
 ```
 
-`GET https://crowllm.com/v1/models` 列出该 key 可调用的全部 id（2026-11-14 为 196 个）；内置预设只收录每个厂商的旗舰型号，**模型服务 → 获取模型** 会追加其余条目。以 `:free` 结尾的 id 属于免费分组，其余需要付费套餐。CrowLLM 把推理能力做成独立的 `*-thinking` 型号（例如 `deepseek-v4.1-flash-thinking`），而不是 `reasoning_effort` 参数，并且不公布上下文窗口，因此这些条目使用应用默认的 128k 提示预算。
+`GET https://crowllm.com/v1/models` 对所有 key 都返回完整目录（2026-11-14 为 196 个，含付费型号），因此应用会收窄到该 key 真正可用的型号：**模型服务 → 获取模型** 把目录与 `GET /api/pricing` 的 `enable_groups` 求交集（只取 CrowLLM 声明当前可用的分组，2026-11-14 为免费分组）并以此替换列表；内置预设只收录免费分组的型号（均以 `:free` 结尾），付费型号仍可手动添加。CrowLLM 把推理能力做成独立的 `*-thinking` 型号（例如 `deepseek-v4.1-flash-thinking`），而不是 `reasoning_effort` 参数，并且不公布上下文窗口，因此这些条目使用应用默认的 128k 提示预算。
 
 小米 MiMo Token Plan 与智谱 GLM 快速示例：
 
