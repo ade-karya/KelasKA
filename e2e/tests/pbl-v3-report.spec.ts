@@ -360,7 +360,7 @@ test('completed project reports stay discoverable, show facts before analysis, a
   await shareTrigger.focus();
   await page.keyboard.press('Space');
   const share = page.getByRole('dialog', { name: 'Share your achievement', exact: true });
-  const poster = share.getByRole('img', { name: 'Your OpenMAIC achievement image' });
+  const poster = share.getByRole('img', { name: 'Your Kelas KA achievement image' });
   await expect(share.getByRole('group')).toHaveCount(0);
   await expect(share.getByRole('button', { name: /^(Light|Dark)$/ })).toHaveCount(0);
   await expect(poster).toBeVisible();
@@ -395,7 +395,7 @@ test('completed project reports stay discoverable, show facts before analysis, a
   await page.setViewportSize(shareViewport);
   const downloading = page.waitForEvent('download');
   await save.click();
-  expect((await downloading).suggestedFilename()).toBe('OpenMAIC-dark.png');
+  expect((await downloading).suggestedFilename()).toBe('KelasKA-dark.png');
   await page.keyboard.press('Escape');
   await expect(share).toHaveCount(0);
   await expect(report).toBeVisible();

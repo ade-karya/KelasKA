@@ -15,7 +15,7 @@ Penyelenggaraan TKA. Struktur resmi: I. Latar Belakang dan Tujuan; II. Mata Uji 
 Jenis Soal; III. Muatan dan Kompetensi; IV. Contoh Soal. TKA bukan penentu
 kelulusan; kelulusan tetap wewenang pendidik dan satuan pendidikan.
 
-Gunakan skill ini untuk merancang **satu stage OpenMAIC** yang selaras TKA:
+Gunakan skill ini untuk merancang **satu stage Kelas Kecerdasan Artifisial** yang selaras TKA:
 halaman, aktivitas learner, dan asesmen mengikuti muatan, kompetensi, level
 kognitif, dan bentuk soal resmi. `stage-design` mengatur urutan persistensi;
 skill ini mengatur pedagogi dan isi setiap brief.

@@ -3,7 +3,7 @@ title: VoxCPM2
 description: تحويل النص إلى كلام ذاتي الاستضافة مع استنساخ الصوت. اختيار الخلفية، التكوين وإدارة الأصوات.
 ---
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) هو نموذج تحويل النص إلى كلام مفتوح المصدر من OpenBMB يدعم استنساخ الصوت. يأتي OpenMAIC مزودًا بمحول؛ شغّل VoxCPM على جهازك ليتصل به OpenMAIC.
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) هو نموذج تحويل النص إلى كلام مفتوح المصدر من OpenBMB يدعم استنساخ الصوت. يأتي Kelas Kecerdasan Artifisial مزودًا بمحول؛ شغّل VoxCPM على جهازك ليتصل به Kelas Kecerdasan Artifisial.
 
 ## متى تستخدم VoxCPM2
 
@@ -15,7 +15,7 @@ description: تحويل النص إلى كلام ذاتي الاستضافة م�
 
 ## 1. شغّل خلفية VoxCPM
 
-يدعم OpenMAIC ثلاثة أشكال نشر، تستخدم كلها محول OpenMAIC نفسه؛ اختر الشكل الذي تشغّله عبر `options.backend` على المزود في `openmaic.yml` (الخطوة 2).
+يدعم Kelas Kecerdasan Artifisial ثلاثة أشكال نشر، تستخدم كلها محول Kelas Kecerdasan Artifisial نفسه؛ اختر الشكل الذي تشغّله عبر `options.backend` على المزود في `openmaic.yml` (الخطوة 2).
 
 | الخلفية         | نقطة النهاية       | حالات الاستخدام                                |
 | -------------- | ------------------ | ---------------------------------------------- |
@@ -32,7 +32,7 @@ python -m vllm_omni.server --model openbmb/VoxCPM2 --port 8000
 # نقطة النهاية على http://localhost:8000/v1
 ```
 
-## 2. اجعل OpenMAIC يتصل بها
+## 2. اجعل Kelas Kecerdasan Artifisial يتصل بها
 
 يعمل VoxCPM2 على شبكتك الخاصة، لذا يضبط النشر عنوانه، ولا يمكن لمساحات العمل إضافته في **الإعدادات ← خدمات النماذج**. أعلنه في `openmaic.yml`، واختر الخلفية عبر `options.backend`، وعيّنه لخانة `tts`. لا حاجة إلى مفتاح API:
 
@@ -64,7 +64,7 @@ TTS_VOXCPM_BASE_URL=http://localhost:8000/v1
 
 ### الصوت التلقائي (افتراضي)
 
-يقوم OpenMAIC بإنشاء موجه صوتي ديناميكي بناءً على شخصية كل وكيل أثناء التوليد. لا يحتاج إلى إعداد، وهذا هو الوضع الافتراضي إذا لم تغير شيئًا.
+يقوم Kelas Kecerdasan Artifisial بإنشاء موجه صوتي ديناميكي بناءً على شخصية كل وكيل أثناء التوليد. لا يحتاج إلى إعداد، وهذا هو الوضع الافتراضي إذا لم تغير شيئًا.
 
 ### صوت الموجه
 

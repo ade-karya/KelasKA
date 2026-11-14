@@ -225,12 +225,12 @@ export function PBLWorkspaceLayer({
         animate={{ ...(expanded ? fullscreenStyle : dockedStyle), opacity: 1 }}
         transition={transition}
       >
-        {/* Native (OS) fullscreen takes over the top-right slot: OpenMAIC's
+        {/* Native (OS) fullscreen takes over the top-right slot: Kelas Kecerdasan Artifisial's
             own exit bar is hidden for PBL, so this is the only click target
-            to leave true fullscreen (Esc still works, handled by OpenMAIC).
-            `document.exitFullscreen()` triggers OpenMAIC's own fullscreenchange
-            cleanup (keyboard unlock etc.) — we never touch OpenMAIC code. The
-            violet, borderless-ish treatment mirrors OpenMAIC's native control
+            to leave true fullscreen (Esc still works, handled by Kelas Kecerdasan Artifisial).
+            `document.exitFullscreen()` triggers Kelas Kecerdasan Artifisial's own fullscreenchange
+            cleanup (keyboard unlock etc.) — we never touch Kelas Kecerdasan Artifisial code. The
+            violet, borderless-ish treatment mirrors Kelas Kecerdasan Artifisial's native control
             so it reads differently from the neutral web-fullscreen buttons. */}
         {!hideControls &&
           (nativeFullscreen ? (

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""VoxCPM2 FastAPI server for OpenMAIC's `python-api` TTS backend.
+"""VoxCPM2 FastAPI server for Kelas Kecerdasan Artifisial's `python-api` TTS backend.
 
-OpenMAIC's VoxCPM adapter selects the backend with
+The Kelas Kecerdasan Artifisial VoxCPM adapter selects the backend with
 `providers.<id>.options.backend` in openmaic.yml. The `python-api` backend
 posts multipart form data to `/tts/upload` and expects raw audio back, so this
 server wraps the official `voxcpm` package with exactly that contract:
@@ -12,7 +12,7 @@ server wraps the official `voxcpm` package with exactly that contract:
 
 It is the GPU path: VoxCPM2 runs on CUDA, generates 48 kHz WAV, and needs no
 API key. Voice registration (`/v1/audio/voices`) is only offered by the
-vLLM-Omni backend; with this backend OpenMAIC sends the reference clip inline
+vLLM-Omni backend; with this backend the adapter sends the reference clip inline
 on every request instead.
 
 Start (the installer does this for you):

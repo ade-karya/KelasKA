@@ -13,7 +13,7 @@ Keahlian SMK/MAK (50 program keahlian, kompetensi fondasi, mengacu CP
 046/H/KR/2025 Fase E dengan sebagian rujukan Fase F). TKA bukan
 penentu kelulusan; kelulusan tetap wewenang satuan pendidikan.
 
-Gunakan skill ini untuk merancang **satu stage OpenMAIC** yang selaras TKA
+Gunakan skill ini untuk merancang **satu stage Kelas Kecerdasan Artifisial** yang selaras TKA
 SMA/SMK. `stage-design` mengatur urutan persistensi; skill ini mengatur isi
 dan pedagogi setiap brief.
 

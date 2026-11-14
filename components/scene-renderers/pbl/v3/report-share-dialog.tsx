@@ -117,7 +117,7 @@ export function ReportShareDialog({
           {ready ? (
             <a
               href={ready}
-              download={`OpenMAIC-${theme}.png`}
+              download={`KelasKA-${theme}.png`}
               aria-label={t('pblV3.share.save')}
               title={t('pblV3.share.save')}
               className="absolute right-1 bottom-1 z-10 flex size-7 items-center justify-center rounded-full border border-foreground/15 bg-background/90 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"

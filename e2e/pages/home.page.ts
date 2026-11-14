@@ -8,9 +8,9 @@ export class HomePage {
 
   constructor(page: Page) {
     this.page = page;
-    // Support both legacy OpenMAIC alt and new Kelas KA branding (Kemendikdasmen/DPRD logos)
+    // Kelas Kecerdasan Artifisial branding: the Kemendikdasmen/DPRD lockup
     this.logo = page
-      .locator('img[alt="OpenMAIC"], img[alt="Kemendikdasmen Logo"], img[alt="DPRD Logo"]')
+      .locator('img[alt="Kemendikdasmen Logo"], img[alt="DPRD Logo"]')
       .first();
     this.textarea = page.locator('textarea');
     this.enterButton = page

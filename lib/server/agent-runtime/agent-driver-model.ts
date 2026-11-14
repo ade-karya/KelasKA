@@ -51,7 +51,7 @@ export const UNKNOWN_MODEL_RESERVED_OUTPUT_TOKENS = 8_192;
 // `"api":"opencode-cli"` (aliases `"cli"`, `"opencode"`); internally the pi
 // metadata still carries the `openai-completions` shim because pi's
 // Model<Api> union has no CLI member — the StreamFn ignores that stub and
-// routes through OpenMAIC's resolved Vercel LanguageModel anyway
+// routes through Kelas Kecerdasan Artifisial's resolved Vercel LanguageModel anyway
 // (see lib/agent/runtime/stream-fn.ts).
 const OPENAI_PI_APIS = new Set<Api>(['openai-completions', 'openai-responses']);
 const DEFAULT_DRIVER_API: Api = 'openai-completions';

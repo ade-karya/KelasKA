@@ -23,7 +23,7 @@
  *   tanpa potong 2000 char) agar badan skill + konteks multi-turn utuh —
  *   sama seperti pesan terstruktur jalur HTTP.
  * - Setiap panggilan = sesi CLI baru (one-shot, tanpa `-s` resume) karena
- *   panggilan OpenMAIC stateless (prompt penuh dikirim tiap request).
+ *   panggilan Kelas Kecerdasan Artifisial stateless (prompt penuh dikirim tiap request).
  * - CLI dijalankan di direktori temp kosong agar baca/tulis file oleh agen
  *   tidak menyentuh repo server.
  */
@@ -1502,7 +1502,7 @@ function v3Finish(unified: V3FinishReason['unified']): V3FinishReason {
 
 /**
  * Model `opencode:*` / `opencode-go:*` untuk AI SDK. `provider`/`modelId`
- * mengikuti konvensi registry agar logging + usage-meta OpenMAIC tetap benar.
+ * mengikuti konvensi registry agar logging + usage-meta Kelas Kecerdasan Artifisial tetap benar.
  * Di-cast ke `LanguageModel` di batas modul (providers.ts) agar tidak menambah
  * dependensi `@ai-sdk/provider`.
  */

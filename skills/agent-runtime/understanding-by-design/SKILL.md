@@ -1,7 +1,7 @@
 ---
 name: understanding-by-design
 title: "理解本位设计（UbD）"
-description: "Use Understanding by Design (UbD) to plan one OpenMAIC classroom or a course series around transferable conceptual understanding. Use when the user wants backward design, enduring understandings, essential questions, GRASPS performance evidence, WHERETO learning experiences, or a concept-centered lesson rather than a list of facts. Do not use for visual style cloning, teacher-style imitation, or direct PPT import."
+description: "Use Understanding by Design (UbD) to plan one Kelas Kecerdasan Artifisial classroom or a course series around transferable conceptual understanding. Use when the user wants backward design, enduring understandings, essential questions, GRASPS performance evidence, WHERETO learning experiences, or a concept-centered lesson rather than a list of facts. Do not use for visual style cloning, teacher-style imitation, or direct PPT import."
 ---
 
 # 理解本位设计（UbD）
@@ -27,7 +27,7 @@ description: "Use Understanding by Design (UbD) to plan one OpenMAIC classroom o
 
 在写页面计划前定义学生如何证明理解：
 
-- **表现性任务（GRASPS）**：写清 Goal、Role、Audience、Situation、Product 和 Standards，在 OpenMAIC 中优先落到 `pbl` 页。
+- **表现性任务（GRASPS）**：写清 Goal、Role、Audience、Situation、Product 和 Standards，在 Kelas Kecerdasan Artifisial 中优先落到 `pbl` 页。
 - **概念诊断与辨析**：用 `quiz` 暴露典型错误概念，要求学生给出理由，不只是选项。
 - **迁移与应用**：用 `interactive` 或新情境任务观察学生能否把理解用到变化后的问题中。
 
@@ -45,7 +45,7 @@ description: "Use Understanding by Design (UbD) to plan one OpenMAIC classroom o
 - **T — Tailor**：为不同起点的学生提供支架与挑战。
 - **O — Organize**：页面顺序让理解逐步生成，最后回到基本问题。
 
-## OpenMAIC 页面节奏
+## Kelas Kecerdasan Artifisial 页面节奏
 
 可以从下列节奏起步，但根据表现性证据调整，不要机械套模板：
 

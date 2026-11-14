@@ -30,7 +30,7 @@ export const DEFAULT_BRAND: BrandConfig = {
   // Lockup Kelas KA dirender oleh `BrandLogo` (Kemendikdasmen + DPRD + teks
   // "Kelas KA"), bukan satu file horizontal. `logoSrc` ini hanya fallback
   // untuk permukaan yang belum migrasi — arahkan ke aset institusi agar tidak
-  // membocorkan logo OpenMAIC lama.
+  // membocorkan logo upstream lama.
   logoSrc: '/logo-kemendikdasmen.png',
   logoHasWordmark: false,
   markSrc: '/logo-kemendikdasmen.png',

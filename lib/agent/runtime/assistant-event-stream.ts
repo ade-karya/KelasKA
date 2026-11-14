@@ -1,5 +1,5 @@
 /**
- * Shared pi `AssistantMessageEventStream` implementation for the OpenMAIC
+ * Shared pi `AssistantMessageEventStream` implementation for the Kelas Kecerdasan Artifisial
  * StreamFn transports (`stream-fn.ts` for HTTP, `codex-stream-fn.ts` for the
  * Codex SDK).
  *

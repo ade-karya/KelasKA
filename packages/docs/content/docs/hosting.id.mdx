@@ -80,9 +80,9 @@ PostgreSQL, aplikasi selalu menyimpan kursus di sana, dan aplikasi diterbitkan d
 
 ## Apa yang disimpan server
 
-OpenMAIC selalu menyimpan kursus di server.
+Kelas Kecerdasan Artifisial selalu menyimpan kursus di server.
 [Deployment Docker](./deployment.mdx#docker) menjalankan tepat dua kontainer, yaitu
-aplikasi OpenMAIC dan PostgreSQL. Server HTTP persistence disematkan di aplikasi
+aplikasi Kelas Kecerdasan Artifisial dan PostgreSQL. Server HTTP persistence disematkan di aplikasi
 pada `/api/persistence`; tidak ada layanan persistence tersendiri.
 
 **`DATABASE_URL` wajib ada.** Tanpanya server tidak akan mulai: ia mencetak
@@ -562,7 +562,7 @@ permintaan sebagai pemilik anonim.
 
 ### Resep: akun melalui gateway identitas (JWT bertanda tangan)
 
-OpenMAIC tidak memiliki autentikator gateway bawaan. Deployment di belakang gateway
+Kelas Kecerdasan Artifisial tidak memiliki autentikator gateway bawaan. Deployment di belakang gateway
 identitas menulis metode kecil yang memverifikasi asersi **bertanda tangan** yang
 diteruskan gateway, terhadap kunci publik penerbit identitas. Berbeda dengan
 header pengguna biasa, token bertanda tangan tidak dapat dipalsukan oleh klien yang menjangkau
@@ -576,7 +576,7 @@ aplikasi di sekitar gateway. Sumber umum:
 
 Sketsa di bawah memakai pustaka [`jose`](https://github.com/panva/jose), yang
 ditambahkan host sebagai dependensinya sendiri. **Ini adalah resep milik host dan harus
-diuji host**, bukan kode yang dikirim atau dipelihara OpenMAIC. Letakkan berkasnya di
+diuji host**, bukan kode yang dikirim atau dipelihara Kelas Kecerdasan Artifisial. Letakkan berkasnya di
 `lib/server/identity/host/`: uji batas
 (`tests/server/identity/cookie-guard.test.ts`) gagal pada pembacaan header identitas
 gateway atau header `Authorization` yang masuk di tempat lain mana pun, termasuk berkas
@@ -722,7 +722,7 @@ masuk. Cookie tidak ditandatangani dan tidak terikat ke akun, dan itulah
 kandidat klaim yang dibaca inti. Cookie ini host-only, tetapi subdomain saudara di bawah
 domain yang dapat didaftarkan sama dapat menyetel `anonymous_id` berlingkup Domain yang mungkin dikirim browser
 lebih dulu, sehingga subdomain yang bermusuhan dapat menanam identitas anonim mana yang
-diklaim pengunjung yang sudah masuk. Sajikan OpenMAIC pada domain yang dapat didaftarkan miliknya sendiri
+diklaim pengunjung yang sudah masuk. Sajikan Kelas Kecerdasan Artifisial pada domain yang dapat didaftarkan miliknya sendiri
 (atau di tempat tidak ada pihak tak tepercaya yang mengendalikan subdomain saudara). Pengerasan
 cookie itu sendiri (nama `__Host-` pada deployment HTTPS, menolak permintaan yang
 menyajikan lebih dari satu `anonymous_id`) adalah butir yang ditunda.

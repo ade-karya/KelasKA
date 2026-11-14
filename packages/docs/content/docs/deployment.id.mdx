@@ -1,9 +1,9 @@
 ---
-title: Men-deploy OpenMAIC
-description: Deploy OpenMAIC dengan Docker, atau dengan bun run start di host Anda sendiri.
+title: Men-deploy Kelas Kecerdasan Artifisial
+description: Deploy Kelas Kecerdasan Artifisial dengan Docker, atau dengan bun run start di host Anda sendiri.
 ---
 
-OpenMAIC adalah aplikasi Next.js yang memerlukan proses Node.js berjalan lama dan PostgreSQL. Pembuatan kursus berjalan di server: setiap run disimpan di basis data dan dieksekusi oleh worker di dalam proses server, yang tetap berjalan setelah browser meninggalkan halaman dan diambil alih oleh proses lain (atau proses yang sama setelah restart) dari langkah terakhir yang selesai. Dua bentuk deployment didukung:
+Kelas Kecerdasan Artifisial adalah aplikasi Next.js yang memerlukan proses Node.js berjalan lama dan PostgreSQL. Pembuatan kursus berjalan di server: setiap run disimpan di basis data dan dieksekusi oleh worker di dalam proses server, yang tetap berjalan setelah browser meninggalkan halaman dan diambil alih oleh proses lain (atau proses yang sama setelah restart) dari langkah terakhir yang selesai. Dua bentuk deployment didukung:
 
 - **Docker Compose** (direkomendasikan): aplikasi dan PostgreSQL dalam dua kontainer.
 - **Image Docker atau `bun run start`** dengan basis data PostgreSQL yang Anda jalankan sendiri.
@@ -36,7 +36,7 @@ cp .env.example .env.local
 docker compose up --build
 ```
 
-Deployment Compose bawaan menjalankan dua kontainer, aplikasi OpenMAIC dan PostgreSQL, menghubungkan `DATABASE_URL` di antara keduanya, dan memasang volume `openmaic-data` serta `openmaic-postgres`. Konfigurasikan penyedia dan fitur lain sesuai kebutuhan; lihat [Konfigurasi](./configuration.mdx).
+Deployment Compose bawaan menjalankan dua kontainer, aplikasi Kelas Kecerdasan Artifisial dan PostgreSQL, menghubungkan `DATABASE_URL` di antara keduanya, dan memasang volume `openmaic-data` serta `openmaic-postgres`. Konfigurasikan penyedia dan fitur lain sesuai kebutuhan; lihat [Konfigurasi](./configuration.mdx).
 
 Model dikonfigurasi dengan salah satu dari dua cara. Untuk instalasi pribadi, jalankan stack, buka aplikasi, dan hubungkan layanan model di pengaturan model; konfigurasinya disimpan di basis data. Untuk deployment yang Anda kelola sebagai file, salin `openmaic.example.yml` ke `openmaic.yml`, simpan key di `.env.local`, dan pasang file tersebut (lihat di bawah). Lihat [Konfigurasi](./configuration.mdx#model-dan-penyedia).
 
@@ -97,7 +97,7 @@ Jalankan di bawah manajer proses (systemd, pm2, kontainer) yang menjaganya tetap
 
 Dalam mode anonim, cookie pemilik membawa `Secure` di produksi, begitu juga cookie `ACCESS_CODE`. Browser hanya menyimpan cookie `Secure` melalui HTTPS atau pada `http://localhost` (Safari bahkan tidak di sana), jadi deployment yang disajikan melalui HTTP biasa harus menyetel `COOKIE_SECURE=0` (tepatnya `0`): jika tidak, setiap permintaan menjadi pemilik baru, penulisan gagal dengan `403`, dan kode akses diminta lagi. Tanpa TLS cookie berjalan tanpa enkripsi, jadi lakukan ini hanya di jaringan tepercaya.
 
-HTTP biasa pada alamat apa pun selain `localhost` (IP LAN, IP Tailscale, atau nama MagicDNS) juga bukan secure context, sehingga browser tidak memiliki Web Locks API. OpenMAIC tetap menyimpan di sana, tetapi tab dari kursus yang sama tidak dikoordinasikan: jika dua tab mengubah chat yang sama, penyimpanan terakhir yang menang, dan chat yang dihapus di satu tab tetap terhapus meskipun tab lain masih mengeditnya. Untuk ponsel atau tablet di jaringan Anda, utamakan HTTPS, misalnya `tailscale serve` di depan server.
+HTTP biasa pada alamat apa pun selain `localhost` (IP LAN, IP Tailscale, atau nama MagicDNS) juga bukan secure context, sehingga browser tidak memiliki Web Locks API. Kelas Kecerdasan Artifisial tetap menyimpan di sana, tetapi tab dari kursus yang sama tidak dikoordinasikan: jika dua tab mengubah chat yang sama, penyimpanan terakhir yang menang, dan chat yang dihapus di satu tab tetap terhapus meskipun tab lain masih mengeditnya. Untuk ponsel atau tablet di jaringan Anda, utamakan HTTPS, misalnya `tailscale serve` di depan server.
 
 **`OPENMAIC_SECRET_KEY`** mengenkripsi key penyedia yang disimpan di pengaturan model. Tanpanya, setiap instance membuat secret sendiri di `data/instance-secret.key`, sehingga instance yang berbagi basis data tidak dapat membaca key tersimpan milik instance lain. Simpan bersama cadangan basis data; lihat [Secret dan OPENMAIC_SECRET_KEY](./configuration.mdx#rahasia-dan-openmaic_secret_key).
 
@@ -119,7 +119,7 @@ Run berbagi pewaktuan lease runtime agen (`OPENMAIC_AGENT_RUNTIME_SCAN_INTERVAL_
 
 ## Persistensi sisi server (PostgreSQL)
 
-OpenMAIC menyimpan kursus, riwayat chat, progres pelajar, dan media yang dihasilkan di PostgreSQL, dan **`DATABASE_URL` wajib diisi**: tanpanya server mencetak `[boot] Invalid server configuration; the server will not start: DATABASE_URL is not set. ...` beserta solusinya dan keluar dengan kode `1`. API HTTP persistensi tertanam di OpenMAIC; tidak diperlukan layanan persistensi terpisah.
+Kelas Kecerdasan Artifisial menyimpan kursus, riwayat chat, progres pelajar, dan media yang dihasilkan di PostgreSQL, dan **`DATABASE_URL` wajib diisi**: tanpanya server mencetak `[boot] Invalid server configuration; the server will not start: DATABASE_URL is not set. ...` beserta solusinya dan keluar dengan kode `1`. API HTTP persistensi tertanam di Kelas Kecerdasan Artifisial; tidak diperlukan layanan persistensi terpisah.
 
 `docker compose up` menjalankan PostgreSQL di samping aplikasi dan menyetel `DATABASE_URL` untuknya. Untuk pengembangan lokal, `bun run db:up` menjalankan basis data pengembangan terpisah dari definisi layanan yang sama (proyek Compose dan volume sendiri, `openmaic-dev-db`, dibagi oleh setiap checkout di mesin ini, sehingga tidak pernah menyentuh basis data stack), dipublikasikan di `127.0.0.1` (port `OPENMAIC_DB_PORT`, bawaan `5432`); `bun run db:down` menghentikannya lagi. Lalu setel koneksi di `.env.local`:
 
@@ -168,7 +168,7 @@ Aktifkan profil `video-export`:
 docker compose --profile video-export up --build
 ```
 
-Compose menghubungkan OpenMAIC ke layanan rendering melalui `RENDER_SERVICE_URL`. Jika profil dinonaktifkan atau layanan rendering tidak tersedia, ekspor beralih ke mengunduh ZIP proyek untuk dirender dengan CLI lokal. Layanan rendering menggunakan jaringan terisolasi dan memerlukan kapabilitas `NET_ADMIN` saat startup. Lihat [`render-service/README.md`](https://github.com/THU-MAIC/OpenMAIC/blob/main/render-service/README.md) untuk batasan lain dan instruksi deployment mandiri. Saat meningkatkan versi, tingkatkan render-service bersama aplikasi atau sebelum aplikasi.
+Compose menghubungkan Kelas Kecerdasan Artifisial ke layanan rendering melalui `RENDER_SERVICE_URL`. Jika profil dinonaktifkan atau layanan rendering tidak tersedia, ekspor beralih ke mengunduh ZIP proyek untuk dirender dengan CLI lokal. Layanan rendering menggunakan jaringan terisolasi dan memerlukan kapabilitas `NET_ADMIN` saat startup. Lihat [`render-service/README.md`](https://github.com/THU-MAIC/OpenMAIC/blob/main/render-service/README.md) untuk batasan lain dan instruksi deployment mandiri. Saat meningkatkan versi, tingkatkan render-service bersama aplikasi atau sebelum aplikasi.
 
 ## Variabel lingkungan
 

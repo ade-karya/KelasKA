@@ -1,10 +1,10 @@
-<!-- <p align="center">
-  <img src="assets/logo-horizontal.png" alt="OpenMAIC" width="420"/>
-</p> -->
-
 <p align="center">
-  <img src="assets/banner.png" alt="OpenMAIC Banner" width="680"/>
+  <img src="public/logo-kemendikdasmen.png" alt="Kemendikdasmen 徽标" height="96"/>
+  &nbsp;&nbsp;
+  <img src="public/logo-dprd.png" alt="DPRD 徽标" height="96"/>
 </p>
+
+<h1 align="center">Kelas Kecerdasan Artifisial</h1>
 
 <p align="center">
   一键生成沉浸式多智能体互动课堂。
@@ -19,10 +19,10 @@
 <p align="center">
   <a href="https://jcst.ict.ac.cn/en/article/doi/10.1007/s11390-025-6000-0"><img src="https://img.shields.io/badge/Paper-JCST'26-blue?style=flat-square" alt="Paper"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License: MIT"/></a>
-  <a href="https://open.maic.chat/"><img src="https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square" alt="Live Demo"/></a>
+  <a href="https://kelaska.riau.ai/"><img src="https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square" alt="Live Demo"/></a>
   <a href="#-agent-工作台集成"><img src="https://img.shields.io/badge/OpenClaw-集成-F4511E?style=flat-square" alt="OpenClaw 集成"/></a>
   <a href="#lemonade-local-ai"><img src="https://img.shields.io/badge/Lemonade-Local_AI-FFD43B?style=flat-square" alt="Lemonade Local AI"/></a>
-  <a href="https://github.com/THU-MAIC/OpenMAIC/stargazers"><img src="https://img.shields.io/github/stars/THU-MAIC/OpenMAIC?style=flat-square" alt="Stars"/></a>
+  <a href="https://github.com/ade-karya/KelasKA/stargazers"><img src="https://img.shields.io/github/stars/ade-karya/KelasKA?style=flat-square" alt="Stars"/></a>
   <br/>
   <a href="https://discord.gg/p8Pf2r3SaG"><img src="https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"/></a>
   &nbsp;
@@ -37,11 +37,13 @@
 <p align="center">
   <a href="./README.md">English</a> | <a href="./README-zh.md">简体中文</a>
   <br/>
-  <a href="https://open.maic.chat/">在线体验</a> · <a href="#-快速开始">快速开始</a> · <a href="#lemonade-local-ai">Lemonade</a> · <a href="#funasr-local-asr">FunASR</a> · <a href="#-功能特性">功能特性</a> · <a href="#-使用场景">使用场景</a> · <a href="#-agent-工作台集成">OpenClaw</a>
+  <a href="https://kelaska.riau.ai/">在线体验</a> · <a href="#-快速开始">快速开始</a> · <a href="#lemonade-local-ai">Lemonade</a> · <a href="#funasr-local-asr">FunASR</a> · <a href="#-功能特性">功能特性</a> · <a href="#-使用场景">使用场景</a> · <a href="#-agent-工作台集成">OpenClaw</a>
 </p>
 
 
 ## 🗞️ 动态
+
+> _Kelas Kecerdasan Artifisial 基于开源的 [OpenMAIC](https://github.com/THU-MAIC/OpenMAIC) 项目构建。下方版本记录为该 fork 跟踪的上游发布。_
 
 - **2026-11-12** — [v1.5.0-rc.2](https://github.com/THU-MAIC/OpenMAIC/releases/tag/v1.5.0-rc.2)：**全新首页，体验全面升级**（候选版本）——首页就是工作台：课程在对话旁边长出来，一个全屏课堂里既能学也能改。默认不开启（`NEXT_PUBLIC_WORKBENCH_ENABLED`）。
 - **2026-11-09** — [v1.4.2](https://github.com/THU-MAIC/OpenMAIC/releases/tag/v1.4.2)：**课程级撤销**，覆盖手动编辑和 agent 修改；沙箱对所有准入用户开放。
@@ -78,7 +80,7 @@
 
 ## 📖 项目简介
 
-**OpenMAIC**（Open Multi-Agent Interactive Classroom）是一个开源的 AI 互动课堂平台，能够将任何主题或文档转化为丰富的互动学习体验。基于多智能体协作引擎，它可以自动生成演示幻灯片、测验、交互式模拟实验和项目制学习活动——由 AI 教师和 AI 同学进行语音讲解、白板绘图，并与你展开实时讨论。内置 OpenMAIC Skill，可以在 [OpenClaw](https://github.com/openclaw/openclaw) 以及 Codex、DeepSeek、WorkBuddy 等 Agent 工作台中使用，直接在飞书、Slack、Telegram 等聊天应用或 IDE 里生成课堂。
+**Kelas Kecerdasan Artifisial**（Kelas KA）是一个开源的 AI 互动课堂平台，能够将任何主题或文档转化为丰富的互动学习体验。基于多智能体协作引擎，它可以自动生成演示幻灯片、测验、交互式模拟实验和项目制学习活动——由 AI 教师和 AI 同学进行语音讲解、白板绘图，并与你展开实时讨论。内置 Kelas KA Skill，可以在 [OpenClaw](https://github.com/openclaw/openclaw) 以及 Codex、DeepSeek、WorkBuddy 等 Agent 工作台中使用，直接在飞书、Slack、Telegram 等聊天应用或 IDE 里生成课堂。
 
 https://github.com/user-attachments/assets/f4a2f1be-6615-4330-aea1-b86ccf42045e
 
@@ -89,7 +91,7 @@ https://github.com/user-attachments/assets/f4a2f1be-6615-4330-aea1-b86ccf42045e
 - **丰富的场景类型** — 幻灯片、测验、HTML 交互式模拟、项目制学习（PBL）
 - **白板 & 语音** — 智能体实时绘制图表、书写公式、语音讲解
 - **[灵活导出](packages/docs/content/docs/getting-started.zh-cn.mdx#导出课堂)** — 保留全部场景的 `.pptx`、能离线播放整堂课的单个 `.html` 文件，或用于迁移到其他部署的课堂 ZIP
-- **[Agent 工作台集成](#-agent-工作台集成)** — OpenMAIC Skill 支持 OpenClaw、Codex、DeepSeek、WorkBuddy 等，在飞书、Slack、Telegram 等 20+ 聊天应用或 IDE 里直接生成课堂
+- **[Agent 工作台集成](#-agent-工作台集成)** — Kelas KA Skill 支持 OpenClaw、Codex、DeepSeek、WorkBuddy 等，在飞书、Slack、Telegram 等 20+ 聊天应用或 IDE 里直接生成课堂
 
 ## 🚀 快速开始
 
@@ -102,8 +104,8 @@ https://github.com/user-attachments/assets/f4a2f1be-6615-4330-aea1-b86ccf42045e
 ### 1. 克隆 & 安装
 
 ```bash
-git clone https://github.com/THU-MAIC/OpenMAIC.git
-cd OpenMAIC
+git clone https://github.com/ade-karya/KelasKA.git
+cd KelasKA
 pnpm install
 ```
 
@@ -143,7 +145,7 @@ slots:
 **支持的服务商：** OpenAI、Azure OpenAI、Anthropic、Amazon Bedrock、Google Gemini、DeepSeek、通义千问 Qwen、Kimi、MiniMax、Grok (xAI)、OpenRouter、TokenDance、Coarena（免费）、CrowLLM、豆包、腾讯混元 / TokenHub、小米 MiMo、智谱 GLM、Ollama、[Lemonade](#lemonade-local-ai) 与 [FunASR](#funasr-local-asr)（本地），以及任何兼容 OpenAI API 的服务。
 
 > [!TIP]
-> **推荐配置：** 打开全部模态时 OpenMAIC 效果最好——配图、语音讲解、视频片段、联网检索与网页抓取都会参与生成。Token Plan 可以用一个 Key 配置该套餐支持的能力（见下方示例），默认模型选 `deepseek-v4.1-flash` 这类速度快、长上下文的模型即可。
+> **推荐配置：** 打开全部模态时 Kelas Kecerdasan Artifisial 效果最好——配图、语音讲解、视频片段、联网检索与网页抓取都会参与生成。Token Plan 可以用一个 Key 配置该套餐支持的能力（见下方示例），默认模型选 `deepseek-v4.1-flash` 这类速度快、长上下文的模型即可。
 
 <details>
 <summary><b>更多示例</b>：Token Plan、小米 MiMo 与智谱 GLM、Amazon Bedrock</summary>
@@ -337,17 +339,17 @@ store；缓存只用于提升性能，不是正确完成构建的必要条件。
 
 ### Vercel 部署（1.1.x 及以前）
 
-Serverless 部署支持到 OpenMAIC 1.1.x。从 1.2.0 起，课程生成在服务端一个比请求存活更久的进程中运行，因此 OpenMAIC 需要常驻的 Node.js 进程和 PostgreSQL（[Docker 部署](#docker-部署)或 `pnpm start`）；不再支持 Vercel 等 Serverless 平台，仓库中也不再提供 `vercel.json`。在 Vercel 上部署 1.1.x：
+Serverless 部署支持到 OpenMAIC 1.1.x。从 1.2.0 起，课程生成在服务端一个比请求存活更久的进程中运行，因此 Kelas Kecerdasan Artifisial 需要常驻的 Node.js 进程和 PostgreSQL（[Docker 部署](#docker-部署)或 `pnpm start`）；不再支持 Vercel 等 Serverless 平台，仓库中也不再提供 `vercel.json`。在 Vercel 上部署 1.1.x：
 
 1. 在 GitHub 上 fork 本仓库，取消勾选 **Copy the `main` branch only**。
 2. 在 fork 中把默认分支设为 `release/1.1.x`（**Settings → General → Default branch**）。
-3. 在 Vercel 中 **Add New → Project** 导入这个 fork。Vercel 构建它的默认分支；按该分支的 [`.env.example`](https://github.com/THU-MAIC/OpenMAIC/blob/release/1.1.x/.env.example) 至少配置一个 LLM 服务的 key。
+3. 在 Vercel 中 **Add New → Project** 导入这个 fork。Vercel 构建它的默认分支；按该分支的 [`.env.example`](https://github.com/ade-karya/KelasKA/blob/main/.env.example) 至少配置一个 LLM 服务的 key。
 
 这样的部署之后可以迁移到常驻主机而不丢失数据：把新主机的 `DATABASE_URL` 指向原来使用的数据库（如果用过），并沿用同一个访问地址（浏览器按站点保存数据）；访客浏览器中的课程会在每个浏览器首次打开升级后的应用时导入。各类部署的升级步骤见[从 1.1.x 升级](packages/docs/content/docs/deployment.zh-cn.mdx)。
 
 ### 服务端持久化（PostgreSQL）
 
-OpenMAIC 把课程保存在服务端。课程文档、文件夹、对话历史、学习者会话和生成的媒体保存在 PostgreSQL 中（媒体也可放在 S3），由应用自身在 `/api/persistence` 提供服务。浏览器只保留属于该设备的数据，如设置、播放进度和缓存；**设置 → 清除本地缓存**不会动服务端的任何数据。
+Kelas Kecerdasan Artifisial 把课程保存在服务端。课程文档、文件夹、对话历史、学习者会话和生成的媒体保存在 PostgreSQL 中（媒体也可放在 S3），由应用自身在 `/api/persistence` 提供服务。浏览器只保留属于该设备的数据，如设置、播放进度和缓存；**设置 → 清除本地缓存**不会动服务端的任何数据。
 
 - **必须提供 `DATABASE_URL`。** 没有它服务会输出修复方法并以退出码 `1` 退出。Compose 会自动设置；本地开发可用 [`pnpm db:up`](#3-启动数据库) 启动数据库。
 - **旧版本保存在浏览器中的课程**会在每个浏览器首次打开升级后的应用时自动导入一次，浏览器中的原始数据保持不变。
@@ -364,7 +366,7 @@ OpenMAIC 把课程保存在服务端。课程文档、文件夹、对话历史�
 
 请在首次启动 1.2.0 之前设置好身份模式：1.1.x 以文件形式保存的课堂会导入给届时配置的所有者。各类部署的升级步骤见[从 1.1.x 升级](packages/docs/content/docs/deployment.zh-cn.mdx)。
 
-为他人运行 OpenMAIC，或把它嵌入自己的产品？[Hosting and identity](packages/docs/content/docs/hosting.mdx)（英文）介绍了：
+为他人运行 Kelas Kecerdasan Artifisial，或把它嵌入自己的产品？[Hosting and identity](packages/docs/content/docs/hosting.en.mdx)（英文）介绍了：
 
 - [谁能读写存储的数据](packages/docs/content/docs/hosting.mdx#who-can-read-and-write-stored-data)，以及已移除的 `PERSISTENCE_DEV_TOKEN`；
 - [资产回收、配额与 S3 出站](packages/docs/content/docs/hosting.mdx#asset-storage)（`ASSET_*`）；
@@ -386,9 +388,9 @@ ACCESS_CODE=your-secret-code
 
 ### 可选：Lemonade（本地 AI 服务商）
 
-OpenMAIC 支持将 Lemonade 作为本地 OpenAI 兼容服务商使用，可用于 LLM、图像生成、TTS 和 ASR，不需要 API Key。
+Kelas Kecerdasan Artifisial 支持将 Lemonade 作为本地 OpenAI 兼容服务商使用，可用于 LLM、图像生成、TTS 和 ASR，不需要 API Key。
 
-本地启动 Lemonade 后，在 OpenMAIC 中配置：
+本地启动 Lemonade 后，在 Kelas Kecerdasan Artifisial 中配置：
 
 ```yaml
 providers:
@@ -418,7 +420,7 @@ slots:
 
 ### 可选：FunASR（本地语音识别）
 
-OpenMAIC 可以通过 FunASR 的 OpenAI 兼容服务完成本地转写。内置 provider 支持 SenseVoiceSmall、Paraformer 和 Fun-ASR-Nano，无需 API Key。
+Kelas Kecerdasan Artifisial 可以通过 FunASR 的 OpenAI 兼容服务完成本地转写。内置 provider 支持 SenseVoiceSmall、Paraformer 和 Fun-ASR-Nano，无需 API Key。
 
 ```bash
 python -m pip install torch torchaudio
@@ -428,7 +430,7 @@ python -m pip install vllm
 funasr-server --device cuda --model fun-asr-nano
 ```
 
-将 OpenMAIC 指向该服务：
+将 Kelas Kecerdasan Artifisial 指向该服务：
 
 ```yaml
 providers:
@@ -476,9 +478,9 @@ slots:
 
 ### 可选：VoxCPM2（自托管 TTS，支持音色克隆）
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) 是 OpenBMB 开源的 TTS 模型，支持声音克隆。OpenMAIC 自带适配器，把 VoxCPM 跑在自己机器上即可对接。
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) 是 OpenBMB 开源的 TTS 模型，支持声音克隆。Kelas Kecerdasan Artifisial 自带适配器，把 VoxCPM 跑在自己机器上即可对接。
 
-**1. 部署 VoxCPM 后端。** 三种部署形态，背后是同一套 OpenMAIC 适配器，在 `openmaic.yml` 中用 `options.backend` 选择（见第 2 步）。
+**1. 部署 VoxCPM 后端。** 三种部署形态，背后是同一套 Kelas Kecerdasan Artifisial 适配器，在 `openmaic.yml` 中用 `options.backend` 选择（见第 2 步）。
 
 | 后端 | 接口 | 适用场景 |
 | --- | --- | --- |
@@ -488,7 +490,7 @@ slots:
 
 每种后端的具体启动步骤见 [VoxCPM 仓库](https://github.com/OpenBMB/VoxCPM)。
 
-**2. 在 OpenMAIC 中配置。** VoxCPM2 运行在你自己的网络中，因此由部署在 `openmaic.yml` 中配置（不需要 API Key）；工作区不能在 **设置 → 模型服务** 中添加它：
+**2. 在 Kelas Kecerdasan Artifisial 中配置。** VoxCPM2 运行在你自己的网络中，因此由部署在 `openmaic.yml` 中配置（不需要 API Key）；工作区不能在 **设置 → 模型服务** 中添加它：
 
 ```yaml
 providers:
@@ -628,7 +630,7 @@ AI 教师可以主动操作界面引导学生——高亮关键区域、设置�
 
 ### 课堂生成
 
-描述你想学习的内容，或附上参考材料。OpenMAIC 的两阶段流水线自动完成剩余工作：
+描述你想学习的内容，或附上参考材料。Kelas Kecerdasan Artifisial 的两阶段流水线自动完成剩余工作：
 
 | 阶段 | 说明 |
 |------|------|
@@ -709,7 +711,7 @@ AI 老师配合聚光灯和激光笔动作进行语音讲解——如同真实�
 <tr>
 <td valign="top">
 
-OpenMAIC 的技能包（`skills/openmaic/`）采用标准 SKILL.md 格式，可被各类 Agent 工作台加载——除了 OpenClaw，也包括 **Codex**、**DeepSeek**、**WorkBuddy** 等。它是一份引导式 SOP：覆盖在线体验、本地部署、课堂生成和基于 `@openmaic/*` SDK 的二次开发。
+Kelas KA 的技能包（`skills/openmaic/`，发布名 `openmaic`）采用标准 SKILL.md 格式，可被各类 Agent 工作台加载——除了 OpenClaw，也包括 **Codex**、**DeepSeek**、**WorkBuddy** 等。它是一份引导式 SOP：覆盖在线体验、本地部署、课堂生成和基于 `@openmaic/*` SDK 的二次开发。
 
 其中 [OpenClaw](https://github.com/openclaw/openclaw) 是一个连接你日常使用的消息平台（飞书、Slack、Discord、Telegram、WhatsApp 等）的个人 AI 助手。通过这个集成，你可以**直接在聊天应用中生成和查看互动课堂**，无需碰命令行。
 
@@ -724,10 +726,10 @@ OpenMAIC 的技能包（`skills/openmaic/`）采用标准 SKILL.md 格式，可�
 
 只需告诉你的 Agent 助手你想学什么——剩下的它来搞定：
 
-- **托管模式** — 在 [open.maic.chat](https://open.maic.chat/) 获取访问码，保存到配置文件，即可直接生成课堂——无需本地部署
+- **托管模式（上游）** — 在上游 [Live Demo](https://open.maic.chat/) 获取访问码，保存到配置文件，即可直接生成课堂——无需本地部署
 - **本地部署模式** — clone、安装依赖、配置 API Key、启动服务——Skill 逐步引导你完成
 - **跟踪进度** — 自动轮询异步生成任务，完成后把链接发给你
-- **二次开发** — 引导你在 OpenMAIC 基础上做二开：基于 `@openmaic/*` SDK 构建自己的应用（详见 skill 内的 extend 系列文档）
+- **二次开发** — 引导你在 Kelas Kecerdasan Artifisial 基础上做二开：基于 `@openmaic/*` SDK 构建自己的应用（详见 skill 内的 extend 系列文档）
 
 每一步都会先征求你的确认，不会黑盒执行。
 
@@ -761,10 +763,10 @@ clawhub install openmaic
     "entries": {
       "openmaic": {
         "config": {
-          // 托管模式：粘贴从 open.maic.chat 获取的访问码
+          // 托管模式（上游）：粘贴从 open.maic.chat 获取的访问码
           "accessCode": "sk-xxx",
           // 本地部署模式：本地仓库路径和地址
-          "repoDir": "/path/to/OpenMAIC",
+          "repoDir": "/path/to/KelasKA",
           "url": "http://localhost:3000"
         }
       }
@@ -788,7 +790,7 @@ clawhub install openmaic
 
 导入课堂 ZIP 会先将包内音频、图片、视频及封面保存到服务器资源池，再保存课程，因此其他浏览器无需导入端的本地缓存即可读取这些资源。ZIP 也可用于在部署之间迁移课程：从一处导出，在另一处导入。
 
-**离线 / 内网课堂：** 导出课堂（`.maic.zip`）或资源包时，OpenMAIC 会把互动场景引用的外部资源（KaTeX、Three.js 含 `three/addons`、Tailwind CDN、Google Fonts、图片）以 `data:` URI 形式内联进导出的 HTML。导出的课程在导入到内网/离线实例后即可完全离线播放，播放时不再访问任何公网 CDN。导出时无法抓取的资源（如开启了 CORS 限制的图床）会被记录并保留为原始 URL。本功能上线*之前*导出的课堂仍引用 CDN，需要重新导出才能离线播放。
+**离线 / 内网课堂：** 导出课堂（`.maic.zip`）或资源包时，Kelas Kecerdasan Artifisial 会把互动场景引用的外部资源（KaTeX、Three.js 含 `three/addons`、Tailwind CDN、Google Fonts、图片）以 `data:` URI 形式内联进导出的 HTML。导出的课程在导入到内网/离线实例后即可完全离线播放，播放时不再访问任何公网 CDN。导出时无法抓取的资源（如开启了 CORS 限制的图床）会被记录并保留为原始 URL。本功能上线*之前*导出的课堂仍引用 CDN，需要重新导出才能离线播放。
 
 ### 更多功能
 
@@ -846,7 +848,7 @@ clawhub install openmaic
 ### 项目结构
 
 ```
-OpenMAIC/
+KelasKA/
 ├── app/                        # Next.js App Router
 │   ├── api/                    #   服务端 API 路由（26 个端点组）
 │   │   ├── generate/           #     图片、视频、TTS 与音色注册
@@ -889,7 +891,7 @@ OpenMAIC/
 │   └── ...                     #   audio, roundtable, stage, ai-elements
 │
 ├── packages/                   # 工作区子包
-│   ├── @openmaic/              #   OpenMAIC SDK 系列（已发布至 npm）
+│   ├── @openmaic/              #   Kelas KA SDK 系列（@openmaic/*，已发布至 npm）
 │   │   ├── dsl/                #     课程 DSL 定义与资产清单
 │   │   ├── generation/         #     两阶段课堂生成流水线
 │   │   ├── renderer/           #     课程渲染
@@ -902,7 +904,7 @@ OpenMAIC/
 ├── render-service/             # MP4 视频导出渲染服务（Chromium + FFmpeg，独立容器）
 │
 ├── skills/                     # OpenClaw / ClawHub skills
-│   └── openmaic/               #   OpenMAIC 引导式 SOP skill
+│   └── openmaic/               #   引导式 Kelas KA 生成 SOP skill
 │       ├── SKILL.md            #   轻量路由层 + 确认规则
 │       └── references/         #   按需加载的 SOP 分段（生成、部署、二开等）
 │
@@ -936,7 +938,7 @@ OpenMAIC/
 
 ## 📝 引用
 
-如果 OpenMAIC 对您的研究有帮助，请考虑引用：
+如果 Kelas Kecerdasan Artifisial 对您的研究有帮助，请考虑引用：
 
 ```bibtex
 @Article{JCST-2509-16000,
@@ -957,7 +959,7 @@ OpenMAIC/
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=THU-MAIC/OpenMAIC&type=Date)](https://star-history.com/#THU-MAIC/OpenMAIC&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=ade-karya/KelasKA&type=Date)](https://star-history.com/#ade-karya/KelasKA&Date)
 
 ---
 

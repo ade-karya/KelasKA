@@ -3,7 +3,7 @@ title: Configuration
 description: Models and providers (openmaic.yml and the model settings), access control, feature flags and other server options.
 ---
 
-OpenMAIC has three configuration sources, and each has one job:
+Kelas Kecerdasan Artifisial has three configuration sources, and each has one job:
 
 | Source | Written by | Holds | Takes effect |
 | --- | --- | --- | --- |
@@ -170,7 +170,7 @@ On an HTTP transport the `agent` slot must not set `thinking.effort`: it cannot 
 
 ### Local agent transports
 
-The Pro workbench agent can answer its turns through a local CLI or SDK instead of an HTTP endpoint. All of these transports keep OpenMAIC's loop: the harness still owns the tools, the allowlist, timeouts, quota, the transcript and the event stream, and the local agent only decides the next assistant message and tool calls.
+The Pro workbench agent can answer its turns through a local CLI or SDK instead of an HTTP endpoint. All of these transports keep Kelas Kecerdasan Artifisial's loop: the harness still owns the tools, the allowlist, timeouts, quota, the transcript and the event stream, and the local agent only decides the next assistant message and tool calls.
 
 ```yaml title="openmaic.yml"
 providers:
@@ -754,7 +754,7 @@ slots:
   image: comfyui
 ```
 
-Place workflow JSON exported in API format in OpenMAIC's `public/` directory. Use filenames matching `comfyui-*.json` or containing `workflow`; OpenMAIC discovers these files automatically and offers them as workflows. With Docker, add the workflow before building the image or mount an individual workflow file into `/app/public/` in the container. Because the provider is declared by the deployment, a ComfyUI server on the host or a private network does not need `ALLOW_LOCAL_NETWORKS`.
+Place workflow JSON exported in API format in Kelas Kecerdasan Artifisial's `public/` directory. Use filenames matching `comfyui-*.json` or containing `workflow`; Kelas Kecerdasan Artifisial discovers these files automatically and offers them as workflows. With Docker, add the workflow before building the image or mount an individual workflow file into `/app/public/` in the container. Because the provider is declared by the deployment, a ComfyUI server on the host or a private network does not need `ALLOW_LOCAL_NETWORKS`.
 
 ### Video generation providers
 
@@ -764,7 +764,7 @@ Video generation providers use `VIDEO_<PROVIDER>_API_KEY` and optionally `VIDEO_
 
 ### Document and media parsing
 
-The exact course-material formats depend on the selected parser. OpenMAIC currently supports text, PDF, Office documents, images, and some audio/video formats; supported formats and capabilities vary by provider.
+The exact course-material formats depend on the selected parser. Kelas Kecerdasan Artifisial currently supports text, PDF, Office documents, images, and some audio/video formats; supported formats and capabilities vary by provider.
 
 ```bash
 # MinerU self-hosted
@@ -783,7 +783,7 @@ ALIDOCMIND_ACCESS_KEY_SECRET=
 ALIDOCMIND_BASE_URL=       # optional override
 ```
 
-`unpdf` is built into OpenMAIC and supports basic PDF parsing. For Office documents, images, and material requiring OCR, table, formula, or layout analysis, select a compatible MinerU or AliDocMind provider.
+`unpdf` is built into Kelas Kecerdasan Artifisial and supports basic PDF parsing. For Office documents, images, and material requiring OCR, table, formula, or layout analysis, select a compatible MinerU or AliDocMind provider.
 
 AliDocMind document parsing supports PDF, DOCX, PPTX, XLSX, and PNG, JPG/JPEG, BMP, and GIF. Audio and video material is currently supported only through AliDocMind: MP4, MOV, AVI, MKV, and WMV for video; MP3, WAV, and AAC for audio. M4A is not supported.
 

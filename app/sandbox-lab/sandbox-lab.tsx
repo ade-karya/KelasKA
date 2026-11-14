@@ -28,7 +28,7 @@ export default function SandboxLab() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [path, setPath] = useState('/home/user/project/main.py');
-  const [text, setText] = useState('print("Hello from OpenMAIC")\n');
+  const [text, setText] = useState('print("Hello from Kelas KA")\n');
   const [command, setCommand] = useState('python3 /home/user/project/main.py');
   const [result, setResult] = useState<SandboxCommandResult | null>(null);
   const [image, setImage] = useState('');

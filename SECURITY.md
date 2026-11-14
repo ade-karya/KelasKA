@@ -1,10 +1,10 @@
-# Security Policy for OpenMAIC
+# Security Policy for Kelas Kecerdasan Artifisial
 
-Thank you for helping us keep OpenMAIC secure! We take the security of our platform, multi-agent engine, and users very seriously. 
+Thank you for helping us keep Kelas Kecerdasan Artifisial secure! We take the security of our platform, multi-agent engine, and users very seriously. 
 
 ## Supported Versions
 
-We currently provide security updates for the latest major release and the active `main` branch. Please ensure you are running the most recent version of OpenMAIC before submitting a report.
+We currently provide security updates for the latest major release and the active `main` branch. Please ensure you are running the most recent version of Kelas Kecerdasan Artifisial before submitting a report.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -14,10 +14,10 @@ We currently provide security updates for the latest major release and the activ
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in OpenMAIC, **please do not create a public GitHub issue.** Publicly disclosing a vulnerability can put other users and self-hosted instances at risk.
+If you discover a security vulnerability in Kelas Kecerdasan Artifisial, **please do not create a public GitHub issue.** Publicly disclosing a vulnerability can put other users and self-hosted instances at risk.
 
 Instead, please report it privately using one of the following methods:
-**GitHub Private Vulnerability Reporting:** Go to the [Security tab](https://github.com/THU-MAIC/OpenMAIC/security) of the repository, click on "Advisories", and select "Report a vulnerability".
+**GitHub Private Vulnerability Reporting:** Go to the [Security tab](https://github.com/ade-karya/KelasKA/security) of the repository, click on "Advisories", and select "Report a vulnerability".
 
 
 **What to include in your report:**
@@ -36,12 +36,12 @@ We will acknowledge receipt of your vulnerability report within 48 hours and str
 
 ## Deployment Assumptions
 
-OpenMAIC's security boundaries are designed around the assumptions below, and reports are assessed against them.
+Kelas Kecerdasan Artifisial's security boundaries are designed around the assumptions below, and reports are assessed against them.
 
 * **`ACCESS_CODE` is a shared site password, not user authentication.** Everyone who knows the code has the same access, and it does not separate users from each other. Its resistance to guessing depends on the code itself, so use a long random value. When the variable is unset (the default in `.env.example`), `proxy.ts` returns `NextResponse.next()` and does not require a credential. There is no second gate, so the API is reachable: that is fail-open, not fail-closed. [GHSA-9m7h-vh2h-rc3w](https://github.com/THU-MAIC/OpenMAIC/security/advisories/GHSA-9m7h-vh2h-rc3w) made outbound URL validation unconditional in v1.0.1; it did not change this proxy behaviour.
 * **The render service is an isolation boundary only in its shipped configuration.** It executes untrusted HTML in headless Chromium and relies on the container's egress lockdown (`RENDER_EGRESS_LOCKDOWN=true`, the default, which needs `CAP_NET_ADMIN`) and on an isolated network (`internal: true` in Compose). Disabling the lockdown or placing the service on a routable network is an operator opt-in; see [`render-service/README.md`](render-service/README.md).
 * **Forwarding headers are trusted only when `TRUST_PROXY_HEADERS=true`.** Enable it only behind a reverse proxy that overwrites `X-Forwarded-For` and `X-Real-IP`.
-* **Server persistence identity is only as strong as the configured owner auth methods.** Every `/api/persistence` request (documents, runtime sessions and assets) is attributed to the owner that `lib/server/identity/` resolves; by default that is the 30-day anonymous cookie, which isolates browsers from each other but authenticates nobody. Document reads, and reads of media a live course references, are capability-by-id (no owner check). Because a course link is enough to load a course, slide HTML is restricted to the renderer's formatting vocabulary on every document write and read, the same policy `/api/classroom` applies. Deployments that serve real users should register auth methods backed by their own accounts, for example one that verifies an identity gateway's signed JWT against the identity provider's keys (see "Owner identity" in the README), and consider `anonymousFallback: false` so a request without a credential is refused rather than served anonymously. A method must answer `invalid` for a credential that is present but fails verification; core then refuses the request instead of trying later methods or the anonymous fallback. The anonymous `anonymous_id` cookie is an unsigned bearer credential and the source of claim candidates; a sibling subdomain under the same registrable domain can plant one, so serve OpenMAIC on a registrable domain of its own.
+* **Server persistence identity is only as strong as the configured owner auth methods.** Every `/api/persistence` request (documents, runtime sessions and assets) is attributed to the owner that `lib/server/identity/` resolves; by default that is the 30-day anonymous cookie, which isolates browsers from each other but authenticates nobody. Document reads, and reads of media a live course references, are capability-by-id (no owner check). Because a course link is enough to load a course, slide HTML is restricted to the renderer's formatting vocabulary on every document write and read, the same policy `/api/classroom` applies. Deployments that serve real users should register auth methods backed by their own accounts, for example one that verifies an identity gateway's signed JWT against the identity provider's keys (see "Owner identity" in the README), and consider `anonymousFallback: false` so a request without a credential is refused rather than served anonymously. A method must answer `invalid` for a credential that is present but fails verification; core then refuses the request instead of trying later methods or the anonymous fallback. The anonymous `anonymous_id` cookie is an unsigned bearer credential and the source of claim candidates; a sibling subdomain under the same registrable domain can plant one, so serve Kelas Kecerdasan Artifisial on a registrable domain of its own.
 * **Sandbox use is not gated by identity.** When an operator enables the `sandbox` section of `openmaic.yml`, any owner the deployment admits, including the anonymous cookie owner and the shared-team owner, may create and run sandboxes, just as any owner may call the configured models. Enabling sandboxes on an anonymous public deployment therefore lets any visitor start billable sandboxes up to `maxActivePerOwner` and `maxActive`. Operators who expose such a deployment should rely on `ACCESS_CODE` or their own auth methods, the sandbox caps and lifetimes, and a budget at the sandbox provider. Reports that an admitted owner can start sandboxes within the caps are expected behaviour; reaching another owner's sandboxes, files, previews or checkpoints is not.
 * **Server-side configuration is trusted operator input.** Endpoints an operator sets through environment variables (for example `OLLAMA_BASE_URL` or `RENDER_SERVICE_URL`) are not subject to the outbound URL guard. URLs supplied by end users at request time are untrusted and must pass the guard.
 
@@ -55,6 +55,6 @@ OpenMAIC's security boundaries are designed around the assumptions below, and re
 
 When a vulnerability is confirmed and patched, we will publish a GitHub Security Advisory detailing the issue, the impacted versions, and the fix. We will also credit the security researcher who reported the issue (unless they prefer to remain anonymous).
 
-* For every accepted advisory the maintainers request a CVE identifier through GitHub at publication time, so the CVE description, affected versions, and score match the advisory. Please do not request a CVE for an OpenMAIC advisory from another CNA; if one already exists, tell us and we will link it.
+* For every accepted advisory the maintainers request a CVE identifier through GitHub at publication time, so the CVE description, affected versions, and score match the advisory. Please do not request a CVE for a Kelas Kecerdasan Artifisial advisory from another CNA; if one already exists, tell us and we will link it.
 * Publication happens after the fix is released. The advisory, the release notes, and the CVE record are published together.
 * Advisory collaborators should not edit a published advisory's severity or description without raising it in the thread first; maintainers keep the published advisory consistent with the CVE record.

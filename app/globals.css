@@ -297,7 +297,7 @@ body[data-maic-editor='true'] .editable-element-text li,
   scrollbar-width: none;
 }
 
-/* PBL v2 workspace scrollbars: scoped so the rest of OpenMAIC keeps native behavior. */
+/* PBL v2 workspace scrollbars: scoped so the rest of Kelas Kecerdasan Artifisial keeps native behavior. */
 [data-pbl-workspace='true'] .pbl-v2-scrollbar,
 [data-pbl-workspace='true'] .pbl-v2-scroll-fade {
   scrollbar-color: rgb(224 231 255 / 0.44) transparent;

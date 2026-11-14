@@ -1,7 +1,7 @@
 ---
 name: spiral-curriculum
 title: "螺旋式课程设计"
-description: "Design a multi-stage OpenMAIC course series around a small concept spine whose ideas return repeatedly at higher levels of complexity, abstraction, relationship density, representation, transfer distance, or boundary awareness. Use when the user explicitly wants a Bruner-style spiral curriculum, progressive conceptual revisits, or a series organized by how understanding develops rather than by a linear topic list. Do not use for a single standalone stage or a series that only needs sequential coverage."
+description: "Design a multi-stage Kelas Kecerdasan Artifisial course series around a small concept spine whose ideas return repeatedly at higher levels of complexity, abstraction, relationship density, representation, transfer distance, or boundary awareness. Use when the user explicitly wants a Bruner-style spiral curriculum, progressive conceptual revisits, or a series organized by how understanding develops rather than by a linear topic list. Do not use for a single standalone stage or a series that only needs sequential coverage."
 ---
 
 # 螺旋式课程设计

@@ -200,7 +200,7 @@ function noteLockFreeChatStorage(): void {
   lockFreeNoticeShown = true;
   console.info(
     '[ChatStorage] Web Locks are unavailable on this page (not a secure context), so chat ' +
-      'history is saved without cross-tab locking. Serve OpenMAIC over HTTPS or localhost to enable it.',
+      'history is saved without cross-tab locking. Serve Kelas Kecerdasan Artifisial over HTTPS or localhost to enable it.',
   );
 }
 

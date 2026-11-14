@@ -3,7 +3,7 @@ title: VoxCPM2
 description: Self-hosted TTS and voice cloning. Backend selection, configuration, and voice management.
 ---
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) is an open-source TTS model from OpenBMB with voice cloning support. OpenMAIC includes an adapter, so you only need to run VoxCPM on your own machine and connect it.
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) is an open-source TTS model from OpenBMB with voice cloning support. Kelas Kecerdasan Artifisial includes an adapter, so you only need to run VoxCPM on your own machine and connect it.
 
 ## When to use VoxCPM2
 
@@ -15,7 +15,7 @@ If you only need one default voice, the built-in **Doubao** or **OpenAI-compatib
 
 ## 1. Run a VoxCPM backend
 
-OpenMAIC supports three deployment modes. All three use the same OpenMAIC adapter; choose the one you run with `options.backend` on the provider in `openmaic.yml` (step 2).
+Kelas Kecerdasan Artifisial supports three deployment modes. All three use the same Kelas Kecerdasan Artifisial adapter; choose the one you run with `options.backend` on the provider in `openmaic.yml` (step 2).
 
 | Backend        | Endpoint           | Best for                                      |
 | -------------- | ------------------ | --------------------------------------------- |
@@ -32,7 +32,7 @@ python -m vllm_omni.server --model openbmb/VoxCPM2 --port 8000
 # endpoint at http://localhost:8000/v1
 ```
 
-## 2. Point OpenMAIC at it
+## 2. Point Kelas Kecerdasan Artifisial at it
 
 VoxCPM2 runs on your own network, so its endpoint is configured by the deployment; workspaces cannot add it in **Settings → Model Services**. Declare it in `openmaic.yml`, choose the backend with `options.backend`, and assign it to the `tts` slot. No API key is required:
 
@@ -64,7 +64,7 @@ Assign VoxCPM2 to the `tts` slot (step 2), then open **Settings → Model Servic
 
 ### Auto Voice (default)
 
-During synthesis, OpenMAIC dynamically generates a voice prompt from each Agent's persona. No configuration is required; this is what you get by doing nothing.
+During synthesis, Kelas Kecerdasan Artifisial dynamically generates a voice prompt from each Agent's persona. No configuration is required; this is what you get by doing nothing.
 
 ### Prompt voice
 

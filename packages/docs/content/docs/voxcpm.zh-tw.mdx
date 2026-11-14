@@ -3,7 +3,7 @@ title: VoxCPM2
 description: 自託管 TTS 與聲音複製。後端選擇、設定和聲音管理。
 ---
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) 是 OpenBMB 開源的 TTS 模型，支援聲音複製。OpenMAIC 內建適配器，只要在自己的機器上執行 VoxCPM 即可對接。
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) 是 OpenBMB 開源的 TTS 模型，支援聲音複製。Kelas Kecerdasan Artifisial 內建適配器，只要在自己的機器上執行 VoxCPM 即可對接。
 
 ## 什麼時候使用 VoxCPM2
 
@@ -15,7 +15,7 @@ description: 自託管 TTS 與聲音複製。後端選擇、設定和聲音管�
 
 ## 1. 啟動 VoxCPM 後端
 
-OpenMAIC 支援三種部署形態，三種都使用同一個 OpenMAIC 適配器；在 `openmaic.yml` 中透過供應商的 `options.backend` 選擇你執行的那一種（見第 2 步）。
+Kelas Kecerdasan Artifisial 支援三種部署形態，三種都使用同一個 Kelas Kecerdasan Artifisial 適配器；在 `openmaic.yml` 中透過供應商的 `options.backend` 選擇你執行的那一種（見第 2 步）。
 
 | 後端           | 端點               | 適用場景                                     |
 | -------------- | ------------------ | -------------------------------------------- |
@@ -32,7 +32,7 @@ python -m vllm_omni.server --model openbmb/VoxCPM2 --port 8000
 # 端點位於 http://localhost:8000/v1
 ```
 
-## 2. 讓 OpenMAIC 對接它
+## 2. 讓 Kelas Kecerdasan Artifisial 對接它
 
 VoxCPM2 執行在你自己的網路中，因此它的端點由部署設定，工作區不能在 **設定 → 模型服務** 中新增它。請在 `openmaic.yml` 中宣告它，用 `options.backend` 選擇後端，並指派給 `tts` 插槽，不需要 API key：
 
@@ -64,7 +64,7 @@ TTS_VOXCPM_BASE_URL=http://localhost:8000/v1
 
 ### Auto Voice（預設）
 
-OpenMAIC 會在合成時根據每個 Agent 的人設動態生成 voice prompt。無需任何設定；不變更任何項目就是此模式。
+Kelas Kecerdasan Artifisial 會在合成時根據每個 Agent 的人設動態生成 voice prompt。無需任何設定；不變更任何項目就是此模式。
 
 ### Prompt voice（提示詞音色）
 

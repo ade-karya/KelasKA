@@ -248,7 +248,7 @@ function fail(res, status = 403) {
       ? 'Preview connection limit reached. Close unused previews and retry.'
       : status >= 500
         ? 'Preview temporarily unavailable. Please retry.'
-        : 'Preview unavailable or access expired. Reopen it from OpenMAIC.',
+        : 'Preview unavailable or access expired. Reopen it from Kelas KA.',
   );
 }
 const server = http.createServer(async (req, res) => {

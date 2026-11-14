@@ -1,7 +1,7 @@
 /**
  * SHA-256 of a string, hex-encoded, synchronously.
  *
- * `crypto.subtle` exists only in secure contexts, and a self-hosted OpenMAIC
+ * `crypto.subtle` exists only in secure contexts, and a self-hosted Kelas Kecerdasan Artifisial
  * is often served over plain HTTP on a LAN address, where the importer must
  * still work. The importer hashes a handful of short strings per run, so a
  * small pure implementation is enough. Verified against the standard test

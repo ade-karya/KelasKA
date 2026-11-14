@@ -1956,7 +1956,7 @@
       "download": "Download",
       "detailFailed": "Could not load the skill details",
       "contentLabel": "Content",
-      "builtinDetailNote": "This skill ships with OpenMAIC. Download it to import into another agent workspace.",
+      "builtinDetailNote": "This skill ships with Kelas KA. Download it to import into another agent workspace.",
       "upload": "Upload",
       "uploading": "Uploading…",
       "uploadFailed": "Could not upload the skill. Check the file and try again.",
@@ -2731,7 +2731,7 @@
       "menu": "Account and settings",
       "profileSaved": "Saved",
       "language": "Language",
-      "about": "About OpenMAIC",
+      "about": "About Kelas KA",
       "aboutBody": "An open-source platform that turns any topic into an interactive classroom with AI teachers and classmates. Released under the MIT license.",
       "docs": "Docs",
       "signOut": "Sign out",
@@ -2766,8 +2766,8 @@
       "count": "{{index}} / {{total}}",
       "openGuide": "Take the sample class",
       "welcome": {
-        "title": "Welcome to OpenMAIC",
-        "body": "Say what you want to learn, and OpenMAIC makes an interactive class with an AI teacher and classmates."
+        "title": "Welcome to Kelas KA",
+        "body": "Say what you want to learn, and Kelas KA makes an interactive class with an AI teacher and classmates."
       },
       "start": {
         "title": "Start here",
@@ -2775,7 +2775,7 @@
       },
       "courses": {
         "title": "The sample class",
-        "body": "This 5-minute class was made with OpenMAIC too. Open it to see where a class happens."
+        "body": "This 5-minute class was made with Kelas KA too. Open it to see where a class happens."
       },
       "library": {
         "title": "Knowledge base",
@@ -2945,7 +2945,7 @@
     "settings": {
       "title": "Sandbox",
       "advanced": "Advanced: connection, desktop and limits",
-      "description": "Configure the shared execution environment for this OpenMAIC installation. Only the installation owner or a verified administrator can change it.",
+      "description": "Configure the shared execution environment for this Kelas KA installation. Only the installation owner or a verified administrator can change it.",
       "enabled": "Enable sandboxes and project workspace",
       "enabledStatus": "Sandbox configured",
       "disabledStatus": "Sandbox disabled or incomplete",
@@ -2968,7 +2968,7 @@
       "lifetimeMs": "Lifetime (seconds)",
       "maxActivePerOwner": "Per-owner concurrency",
       "maxActive": "Installation concurrency",
-      "limitsHint": "These limits apply to this OpenMAIC installation. Other deployments and direct SDK calls are not included.",
+      "limitsHint": "These limits apply to this Kelas KA installation. Other deployments and direct SDK calls are not included.",
       "save": "Save configuration",
       "saving": "Saving…",
       "refresh": "Refresh configuration",
@@ -3020,13 +3020,13 @@
     "closePreview": "Close preview access",
     "previewAdvice": "If the embedded preview cannot authorize, use Open in new tab. Browser cookie settings can restrict embedded previews.",
     "application": "Project application",
-    "connectAgent": "Connect an OpenMAIC agent session",
+    "connectAgent": "Connect a Kelas KA agent session",
     "agentAdvice": "Attach an existing session you own. Tools become available on its next turn. Access lasts one hour; shell access permits any action inside this environment.",
     "agentSession": "Agent session ID",
     "sessionId": "Session ID",
     "allowWrites": "Allow file changes",
     "allowCommands": "Allow commands",
-    "sessionConnected": "Session connected. Send its next message in OpenMAIC to use the project tools.",
+    "sessionConnected": "Session connected. Send its next message in Kelas KA to use the project tools.",
     "sessionRevoked": "Session sandbox access revoked. Commands already started must be stopped separately.",
     "connectSession": "Connect session",
     "revokeAccess": "Revoke access",
@@ -3564,7 +3564,7 @@
       "theme": "Image appearance",
       "light": "Light",
       "dark": "Dark",
-      "preview": "Your OpenMAIC achievement image",
+      "preview": "Your Kelas KA achievement image",
       "save": "Save image",
       "saveHint": "On mobile, you can also press and hold the image to see available saving options.",
       "imageFailed": "The image could not be prepared. Please retry.",

@@ -436,7 +436,7 @@ describe.skipIf(!OUT_DIR)('materialize a Hyperframes project for real-CLI E2E', 
     const mixedLabels = getVideoExportCoverLabels('en-US');
     const arabicLabels = getVideoExportCoverLabels('ar-SA');
 
-    expect(DEFAULT_SAMPLE_CTA).toEqual({ destination: 'open.maic.chat' });
+    expect(DEFAULT_SAMPLE_CTA).toEqual({ destination: 'kelaska.riau.ai' });
     expect(quizHtml).toContain('data-visual-kind="quiz-question-list"');
     expect(quizHtml).not.toContain('SECRET_SAMPLE_ANALYSIS');
     for (const expected of [

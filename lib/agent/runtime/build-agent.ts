@@ -2,7 +2,7 @@
  * MAIC Agent — agent runtime construction.
  *
  * Stands up a pi `Agent` with:
- * - injected StreamFn (-> OpenMAIC connector),
+ * - injected StreamFn (-> Kelas Kecerdasan Artifisial connector),
  * - request-scoped tools supplied by the route,
  * - a caller-supplied `beforeToolCall` allowlist gate (which also blocks calls
  *   whose arguments were not valid JSON),
@@ -25,7 +25,7 @@ import { toolArgumentsError } from './tool-call-arguments';
 import { withAgentToolTimeout } from './tool-timeout';
 
 // pi needs *a* model object on state; the injected StreamFn ignores it and uses
-// OpenMAIC's resolved model, so this is a metadata stub (high contextWindow so
+// Kelas Kecerdasan Artifisial's resolved model, so this is a metadata stub (high contextWindow so
 // the harness never tries to compact).
 const STUB_MODEL = {
   id: 'maic-connector',

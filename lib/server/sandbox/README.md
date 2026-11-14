@@ -1,7 +1,7 @@
 # Shared sandbox provider — experimental
 
 The first adapter implements the **E2B-compatible** protocol. The opt-in host integration
-reuses OpenMAIC owner identity, PostgreSQL and Agent sessions for files, commands, PTY,
+reuses Kelas Kecerdasan Artifisial owner identity, PostgreSQL and Agent sessions for files, commands, PTY,
 checkpoints and isolated HTTP/WebSocket previews. Templates, endpoints, accounts and
 compute tiers are deployment configuration. PBL teaching stages and course content are
 separate consumers of this foundation.
@@ -293,7 +293,7 @@ on old bindings. Template changes currently also prevent retrieval of old cached
 results until the original configuration is restored.
 
 Both `secure: true` and `network.allowPublicTraffic: false` are explicit. File, command
-and desktop access first check operation metadata and private ingress. Browser-facing OpenMAIC APIs serialize neither management keys, SDK resource IDs nor
+and desktop access first check operation metadata and private ingress. Browser-facing Kelas Kecerdasan Artifisial APIs serialize neither management keys, SDK resource IDs nor
 traffic tokens. The adapter does not place management keys in the sandbox environment. Ambient `E2B_SANDBOX_URL` / `E2B_ACCESS_TOKEN` are refused. Versions are pinned:
 `e2b@2.31.0`, `@e2b/desktop@2.3.1`.
 
@@ -429,7 +429,7 @@ The existing durable Agent runtime must also be enabled with
 `OPENMAIC_AGENT_RUNTIME_ENABLED=true` and a database. To use the existing workbench UI,
 set its `NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=true` build flag and the deployment's pi chat
 flag as documented in `.env.example`, then rebuild. Sandbox configuration alone does not
-enable those pre-existing OpenMAIC features.
+enable those pre-existing Kelas Kecerdasan Artifisial features.
 
 
 `buildSandboxTools` accepts a host-selected `sessionId`, `environmentId`, and current
@@ -568,7 +568,7 @@ establish embedded-preview correctness.
 URL on an origin unique to that environment/port and revocation epoch. Renewed access
 keeps application cookies/storage; revocation changes the origin. Service-worker registration
 is disabled so project code cannot intercept future authorization bootstrap requests. Its fragment is exchanged for an HttpOnly cookie and removed
-before project HTML loads. The thin gateway checks OpenMAIC grants and forwards traffic to
+before project HTML loads. The thin gateway checks Kelas Kecerdasan Artifisial grants and forwards traffic to
 the provider's protected native port. **Native is the default**; set
 `OPENMAIC_SANDBOX_PREVIEW_TRANSPORT=sdk` only for the optional stdin/stdout fallback.
 
@@ -576,7 +576,7 @@ Native transport injects the sandbox-scoped `e2b-traffic-access-token` server-si
 provider may forward it into the student's HTTP application. This is accepted for a
 sandbox wholly owned by that student, who already has arbitrary shell access. Do not put
 teacher/admin/service credentials, a higher-privilege Agent, or multiple users' workloads
-inside that sandbox. Reassess native ingress if this trust boundary changes. OpenMAIC
+inside that sandbox. Reassess native ingress if this trust boundary changes. Kelas Kecerdasan Artifisial
 revocation blocks the gateway grant; it does not rotate the provider's traffic token. A
 student-extracted native token can remain usable until provider expiry/deletion.
 
@@ -619,7 +619,7 @@ is not implemented by the HTTP application preview.
 
 ## Acceptance before enabling learners
 
-The integration needs fresh end-to-end acceptance through OpenMAIC: verified-owner
+The integration needs fresh end-to-end acceptance through Kelas Kecerdasan Artifisial: verified-owner
 isolation; file/command/PTY interactions; HTTP and WebSocket browser behavior; expiry,
 revocation and save/rebuild recovery; denied/failed/uncertain paths; representative
 Python, Node, Java and C++ templates. Historical SDK evaluations remain separate evidence.

@@ -130,7 +130,7 @@ it.each(['light', 'dark'] as const)(
     const prose = drawn.filter((item) => /[\u0600-\u06ff]/u.test(item.value));
     expect(prose.length).toBeGreaterThan(5);
     expect(prose.every((item) => item.direction === 'rtl' && item.align === 'right')).toBe(true);
-    expect(assets).toContain('/openmaic-share-logo.png');
+    expect(assets).toContain(theme === 'dark' ? '/kelas-ka-share-logo-dark.svg' : '/kelas-ka-share-logo.svg');
     expect(qr).toHaveBeenCalledWith(reportShareCampaign.url);
     expect(assets).toContain('qr-image');
     for (const value of [reportShareCampaign.url]) {
@@ -258,7 +258,7 @@ it.each(['', 'not a URL', 'javascript:alert(1)', 'https://user:password@course.e
     const { drawn, assets } = syntheticCanvas();
     const image = await renderReportShareImage(content, 'light', translate, 'ar-SA');
     expect(image.size).toBeGreaterThan(0);
-    expect(assets).toEqual(['/openmaic-share-logo.png']);
+    expect(assets).toEqual(['/kelas-ka-share-logo.svg']);
     expect(qr).not.toHaveBeenCalled();
     const text = drawn.map((item) => item.value).join(' ');
     expect(text).not.toContain(ar.pblV3.share.invite);

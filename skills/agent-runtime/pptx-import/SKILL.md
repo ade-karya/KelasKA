@@ -117,7 +117,7 @@ style.
 Rules:
 
 - Keep the original visual language. Do not restyle the deck to "look more
-  like OpenMAIC".
+  like Kelas Kecerdasan Artifisial".
 - Change only what is broken or unreadable.
 - **Do not write or rewrite actions in this step.** Layout first.
 - When the layout pass is done, return here for Step 4. Do not continue

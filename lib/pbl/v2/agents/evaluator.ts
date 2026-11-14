@@ -168,7 +168,7 @@ async function* runShared(args: RunSharedArgs): AsyncGenerator<PBLSSEEvent, void
         model: languageModel,
         system: systemPrompt,
         // Image submission on a vision-capable model → send the picture as a
-        // multimodal user turn (reusing OpenMAIC's buildVisionUserContent).
+        // multimodal user turn (reusing Kelas Kecerdasan Artifisial's buildVisionUserContent).
         // Everything else keeps the plain text prompt unchanged.
         ...(safeImages.length
           ? {

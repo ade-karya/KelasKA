@@ -2,11 +2,11 @@
   "dslVersion": "0.3.0",
   "stage": {
     "id": "guide-openmaic-zh",
-    "name": "5 分钟学会用 OpenMAIC",
+    "name": "5 分钟学会用 Kelas KA",
     "agentIds": ["gen-YFEep-7z", "gen-fH0htwCY", "gen-vEcwunhR"],
     "createdAt": 1793880000000,
     "updatedAt": 1793880000000,
-    "description": "给第一次打开 OpenMAIC 的新手（学生和老师）的五分钟入门课：它是做什么的、第一句话怎么写、发送后会发生什么、上课怎么上、想改怎么说、课存在哪。",
+    "description": "给第一次打开 Kelas KA 的新手（学生和老师）的五分钟入门课：它是做什么的、第一句话怎么写、发送后会发生什么、上课怎么上、想改怎么说、课存在哪。",
     "generatedAgentConfigs": [
       {
         "id": "gen-YFEep-7z",
@@ -60,7 +60,7 @@
       "id": "scene-p1",
       "type": "slide",
       "order": 1,
-      "title": "OpenMAIC 是什么",
+      "title": "Kelas KA 是什么",
       "stageId": "guide-openmaic-zh",
       "createdAt": 1793880000000,
       "updatedAt": 1793880000000,
@@ -75,7 +75,7 @@
         {
           "id": "s1_1",
           "type": "speech",
-          "text": "大家好，我是林老师。在 OpenMAIC 里，输入一个想学的主题，几分钟后就有一节完整的课。",
+          "text": "大家好，我是林老师。在 Kelas KA 里，输入一个想学的主题，几分钟后就有一节完整的课。",
           "audioId": "/guide-course/zh/audio/s1_1.mp3",
           "audioUrl": "/guide-course/zh/audio/s1_1.mp3"
         },
@@ -151,7 +151,7 @@
               "width": 470,
               "height": 64,
               "rotate": 0,
-              "content": "<p style=\"font-size:40px;color:#1F2340;font-weight:bold;text-align:left;\">OpenMAIC 是什么</p>",
+              "content": "<p style=\"font-size:40px;color:#1F2340;font-weight:bold;text-align:left;\">Kelas KA 是什么</p>",
               "defaultFontName": "Microsoft YaHei",
               "defaultColor": "#1F2340",
               "lineHeight": 1.4,
@@ -2060,7 +2060,7 @@
   ],
   "outline": {
     "outlines": [],
-    "requirement": "5 分钟学会用 OpenMAIC",
+    "requirement": "5 分钟学会用 Kelas KA",
     "generationComplete": true
   }
 }

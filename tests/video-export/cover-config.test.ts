@@ -22,7 +22,7 @@ const BIDI_CONTROL_CASES = [
 
 describe('resolveVideoExportCta', () => {
   it.each([undefined, '', '   '])('defaults an absent or blank value (%j)', (raw) => {
-    expect(resolveVideoExportCta(raw)).toEqual({ destination: 'open.maic.chat' });
+    expect(resolveVideoExportCta(raw)).toEqual({ destination: 'kelaska.riau.ai' });
   });
 
   it.each(['off', 'OFF', ' Off '])('disables the CTA for %j', (raw) => {

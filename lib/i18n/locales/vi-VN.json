@@ -1956,7 +1956,7 @@
       "download": "Tải xuống",
       "detailFailed": "Không thể tải chi tiết skill",
       "contentLabel": "Nội dung",
-      "builtinDetailNote": "Skill này đi kèm với OpenMAIC. Tải xuống để nhập vào không gian làm việc của agent khác.",
+      "builtinDetailNote": "Skill này đi kèm với Kelas KA. Tải xuống để nhập vào không gian làm việc của agent khác.",
       "upload": "Tải lên",
       "uploading": "Đang tải lên…",
       "uploadFailed": "Không thể tải skill lên. Hãy kiểm tra tệp và thử lại.",
@@ -2731,7 +2731,7 @@
       "menu": "Tài khoản và cài đặt",
       "profileSaved": "Đã lưu",
       "language": "Ngôn ngữ",
-      "about": "Giới thiệu OpenMAIC",
+      "about": "Giới thiệu Kelas KA",
       "aboutBody": "Nền tảng mã nguồn mở biến mọi chủ đề thành một lớp học tương tác với giáo viên và bạn học AI. Phát hành theo giấy phép MIT.",
       "docs": "Tài liệu",
       "signOut": "Đăng xuất",
@@ -2766,8 +2766,8 @@
       "count": "{{index}} / {{total}}",
       "openGuide": "Học thử ngay",
       "welcome": {
-        "title": "Chào mừng đến với OpenMAIC",
-        "body": "Nói điều bạn muốn học, OpenMAIC sẽ tạo một lớp học tương tác cùng giáo viên AI và bạn học."
+        "title": "Chào mừng đến với Kelas KA",
+        "body": "Nói điều bạn muốn học, Kelas KA sẽ tạo một lớp học tương tác cùng giáo viên AI và bạn học."
       },
       "start": {
         "title": "Bắt đầu từ đây",
@@ -2775,7 +2775,7 @@
       },
       "courses": {
         "title": "Bài học trải nghiệm",
-        "body": "Bài học 5 phút này cũng được làm bằng OpenMAIC. Mở ra để xem lớp học diễn ra ở đâu."
+        "body": "Bài học 5 phút này cũng được làm bằng Kelas KA. Mở ra để xem lớp học diễn ra ở đâu."
       },
       "library": {
         "title": "Kho kiến thức",
@@ -2945,7 +2945,7 @@
     "settings": {
       "title": "Sandbox",
       "advanced": "Advanced: connection, desktop and limits",
-      "description": "Configure the shared execution environment for this OpenMAIC installation. Only the installation owner or a verified administrator can change it.",
+      "description": "Configure the shared execution environment for this Kelas KA installation. Only the installation owner or a verified administrator can change it.",
       "enabled": "Enable sandboxes and project workspace",
       "enabledStatus": "Sandbox configured",
       "disabledStatus": "Sandbox disabled or incomplete",
@@ -2968,7 +2968,7 @@
       "lifetimeMs": "Lifetime (seconds)",
       "maxActivePerOwner": "Per-owner concurrency",
       "maxActive": "Installation concurrency",
-      "limitsHint": "These limits apply to this OpenMAIC installation. Other deployments and direct SDK calls are not included.",
+      "limitsHint": "These limits apply to this Kelas KA installation. Other deployments and direct SDK calls are not included.",
       "save": "Save configuration",
       "saving": "Saving…",
       "refresh": "Refresh configuration",
@@ -3020,13 +3020,13 @@
     "closePreview": "Close preview access",
     "previewAdvice": "If the embedded preview cannot authorize, use Open in new tab. Browser cookie settings can restrict embedded previews.",
     "application": "Project application",
-    "connectAgent": "Connect an OpenMAIC agent session",
+    "connectAgent": "Connect an Kelas KA agent session",
     "agentAdvice": "Attach an existing session you own. Tools become available on its next turn. Access lasts one hour; shell access permits any action inside this environment.",
     "agentSession": "Agent session ID",
     "sessionId": "Session ID",
     "allowWrites": "Allow file changes",
     "allowCommands": "Allow commands",
-    "sessionConnected": "Session connected. Send its next message in OpenMAIC to use the project tools.",
+    "sessionConnected": "Session connected. Send its next message in Kelas KA to use the project tools.",
     "sessionRevoked": "Session sandbox access revoked. Commands already started must be stopped separately.",
     "connectSession": "Connect session",
     "revokeAccess": "Revoke access",
@@ -3564,13 +3564,13 @@
       "theme": "Màu sắc",
       "light": "Sáng",
       "dark": "Tối",
-      "preview": "Ảnh thành quả học tập OpenMAIC",
+      "preview": "Ảnh thành quả học tập Kelas KA",
       "save": "Lưu ảnh",
       "saveHint": "Trên điện thoại, bạn cũng có thể nhấn giữ ảnh để xem các tùy chọn lưu.",
       "imageFailed": "Không thể tạo ảnh. Vui lòng thử lại.",
       "rendering": "Đang chuẩn bị ảnh…",
       "achievement": "Thành quả dự án",
-      "invite": "Biến ý tưởng thành hiện thực với OpenMAIC",
+      "invite": "Biến ý tưởng thành hiện thực với Kelas KA",
       "tagline": "Bắt đầu với dự án nhỏ. Luyện lập trình cùng AI.",
       "testsPassed": "Đã vượt qua kiểm thử hành vi",
       "decisionsLabel": "Lựa chọn đã đưa ra",

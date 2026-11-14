@@ -1,10 +1,10 @@
-<!-- <p align="center">
-  <img src="assets/logo-horizontal.png" alt="OpenMAIC" width="420"/>
-</p> -->
-
 <p align="center">
-  <img src="assets/banner.png" alt="OpenMAIC Banner" width="680"/>
+  <img src="public/logo-kemendikdasmen.png" alt="Logo Kemendikdasmen" height="96"/>
+  &nbsp;&nbsp;
+  <img src="public/logo-dprd.png" alt="Logo DPRD" height="96"/>
 </p>
+
+<h1 align="center">Kelas Kecerdasan Artifisial</h1>
 
 <p align="center">
   Get an immersive, multi-agent learning experience in just one click
@@ -19,10 +19,10 @@
 <p align="center">
   <a href="https://jcst.ict.ac.cn/en/article/doi/10.1007/s11390-025-6000-0"><img src="https://img.shields.io/badge/Paper-JCST'26-blue?style=flat-square" alt="Paper"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License: MIT"/></a>
-  <a href="https://open.maic.chat/"><img src="https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square" alt="Live Demo"/></a>
+  <a href="https://kelaska.riau.ai/"><img src="https://img.shields.io/badge/Demo-Live-brightgreen?style=flat-square" alt="Live Demo"/></a>
   <a href="#-agent-workbench-integration"><img src="https://img.shields.io/badge/OpenClaw-Integration-F4511E?style=flat-square" alt="OpenClaw Integration"/></a>
   <a href="#lemonade-local-ai"><img src="https://img.shields.io/badge/Lemonade-Local_AI-FFD43B?style=flat-square" alt="Lemonade Local AI"/></a>
-  <a href="https://github.com/THU-MAIC/OpenMAIC/stargazers"><img src="https://img.shields.io/github/stars/THU-MAIC/OpenMAIC?style=flat-square" alt="Stars"/></a>
+  <a href="https://github.com/ade-karya/KelasKA/stargazers"><img src="https://img.shields.io/github/stars/ade-karya/KelasKA?style=flat-square" alt="Stars"/></a>
   <br/>
   <a href="https://discord.gg/p8Pf2r3SaG"><img src="https://img.shields.io/badge/Discord-Join_Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"/></a>
   &nbsp;
@@ -37,10 +37,12 @@
 <p align="center">
   <a href="./README.md">English</a> | <a href="./README-zh.md">Simplified Chinese</a>
   <br/>
-  <a href="https://open.maic.chat/">Live Demo</a> · <a href="#-quick-start">Quick Start</a> · <a href="#lemonade-local-ai">Lemonade</a> · <a href="#funasr-local-asr">FunASR</a> · <a href="#-features">Features</a> · <a href="#-use-cases">Use Cases</a> · <a href="#-agent-workbench-integration">OpenClaw</a>
+  <a href="https://kelaska.riau.ai/">Live Demo</a> · <a href="#-quick-start">Quick Start</a> · <a href="#lemonade-local-ai">Lemonade</a> · <a href="#funasr-local-asr">FunASR</a> · <a href="#-features">Features</a> · <a href="#-use-cases">Use Cases</a> · <a href="#-agent-workbench-integration">OpenClaw</a>
 </p>
 
 ## 🗞️ News
+
+> _Kelas Kecerdasan Artifisial is built on the open-source [OpenMAIC](https://github.com/THU-MAIC/OpenMAIC) project. The release entries below are the upstream releases the fork tracks._
 
 - **2026-11-12** — [v1.5.0-rc.2](https://github.com/THU-MAIC/OpenMAIC/releases/tag/v1.5.0-rc.2): **A brand-new home, redesigned end to end** (release candidate) — the home page becomes the workbench, with the course beside the conversation and one full-screen classroom for learning and editing. Off by default (`NEXT_PUBLIC_WORKBENCH_ENABLED`).
 - **2026-11-09** — [v1.4.2](https://github.com/THU-MAIC/OpenMAIC/releases/tag/v1.4.2): **course-level undo** for manual edits and agent runs; sandboxes open to every admitted owner.
@@ -77,7 +79,7 @@ Full history in the [changelog](CHANGELOG.md).
 
 ## 📖 Overview
 
-**OpenMAIC** (Open Multi-Agent Interactive Classroom) is an open-source AI platform that turns any topic or document into a rich, interactive classroom experience. Powered by multi-agent orchestration, it generates slides, quizzes, interactive simulations, and project-based learning activities — all delivered by AI teachers and AI classmates who can speak, draw on a whiteboard, and engage in real-time discussions with you. The built-in OpenMAIC Skill works with [OpenClaw](https://github.com/openclaw/openclaw) as well as agent workbenches such as Codex, DeepSeek, and WorkBuddy, so you can generate classrooms from messaging apps like Feishu, Slack, or Telegram, or right inside your IDE.
+**Kelas Kecerdasan Artifisial** (Kelas KA) is an open-source AI platform that turns any topic or document into a rich, interactive classroom experience. Powered by multi-agent orchestration, it generates slides, quizzes, interactive simulations, and project-based learning activities — all delivered by AI teachers and AI classmates who can speak, draw on a whiteboard, and engage in real-time discussions with you. The built-in Kelas KA Skill works with [OpenClaw](https://github.com/openclaw/openclaw) as well as agent workbenches such as Codex, DeepSeek, and WorkBuddy, so you can generate classrooms from messaging apps like Feishu, Slack, or Telegram, or right inside your IDE.
 
 https://github.com/user-attachments/assets/8f3f1e5f-1468-4e93-8054-afeeea683a61
 
@@ -87,8 +89,8 @@ https://github.com/user-attachments/assets/8f3f1e5f-1468-4e93-8054-afeeea683a61
 - **Multi-agent classroom** — AI teachers and peers lecture, discuss, and interact with you in real time
 - **Rich scene types** — Slides, quizzes, interactive HTML simulations, and project-based learning (PBL)
 - **Whiteboard & TTS** — Agents draw diagrams, write formulas, and explain out loud
-- **[Export anywhere](packages/docs/content/docs/getting-started.mdx#export-a-classroom)** — A `.pptx` that keeps every scene, one offline `.html` file that plays the whole lesson, or a classroom ZIP to move it to another deployment
-- **[Agent workbench integration](#-agent-workbench-integration)** — The OpenMAIC Skill supports OpenClaw, Codex, DeepSeek, WorkBuddy, and more — generate classrooms from Feishu, Slack, Telegram, 20+ messaging apps, or your IDE
+- **[Export anywhere](packages/docs/content/docs/getting-started.en.mdx#export-a-classroom)** — A `.pptx` that keeps every scene, one offline `.html` file that plays the whole lesson, or a classroom ZIP to move it to another deployment
+- **[Agent workbench integration](#-agent-workbench-integration)** — The Kelas KA Skill supports OpenClaw, Codex, DeepSeek, WorkBuddy, and more — generate classrooms from Feishu, Slack, Telegram, 20+ messaging apps, or your IDE
 
 ## 🚀 Quick Start
 
@@ -102,8 +104,8 @@ https://github.com/user-attachments/assets/8f3f1e5f-1468-4e93-8054-afeeea683a61
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/THU-MAIC/OpenMAIC.git
-cd OpenMAIC
+git clone https://github.com/ade-karya/KelasKA.git
+cd KelasKA
 bun install
 ```
 
@@ -137,13 +139,13 @@ The slots you write are the server's defaults; users can change them, or connect
 | --- | --- |
 | Slots, presets, fallbacks, `lock`, `allowUserKeys`, `OPENMAIC_SECRET_KEY` | [Configuration](packages/docs/content/docs/configuration.mdx) |
 | Every provider preset and model ID | [Supported models](packages/docs/content/docs/supported-models.mdx) |
-| Upgrading: provider variables, `server-providers.yml`, `DEFAULT_MODEL` and `MODEL_FALLBACK` still work without `openmaic.yml`; `MODEL_ROUTES` must become slots | [Migrating from the legacy configuration](packages/docs/content/docs/configuration.mdx#migrating-from-the-legacy-configuration) |
+| Upgrading: provider variables, `server-providers.yml`, `DEFAULT_MODEL` and `MODEL_FALLBACK` still work without `openmaic.yml`; `MODEL_ROUTES` must become slots | [Migrating from the legacy configuration](packages/docs/content/docs/configuration.en.mdx#migrating-from-the-legacy-configuration) |
 | Which models users may pick: a provider whose key the server holds and that selects an upstream model offers only the models in its `models` list (`*_MODELS`), plus the slot, default and fallback models | [Model authorization](packages/docs/content/docs/configuration.mdx#model-authorization-for-server-managed-providers) |
 
 **Providers:** OpenAI, Azure OpenAI, Anthropic, Amazon Bedrock, Google Gemini, DeepSeek, Qwen, Kimi, MiniMax, Grok (xAI), OpenRouter, TokenDance, Coarena (free), CrowLLM, Doubao, Tencent Hunyuan/TokenHub, Xiaomi MiMo, GLM (Zhipu), Ollama, [Lemonade](#lemonade-local-ai) and [FunASR](#funasr-local-asr) (local), and any OpenAI-compatible API.
 
 > [!TIP]
-> **Recommended setup:** OpenMAIC is at its best with every modality turned on — generated illustrations, narration, video clips, web search, and web fetch. A token plan configures the capabilities it supports with one key (see the examples below). Choose a fast long-context model such as `deepseek-v4.1-flash` as the default.
+> **Recommended setup:** Kelas Kecerdasan Artifisial is at its best with every modality turned on — generated illustrations, narration, video clips, web search, and web fetch. A token plan configures the capabilities it supports with one key (see the examples below). Choose a fast long-context model such as `deepseek-v4.1-flash` as the default.
 
 <details>
 <summary><b>More examples</b>: token plans, Xiaomi MiMo and GLM, Amazon Bedrock</summary>
@@ -522,7 +524,7 @@ copy `openmaic.example.yml`.
 ### Vercel Deployment (up to 1.1.x)
 
 Serverless deployment is supported up to OpenMAIC 1.1.x. From 1.2.0, course
-generation runs on the server in a process that outlives requests, so OpenMAIC
+generation runs on the server in a process that outlives requests, so Kelas Kecerdasan Artifisial
 needs a long-running Node.js process with PostgreSQL (the
 [Docker deployment](#docker-deployment) or `bun run start`); Vercel and other
 serverless hosts are not supported, and the repository no longer ships a
@@ -530,7 +532,7 @@ serverless hosts are not supported, and the repository no longer ships a
 
 1. Fork this repository on GitHub, unchecking **Copy the `main` branch only**.
 2. In the fork, set the default branch to `release/1.1.x` (**Settings → General → Default branch**).
-3. In Vercel, **Add New → Project** and import the fork. Vercel builds its default branch; configure at least one LLM provider key as described in that branch's [`.env.example`](https://github.com/THU-MAIC/OpenMAIC/blob/release/1.1.x/.env.example).
+3. In Vercel, **Add New → Project** and import the fork. Vercel builds its default branch; configure at least one LLM provider key as described in that branch's [`.env.example`](https://github.com/ade-karya/KelasKA/blob/main/.env.example).
 
 Such a deployment can move to a long-running host later without losing data:
 point the new host's `DATABASE_URL` at the database it used, if it used one,
@@ -542,7 +544,7 @@ for every kind of deployment.
 
 ### Server-backed persistence (PostgreSQL)
 
-OpenMAIC keeps courses on the server. Course documents, folders, chat history, learner sessions and generated media live in PostgreSQL (media optionally in S3), served by the app itself at `/api/persistence`. The browser keeps only what belongs to the device, such as settings, playback position and caches; **Settings → Clear Local Cache** never touches the server.
+Kelas Kecerdasan Artifisial keeps courses on the server. Course documents, folders, chat history, learner sessions and generated media live in PostgreSQL (media optionally in S3), served by the app itself at `/api/persistence`. The browser keeps only what belongs to the device, such as settings, playback position and caches; **Settings → Clear Local Cache** never touches the server.
 
 - **`DATABASE_URL` is required.** Without it the server prints the fix and exits with code `1`. Compose sets it for you; for development, [`bun run db:up`](#3-start-the-database) starts a database.
 - **Courses an older build kept in the browser** are imported once per browser, automatically, the first time it opens the upgraded app. The browser copy is left untouched.
@@ -559,7 +561,7 @@ OpenMAIC keeps courses on the server. Course documents, folders, chat history, l
 
 Set the mode before the first start of 1.2.0: classrooms that 1.1.x saved as files are imported for the owner configured then. See [Upgrading from 1.1.x](packages/docs/content/docs/deployment.mdx#upgrading-from-11x) for every kind of deployment.
 
-Running OpenMAIC for other people, or embedding it in your own product? [Hosting and identity](packages/docs/content/docs/hosting.mdx) covers:
+Running Kelas Kecerdasan Artifisial for other people, or embedding it in your own product? [Hosting and identity](packages/docs/content/docs/hosting.mdx) covers:
 
 - [who can read and write stored data](packages/docs/content/docs/hosting.mdx#who-can-read-and-write-stored-data), and the removed `PERSISTENCE_DEV_TOKEN`;
 - [asset collection, quotas and S3 egress](packages/docs/content/docs/hosting.mdx#asset-storage) (`ASSET_*`);
@@ -603,9 +605,9 @@ The `agent` slot must not set `thinking.effort`. Its routes, the `DEFAULT_MODEL`
 
 ### Optional: Lemonade (Local AI Provider)
 
-OpenMAIC supports Lemonade as a local, OpenAI-compatible provider for LLMs, image generation, TTS, and ASR. No API key is required.
+Kelas Kecerdasan Artifisial supports Lemonade as a local, OpenAI-compatible provider for LLMs, image generation, TTS, and ASR. No API key is required.
 
-Run Lemonade locally, then point OpenMAIC to it:
+Run Lemonade locally, then point Kelas Kecerdasan Artifisial to it:
 
 ```yaml
 providers:
@@ -635,7 +637,7 @@ With the legacy variables, the same is `LEMONADE_BASE_URL`, `TTS_LEMONADE_BASE_U
 
 ### Optional: FunASR (Local Speech Recognition)
 
-OpenMAIC can transcribe locally through FunASR's OpenAI-compatible server. The built-in provider supports SenseVoiceSmall, Paraformer, and Fun-ASR-Nano and requires no API key.
+Kelas Kecerdasan Artifisial can transcribe locally through FunASR's OpenAI-compatible server. The built-in provider supports SenseVoiceSmall, Paraformer, and Fun-ASR-Nano and requires no API key.
 
 ```bash
 python -m pip install torch torchaudio
@@ -645,7 +647,7 @@ python -m pip install vllm
 funasr-server --device cuda --model fun-asr-nano
 ```
 
-Point OpenMAIC at the server:
+Point Kelas Kecerdasan Artifisial at the server:
 
 ```yaml
 providers:
@@ -663,7 +665,7 @@ Use `funasr-server --device cpu --model sensevoice` for a CPU-only setup. See th
 
 ### Optional: Local Audio and Video Extraction
 
-OpenMAIC can extract timestamped transcripts and prepared video keyframes locally. Install the system `ffmpeg` package so both `ffmpeg` and `ffprobe` are executable on `PATH`, then assign the `asr` slot (for example FunASR, Lemonade, or OpenAI) as above. The application resolves the executables at extraction time; ffmpeg is not an npm dependency and is not required to start or use OpenMAIC.
+Kelas Kecerdasan Artifisial can extract timestamped transcripts and prepared video keyframes locally. Install the system `ffmpeg` package so both `ffmpeg` and `ffprobe` are executable on `PATH`, then assign the `asr` slot (for example FunASR, Lemonade, or OpenAI) as above. The application resolves the executables at extraction time; ffmpeg is not an npm dependency and is not required to start or use Kelas Kecerdasan Artifisial.
 
 If the executables are unavailable, the local extractor is skipped. A configured AliDocMind provider remains available as the cloud extraction path. When neither local ffmpeg extraction nor AliDocMind is available, audio/video materials are marked failed with an actionable setup message instead of hanging or completing with an empty transcript.
 
@@ -699,9 +701,9 @@ Without `openmaic.yml`, the legacy variables `PDF_MINERU_CLOUD_API_KEY` or `PDF_
 
 ### Optional: VoxCPM2 (Self-Hosted TTS with Voice Cloning)
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) is an open-source TTS model from OpenBMB with voice cloning. OpenMAIC ships an adapter; run VoxCPM on your own hardware and OpenMAIC will talk to it.
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) is an open-source TTS model from OpenBMB with voice cloning. Kelas Kecerdasan Artifisial ships an adapter; run VoxCPM on your own hardware and Kelas Kecerdasan Artifisial will talk to it.
 
-**1. Run a VoxCPM backend.** Three deployment styles, all behind the same OpenMAIC adapter. You pick which one with `options.backend` in `openmaic.yml` (step 2).
+**1. Run a VoxCPM backend.** Three deployment styles, all behind the same Kelas Kecerdasan Artifisial adapter. You pick which one with `options.backend` in `openmaic.yml` (step 2).
 
 | Backend | Endpoint | When to use |
 | --- | --- | --- |
@@ -711,7 +713,7 @@ Without `openmaic.yml`, the legacy variables `PDF_MINERU_CLOUD_API_KEY` or `PDF_
 
 See the [VoxCPM repo](https://github.com/OpenBMB/VoxCPM) for backend setup.
 
-**2. Point OpenMAIC at it.** VoxCPM2 runs on your own network, so the deployment configures it in `openmaic.yml` (no API key required); workspaces cannot add it in **Settings → Model Services**:
+**2. Point Kelas Kecerdasan Artifisial at it.** VoxCPM2 runs on your own network, so the deployment configures it in `openmaic.yml` (no API key required); workspaces cannot add it in **Settings → Model Services**:
 
 ```yaml
 providers:
@@ -733,7 +735,7 @@ Without `openmaic.yml`, the legacy `TTS_VOXCPM_BASE_URL=http://localhost:8000/v1
 
 <img src="assets/voxcpm/voxcpm-voice-manager.png" width="85%" alt="VoxCPM2 VoxCPM Voices section with Auto, Prompt and Clone modes" />
 
-- **Auto Voice** (default): OpenMAIC generates a voice prompt from each agent's persona at synthesis time. No setup required.
+- **Auto Voice** (default): Kelas Kecerdasan Artifisial generates a voice prompt from each agent's persona at synthesis time. No setup required.
 - **Prompt voice**: describe the voice in natural language, e.g. *"warm female teacher voice, calm and encouraging, mid-pitch"*.
 - **Clone voice**: upload a short reference audio clip or record one in the browser. The clip is stored in this browser (IndexedDB) and sent to your VoxCPM backend on each synthesis.
 
@@ -743,7 +745,7 @@ Without `openmaic.yml`, the legacy `TTS_VOXCPM_BASE_URL=http://localhost:8000/v1
 
 ### Agent Workbench (v1.0.0)
 
-The workbench adds a conversational course-building agent to OpenMAIC.
+The workbench adds a conversational course-building agent to Kelas Kecerdasan Artifisial.
 Its durable sessions can be resumed after a worker restart, accept follow-up
 instructions while running, and stream a replayable event history to the chat
 surface.
@@ -794,7 +796,7 @@ vendor.
 
 ### Pluggable Storage
 
-OpenMAIC stores course documents, learner runtime records and assets on the
+Kelas Kecerdasan Artifisial stores course documents, learner runtime records and assets on the
 server, in PostgreSQL. The `@openmaic/storage` package defines swappable stores
 for those primitives — PostgreSQL-backed documents, learner runtime, assets,
 durable agent sessions, session materials, and user skills, plus browser
@@ -916,7 +918,7 @@ If you are looking for a version with richer functionality, stronger interactivi
 Describe what you want to learn or attach reference materials. PDF, Word,
 PowerPoint, spreadsheet, text, image, audio, and video inputs can enter the
 material pipeline; configured extractors turn supported sources into content
-for generation. OpenMAIC's classic two-stage pipeline handles the rest:
+for generation. Kelas Kecerdasan Artifisial's classic two-stage pipeline handles the rest:
 
 | Stage | What Happens |
 |-------|-------------|
@@ -999,7 +1001,7 @@ Choose a role and collaborate with AI agents on structured projects with milesto
 <tr>
 <td valign="top">
 
-The OpenMAIC skill package (`skills/openmaic/`) uses the standard SKILL.md format and can be loaded by various agent workbenches — besides OpenClaw, this includes **Codex**, **DeepSeek**, **WorkBuddy**, and others. It is a guided SOP covering the live demo, local setup, classroom generation, and secondary development on top of the `@openmaic/*` SDK.
+The Kelas KA skill package (`skills/openmaic/`, published as `openmaic`) uses the standard SKILL.md format and can be loaded by various agent workbenches — besides OpenClaw, this includes **Codex**, **DeepSeek**, **WorkBuddy**, and others. It is a guided SOP covering the live demo, local setup, classroom generation, and secondary development on top of the `@openmaic/*` SDK.
 
 [OpenClaw](https://github.com/openclaw/openclaw) is a personal AI assistant that connects to the messaging platforms you already use (Feishu, Slack, Discord, Telegram, WhatsApp, etc.). With this integration, you can **generate and view interactive classrooms directly from your chat app** without ever touching a terminal.
 
@@ -1014,10 +1016,10 @@ The OpenMAIC skill package (`skills/openmaic/`) uses the standard SKILL.md forma
 
 Just tell your agent assistant what you want to learn — it handles everything else:
 
-- **Hosted mode** — Grab an access code from [open.maic.chat](https://open.maic.chat/), save it in your config, and generate classrooms instantly — no local setup required
+- **Hosted mode (upstream)** — Grab an access code from the upstream [Live Demo](https://open.maic.chat/), save it in your config, and generate classrooms instantly — no local setup required
 - **Self-hosted mode** — Clone, install dependencies, configure API keys, and start the server — the skill guides you through each step
 - **Track progress** — Poll the async generation job and send you the link when ready
-- **Secondary development** — Guide you through building on top of OpenMAIC: create your own app with the `@openmaic/*` SDK (see the extend docs inside the skill)
+- **Secondary development** — Guide you through building on top of Kelas Kecerdasan Artifisial: create your own app with the `@openmaic/*` SDK (see the extend docs inside the skill)
 
 Every step asks for your confirmation first. No black-box automation.
 
@@ -1051,10 +1053,10 @@ Optional config in `~/.openclaw/openclaw.json`:
     "entries": {
       "openmaic": {
         "config": {
-          // Hosted mode: paste your access code from open.maic.chat
+          // Hosted mode (upstream): paste your access code from open.maic.chat
           "accessCode": "sk-xxx",
           // Self-hosted mode: local repo path and URL
-          "repoDir": "/path/to/OpenMAIC",
+          "repoDir": "/path/to/KelasKA",
           "url": "http://localhost:3000"
         }
       }
@@ -1078,7 +1080,7 @@ See [Exporting a classroom](packages/docs/content/docs/getting-started.mdx#expor
 
 Importing a classroom ZIP stores its embedded audio, images, video, and posters in the server asset pool before saving the course, so other browsers resolve those assets without the importing browser's cache. A ZIP is also a way to move a course between deployments: export it from one and import it on the other.
 
-**Offline / intranet classrooms:** When you export a classroom (`.maic.zip`) or a Resource Pack, OpenMAIC inlines the external assets referenced by interactive scenes (KaTeX, Three.js incl. `three/addons`, Tailwind CDN, Google Fonts, images) into the exported HTML as `data:` URIs. The exported course then plays fully offline after import into an air-gapped/intranet instance — no public CDN is contacted at playback time. Assets that can't be fetched at export time (e.g. CORS-restricted image hosts) are reported and left as URLs. Classrooms exported *before* this feature still reference CDNs and must be re-exported to gain offline support.
+**Offline / intranet classrooms:** When you export a classroom (`.maic.zip`) or a Resource Pack, Kelas Kecerdasan Artifisial inlines the external assets referenced by interactive scenes (KaTeX, Three.js incl. `three/addons`, Tailwind CDN, Google Fonts, images) into the exported HTML as `data:` URIs. The exported course then plays fully offline after import into an air-gapped/intranet instance — no public CDN is contacted at playback time. Assets that can't be fetched at export time (e.g. CORS-restricted image hosts) are reported and left as URLs. Classrooms exported *before* this feature still reference CDNs and must be re-exported to gain offline support.
 
 ### And More
 
@@ -1138,7 +1140,7 @@ We welcome contributions from the community! Whether it's bug reports, feature i
 ### Project Structure
 
 ```
-OpenMAIC/
+KelasKA/
 ├── app/                        # Next.js App Router
 │   ├── api/                    #   Generation, media, persistence, and agent APIs
 │   │   ├── agent/              #     Durable session, event, material, and skill control plane
@@ -1189,7 +1191,7 @@ OpenMAIC/
 │   ├── @openmaic/dsl/          #   Versioned course/slide data contract and validators
 │   ├── @openmaic/renderer/     #   React renderer for the slide DSL
 │   ├── @openmaic/editor/       #   Composable slide editing core and React surface
-│   ├── @openmaic/importer/     #   PPTX → OpenMAIC slide importer
+│   ├── @openmaic/importer/     #   PPTX → Kelas KA slide importer
 │   ├── @openmaic/generation/   #   Generation contracts, pipeline, and prompt assets
 │   ├── @openmaic/storage/      #   Browser, HTTP, PostgreSQL, and S3 persistence primitives
 │   ├── pptxgenjs/              #   Customized PowerPoint generation
@@ -1198,7 +1200,7 @@ OpenMAIC/
 ├── render-service/             # MP4 video export render service (Chromium + FFmpeg, standalone container)
 │
 ├── skills/                     # OpenClaw / ClawHub skills
-│   └── openmaic/               #   Guided OpenMAIC setup & generation SOP
+│   └── openmaic/               #   Guided Kelas KA setup & generation SOP
 │       ├── SKILL.md            #   Thin router with confirmation rules
 │       └── references/         #   On-demand SOP sections (generation, deployment, extending, …)
 │
@@ -1234,7 +1236,7 @@ This project is licensed under the MIT License, so commercial use is permitted f
 
 ## 📝 Citation
 
-If you find OpenMAIC useful in your research, please consider citing:
+If you find Kelas Kecerdasan Artifisial useful in your research, please consider citing:
 
 ```bibtex
 @Article{JCST-2509-16000,
@@ -1255,7 +1257,7 @@ If you find OpenMAIC useful in your research, please consider citing:
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=THU-MAIC/OpenMAIC&type=Date)](https://star-history.com/#THU-MAIC/OpenMAIC&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=ade-karya/KelasKA&type=Date)](https://star-history.com/#ade-karya/KelasKA&Date)
 
 ---
 

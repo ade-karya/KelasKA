@@ -3,7 +3,7 @@ title: VoxCPM2
 description: Самостоятельный TTS с клонированием голоса. Выбор backend, настройка и управление голосами.
 ---
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) — это open-source TTS-модель от OpenBMB с поддержкой клонирования голоса. OpenMAIC поставляется с адаптером, который позволяет запускать VoxCPM на собственном оборудовании и интегрировать его.
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) — это open-source TTS-модель от OpenBMB с поддержкой клонирования голоса. Kelas Kecerdasan Artifisial поставляется с адаптером, который позволяет запускать VoxCPM на собственном оборудовании и интегрировать его.
 
 ## Когда использовать VoxCPM2
 
@@ -15,7 +15,7 @@ description: Самостоятельный TTS с клонированием г
 
 ## 1. Запустите backend VoxCPM
 
-OpenMAIC поддерживает три режима развёртывания. Все три используют один и тот же адаптер OpenMAIC; тот, что вы запускаете, выбирается через `options.backend` у провайдера в `openmaic.yml` (шаг 2).
+Kelas Kecerdasan Artifisial поддерживает три режима развёртывания. Все три используют один и тот же адаптер Kelas Kecerdasan Artifisial; тот, что вы запускаете, выбирается через `options.backend` у провайдера в `openmaic.yml` (шаг 2).
 
 | Backend        | Endpoint           | Когда использовать                                  |
 | -------------- | ------------------ | -------------------------------------------------- |
@@ -32,7 +32,7 @@ python -m vllm_omni.server --model openbmb/VoxCPM2 --port 8000
 # endpoint будет доступен по адресу http://localhost:8000/v1
 ```
 
-## 2. Настройте OpenMAIC для работы с backend
+## 2. Настройте Kelas Kecerdasan Artifisial для работы с backend
 
 VoxCPM2 работает в вашей собственной сети, поэтому его адрес настраивается развёртыванием; рабочие пространства не могут добавить его в **Настройки → Сервисы моделей**. Объявите его в `openmaic.yml`, выберите backend через `options.backend` и назначьте слоту `tts`. API-ключ не нужен:
 
@@ -64,7 +64,7 @@ TTS_VOXCPM_BASE_URL=http://localhost:8000/v1
 
 ### Auto Voice (по умолчанию)
 
-OpenMAIC во время синтеза динамически генерирует voice prompt на основе персонажа каждого агента. Настройка не требуется — это поведение по умолчанию.
+Kelas Kecerdasan Artifisial во время синтеза динамически генерирует voice prompt на основе персонажа каждого агента. Настройка не требуется — это поведение по умолчанию.
 
 ### Prompt voice
 

@@ -3,7 +3,7 @@ title: 設定
 description: モデルとプロバイダー（openmaic.yml とモデル設定）、アクセス制御、機能フラグ、その他のサーバーオプション。
 ---
 
-OpenMAIC には 3 つの設定ソースがあり、それぞれが 1 つの役割だけを担います。
+Kelas Kecerdasan Artifisial には 3 つの設定ソースがあり、それぞれが 1 つの役割だけを担います。
 
 | ソース | 書く人 | 内容 | 反映タイミング |
 | --- | --- | --- | --- |
@@ -666,7 +666,7 @@ slots:
   image: comfyui
 ```
 
-API 形式でエクスポートしたワークフロー JSON を OpenMAIC の `public/` ディレクトリに置きます。ファイル名は `comfyui-*.json` に一致するか `workflow` を含む必要があり、OpenMAIC はこれらを自動的に検出してワークフローとして提供します。Docker では、イメージをビルドする前にワークフローを追加するか、個々のワークフローファイルをコンテナ内の `/app/public/` にマウントしてください。プロバイダーはデプロイで宣言されているため、ホストやプライベートネットワーク上の ComfyUI に `ALLOW_LOCAL_NETWORKS` は不要です。
+API 形式でエクスポートしたワークフロー JSON を Kelas Kecerdasan Artifisial の `public/` ディレクトリに置きます。ファイル名は `comfyui-*.json` に一致するか `workflow` を含む必要があり、Kelas Kecerdasan Artifisial はこれらを自動的に検出してワークフローとして提供します。Docker では、イメージをビルドする前にワークフローを追加するか、個々のワークフローファイルをコンテナ内の `/app/public/` にマウントしてください。プロバイダーはデプロイで宣言されているため、ホストやプライベートネットワーク上の ComfyUI に `ALLOW_LOCAL_NETWORKS` は不要です。
 
 ### 動画生成プロバイダー
 
@@ -695,7 +695,7 @@ ALIDOCMIND_ACCESS_KEY_SECRET=
 ALIDOCMIND_BASE_URL=       # 任意の上書き
 ```
 
-`unpdf` は OpenMAIC に組み込み済みで、基本的な PDF 解析に使えます。Office 文書、画像、OCR、表、数式、レイアウト解析が必要な教材は MinerU または AliDocMind の互換 provider を選択してください。
+`unpdf` は Kelas Kecerdasan Artifisial に組み込み済みで、基本的な PDF 解析に使えます。Office 文書、画像、OCR、表、数式、レイアウト解析が必要な教材は MinerU または AliDocMind の互換 provider を選択してください。
 
 AliDocMind のドキュメント解析は PDF、DOCX、PPTX、XLSX、PNG、JPG/JPEG、BMP、GIF に対応します。現在の音声・動画素材は AliDocMind でのみ解析可能で、動画は MP4、MOV、AVI、MKV、WMV、音声は MP3、WAV、AAC に対応し、M4A は非対応です。
 

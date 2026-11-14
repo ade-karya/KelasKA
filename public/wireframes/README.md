@@ -1,4 +1,4 @@
-# Wireframe Kelas KA / OpenMAIC
+# Wireframe Kelas KA / Kelas Kecerdasan Artifisial
 
 Dokumen wireframe low-fidelity untuk seluruh permukaan produk Kelas KA: beranda klasik, alur pembuatan kursus multi-agen, kelas, editor halaman, workspace Pro, basis pengetahuan, pengaturan, dialog, keadaan sistem, dan tata letak ponsel.
 

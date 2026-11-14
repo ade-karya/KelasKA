@@ -3,10 +3,10 @@ import { MODEL_REQUEST_IDLE_TIMEOUT, modelRequestFailure } from './request-failu
 /**
  * MAIC Agent — pi StreamFn adapter (promoted from PoC).
  *
- * Bridges the pi agent loop's LLM call to OpenMAIC's existing AI-SDK-based
+ * Bridges the pi agent loop's LLM call to Kelas Kecerdasan Artifisial's existing AI-SDK-based
  * connector (`streamLLM`). pi's `StreamFn` is `(model, context, options) =>
  * AssistantMessageEventStream`; we ignore the pi-side `model` stub and route the
- * call through OpenMAIC's resolved Vercel `LanguageModel`, then map the AI SDK
+ * call through Kelas Kecerdasan Artifisial's resolved Vercel `LanguageModel`, then map the AI SDK
  * `fullStream` parts back into pi's `AssistantMessageEvent` protocol.
  *
  * This is the core integration seam of option B (pi harness + project connector).
@@ -183,7 +183,7 @@ export function createPartMapper(
   return { handle, finalize };
 }
 
-/** Build a pi `StreamFn` that calls OpenMAIC's connector instead of pi-ai providers. */
+/** Build a pi `StreamFn` that calls Kelas Kecerdasan Artifisial's connector instead of pi-ai providers. */
 export function createCallLlmStreamFn(opts: CallLlmStreamFnOptions): StreamFn {
   return ((_piModel, context: PiContext, streamOptions?: SimpleStreamOptions) => {
     const stream = new AssistantEventStream();

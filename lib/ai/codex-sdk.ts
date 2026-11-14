@@ -1,10 +1,10 @@
 /**
- * Native `@openai/codex-sdk` bridge for the OpenMAIC Pro Workbench agent driver.
+ * Native `@openai/codex-sdk` bridge for the Kelas Kecerdasan Artifisial Pro Workbench agent driver.
  *
  * Reference: https://learn.chatgpt.com/docs/codex-sdk
  *
  * The SDK is the *typed* client of the local Codex agent (JSON-RPC over the
- * `codex exec` process the SDK spawns itself). OpenMAIC uses it as a model
+ * `codex exec` process the SDK spawns itself). Kelas Kecerdasan Artifisial uses it as a model
  * transport only: the pi harness in `lib/agent/runtime/codex-stream-fn.ts` asks
  * for one turn, gets back the assistant text + tool calls, and keeps owning the
  * loop (tools, allowlist, timeouts, transcript, usage). Codex's own tools stay
@@ -274,7 +274,7 @@ export async function collectCodexTurn(events: AsyncIterable<ThreadEvent>): Prom
 /**
  * Resume an existing Codex thread by id and run a follow-up prompt.
  *
- * The agent transport does not use this: OpenMAIC replays the full pi history
+ * The agent transport does not use this: Kelas Kecerdasan Artifisial replays the full pi history
  * into a fresh thread each turn so a recovered session never depends on the
  * host's `~/.codex/sessions` state. Kept for callers that do own a thread id.
  */

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Isolated Node 24 + Chromium + FFmpeg service that renders exported Hyperframes projects to MP4 (OpenMAIC issue #866).",
+  "description": "Isolated Node 24 + Chromium + FFmpeg service that renders exported Hyperframes projects to MP4 (Kelas Kecerdasan Artifisial issue #866).",
   "engines": {
     "node": ">=24.21.0"
   },

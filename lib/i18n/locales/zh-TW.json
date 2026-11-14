@@ -1956,7 +1956,7 @@
       "download": "下載",
       "detailFailed": "技能詳情載入失敗",
       "contentLabel": "正文",
-      "builtinDetailNote": "該技能隨 OpenMAIC 提供。下載後可匯入其他智能體工作台。",
+      "builtinDetailNote": "該技能隨 Kelas KA 提供。下載後可匯入其他智能體工作台。",
       "upload": "上傳",
       "uploading": "正在上傳…",
       "uploadFailed": "技能上傳失敗。請檢查檔案後重試。",
@@ -2731,7 +2731,7 @@
       "menu": "帳號與設定",
       "profileSaved": "已儲存",
       "language": "語言",
-      "about": "關於 OpenMAIC",
+      "about": "關於 Kelas KA",
       "aboutBody": "開源的多智慧體互動課堂平台：輸入任何主題，AI 老師和同學陪你一起學。以 MIT 授權條款發布。",
       "docs": "文件",
       "signOut": "登出",
@@ -2766,8 +2766,8 @@
       "count": "{{index}} / {{total}}",
       "openGuide": "去上體驗課",
       "welcome": {
-        "title": "歡迎來到 OpenMAIC",
-        "body": "說一句想學什麼，OpenMAIC 就生成一堂有 AI 老師和同學陪你上的互動課。"
+        "title": "歡迎來到 Kelas KA",
+        "body": "說一句想學什麼，Kelas KA 就生成一堂有 AI 老師和同學陪你上的互動課。"
       },
       "start": {
         "title": "從這裡開始",
@@ -2775,7 +2775,7 @@
       },
       "courses": {
         "title": "體驗課",
-        "body": "這堂 5 分鐘的課也是 OpenMAIC 做的。打開它，看看上課的地方。"
+        "body": "這堂 5 分鐘的課也是 Kelas KA 做的。打開它，看看上課的地方。"
       },
       "library": {
         "title": "知識庫",
@@ -2945,7 +2945,7 @@
     "settings": {
       "title": "沙盒",
       "advanced": "高级设置：连接标识、桌面与运行限制",
-      "description": "配置这套 OpenMAIC 共用的代码执行环境。仅个人部署的拥有者或经过验证的管理员可以修改。",
+      "description": "配置这套 Kelas KA 共用的代码执行环境。仅个人部署的拥有者或经过验证的管理员可以修改。",
       "enabled": "启用沙盒和项目工作区",
       "enabledStatus": "沙盒已配置",
       "disabledStatus": "沙盒未启用或配置未完整",
@@ -2968,7 +2968,7 @@
       "lifetimeMs": "运行时长（秒）",
       "maxActivePerOwner": "每位用户并发上限",
       "maxActive": "本部署并发上限",
-      "limitsHint": "限制仅覆盖这套 OpenMAIC，不包含其他部署或直接调用 SDK 创建的实例。",
+      "limitsHint": "限制仅覆盖这套 Kelas KA，不包含其他部署或直接调用 SDK 创建的实例。",
       "save": "保存配置",
       "saving": "正在保存…",
       "refresh": "刷新配置",
@@ -3020,13 +3020,13 @@
     "closePreview": "关闭预览访问",
     "previewAdvice": "若内嵌预览无法完成授权，请在新标签页打开。浏览器的 Cookie 设置可能限制内嵌预览。",
     "application": "项目应用",
-    "connectAgent": "连接 OpenMAIC 智能体会话",
+    "connectAgent": "连接 Kelas KA 智能体会话",
     "agentAdvice": "连接你已有的会话，工具将在下一轮对话中可用。授权持续一小时；Shell 权限允许在此环境中执行任意操作。",
     "agentSession": "智能体会话 ID",
     "sessionId": "会话 ID",
     "allowWrites": "允许修改文件",
     "allowCommands": "允许运行命令",
-    "sessionConnected": "会话已连接。在 OpenMAIC 中发送下一条消息即可使用项目工具。",
+    "sessionConnected": "会话已连接。在 Kelas KA 中发送下一条消息即可使用项目工具。",
     "sessionRevoked": "已撤销会话的沙盒访问权限。已经启动的命令需单独停止。",
     "connectSession": "连接会话",
     "revokeAccess": "撤销授权",
@@ -3564,7 +3564,7 @@
       "theme": "圖片配色",
       "light": "淺色",
       "dark": "深色",
-      "preview": "我的 OpenMAIC 學習成果圖片",
+      "preview": "我的 Kelas KA 學習成果圖片",
       "save": "儲存圖片",
       "saveHint": "手機也可長按圖片，使用瀏覽器提供的儲存選項。",
       "imageFailed": "圖片暫時無法產生，請重試。",

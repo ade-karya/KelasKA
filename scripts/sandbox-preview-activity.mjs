@@ -234,7 +234,7 @@ fetch('/__openmaic_authorize',{method:'POST',headers:{'content-type':'applicatio
 const prepareDocument=(${installPreviewActivity.toString()})(frame,activityKey,appOrigin,controlled);
 if(controlled)frame.style.visibility='hidden';
 (${installPreviewReadiness.toString()})(frame,appOrigin,prepareDocument);frame.src=documentPath;document.getElementById('status').remove();document.body.append(frame);})
-.catch(()=>{document.getElementById('status').textContent='Access expired. Reopen from OpenMAIC.';
+.catch(()=>{document.getElementById('status').textContent='Access expired. Reopen from Kelas KA.';
 // Before authorization there is no configured appOrigin. This static failure
 // contains no credential or application data and cannot grant readiness/activity.
 notifyFailure({type:'openmaic-preview-error'},'*');});})();</script>`;

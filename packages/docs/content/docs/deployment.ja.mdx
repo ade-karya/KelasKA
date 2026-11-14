@@ -1,9 +1,9 @@
 ---
 title: デプロイ
-description: OpenMAIC を Docker でデプロイするか、自分のホストで bun run start により実行します。
+description: Kelas Kecerdasan Artifisial を Docker でデプロイするか、自分のホストで bun run start により実行します。
 ---
 
-OpenMAIC は Next.js アプリケーションで、常駐する Node.js プロセスと PostgreSQL が必要です。授業の生成はサーバー側で行われます。各生成はデータベースに記録され、サーバープロセス内のワーカーが実行します。ブラウザがページを離れても生成は続き、プロセスが停止した場合は別のプロセス（または再起動した同じプロセス）が最後に完了したステップから引き継ぎます。サポートするデプロイ方法は次の 2 つです。
+Kelas Kecerdasan Artifisial は Next.js アプリケーションで、常駐する Node.js プロセスと PostgreSQL が必要です。授業の生成はサーバー側で行われます。各生成はデータベースに記録され、サーバープロセス内のワーカーが実行します。ブラウザがページを離れても生成は続き、プロセスが停止した場合は別のプロセス（または再起動した同じプロセス）が最後に完了したステップから引き継ぎます。サポートするデプロイ方法は次の 2 つです。
 
 - **Docker Compose**（推奨）：アプリと PostgreSQL の 2 つのコンテナ。
 - **Docker イメージまたは `bun run start`**：自分で運用する PostgreSQL と組み合わせます。
@@ -28,7 +28,7 @@ cp .env.example .env.local
 docker compose up --build
 ```
 
-デフォルトの Compose デプロイは OpenMAIC アプリと PostgreSQL の 2 つのコンテナを起動し、両者の間の `DATABASE_URL` を設定して、`openmaic-data` と `openmaic-postgres` ボリュームをマウントします。その他のプロバイダーや機能は必要に応じて設定してください。詳細は[設定説明](./configuration.mdx)を参照してください。
+デフォルトの Compose デプロイは Kelas Kecerdasan Artifisial アプリと PostgreSQL の 2 つのコンテナを起動し、両者の間の `DATABASE_URL` を設定して、`openmaic-data` と `openmaic-postgres` ボリュームをマウントします。その他のプロバイダーや機能は必要に応じて設定してください。詳細は[設定説明](./configuration.mdx)を参照してください。
 
 モデルの設定方法は 2 通りあります。個人利用のインストールでは、スタックを起動してアプリを開き、モデル設定でモデルサービスを接続します。設定はデータベースに保存されます。ファイルで管理するデプロイでは、`openmaic.example.yml` を `openmaic.yml` にコピーし、キーを `.env.local` に置いてファイルをマウントします（後述）。[設定説明](./configuration.mdx#モデルとプロバイダー)を参照してください。
 
@@ -89,7 +89,7 @@ DATABASE_URL=postgres://user:password@db-host:5432/openmaic bun run start      #
 
 匿名モードでは、オーナー cookie は本番環境で `Secure` 属性付きになり、`ACCESS_CODE` の cookie も同様です。ブラウザが `Secure` cookie を保存するのは HTTPS か `http://localhost` の場合だけです（Safari は localhost でも保存しません）。そのため、プレーンな HTTP で提供するデプロイでは `COOKIE_SECURE=0`（値は正確に `0`）を設定する必要があります。設定しないと、リクエストごとに新しいオーナーになって書き込みが `403` で失敗し、アクセスコードも繰り返し求められます。TLS がない場合 cookie は平文で送られるため、信頼できるネットワークでのみ行ってください。
 
-`localhost` 以外のアドレス（LAN IP、Tailscale IP、MagicDNS 名）でのプレーンな HTTP もセキュアコンテキストではないため、ブラウザには Web Locks API がありません。OpenMAIC はその場合も保存しますが、同じコースの複数タブ間の調整は行われません。2 つのタブが同じチャットを変更した場合は、最後の保存が優先されます。また、一方のタブで削除したチャットは、もう一方のタブで編集中だった場合でも削除されたままになります。ネットワーク内のスマートフォンやタブレットから使う場合は、サーバーの前に `tailscale serve` を置くなどして HTTPS を使うことをおすすめします。
+`localhost` 以外のアドレス（LAN IP、Tailscale IP、MagicDNS 名）でのプレーンな HTTP もセキュアコンテキストではないため、ブラウザには Web Locks API がありません。Kelas Kecerdasan Artifisial はその場合も保存しますが、同じコースの複数タブ間の調整は行われません。2 つのタブが同じチャットを変更した場合は、最後の保存が優先されます。また、一方のタブで削除したチャットは、もう一方のタブで編集中だった場合でも削除されたままになります。ネットワーク内のスマートフォンやタブレットから使う場合は、サーバーの前に `tailscale serve` を置くなどして HTTPS を使うことをおすすめします。
 
 **`OPENMAIC_SECRET_KEY`** はモデル設定に保存されたプロバイダーキーを暗号化します。未設定の場合、各インスタンスが `data/instance-secret.key` に独自のシークレットを作成するため、データベースを共有するインスタンス同士で保存済みキーを読み取れません。データベースのバックアップと一緒に保管してください。[シークレットと OPENMAIC_SECRET_KEY](./configuration.mdx#シークレットと-openmaic_secret_key) を参照してください。
 
@@ -111,7 +111,7 @@ DATABASE_URL=postgres://user:password@db-host:5432/openmaic bun run start      #
 
 ## サーバー側永続化（PostgreSQL）
 
-OpenMAIC は授業、チャット履歴、学習の進捗、生成メディアを PostgreSQL に保存するため、**`DATABASE_URL` は必須**です。未設定の場合、サーバーは `[boot] Invalid server configuration; the server will not start: DATABASE_URL is not set. ...` と対処方法を出力し、終了コード `1` で終了します。永続化用の HTTP API は OpenMAIC に組み込まれており、追加の永続化サービスは不要です。
+Kelas Kecerdasan Artifisial は授業、チャット履歴、学習の進捗、生成メディアを PostgreSQL に保存するため、**`DATABASE_URL` は必須**です。未設定の場合、サーバーは `[boot] Invalid server configuration; the server will not start: DATABASE_URL is not set. ...` と対処方法を出力し、終了コード `1` で終了します。永続化用の HTTP API は Kelas Kecerdasan Artifisial に組み込まれており、追加の永続化サービスは不要です。
 
 `docker compose up` はアプリの横で PostgreSQL を起動し、`DATABASE_URL` を設定します。ローカル開発では、`bun run db:up` が同じサービス定義から独立した開発用データベース（専用の Compose プロジェクトとボリューム `openmaic-dev-db`。このマシン上のすべてのチェックアウトで共有。スタックのデータベースには影響しません）を `127.0.0.1`（ポート `OPENMAIC_DB_PORT`、既定 `5432`）で起動し、`bun run db:down` で停止します。その後 `.env.local` に接続情報を設定します：
 
@@ -160,7 +160,7 @@ PostgreSQL のデータは `openmaic-postgres` ボリュームに保存されま
 docker compose --profile video-export up --build
 ```
 
-Compose は `RENDER_SERVICE_URL` を通じて OpenMAIC とレンダリングサービスを接続します。このプロファイルを有効にしないか、レンダリングサービスが利用できない場合は、エクスポートはプロジェクト ZIP のダウンロードにフォールバックし、ローカル CLI でのレンダリングを想定します。レンダリングサービスは分離されたネットワークで動作し、起動時に `NET_ADMIN` 権限が必要です。詳細や独立デプロイ方法はリポジトリの [`render-service/README.md`](https://github.com/THU-MAIC/OpenMAIC/blob/main/render-service/README.md) を参照してください。アップグレード時は、レンダリングサービスをアプリと同時か、それより先に更新してください。
+Compose は `RENDER_SERVICE_URL` を通じて Kelas Kecerdasan Artifisial とレンダリングサービスを接続します。このプロファイルを有効にしないか、レンダリングサービスが利用できない場合は、エクスポートはプロジェクト ZIP のダウンロードにフォールバックし、ローカル CLI でのレンダリングを想定します。レンダリングサービスは分離されたネットワークで動作し、起動時に `NET_ADMIN` 権限が必要です。詳細や独立デプロイ方法はリポジトリの [`render-service/README.md`](https://github.com/THU-MAIC/OpenMAIC/blob/main/render-service/README.md) を参照してください。アップグレード時は、レンダリングサービスをアプリと同時か、それより先に更新してください。
 
 ## 環境変数
 

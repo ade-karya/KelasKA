@@ -130,9 +130,9 @@ export function createDirectorCompactionRuntime(opts: {
     createProvider({
       id: model.provider,
       models: [model],
-      // The injected OpenMAIC connector already owns request-scoped model
+      // The injected Kelas Kecerdasan Artifisial connector already owns request-scoped model
       // credentials. Pi needs no second key store or environment lookup.
-      auth: { apiKey: { name: 'OpenMAIC connector', resolve: async () => ({ auth: {} }) } },
+      auth: { apiKey: { name: 'Kelas Kecerdasan Artifisial connector', resolve: async () => ({ auth: {} }) } },
       api: { stream: bridge, streamSimple: bridge },
     }),
   );

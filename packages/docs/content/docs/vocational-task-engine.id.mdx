@@ -5,7 +5,7 @@ description: Aktifkan pelajaran vokasi eksperimental dengan latihan prosedural, 
 
 Mesin tugas vokasi menghasilkan pelajaran seputar tugas di tempat kerja: apa yang perlu dilakukan peserta didik, alat apa yang terlibat, kapan harus melanjutkan atau berhenti, dan bagaimana memeriksa penyelesaiannya. Mesin ini menggabungkan slide pengarahan, latihan prosedural interaktif, penjelasan, dan tantangan tugas.
 
-Fitur ini eksperimental dan nonaktif secara default. Mulailah dengan [Memulai](./getting-started.mdx) untuk mengonfigurasi OpenMAIC dan penyedia LLM, lalu aktifkan flag di bawah ini pada deployment Anda.
+Fitur ini eksperimental dan nonaktif secara default. Mulailah dengan [Memulai](./getting-started.mdx) untuk mengonfigurasi Kelas Kecerdasan Artifisial dan penyedia LLM, lalu aktifkan flag di bawah ini pada deployment Anda.
 
 ## Tugas yang cocok
 
@@ -15,7 +15,7 @@ Prompt outline meminta pengarahan tugas lebih dulu, diikuti segmen latihan dan t
 
 ## Mengaktifkan fitur
 
-Tambahkan entri berikut ke `.env.local` aplikasi OpenMAIC:
+Tambahkan entri berikut ke `.env.local` aplikasi Kelas Kecerdasan Artifisial:
 
 ```bash
 OPENMAIC_ENABLE_VOCATIONAL=true
@@ -27,13 +27,13 @@ NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI=true
 | `OPENMAIC_ENABLE_VOCATIONAL`          | Mengizinkan server memakai perencanaan tugas vokasi dan pembuatan konten prosedural. | Saat runtime; mulai ulang aplikasi setelah mengubah lingkungan prosesnya.   |
 | `NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI` | Menampilkan sakelar vokasi eksperimental di halaman beranda.                         | Saat build; bangun ulang aplikasi produksi setelah mengubahnya.             |
 
-Kedua flag menerima `true` atau `1`; nilai yang tidak diset membuatnya tetap nonaktif. Mulai ulang `bun run dev` setelah mengubah konfigurasi pengembangan lokal. Untuk produksi, set flag publik sebelum `bun run build`, dan sediakan flag server saat menjalankan aplikasi. Flag ini milik aplikasi OpenMAIC, bukan server dokumentasi. Lihat [Konfigurasi](./configuration.mdx#feature-flag).
+Kedua flag menerima `true` atau `1`; nilai yang tidak diset membuatnya tetap nonaktif. Mulai ulang `bun run dev` setelah mengubah konfigurasi pengembangan lokal. Untuk produksi, set flag publik sebelum `bun run build`, dan sediakan flag server saat menjalankan aplikasi. Flag ini milik aplikasi Kelas Kecerdasan Artifisial, bukan server dokumentasi. Lihat [Konfigurasi](./configuration.mdx#feature-flag).
 
 Menampilkan sakelar tidak dengan sendirinya mengaktifkan jalur server. Pembuatan vokasi memerlukan flag server sekaligus `requirements.taskEngineMode` dari permintaan pembuatan. Jika flag server mati, permintaan mengikuti jalur pembuatan standar atau interaktif yang biasa.
 
 ## Menghasilkan pelajaran vokasi
 
-1. Buka halaman beranda OpenMAIC dan konfigurasikan model yang ingin Anda gunakan.
+1. Buka halaman beranda Kelas Kecerdasan Artifisial dan konfigurasikan model yang ingin Anda gunakan.
 2. Aktifkan sakelar eksperimental berlabel **职教任务** (tugas vokasi).
 3. Jelaskan tugas kerja, tingkat peserta didik, alat, titik keputusan, dan kriteria penyelesaian. Lampirkan materi kursus yang relevan bila tersedia.
 4. Hasilkan outline, tinjau, lalu lanjutkan ke kelas.

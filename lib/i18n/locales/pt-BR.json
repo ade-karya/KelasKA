@@ -1956,7 +1956,7 @@
       "download": "Baixar",
       "detailFailed": "Não foi possível carregar os detalhes do skill",
       "contentLabel": "Conteúdo",
-      "builtinDetailNote": "Este skill acompanha o OpenMAIC. Baixe-o para importar em outro espaço de trabalho de agente.",
+      "builtinDetailNote": "Este skill acompanha o Kelas KA. Baixe-o para importar em outro espaço de trabalho de agente.",
       "upload": "Enviar",
       "uploading": "Enviando…",
       "uploadFailed": "Não foi possível enviar o skill. Verifique o arquivo e tente novamente.",
@@ -2731,7 +2731,7 @@
       "menu": "Conta e configurações",
       "profileSaved": "Salvo",
       "language": "Idioma",
-      "about": "Sobre o OpenMAIC",
+      "about": "Sobre o Kelas KA",
       "aboutBody": "Uma plataforma de código aberto que transforma qualquer tema em uma sala de aula interativa com professores e colegas de IA. Publicada sob a licença MIT.",
       "docs": "Documentação",
       "signOut": "Sair",
@@ -2766,8 +2766,8 @@
       "count": "{{index}} / {{total}}",
       "openGuide": "Fazer a aula de experiência",
       "welcome": {
-        "title": "Boas-vindas ao OpenMAIC",
-        "body": "Diga o que quer aprender e o OpenMAIC cria uma aula interativa com um professor de IA e colegas."
+        "title": "Boas-vindas ao Kelas KA",
+        "body": "Diga o que quer aprender e o Kelas KA cria uma aula interativa com um professor de IA e colegas."
       },
       "start": {
         "title": "Comece aqui",
@@ -2775,7 +2775,7 @@
       },
       "courses": {
         "title": "A aula de experiência",
-        "body": "Esta aula de 5 minutos também foi feita com o OpenMAIC. Abra-a para ver onde a aula acontece."
+        "body": "Esta aula de 5 minutos também foi feita com o Kelas KA. Abra-a para ver onde a aula acontece."
       },
       "library": {
         "title": "Base de conhecimento",
@@ -2945,7 +2945,7 @@
     "settings": {
       "title": "Sandbox",
       "advanced": "Advanced: connection, desktop and limits",
-      "description": "Configure the shared execution environment for this OpenMAIC installation. Only the installation owner or a verified administrator can change it.",
+      "description": "Configure the shared execution environment for this Kelas KA installation. Only the installation owner or a verified administrator can change it.",
       "enabled": "Enable sandboxes and project workspace",
       "enabledStatus": "Sandbox configured",
       "disabledStatus": "Sandbox disabled or incomplete",
@@ -2968,7 +2968,7 @@
       "lifetimeMs": "Lifetime (seconds)",
       "maxActivePerOwner": "Per-owner concurrency",
       "maxActive": "Installation concurrency",
-      "limitsHint": "These limits apply to this OpenMAIC installation. Other deployments and direct SDK calls are not included.",
+      "limitsHint": "These limits apply to this Kelas KA installation. Other deployments and direct SDK calls are not included.",
       "save": "Save configuration",
       "saving": "Saving…",
       "refresh": "Refresh configuration",
@@ -3020,13 +3020,13 @@
     "closePreview": "Close preview access",
     "previewAdvice": "If the embedded preview cannot authorize, use Open in new tab. Browser cookie settings can restrict embedded previews.",
     "application": "Project application",
-    "connectAgent": "Connect an OpenMAIC agent session",
+    "connectAgent": "Connect an Kelas KA agent session",
     "agentAdvice": "Attach an existing session you own. Tools become available on its next turn. Access lasts one hour; shell access permits any action inside this environment.",
     "agentSession": "Agent session ID",
     "sessionId": "Session ID",
     "allowWrites": "Allow file changes",
     "allowCommands": "Allow commands",
-    "sessionConnected": "Session connected. Send its next message in OpenMAIC to use the project tools.",
+    "sessionConnected": "Session connected. Send its next message in Kelas KA to use the project tools.",
     "sessionRevoked": "Session sandbox access revoked. Commands already started must be stopped separately.",
     "connectSession": "Connect session",
     "revokeAccess": "Revoke access",
@@ -3564,13 +3564,13 @@
       "theme": "Aparência",
       "light": "Clara",
       "dark": "Escura",
-      "preview": "Imagem das minhas conquistas no OpenMAIC",
+      "preview": "Imagem das minhas conquistas no Kelas KA",
       "save": "Salvar imagem",
       "saveHint": "No celular, você também pode pressionar a imagem para ver as opções disponíveis.",
       "imageFailed": "Não foi possível preparar a imagem. Tente novamente.",
       "rendering": "Preparando imagem…",
       "achievement": "Minhas conquistas no projeto",
-      "invite": "Crie com OpenMAIC",
+      "invite": "Crie com Kelas KA",
       "tagline": "Comece com um projeto pequeno. Pratique programar com IA.",
       "testsPassed": "Testes de comportamento aprovados",
       "decisionsLabel": "Decisões tomadas",

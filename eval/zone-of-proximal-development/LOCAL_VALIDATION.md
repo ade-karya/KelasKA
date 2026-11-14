@@ -4,7 +4,7 @@
 
 - Date: 2026-09-05. Skill version: `0.2.0-experimental`.
 - Model used for the local classroom workflow: `deepseek:deepseek-v4-flash`.
-- Classroom checks used an existing local OpenMAIC runtime at `89268e5`, which includes the thinking-context fix `d5fca17` and an unrelated Feynman documentation commit. Neither change is included in this skill PR.
+- Classroom checks used an existing local Kelas Kecerdasan Artifisial runtime at `89268e5`, which includes the thinking-context fix `d5fca17` and an unrelated Feynman documentation commit. Neither change is included in this skill PR.
 - The PR branch starts from upstream `1e10f60`. The automated checks below were rerun there; the complete model-driven classroom workflow was **not** rerun on that clean runtime baseline.
 - All learner responses were constructed by the tester. Generated pages were inspected and locally corrected before the checks passed. This is not evidence of first-pass generation reliability or learning effectiveness.
 - The Chinese display name was finalized as **习题课（最近发展区）** after the classroom run. Its unchanged invocation id and new display title are checked by the discovery regression test.

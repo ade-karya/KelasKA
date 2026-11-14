@@ -229,7 +229,7 @@ export function buildSandboxTools(scope: SandboxToolScope): AgentTool<never, nev
   return tools;
 }
 
-/** Existing OpenMAIC runtime opt-in. Ordinary sessions get no sandbox tools. */
+/** Existing Kelas Kecerdasan Artifisial runtime opt-in. Ordinary sessions get no sandbox tools. */
 export async function sessionSandboxTools(sessionId: string, ownerId: string) {
   if (!process.env.DATABASE_URL) return [];
   const { SandboxStore } = await import('./store');

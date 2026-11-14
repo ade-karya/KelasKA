@@ -11,7 +11,7 @@ the browser determines the destination, with no promise of automatic photo-libra
 `reportShareContent` includes only course-authored title/concepts, recorded completion,
 summary counts, practiced skill receipts and saved test/quiz results. Empty sections are
 omitted. The congratulatory heading is used only when `requiredComplete` is true; unfinished
-projects use a neutral achievement heading. The official OpenMAIC wordmark and workshop heading lead the image.
+projects use a neutral achievement heading. The Kelas KA wordmark and workshop heading lead the image.
 The invitation, campaign link and QR follow the learner’s results at the bottom. Counts represent recorded practice, not mastery or rankings.
 An open two-column checklist sits above naturally wrapping, content-sized concept chips;
 saved results form a separate bar above the invitation. There is no repeated brand footer.

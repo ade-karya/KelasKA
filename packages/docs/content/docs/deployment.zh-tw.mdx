@@ -1,9 +1,9 @@
 ---
 title: 部署
-description: 用 Docker 部署 OpenMAIC，或在你自己的主機上用 bun run start 執行。
+description: 用 Docker 部署 Kelas Kecerdasan Artifisial，或在你自己的主機上用 bun run start 執行。
 ---
 
-OpenMAIC 是一個 Next.js 應用程式，需要一個常駐的 Node.js 行程和 PostgreSQL。課程產生在伺服器端進行：每次產生都以紀錄的形式儲存在資料庫中，由伺服器行程內的 worker 執行；瀏覽器離開頁面後產生仍會繼續，行程結束後由另一個行程（或重新啟動後的同一行程）從最近完成的步驟接手。支援兩種部署方式：
+Kelas Kecerdasan Artifisial 是一個 Next.js 應用程式，需要一個常駐的 Node.js 行程和 PostgreSQL。課程產生在伺服器端進行：每次產生都以紀錄的形式儲存在資料庫中，由伺服器行程內的 worker 執行；瀏覽器離開頁面後產生仍會繼續，行程結束後由另一個行程（或重新啟動後的同一行程）從最近完成的步驟接手。支援兩種部署方式：
 
 - **Docker Compose**（建議）：應用程式和 PostgreSQL 兩個容器。
 - **Docker 映像檔或 `bun run start`**，搭配你自己執行的 PostgreSQL。
@@ -28,7 +28,7 @@ cp .env.example .env.local
 docker compose up --build
 ```
 
-預設 Compose 部署會啟動 OpenMAIC 應用程式和 PostgreSQL 兩個容器，自動設定兩者之間的 `DATABASE_URL`，並掛載 `openmaic-data` 與 `openmaic-postgres` 資料卷。其他 provider 與功能可依需求設定，詳見[設定說明](./configuration.mdx)。
+預設 Compose 部署會啟動 Kelas Kecerdasan Artifisial 應用程式和 PostgreSQL 兩個容器，自動設定兩者之間的 `DATABASE_URL`，並掛載 `openmaic-data` 與 `openmaic-postgres` 資料卷。其他 provider 與功能可依需求設定，詳見[設定說明](./configuration.mdx)。
 
 模型有兩種設定方式。個人安裝時，啟動服務後開啟應用程式，在模型設定中連接模型服務，設定儲存在資料庫中。若希望以檔案方式管理部署，把 `openmaic.example.yml` 複製為 `openmaic.yml`，key 放在 `.env.local` 中，再掛載該檔案（見下文）。詳見[設定說明](./configuration.mdx#模型與供應商)。
 
@@ -89,7 +89,7 @@ DATABASE_URL=postgres://user:password@db-host:5432/openmaic bun run start      #
 
 匿名模式下，擁有者 cookie 在正式環境中帶有 `Secure` 標記，`ACCESS_CODE` 的 cookie 也是如此。瀏覽器只在 HTTPS 或 `http://localhost` 上儲存 `Secure` cookie（Safari 連 localhost 也不儲存），因此透過純 HTTP 提供服務的部署必須設定 `COOKIE_SECURE=0`（必須正好是 `0`）：否則每個請求都會成為新的擁有者，寫入以 `403` 失敗，存取碼也會被反覆要求輸入。沒有 TLS 時 cookie 以明文傳輸，只應在可信任的網路中這樣做。
 
-在 `localhost` 以外的位址上使用純 HTTP（區域網路 IP、Tailscale IP 或 MagicDNS 網域）同樣不是安全環境，瀏覽器沒有 Web Locks API。OpenMAIC 在這種情況下仍會儲存，但同一課程的多個分頁之間不做協調：若兩個分頁修改同一個對話，以最後一次儲存為準；在一個分頁刪除的對話會保持刪除，即使另一個分頁當時仍在編輯它。在區域網路內用手機或平板存取時，建議使用 HTTPS，例如在服務前面用 `tailscale serve`。
+在 `localhost` 以外的位址上使用純 HTTP（區域網路 IP、Tailscale IP 或 MagicDNS 網域）同樣不是安全環境，瀏覽器沒有 Web Locks API。Kelas Kecerdasan Artifisial 在這種情況下仍會儲存，但同一課程的多個分頁之間不做協調：若兩個分頁修改同一個對話，以最後一次儲存為準；在一個分頁刪除的對話會保持刪除，即使另一個分頁當時仍在編輯它。在區域網路內用手機或平板存取時，建議使用 HTTPS，例如在服務前面用 `tailscale serve`。
 
 **`OPENMAIC_SECRET_KEY`** 用於加密在模型設定中儲存的供應商 key。未設定時，每個實例會在 `data/instance-secret.key` 中產生自己的金鑰，共用資料庫的實例之間就無法讀取彼此儲存的 key。請把它和資料庫備份放在一起，見[金鑰與 OPENMAIC_SECRET_KEY](./configuration.mdx#金鑰與-openmaic_secret_key)。
 
@@ -111,7 +111,7 @@ DATABASE_URL=postgres://user:password@db-host:5432/openmaic bun run start      #
 
 ## 伺服器端持久化（PostgreSQL）
 
-OpenMAIC 把課程、對話紀錄、學習進度和產生的媒體儲存在 PostgreSQL 中，**必須提供 `DATABASE_URL`**：沒有它服務會輸出 `[boot] Invalid server configuration; the server will not start: DATABASE_URL is not set. ...` 及修復方法，並以結束碼 `1` 結束。持久化 HTTP API 內嵌在 OpenMAIC 中，不需要額外的 persistence 服務。
+Kelas Kecerdasan Artifisial 把課程、對話紀錄、學習進度和產生的媒體儲存在 PostgreSQL 中，**必須提供 `DATABASE_URL`**：沒有它服務會輸出 `[boot] Invalid server configuration; the server will not start: DATABASE_URL is not set. ...` 及修復方法，並以結束碼 `1` 結束。持久化 HTTP API 內嵌在 Kelas Kecerdasan Artifisial 中，不需要額外的 persistence 服務。
 
 `docker compose up` 會在應用程式旁啟動 PostgreSQL 並為其設定 `DATABASE_URL`。本機開發時，`bun run db:up` 以同一服務定義啟動一個獨立的開發資料庫（單獨的 Compose 專案與資料卷 `openmaic-dev-db`，本機所有檢出共用，不會影響該堆疊的資料庫），並發布到 `127.0.0.1`（連接埠 `OPENMAIC_DB_PORT`，預設 `5432`）；`bun run db:down` 可將其停止。然後在 `.env.local` 中設定連線：
 
@@ -160,7 +160,7 @@ Serverless 部署支援到 OpenMAIC 1.1.x，[儲存庫 README](https://github.co
 docker compose --profile video-export up --build
 ```
 
-Compose 會透過 `RENDER_SERVICE_URL` 讓 OpenMAIC 連線至渲染服務。若未啟用此 profile，或渲染服務無法使用，匯出功能會改為下載專案 ZIP，以供本機 CLI 渲染。渲染服務使用隔離網路，啟動時需要 `NET_ADMIN` capability；其他限制與獨立部署方式請見儲存庫中的 [`render-service/README.md`](https://github.com/THU-MAIC/OpenMAIC/blob/main/render-service/README.md)。升級時，請在升級應用程式的同時或之前升級算繪服務。
+Compose 會透過 `RENDER_SERVICE_URL` 讓 Kelas Kecerdasan Artifisial 連線至渲染服務。若未啟用此 profile，或渲染服務無法使用，匯出功能會改為下載專案 ZIP，以供本機 CLI 渲染。渲染服務使用隔離網路，啟動時需要 `NET_ADMIN` capability；其他限制與獨立部署方式請見儲存庫中的 [`render-service/README.md`](https://github.com/THU-MAIC/OpenMAIC/blob/main/render-service/README.md)。升級時，請在升級應用程式的同時或之前升級算繪服務。
 
 ## 環境變數
 

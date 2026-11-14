@@ -2,11 +2,11 @@
   "dslVersion": "0.3.0",
   "stage": {
     "id": "guide-openmaic-en",
-    "name": "OpenMAIC in 5 Minutes",
+    "name": "Kelas KA in 5 Minutes",
     "agentIds": ["gen-yy7QeLrg", "gen--S25ynUT", "gen-Qk7aavax"],
     "createdAt": 1793880000000,
     "updatedAt": 1793880000000,
-    "description": "A light, friendly first look at OpenMAIC for new students and teachers.",
+    "description": "A light, friendly first look at Kelas KA for new students and teachers.",
     "generatedAgentConfigs": [
       {
         "id": "gen-yy7QeLrg",
@@ -72,7 +72,7 @@
       "id": "scene-p1",
       "type": "slide",
       "order": 1,
-      "title": "What is OpenMAIC?",
+      "title": "What is Kelas KA?",
       "stageId": "guide-openmaic-en",
       "createdAt": 1793880000000,
       "updatedAt": 1793880000000,
@@ -87,7 +87,7 @@
         {
           "id": "s1_1",
           "type": "speech",
-          "text": "Hi there, I'm Ms. Lane, your teacher. With OpenMAIC, you type a topic you want to learn, and a few minutes later you have a whole class.",
+          "text": "Hi there, I'm Ms. Lane, your teacher. With Kelas KA, you type a topic you want to learn, and a few minutes later you have a whole class.",
           "audioId": "/guide-course/en/audio/s1_1.mp3",
           "audioUrl": "/guide-course/en/audio/s1_1.mp3"
         },
@@ -163,7 +163,7 @@
               "width": 470,
               "height": 64,
               "rotate": 0,
-              "content": "<p style=\"font-size:40px;color:#1F2340;font-weight:bold;text-align:left;\">What is OpenMAIC?</p>",
+              "content": "<p style=\"font-size:40px;color:#1F2340;font-weight:bold;text-align:left;\">What is Kelas KA?</p>",
               "defaultFontName": "Arial",
               "defaultColor": "#1F2340",
               "lineHeight": 1.4,
@@ -2084,7 +2084,7 @@
   ],
   "outline": {
     "outlines": [],
-    "requirement": "OpenMAIC in 5 Minutes",
+    "requirement": "Kelas KA in 5 Minutes",
     "generationComplete": true
   }
 }

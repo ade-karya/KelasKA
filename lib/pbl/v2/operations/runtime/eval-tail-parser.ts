@@ -10,7 +10,7 @@
  *
  * Robustness we explicitly handle:
  *  - LLM emits fenced JSON, naked JSON, or prose + JSON → reuse the
- *    shared OpenMAIC generation JSON repair parser
+ *    shared Kelas Kecerdasan Artifisial generation JSON repair parser
  *  - LLM emits malformed JSON inside the fence → reuse shared repair;
  *    return null only if no object can be recovered
  *  - LLM emits `stars: "4/5"` / `"good"` / `null` / `8.7` / `NaN`

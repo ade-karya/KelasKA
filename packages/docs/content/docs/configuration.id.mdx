@@ -3,7 +3,7 @@ title: Konfigurasi
 description: Model dan penyedia (openmaic.yml dan pengaturan model), kontrol akses, feature flag, dan opsi server lainnya.
 ---
 
-OpenMAIC memiliki tiga sumber konfigurasi, dan masing-masing memiliki satu tugas:
+Kelas Kecerdasan Artifisial memiliki tiga sumber konfigurasi, dan masing-masing memiliki satu tugas:
 
 | Sumber | Ditulis oleh | Berisi | Berlaku |
 | --- | --- | --- | --- |
@@ -170,7 +170,7 @@ Pada transport HTTP, slot `agent` tidak boleh menyetel `thinking.effort`: ia tid
 
 ### Transport agen lokal
 
-Agen Pro workbench dapat menjawab gilirannya melalui CLI atau SDK lokal alih-alih endpoint HTTP. Semua transport ini tetap mempertahankan loop OpenMAIC: harness tetap memegang kendali atas tool, allowlist, timeout, kuota, transkrip, dan aliran event, dan agen lokal hanya memutuskan pesan asisten serta panggilan tool berikutnya.
+Agen Pro workbench dapat menjawab gilirannya melalui CLI atau SDK lokal alih-alih endpoint HTTP. Semua transport ini tetap mempertahankan loop Kelas Kecerdasan Artifisial: harness tetap memegang kendali atas tool, allowlist, timeout, kuota, transkrip, dan aliran event, dan agen lokal hanya memutuskan pesan asisten serta panggilan tool berikutnya.
 
 ```yaml title="openmaic.yml"
 providers:
@@ -755,7 +755,7 @@ slots:
   image: comfyui
 ```
 
-Letakkan JSON workflow yang diekspor dalam format API di direktori `public/` OpenMAIC. Gunakan nama berkas yang cocok dengan `comfyui-*.json` atau mengandung `workflow`; OpenMAIC menemukan berkas-berkas ini secara otomatis dan menawarkannya sebagai workflow. Dengan Docker, tambahkan workflow sebelum mem-build image atau mount satu berkas workflow ke `/app/public/` di dalam container. Karena penyedianya dideklarasikan oleh deployment, server ComfyUI di host atau di jaringan privat tidak memerlukan `ALLOW_LOCAL_NETWORKS`.
+Letakkan JSON workflow yang diekspor dalam format API di direktori `public/` Kelas Kecerdasan Artifisial. Gunakan nama berkas yang cocok dengan `comfyui-*.json` atau mengandung `workflow`; Kelas Kecerdasan Artifisial menemukan berkas-berkas ini secara otomatis dan menawarkannya sebagai workflow. Dengan Docker, tambahkan workflow sebelum mem-build image atau mount satu berkas workflow ke `/app/public/` di dalam container. Karena penyedianya dideklarasikan oleh deployment, server ComfyUI di host atau di jaringan privat tidak memerlukan `ALLOW_LOCAL_NETWORKS`.
 
 ### Penyedia pembuatan video
 
@@ -765,7 +765,7 @@ Penyedia pembuatan video memakai `VIDEO_<PROVIDER>_API_KEY` dan opsional `VIDEO_
 
 ### Penguraian dokumen dan media
 
-Format materi kursus yang tepat bergantung pada parser yang dipilih. OpenMAIC saat ini mendukung teks, PDF, dokumen Office, gambar, dan sebagian format audio/video; format serta kemampuan yang didukung berbeda-beda per penyedia.
+Format materi kursus yang tepat bergantung pada parser yang dipilih. Kelas Kecerdasan Artifisial saat ini mendukung teks, PDF, dokumen Office, gambar, dan sebagian format audio/video; format serta kemampuan yang didukung berbeda-beda per penyedia.
 
 ```bash
 # MinerU self-hosted
@@ -784,7 +784,7 @@ ALIDOCMIND_ACCESS_KEY_SECRET=
 ALIDOCMIND_BASE_URL=       # optional override
 ```
 
-`unpdf` terpasang bawaan di OpenMAIC dan mendukung penguraian PDF dasar. Untuk dokumen Office, gambar, dan materi yang memerlukan OCR serta analisis tabel, rumus, atau tata letak, pilih penyedia MinerU atau AliDocMind yang kompatibel.
+`unpdf` terpasang bawaan di Kelas Kecerdasan Artifisial dan mendukung penguraian PDF dasar. Untuk dokumen Office, gambar, dan materi yang memerlukan OCR serta analisis tabel, rumus, atau tata letak, pilih penyedia MinerU atau AliDocMind yang kompatibel.
 
 Penguraian dokumen AliDocMind mendukung PDF, DOCX, PPTX, XLSX, dan PNG, JPG/JPEG, BMP, serta GIF. Materi audio dan video saat ini hanya didukung melalui AliDocMind: MP4, MOV, AVI, MKV, dan WMV untuk video; MP3, WAV, dan AAC untuk audio. M4A tidak didukung.
 

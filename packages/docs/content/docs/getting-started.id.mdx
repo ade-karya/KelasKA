@@ -1,9 +1,9 @@
 ---
 title: Memulai
-description: Jalankan OpenMAIC secara lokal dalam lima menit.
+description: Jalankan Kelas Kecerdasan Artifisial secara lokal dalam lima menit.
 ---
 
-OpenMAIC adalah aplikasi Next.js yang berjalan di mesin Anda sendiri. Anda perlu mengonfigurasi setidaknya satu penyedia LLM: penyedia cloud biasanya memerlukan API key, sedangkan Ollama atau Lemonade lokal tidak.
+Kelas Kecerdasan Artifisial adalah aplikasi Next.js yang berjalan di mesin Anda sendiri. Anda perlu mengonfigurasi setidaknya satu penyedia LLM: penyedia cloud biasanya memerlukan API key, sedangkan Ollama atau Lemonade lokal tidak.
 
 ## Prasyarat
 
@@ -16,8 +16,8 @@ OpenMAIC adalah aplikasi Next.js yang berjalan di mesin Anda sendiri. Anda perlu
 Clone repositori dan pasang dependensi:
 
 ```bash
-git clone https://github.com/THU-MAIC/OpenMAIC.git
-cd OpenMAIC
+git clone https://github.com/ade-karya/KelasKA.git
+cd KelasKA
 bun install
 ```
 
@@ -76,7 +76,7 @@ Jalankan server pengembangan:
 bun run dev
 ```
 
-Buka [http://localhost:3000](http://localhost:3000). Anda akan melihat generator kelas OpenMAIC. Masukkan topik atau unggah materi pembelajaran, lalu klik Buat; para guru AI akan membangun kelas lengkap dengan banyak adegan. Format materi yang didukung bergantung pada parser yang dipilih dan biasanya mencakup PDF, dokumen Office, Markdown/teks biasa, gambar, serta beberapa format audio/video. Rujuk format yang didukung parser untuk rentang pastinya.
+Buka [http://localhost:3000](http://localhost:3000). Anda akan melihat generator kelas Kelas Kecerdasan Artifisial. Masukkan topik atau unggah materi pembelajaran, lalu klik Buat; para guru AI akan membangun kelas lengkap dengan banyak adegan. Format materi yang didukung bergantung pada parser yang dipilih dan biasanya mencakup PDF, dokumen Office, Markdown/teks biasa, gambar, serta beberapa format audio/video. Rujuk format yang didukung parser untuk rentang pastinya.
 
 ## Mengekspor kelas
 
@@ -85,7 +85,7 @@ Setelah kelas dan medianya selesai dibuat, tombol unduh di pojok kanan atas kela
 - **Ekspor PPTX**: slide yang dapat diedit. **Dengan slide pengganti (disarankan)** mempertahankan adegan interaktif, kuis, dan pembelajaran berbasis proyek di posisinya dalam pelajaran, masing-masing sebagai slide dengan tombol **Buka online** dan kode QR yang membuka adegan tersebut di kelas online. **Hanya slide** meninggalkan adegan tersebut.
 - **Ekspor paket sumber belajar**: pilihan PPTX yang sama, ditambah setiap adegan interaktif sebagai halaman web mandiri.
 - **Ekspor sebagai HTML**: satu file mandiri yang memutar kelas tanpa koneksi jaringan, dengan sulih suara dan takarir, sorotan dan laser, video slide, kartu diskusi, serta adegan interaktif. Adegan kuis, interaktif, dan proyek menunggu sampai pelajar melanjutkan. Adegan pembelajaran berbasis proyek hanya menyimpan ringkasan singkatnya (tujuan dan tonggak); melanjutkan proyek memerlukan kelas online dan koneksi jaringan. Jika ekspor melaporkan aset yang tidak dapat digabungkan, bagian adegan interaktif tersebut tidak tampil di HTML offline; bagian itu tetap tersedia di kelas online. **Dengan sulih suara dan video** memutar seperti kelas aslinya; **Tanpa sulih suara** membuat file lebih kecil yang mengatur takarir berdasarkan waktu baca dan mengabaikan video.
-- **Ekspor ZIP kelas**: struktur kursus dan media, untuk mencadangkan kelas atau mengimpornya di deployment OpenMAIC lain.
+- **Ekspor ZIP kelas**: struktur kursus dan media, untuk mencadangkan kelas atau mengimpornya di deployment Kelas Kecerdasan Artifisial lain.
 
 Kelas yang akan melebihi 400 MB sebagai satu file HTML disimpan sebagai ZIP: ekstrak seluruh ZIP dan buka `classroom.html`, dengan folder `audio/`, `media/`, dan `images/` tetap di sampingnya.
 

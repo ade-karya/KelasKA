@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # gpu-services.sh — siapkan & jalankan layanan model lokal yang memakai GPU
-# NVIDIA untuk OpenMAIC/KelasKA: Ollama (LLM), ComfyUI (gambar), FunASR (ASR)
+# NVIDIA untuk Kelas Kecerdasan Artifisial: Ollama (LLM), ComfyUI (gambar), FunASR (ASR)
 # dan VoxCPM2 (TTS).
 #
 # Dipanggil otomatis oleh `install.sh --colab` (atau `install.sh --with-gpu`)

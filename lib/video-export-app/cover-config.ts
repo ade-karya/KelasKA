@@ -14,7 +14,7 @@ import zhCN from '@/lib/i18n/locales/zh-CN.json';
 import zhTW from '@/lib/i18n/locales/zh-TW.json';
 import type { VideoExportLabels, VideoExportCta } from '@/lib/video-export';
 
-const DEFAULT_DESTINATION = 'open.maic.chat';
+const DEFAULT_DESTINATION = 'kelaska.riau.ai';
 const MAX_RAW_DESTINATION_LENGTH = 96;
 const ASCII_CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/;
 const BIDI_CONTROL_CHARACTER = /[\u061c\u200e-\u200f\u202a-\u202e\u2066-\u2069]/;

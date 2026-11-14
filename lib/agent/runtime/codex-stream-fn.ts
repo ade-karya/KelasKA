@@ -218,15 +218,15 @@ export function buildCodexTurnPrompt(context: PiContext): string {
     parameters: (tool as unknown as { parameters?: unknown }).parameters,
   }));
   return [
-    'You are the model half of the OpenMAIC agent loop ("Pro Workbench").',
-    'OpenMAIC owns the conversation, the tools and the transcript. This turn only',
+    'You are the model half of the Kelas Kecerdasan Artifisial agent loop ("Pro Workbench").',
+    'Kelas Kecerdasan Artifisial owns the conversation, the tools and the transcript. This turn only',
     'decides what to say and which tools to call; the harness executes them and',
     'returns the results in the next turn.',
     '',
     'Rules:',
     '1. Do not run shell commands, do not read or write files, do not use web',
     '   search. Those tools are disabled and their output is not part of this',
-    '   conversation. If you need information, call an OpenMAIC tool instead.',
+    '   conversation. If you need information, call a Kelas Kecerdasan Artifisial tool instead.',
     '2. Only call tools from the catalogue below, by their exact names, with',
     '   arguments that satisfy their JSON schema.',
     '3. Never claim a tool ran. You only request it; the harness runs it.',

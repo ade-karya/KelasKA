@@ -3,7 +3,7 @@ title: VoxCPM2
 description: TTS yang di-host sendiri dan pengkloningan suara. Pemilihan backend, konfigurasi, dan pengelolaan suara.
 ---
 
-[VoxCPM2](https://github.com/OpenBMB/VoxCPM) adalah model TTS sumber terbuka dari OpenBMB dengan dukungan pengkloningan suara. OpenMAIC menyertakan adaptor, jadi Anda hanya perlu menjalankan VoxCPM di mesin Anda sendiri lalu menghubungkannya.
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) adalah model TTS sumber terbuka dari OpenBMB dengan dukungan pengkloningan suara. Kelas Kecerdasan Artifisial menyertakan adaptor, jadi Anda hanya perlu menjalankan VoxCPM di mesin Anda sendiri lalu menghubungkannya.
 
 ## Kapan menggunakan VoxCPM2
 
@@ -15,7 +15,7 @@ Jika Anda hanya membutuhkan satu suara default, penyedia bawaan **Doubao** atau 
 
 ## 1. Jalankan backend VoxCPM
 
-OpenMAIC mendukung tiga mode deploy. Ketiganya memakai adaptor OpenMAIC yang sama; pilih yang Anda jalankan melalui `options.backend` pada penyedia di `openmaic.yml` (langkah 2).
+Kelas Kecerdasan Artifisial mendukung tiga mode deploy. Ketiganya memakai adaptor Kelas Kecerdasan Artifisial yang sama; pilih yang Anda jalankan melalui `options.backend` pada penyedia di `openmaic.yml` (langkah 2).
 
 | Backend        | Endpoint           | Paling cocok untuk                            |
 | -------------- | ------------------ | --------------------------------------------- |
@@ -32,7 +32,7 @@ python -m vllm_omni.server --model openbmb/VoxCPM2 --port 8000
 # endpoint at http://localhost:8000/v1
 ```
 
-## 2. Arahkan OpenMAIC ke sana
+## 2. Arahkan Kelas Kecerdasan Artifisial ke sana
 
 VoxCPM2 berjalan di jaringan Anda sendiri, sehingga endpoint-nya dikonfigurasi oleh deployment; ruang kerja tidak dapat menambahkannya di **Pengaturan → Layanan Model**. Deklarasikan di `openmaic.yml`, pilih backend dengan `options.backend`, lalu tetapkan ke slot `tts`. Tidak diperlukan API key:
 
@@ -64,7 +64,7 @@ Tetapkan VoxCPM2 ke slot `tts` (langkah 2), lalu buka **Pengaturan → Layanan M
 
 ### Auto Voice (default)
 
-Selama sintesis, OpenMAIC menghasilkan prompt suara secara dinamis dari persona setiap Agen. Tidak diperlukan konfigurasi; inilah yang Anda dapatkan tanpa melakukan apa pun.
+Selama sintesis, Kelas Kecerdasan Artifisial menghasilkan prompt suara secara dinamis dari persona setiap Agen. Tidak diperlukan konfigurasi; inilah yang Anda dapatkan tanpa melakukan apa pun.
 
 ### Suara prompt
 

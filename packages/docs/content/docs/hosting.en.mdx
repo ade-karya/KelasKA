@@ -79,9 +79,9 @@ PostgreSQL, the app always stores courses there, and the app is published on
 
 ## What the server stores
 
-OpenMAIC always stores courses on the server. The
+Kelas Kecerdasan Artifisial always stores courses on the server. The
 [Docker deployment](./deployment.mdx#docker) runs exactly two containers, the
-OpenMAIC app and PostgreSQL. The persistence HTTP server is embedded in the app
+Kelas Kecerdasan Artifisial app and PostgreSQL. The persistence HTTP server is embedded in the app
 at `/api/persistence`; there is no standalone persistence service.
 
 **`DATABASE_URL` is required.** Without it the server does not start: it prints
@@ -560,7 +560,7 @@ request as an anonymous owner.
 
 ### Recipe: accounts through an identity gateway (signed JWT)
 
-OpenMAIC has no built-in gateway authenticator. A deployment behind an identity
+Kelas Kecerdasan Artifisial has no built-in gateway authenticator. A deployment behind an identity
 gateway writes a small method that verifies the **signed** assertion the
 gateway forwards, against the identity provider's published keys. Unlike a
 plain user header, a signed token cannot be forged by a client that reaches the
@@ -574,7 +574,7 @@ app around the gateway. Common sources:
 
 The sketch below uses the [`jose`](https://github.com/panva/jose) library, which
 the host adds as its own dependency. **It is a recipe the host owns and must
-test**, not code OpenMAIC ships or maintains. Put the file in
+test**, not code Kelas Kecerdasan Artifisial ships or maintains. Put the file in
 `lib/server/identity/host/`: the boundary test
 (`tests/server/identity/cookie-guard.test.ts`) fails on reads of gateway
 identity headers or of an incoming `Authorization` header anywhere else, core
@@ -720,7 +720,7 @@ signs in. The cookie is unsigned and not bound to the account, and it is the
 claim candidate core reads. It is host-only, but a sibling subdomain under the
 same registrable domain can set a Domain-scoped `anonymous_id` that the browser
 may send first, so a hostile subdomain could plant which anonymous identity a
-signed-in visitor claims. Serve OpenMAIC on a registrable domain of its own
+signed-in visitor claims. Serve Kelas Kecerdasan Artifisial on a registrable domain of its own
 (or where no untrusted party controls a sibling subdomain). Hardening the
 cookie itself (a `__Host-` name on HTTPS deployments, refusing a request that
 presents more than one `anonymous_id`) is a deferred item.

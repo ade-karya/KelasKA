@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# install.sh — Installer server fresh untuk OpenMAIC (Ubuntu / Debian).
+# install.sh — Installer server fresh untuk Kelas Kecerdasan Artifisial (Ubuntu / Debian).
 #
 # Menyiapkan semuanya dari nol sehingga perintah berikut bisa jalan:
 #   npm run dev     (mode pengembangan)
@@ -192,7 +192,7 @@ trap on_exit EXIT
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 [[ -f package.json && -f pnpm-lock.yaml ]] \
-  || fail "install.sh harus dijalankan dari root repo OpenMAIC (tidak ada package.json / pnpm-lock.yaml di $ROOT_DIR)."
+  || fail "install.sh harus dijalankan dari root repo Kelas Kecerdasan Artifisial (tidak ada package.json / pnpm-lock.yaml di $ROOT_DIR)."
 
 # ------------------------------------------------------------------ opsi CLI
 ASSUME_YES=0
@@ -211,7 +211,7 @@ WITH_UPSTREAM=1
 # classic home). Dibuat interaktif di template env via WORKBENCH_FLAG_LINE.
 WITH_WORKBENCH=0
 WITH_WORKBENCH_EXPLICIT=0
-# Remote git upstream (repo asli OpenMAIC). Bisa dioverride via
+# Remote git upstream (repo asli OpenMAIC yang menjadi dasar proyek ini). Bisa dioverride via
 # --upstream-url=URL atau env UPSTREAM_URL.
 UPSTREAM_URL="${UPSTREAM_URL:-https://github.com/THU-MAIC/OpenMAIC.git}"
 PG_PASSWORD="${PG_PASSWORD:-}"
@@ -267,7 +267,7 @@ for arg in "$@"; do
     --no-upstream)     WITH_UPSTREAM=0 ;;
     --upstream-url=*)  UPSTREAM_URL="${arg#*=}"; [[ -n "$UPSTREAM_URL" ]] || fail "--upstream-url butuh nilai (contoh: --upstream-url=https://github.com/THU-MAIC/OpenMAIC.git)." ;;
     --pg-major=*)      PG_MAJOR="${arg#*=}" ;;
-    --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. OpenMAIC kini memakai OpenCode CLI v2 (tier gratis: opencode:deepseek-v4.1-flash-free). Hapus flag tersebut dan ulangi." ;;
+    --with-ollama)     fail "Opsi --with-ollama sudah dihapus: Ollama tidak lagi diinstal. Kelas Kecerdasan Artifisial kini memakai OpenCode CLI v2 (tier gratis: opencode:deepseek-v4.1-flash-free). Hapus flag tersebut dan ulangi." ;;
     --with-workbench)  WITH_WORKBENCH=1; WITH_WORKBENCH_EXPLICIT=1 ;;
     --no-workbench)    WITH_WORKBENCH=0; WITH_WORKBENCH_EXPLICIT=1 ;;
     --pg-password=*)   PG_PASSWORD="${arg#*=}"; [[ -n "$PG_PASSWORD" ]] || fail "--pg-password butuh nilai (contoh: --pg-password=rahasia)." ;;
@@ -494,7 +494,7 @@ if [[ "$ASSUME_YES" -ne 1 ]]; then
   APT_RINGKAS="build tools + cairo/pango (build canvas), git, curl, ca-certificates"
   if [[ "$WITH_POSTGRES" -eq 1 || "$WITH_PGADMIN" -eq 1 ]]; then APT_RINGKAS+=", gnupg"; fi
   if [[ "$WITH_FFMPEG" -eq 1 ]]; then APT_RINGKAS+=", ffmpeg"; fi
-  echo "Installer OpenMAIC akan:"
+  echo "Installer Kelas Kecerdasan Artifisial akan:"
   echo "  - apt install: ${APT_RINGKAS}"
   if [[ "$WITH_POSTGRES" -eq 1 ]]; then
     echo "  - setup database Postgres 'openmaic' di PG ${PG_MAJOR} (repo PGDG)"
@@ -998,7 +998,7 @@ $(if [[ -n "$keyvar" ]]; then printf '    apiKey: ${%s}\n' "$keyvar"; fi)"
   fi
   cat <<EOF
 # =============================================================================
-# OpenMAIC model configuration — dibuat oleh install.sh (tier=${tier}).
+# Kelas Kecerdasan Artifisial model configuration — dibuat oleh install.sh (tier=${tier}).
 # Slot \`llm\` adalah default chat (chat classic + course/classroom yang
 # mengikutinya); slot \`agent\` mengemudikan Pro Workbench/agent runtime
 # (butuh tool calling).
@@ -1236,7 +1236,7 @@ tulis_template_env() {
   # "bad substitution", .env.local 0 byte, installer exit 1 di langkah ini.
   cat <<EOF
 # =============================================================================
-# OpenMAIC dev/prod lokal — dibuat oleh install.sh pada $(date -u +%Y-%m-%d)
+# Kelas Kecerdasan Artifisial dev/prod lokal — dibuat oleh install.sh pada $(date -u +%Y-%m-%d)
 # Pro Workbench: 3 tier model otomatis, urutan 1->2->3 (tier=${tier_name}).
 # Dipilih dari API key yang terisi; isi key lalu jalankan ulang install.sh
 # untuk naik tier, kosongkan key untuk turun tier (nilai kustom Anda tak
@@ -2546,7 +2546,7 @@ with app.test_request_context():
             user_id=user.id, servergroup_id=group.id, name='openmaic',
             host=pg_host, port=pg_port, maintenance_db=pg_db,
             username=pg_user, password=enc, save_password=1,
-            comment='OpenMAIC PostgreSQL (install.sh)',
+            comment='Kelas Kecerdasan Artifisial PostgreSQL (install.sh)',
             use_ssh_tunnel=0, tunnel_authentication=0,
             tunnel_prompt_password=1, shared=False,
             kerberos_conn=False, cloud_status=0, is_adhoc=0,

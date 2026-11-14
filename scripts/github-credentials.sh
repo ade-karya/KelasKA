@@ -250,7 +250,7 @@ if [[ ! -f "$ENV_FILE" ]]; then
     say ".env.local dibuat dari .env.example."
   else
     {
-      echo "# OpenMAIC local environment — dibuat oleh scripts/github-credentials.sh"
+      echo "# Kelas Kecerdasan Artifisial local environment — dibuat oleh scripts/github-credentials.sh"
       echo "ACCESS_CODE="
       echo "OPENMAIC_SECRET_KEY="
     } > "$ENV_FILE"

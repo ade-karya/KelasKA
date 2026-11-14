@@ -3,10 +3,10 @@
  * endpoint HTTP).
  *
  * Transport: satu turn `agy` (flags CLI, diurai sebagai stream). Turn diproses
- * `agy` dengan alat bawaannya dimatikan; function tools tetap milik OpenMAIC.
+ * `agy` dengan alat bawaannya dimatikan; function tools tetap milik Kelas Kecerdasan Artifisial.
  * Lihat lib/ai/antigravity-cli.ts dan lib/agent/runtime/antigravity-stream-fn.ts.
  *
- * Loop tetap milik OpenMAIC (pi): function tools sampai ke model sebagai
+ * Loop tetap milik Kelas Kecerdasan Artifisial (pi): function tools sampai ke model sebagai
  * katalog + kontrak JSON, lalu dieksekusi harness dengan allowlist, timeout,
  * quota, dan transcript yang sama seperti transport HTTP/CLI/Codex.
  *

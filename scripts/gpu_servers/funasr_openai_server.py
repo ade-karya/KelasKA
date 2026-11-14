@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """OpenAI-compatible FunASR transcription server.
 
-Serves the small subset of the OpenAI audio API that OpenMAIC's FunASR
+Serves the small subset of the OpenAI audio API that Kelas Kecerdasan Artifisial's FunASR
 adapter uses, so `slots.asr` can point at a self-hosted GPU box:
 
     POST /v1/audio/transcriptions   multipart: file (WAV), model, language?

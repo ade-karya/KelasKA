@@ -44,9 +44,9 @@ scenes keep their existing renderer.
 
 ## Classroom experience
 
-A PBL project remains a scene inside an OpenMAIC course. Neighboring slides, quizzes
+A PBL project remains a scene inside a Kelas Kecerdasan Artifisial course. Neighboring slides, quizzes
 and other scenes provide course teaching; this change does not embed another
-OpenMAIC course inside the project. The Hero and expansion layer are shared with
+Kelas Kecerdasan Artifisial course inside the project. The Hero and expansion layer are shared with
 v2, preserving its visual styling, fit scaling and animation. Expansion retains the
 same workspace instance; Back to project overview retains the durable study and
 local drafts. Hero metadata is an owner-scoped, read-only lookup of the installed
@@ -445,7 +445,7 @@ Live-provider/model acceptance, the private full Java curriculum and its operati
 Preview remain separate delivery work. General course/project generation, SSH and
 local Docker providers are not added here. The legacy `course` stage schema is not
 an installed sample feature. The previous standalone platform embedded its introductory
-course; OpenMAIC instead hosts PBL alongside other course scenes. No nested-course
+course; Kelas Kecerdasan Artifisial instead hosts PBL alongside other course scenes. No nested-course
 adapter or browser-reported course-completion shortcut is added. Course content
 assembly remains separate from the seven-step project learning flow.
 

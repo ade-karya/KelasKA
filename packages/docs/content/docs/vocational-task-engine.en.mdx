@@ -5,7 +5,7 @@ description: Enable experimental vocational lessons with procedural practice, de
 
 The vocational task engine generates lessons around a workplace task: what the learner needs to do, which tools are involved, when to continue or stop, and how to check completion. It combines briefing slides, interactive procedural practice, explanations, and task challenges.
 
-This feature is experimental and disabled by default. Start with [Getting started](./getting-started.mdx) to configure OpenMAIC and an LLM provider, then enable the flags below on your deployment.
+This feature is experimental and disabled by default. Start with [Getting started](./getting-started.mdx) to configure Kelas Kecerdasan Artifisial and an LLM provider, then enable the flags below on your deployment.
 
 ## Suitable tasks
 
@@ -15,7 +15,7 @@ The outline prompt asks for a task briefing first, followed by practice segments
 
 ## Enable the feature
 
-Add these entries to the OpenMAIC application's `.env.local`:
+Add these entries to the Kelas Kecerdasan Artifisial application's `.env.local`:
 
 ```bash
 OPENMAIC_ENABLE_VOCATIONAL=true
@@ -27,13 +27,13 @@ NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI=true
 | `OPENMAIC_ENABLE_VOCATIONAL`          | Allows the server to use vocational task planning and procedural content generation. | At runtime; restart the application after changing its process environment. |
 | `NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI` | Shows the experimental vocational switch on the home page.                           | At build time; rebuild the production application after changing it.        |
 
-Both flags accept `true` or `1`; unset values leave them disabled. Restart `bun run dev` after editing local development configuration. For production, set the public flag before `bun run build`, and provide the server flag when starting the application. These flags belong to the OpenMAIC application, not the documentation server. See [Configuration](./configuration.mdx#feature-flags).
+Both flags accept `true` or `1`; unset values leave them disabled. Restart `bun run dev` after editing local development configuration. For production, set the public flag before `bun run build`, and provide the server flag when starting the application. These flags belong to the Kelas Kecerdasan Artifisial application, not the documentation server. See [Configuration](./configuration.mdx#feature-flags).
 
 Showing the switch does not enable the server path by itself. Vocational generation requires both the server flag and `requirements.taskEngineMode` from the generation request. When the server flag is off, the request follows the ordinary standard or interactive generation path.
 
 ## Generate a vocational lesson
 
-1. Open the OpenMAIC home page and configure the model you want to use.
+1. Open the Kelas Kecerdasan Artifisial home page and configure the model you want to use.
 2. Turn on the experimental switch labelled **职教任务** (vocational task).
 3. Describe the work task, learner level, tools, decision points, and completion criteria. Attach relevant course materials when available.
 4. Generate the outline, review it, then continue into the classroom.

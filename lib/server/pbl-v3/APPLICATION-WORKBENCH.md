@@ -1,6 +1,6 @@
 # Application workbench integration
 
-The optional application panel sits between the IDE and learning assistant. Narrow workbenches stack the panels. Opening the panel immediately shows startup progress. Collapsing hides and makes it inert without stopping its managed process or reloading its iframe. Fullscreen remains owned by the existing OpenMAIC classroom host; no new portal or runtime is introduced.
+The optional application panel sits between the IDE and learning assistant. Narrow workbenches stack the panels. Opening the panel immediately shows startup progress. Collapsing hides and makes it inert without stopping its managed process or reloading its iframe. Fullscreen remains owned by the existing Kelas Kecerdasan Artifisial classroom host; no new portal or runtime is introduced.
 
 ## Existing execution boundaries
 

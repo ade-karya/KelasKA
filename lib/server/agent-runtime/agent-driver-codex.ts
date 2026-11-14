@@ -6,7 +6,7 @@
  * lib/agent/runtime/codex-stream-fn.ts. Bukan `codex exec` yang dirakit tangan:
  * SDK yang men-spawn binary, memetakan event, dan menegakkan schema output.
  *
- * Loop tetap milik OpenMAIC (pi): function tools sampai ke model sebagai
+ * Loop tetap milik Kelas Kecerdasan Artifisial (pi): function tools sampai ke model sebagai
  * katalog + kontrak JSON, lalu dieksekusi harness dengan allowlist, timeout,
  * quota, dan transcript yang sama seperti transport HTTP/CLI.
  *

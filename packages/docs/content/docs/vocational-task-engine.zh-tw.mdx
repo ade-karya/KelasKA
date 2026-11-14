@@ -5,7 +5,7 @@ description: 啟用實驗性的職教課件生成，透過實作步驟、判斷�
 
 職教任務引擎圍繞一項工作任務生成課件：學習者需要完成什麼、使用哪些工具、何時繼續或停止，以及如何確認任務完成。課件結合任務說明投影片、互動式步驟訓練、原理解釋與任務挑戰。
 
-此功能目前屬於實驗性功能，預設關閉。先參考[快速上手](./getting-started.mdx)設定 OpenMAIC 與 LLM provider，再於自己的部署中啟用下述開關。
+此功能目前屬於實驗性功能，預設關閉。先參考[快速上手](./getting-started.mdx)設定 Kelas Kecerdasan Artifisial 與 LLM provider，再於自己的部署中啟用下述開關。
 
 ## 適用任務
 
@@ -15,7 +15,7 @@ description: 啟用實驗性的職教課件生成，透過實作步驟、判斷�
 
 ## 啟用功能
 
-在 OpenMAIC 應用的 `.env.local` 中加入：
+在 Kelas Kecerdasan Artifisial 應用的 `.env.local` 中加入：
 
 ```bash
 OPENMAIC_ENABLE_VOCATIONAL=true
@@ -27,13 +27,13 @@ NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI=true
 | `OPENMAIC_ENABLE_VOCATIONAL`          | 允許伺服器使用職教任務規劃與實作元件內容生成。 | 執行時讀取；修改程序環境變數後重新啟動應用。 |
 | `NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI` | 在首頁顯示實驗性的職教開關。                   | 建置時讀取；正式環境修改後需要重新建置應用。 |
 
-兩個開關均接受 `true` 或 `1`，未設定時關閉。本機修改設定後重新啟動 `bun run dev`。正式環境應在 `bun run build` 前設定前端開關，並在啟動應用時提供伺服器開關。這些設定屬於 OpenMAIC 應用，而非文件站服務。完整設定見[設定說明](./configuration.mdx)。
+兩個開關均接受 `true` 或 `1`，未設定時關閉。本機修改設定後重新啟動 `bun run dev`。正式環境應在 `bun run build` 前設定前端開關，並在啟動應用時提供伺服器開關。這些設定屬於 Kelas Kecerdasan Artifisial 應用，而非文件站服務。完整設定見[設定說明](./configuration.mdx)。
 
 顯示開關本身不會啟用伺服器功能。職教生成需要伺服器開關開啟，且生成請求包含 `requirements.taskEngineMode`。伺服器開關關閉時，請求沿用一般或互動模式的生成流程。
 
 ## 生成職教課件
 
-1. 開啟 OpenMAIC 首頁並設定要使用的模型。
+1. 開啟 Kelas Kecerdasan Artifisial 首頁並設定要使用的模型。
 2. 開啟標示為 **职教任务** 的實驗性開關。
 3. 描述工作任務、學習者基礎、工具、判斷點與完成標準；有相關課程材料時可一併上傳。
 4. 生成並檢查大綱，接著繼續生成課堂。

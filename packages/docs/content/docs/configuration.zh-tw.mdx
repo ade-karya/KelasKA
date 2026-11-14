@@ -3,7 +3,7 @@ title: 設定說明
 description: 模型與供應商（openmaic.yml 和模型設定）、存取控制、功能開關及其他伺服器端選項。
 ---
 
-OpenMAIC 有三個設定來源，各自只負責一件事：
+Kelas Kecerdasan Artifisial 有三個設定來源，各自只負責一件事：
 
 | 來源 | 由誰撰寫 | 內容 | 何時生效 |
 | --- | --- | --- | --- |
@@ -668,7 +668,7 @@ slots:
   image: comfyui
 ```
 
-把以 API 格式匯出的工作流程 JSON 放到 OpenMAIC 的 `public/` 目錄中，檔名需符合 `comfyui-*.json` 或包含 `workflow`；OpenMAIC 會自動偵測這些檔案並作為工作流程提供。使用 Docker 時，請在建置映像檔前加入工作流程，或把單一工作流程檔案掛載到容器內的 `/app/public/`。由於該供應商由部署宣告，執行在主機或內網中的 ComfyUI 不需要 `ALLOW_LOCAL_NETWORKS`。
+把以 API 格式匯出的工作流程 JSON 放到 Kelas Kecerdasan Artifisial 的 `public/` 目錄中，檔名需符合 `comfyui-*.json` 或包含 `workflow`；Kelas Kecerdasan Artifisial 會自動偵測這些檔案並作為工作流程提供。使用 Docker 時，請在建置映像檔前加入工作流程，或把單一工作流程檔案掛載到容器內的 `/app/public/`。由於該供應商由部署宣告，執行在主機或內網中的 ComfyUI 不需要 `ALLOW_LOCAL_NETWORKS`。
 
 ### 影片生成供應商
 
@@ -697,7 +697,7 @@ ALIDOCMIND_ACCESS_KEY_SECRET=
 ALIDOCMIND_BASE_URL=       # 選填覆寫值
 ```
 
-`unpdf` 內建於 OpenMAIC，可用於基礎 PDF 解析。Office 文件、圖片和需要 OCR、表格、公式或版面分析的材料，應選擇相容的 MinerU 或 AliDocMind provider。
+`unpdf` 內建於 Kelas Kecerdasan Artifisial，可用於基礎 PDF 解析。Office 文件、圖片和需要 OCR、表格、公式或版面分析的材料，應選擇相容的 MinerU 或 AliDocMind provider。
 
 AliDocMind 的文件解析支援 PDF、DOCX、PPTX、XLSX，以及 PNG、JPG/JPEG、BMP、GIF。目前音訊與影片材料僅支援透過 AliDocMind 解析：影片格式為 MP4、MOV、AVI、MKV、WMV，音訊格式為 MP3、WAV、AAC；不支援 M4A。
 

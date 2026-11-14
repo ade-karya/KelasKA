@@ -6,7 +6,7 @@
  * API key, but the per-request header takes precedence. The value only needs
  * to be URL-form and unique + stable for the app; it does not need to be
  * reachable. Sending it lets TokenDance recognize that a request originates
- * from an OpenMAIC deployment, which is what their partner program and
+ * from a Kelas Kecerdasan Artifisial deployment, which is what their partner program and
  * support flow key off (see the matching `aff=openmaic` signup links).
  *
  * Attribution is app-level and aggregate; no user-identifying data is added.
@@ -19,7 +19,7 @@
  * unique to this app, and self-describing for anyone reading TokenDance's
  * attribution dashboard.
  */
-export const APP_ATTRIBUTION_URL = 'https://open.maic.chat';
+export const APP_ATTRIBUTION_URL = 'https://kelaska.riau.ai';
 
 /** Header name exactly as documented by TokenDance. */
 export const APP_URL_HEADER = 'X-App-URL';

@@ -130,7 +130,7 @@ services:
       - RENDER_MAX_CONCURRENT_EXTRACTIONS=1
       # Long compositions still need CDP headroom even with one explicit worker.
       - PRODUCER_PUPPETEER_PROTOCOL_TIMEOUT_MS=900000
-      # OpenMAIC's long slide exports currently exhaust producer's 15s static
+      # Kelas Kecerdasan Artifisial's long slide exports currently exhaust producer's 15s static
       # verification budget and disable dedup anyway. Skip that guaranteed-lost
       # startup cost until the verifier can share/scale its plan across workers.
       - HF_STATIC_DEDUP=false

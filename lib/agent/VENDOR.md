@@ -21,8 +21,8 @@ We do NOT use:
 Both packages are pinned at exact version `0.80.3` (no caret range) in the root `package.json`. This ensures reproducible installs and a stable baseline for any future fork/vendor operation.
 
 Director compaction uses Pi's explicit `Models` API with a collection scoped to
-each runtime. Its provider delegates to OpenMAIC's injected connector; model
-credentials continue to be resolved by OpenMAIC, without a global Pi provider
+each runtime. Its provider delegates to Kelas Kecerdasan Artifisial's injected connector; model
+credentials continue to be resolved by Kelas Kecerdasan Artifisial, without a global Pi provider
 registration or a separate credential store.
 
 ## Fork / vendor rule

@@ -83,21 +83,21 @@ function PBLV2Container({
   // from Completion) stays docked instead of re-expanding.
   const [autoExpand, setAutoExpand] = useState(false);
   // The web-fullscreen frame is portaled OUT of the scene subtree. It must
-  // live inside whatever element is natively fullscreened — OpenMAIC fullscreens
+  // live inside whatever element is natively fullscreened — Kelas Kecerdasan Artifisial fullscreens
   // the stage via stageRef.requestFullscreen(), and the browser only paints the
   // fullscreened element's own subtree, so a frame portaled to <body> would go
   // blank during native fullscreen. Default to <body> (classroom is an
   // immersive, full-viewport route, so a fixed overlay there already covers
   // everything); follow the active fullscreen element while native fullscreen
-  // is on. NOTE: this never reads/writes OpenMAIC code — it only chooses this
+  // is on. NOTE: this never reads/writes Kelas Kecerdasan Artifisial code — it only chooses this
   // component's own portal host.
   const [fsRoot, setFsRoot] = useState<HTMLElement | null>(() =>
     typeof document !== 'undefined'
       ? ((document.fullscreenElement as HTMLElement | null) ?? document.body)
       : null,
   );
-  // True while the browser is in native (OS) fullscreen — OpenMAIC enters it
-  // on the stage via `stageRef.requestFullscreen()`. In that mode OpenMAIC's
+  // True while the browser is in native (OS) fullscreen — Kelas Kecerdasan Artifisial enters it
+  // on the stage via `stageRef.requestFullscreen()`. In that mode Kelas Kecerdasan Artifisial's
   // own exit affordance (its bottom control bar) is hidden for PBL, so the
   // workspace must offer its own exit button (see the layer).
   const [nativeFullscreen, setNativeFullscreen] = useState(false);
@@ -258,7 +258,7 @@ function PBLV2Container({
           // remount — a state-valued host made framer drop the one-time
           // `initial` animation. Only follow the natively-fullscreened element
           // while native fullscreen is actually on (it never coincides with the
-          // launch), so OpenMAIC's native fullscreen still shows the workspace.
+          // launch), so Kelas Kecerdasan Artifisial's native fullscreen still shows the workspace.
           nativeFullscreen ? (fsRoot ?? document.body) : document.body,
         )}
     </div>

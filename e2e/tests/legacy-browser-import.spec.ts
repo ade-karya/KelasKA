@@ -20,7 +20,7 @@ const NARRATION_KEY = 'tts_s0_action_e2elegacy01';
 async function seedLegacyDatabase(page: Page, stageId: string, name: string): Promise<void> {
   // A static file: same origin, and no app code that could start the import
   // before the database is written.
-  await page.goto('/openmaic-mark.png');
+  await page.goto('/favicon.png');
   await page.evaluate(
     async ({ stageId, name, narrationKey }) => {
       const now = Date.now();

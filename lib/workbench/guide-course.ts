@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * The guide course: a short OpenMAIC course about OpenMAIC, put into every
+ * The guide course: a short Kelas KA course about Kelas KA, put into every
  * owner's library the first time their library loads, as an ordinary course
  * of theirs. From then on it is just their course: they can learn it, edit it,
  * ask the agent to change it, or delete it.

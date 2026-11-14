@@ -1956,7 +1956,7 @@
       "download": "تنزيل",
       "detailFailed": "تعذّر تحميل تفاصيل المهارة",
       "contentLabel": "المحتوى",
-      "builtinDetailNote": "هذه المهارة مرفقة مع OpenMAIC. نزّلها لاستيرادها إلى مساحة عمل وكيل أخرى.",
+      "builtinDetailNote": "هذه المهارة مرفقة مع Kelas KA. نزّلها لاستيرادها إلى مساحة عمل وكيل أخرى.",
       "upload": "رفع",
       "uploading": "جارٍ الرفع…",
       "uploadFailed": "تعذّر رفع المهارة. تحقّق من الملف وحاول مرة أخرى.",
@@ -2731,7 +2731,7 @@
       "menu": "الحساب والإعدادات",
       "profileSaved": "تم الحفظ",
       "language": "اللغة",
-      "about": "حول OpenMAIC",
+      "about": "حول Kelas KA",
       "aboutBody": "منصة مفتوحة المصدر تحوّل أي موضوع إلى فصل دراسي تفاعلي مع معلمين وزملاء بالذكاء الاصطناعي. صادرة بموجب ترخيص MIT.",
       "docs": "الوثائق",
       "signOut": "تسجيل الخروج",
@@ -2766,8 +2766,8 @@
       "count": "{{index}} / {{total}}",
       "openGuide": "ابدأ الدرس التجريبي",
       "welcome": {
-        "title": "مرحبًا بك في OpenMAIC",
-        "body": "قل ما تريد تعلّمه، وسيصنع OpenMAIC درسًا تفاعليًا مع معلم ذكاء اصطناعي وزملاء."
+        "title": "مرحبًا بك في Kelas KA",
+        "body": "قل ما تريد تعلّمه، وسيصنع Kelas KA درسًا تفاعليًا مع معلم ذكاء اصطناعي وزملاء."
       },
       "start": {
         "title": "ابدأ من هنا",
@@ -2775,7 +2775,7 @@
       },
       "courses": {
         "title": "الدرس التجريبي",
-        "body": "هذا الدرس ذو الدقائق الخمس صُنع أيضًا بـ OpenMAIC. افتحه لترى أين يجري الدرس."
+        "body": "هذا الدرس ذو الدقائق الخمس صُنع أيضًا بـ Kelas KA. افتحه لترى أين يجري الدرس."
       },
       "library": {
         "title": "قاعدة المعرفة",
@@ -2945,7 +2945,7 @@
     "settings": {
       "title": "Sandbox",
       "advanced": "Advanced: connection, desktop and limits",
-      "description": "Configure the shared execution environment for this OpenMAIC installation. Only the installation owner or a verified administrator can change it.",
+      "description": "Configure the shared execution environment for this Kelas KA installation. Only the installation owner or a verified administrator can change it.",
       "enabled": "Enable sandboxes and project workspace",
       "enabledStatus": "Sandbox configured",
       "disabledStatus": "Sandbox disabled or incomplete",
@@ -2968,7 +2968,7 @@
       "lifetimeMs": "Lifetime (seconds)",
       "maxActivePerOwner": "Per-owner concurrency",
       "maxActive": "Installation concurrency",
-      "limitsHint": "These limits apply to this OpenMAIC installation. Other deployments and direct SDK calls are not included.",
+      "limitsHint": "These limits apply to this Kelas KA installation. Other deployments and direct SDK calls are not included.",
       "save": "Save configuration",
       "saving": "Saving…",
       "refresh": "Refresh configuration",
@@ -3020,13 +3020,13 @@
     "closePreview": "Close preview access",
     "previewAdvice": "If the embedded preview cannot authorize, use Open in new tab. Browser cookie settings can restrict embedded previews.",
     "application": "Project application",
-    "connectAgent": "Connect an OpenMAIC agent session",
+    "connectAgent": "Connect an Kelas KA agent session",
     "agentAdvice": "Attach an existing session you own. Tools become available on its next turn. Access lasts one hour; shell access permits any action inside this environment.",
     "agentSession": "Agent session ID",
     "sessionId": "Session ID",
     "allowWrites": "Allow file changes",
     "allowCommands": "Allow commands",
-    "sessionConnected": "Session connected. Send its next message in OpenMAIC to use the project tools.",
+    "sessionConnected": "Session connected. Send its next message in Kelas KA to use the project tools.",
     "sessionRevoked": "Session sandbox access revoked. Commands already started must be stopped separately.",
     "connectSession": "Connect session",
     "revokeAccess": "Revoke access",
@@ -3564,13 +3564,13 @@
       "theme": "مظهر الصورة",
       "light": "فاتح",
       "dark": "داكن",
-      "preview": "صورة إنجازي في OpenMAIC",
+      "preview": "صورة إنجازي في Kelas KA",
       "save": "حفظ الصورة",
       "saveHint": "على الهاتف، يمكنك أيضًا الضغط مطولًا على الصورة لعرض خيارات الحفظ.",
       "imageFailed": "تعذر تجهيز الصورة. يرجى المحاولة مجددًا.",
       "rendering": "جارٍ تجهيز الصورة…",
       "achievement": "إنجاز مشروعي",
-      "invite": "حوّل أفكارك إلى واقع مع OpenMAIC",
+      "invite": "حوّل أفكارك إلى واقع مع Kelas KA",
       "tagline": "ابدأ بمشروع صغير، وتدرّب على البرمجة مع الذكاء الاصطناعي.",
       "testsPassed": "تم اجتياز اختبارات السلوك",
       "decisionsLabel": "القرارات",

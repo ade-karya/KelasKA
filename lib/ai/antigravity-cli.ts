@@ -10,9 +10,9 @@
  *     "structured_output": { "text", "toolCalls": [...] } }
  *
  * `structured_output` is populated when `--json-schema` is given. We parse it
- * into the same `{text, toolCalls}` contract the OpenMAIC harness expects.
+ * into the same `{text, toolCalls}` contract the Kelas Kecerdasan Artifisial harness expects.
  *
- * Auth is handled by `agy` itself (system keyring / Google Sign-In); OpenMAIC
+ * Auth is handled by `agy` itself (system keyring / Google Sign-In); Kelas Kecerdasan Artifisial
  * only checks availability via `agy --version` and triggers login.
  */
 

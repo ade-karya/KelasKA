@@ -1,6 +1,6 @@
-# Contributing to OpenMAIC
+# Contributing to Kelas Kecerdasan Artifisial
 
-Thank you for your interest in contributing to OpenMAIC! This guide will help you get started and ensure a smooth collaboration.
+Thank you for your interest in contributing to Kelas Kecerdasan Artifisial! This guide will help you get started and ensure a smooth collaboration.
 
 ## How to Contribute
 
@@ -8,7 +8,7 @@ Thank you for your interest in contributing to OpenMAIC! This guide will help yo
 | --- | --- |
 | **Bug fix** | Open a PR directly (link the issue if one exists) |
 | **Extending existing features** (e.g. adding a new model provider, new TTS engine) | Open a PR directly |
-| **New feature or architecture change** | Start a [GitHub Discussion](https://github.com/THU-MAIC/OpenMAIC/discussions) or ask in [Discord](https://discord.gg/p8Pf2r3SaG) **before** opening a PR |
+| **New feature or architecture change** | Start a [GitHub Discussion](https://github.com/ade-karya/KelasKA/discussions) or ask in [Discord](https://discord.gg/p8Pf2r3SaG) **before** opening a PR |
 | **Design / UI change** | Discuss in a GitHub Discussion or Discord first — include mockups or screenshots |
 | **Refactor-only PR** | Not accepted unless a maintainer explicitly requests it |
 | **Documentation** | Open a PR directly |
@@ -33,8 +33,8 @@ To avoid duplicate effort, please **comment on an issue** to claim it before you
 
 ```bash
 # Clone the repository
-git clone https://github.com/THU-MAIC/OpenMAIC.git
-cd OpenMAIC
+git clone https://github.com/ade-karya/KelasKA.git
+cd KelasKA
 
 # Install dependencies
 bun install
@@ -202,7 +202,7 @@ AI-assisted PRs are held to the same quality standard as any other PR. Community
 ## Project Structure
 
 ```
-OpenMAIC/
+KelasKA/
 ├── app/              # Next.js app router pages and API routes
 ├── components/       # React components
 ├── lib/              # Shared utilities and core logic (i18n in lib/i18n/locales/)
@@ -213,7 +213,7 @@ OpenMAIC/
 
 ## Reporting Bugs
 
-Use the [Bug Report](https://github.com/THU-MAIC/OpenMAIC/issues/new?template=bug_report.yml) issue template. Include:
+Use the [Bug Report](https://github.com/ade-karya/KelasKA/issues/new?template=bug_report.yml) issue template. Include:
 
 - Steps to reproduce
 - Expected vs. actual behavior
@@ -222,12 +222,12 @@ Use the [Bug Report](https://github.com/THU-MAIC/OpenMAIC/issues/new?template=bu
 
 ## Requesting Features
 
-Use the [Feature Request](https://github.com/THU-MAIC/OpenMAIC/issues/new?template=feature_request.yml) issue template. For larger features, please open a [Discussion](https://github.com/THU-MAIC/OpenMAIC/discussions) first.
+Use the [Feature Request](https://github.com/ade-karya/KelasKA/issues/new?template=feature_request.yml) issue template. For larger features, please open a [Discussion](https://github.com/ade-karya/KelasKA/discussions) first.
 
 ## Security Vulnerabilities
 
-Please report security vulnerabilities through [GitHub Security Advisories](https://github.com/THU-MAIC/OpenMAIC/security/advisories/new). **Do not** open a public issue for security vulnerabilities.
+Please report security vulnerabilities through [GitHub Security Advisories](https://github.com/ade-karya/KelasKA/security/advisories/new). **Do not** open a public issue for security vulnerabilities.
 
 ## License
 
-By contributing to OpenMAIC, you agree that your contributions will be licensed under the [MIT License](LICENSE).
+By contributing to Kelas Kecerdasan Artifisial, you agree that your contributions will be licensed under the [MIT License](LICENSE).

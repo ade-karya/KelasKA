@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# install.sh — Installer server fresh OpenMAIC dengan runtime Bun (Ubuntu/Debian).
+# install.sh — Installer server fresh Kelas Kecerdasan Artifisial dengan runtime Bun (Ubuntu/Debian).
 #
 # Versi ini menggantikan installer Node/pnpm lama. Salinan installer lama
 # tersedia sebagai install-node.sh bila masih dibutuhkan.
@@ -275,7 +275,7 @@ trap on_exit EXIT
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 [[ -f package.json ]] \
-  || fail "install.sh harus dijalankan dari root repo OpenMAIC (package.json tidak ada di $ROOT_DIR)."
+  || fail "install.sh harus dijalankan dari root repo Kelas Kecerdasan Artifisial (package.json tidak ada di $ROOT_DIR)."
 
 # ------------------------------------------------------------------ opsi CLI
 ASSUME_YES=0
@@ -845,7 +845,7 @@ fi
 
 # ---------------------------------------------------------------- konfirmasi
 if [[ "$ASSUME_YES" -ne 1 ]]; then
-  echo "Installer OpenMAIC (runtime Bun) akan:"
+  echo "Installer Kelas Kecerdasan Artifisial (runtime Bun) akan:"
   if [[ "$WITH_FFMPEG" -eq 1 ]]; then
     echo "  - apt install: build tools + cairo/pango, git, curl, unzip, ffmpeg"
   else
@@ -1173,7 +1173,7 @@ if [[ ! -f .env.local ]]; then
   else
     info "Membuat .env.local baru..."
     {
-      echo "# OpenMAIC local environment — dibuat oleh install.sh"
+      echo "# Kelas Kecerdasan Artifisial local environment — dibuat oleh install.sh"
       echo "ACCESS_CODE="
       echo "OPENMAIC_SECRET_KEY="
     } > .env.local
@@ -1595,7 +1595,7 @@ if [[ "$WITH_COLAB" -eq 1 ]]; then
   done
   unset _flag FITUR_COLAB_ON
   # Default CTA video export dari notebook; tujuan milik user dipertahankan.
-  pastikan_var_env .env.local NEXT_PUBLIC_VIDEO_EXPORT_CTA_DESTINATION "open.maic.chat"
+  pastikan_var_env .env.local NEXT_PUBLIC_VIDEO_EXPORT_CTA_DESTINATION "kelaska.riau.ai"
 
   # Persistence + agent runtime hanya bisa ON bila ada database. --colab
   # memasang PostgreSQL lokal bila DATABASE_URL belum ada, kecuali --no-postgres.
@@ -2171,7 +2171,7 @@ fi
 #   OPENCODE_MODELS / OPENCODE_GO_MODELS  <- `opencode models`
 #   CODEX_MODELS                          <- `codex app-server` (model/list)
 # Kegagalan (offline, belum login, binary absen) tidak menghapus daftar lama.
-# Selain itu pemilih model di OpenMAIC memfilter ulang terhadap hasil live
+# Selain itu pemilih model di Kelas Kecerdasan Artifisial memfilter ulang terhadap hasil live
 # `opencode models` / `model/list` / `agy models` saat menampilkan daftar,
 # sehingga model yang akun tidak bisa pakai tidak pernah muncul, walaupun
 # masih tercantum di .env.local.
@@ -3090,7 +3090,7 @@ if [[ "$WITH_PM2" -eq 1 ]]; then
     PM2_UNIT_TMP="$(mktemp)"
     cat > "$PM2_UNIT_TMP" <<EOF
 [Unit]
-Description=PM2 process manager for ${PM2_USER} (OpenMAIC/Bun)
+Description=PM2 process manager for ${PM2_USER} (Kelas Kecerdasan Artifisial/Bun)
 After=network.target
 
 [Service]
@@ -3162,7 +3162,7 @@ if [[ "$WITH_DEV" -eq 1 ]]; then
     info "Dev server sudah berjalan (PID $(dev_pid)) di http://localhost:${DEV_PORT}."
   elif dev_health; then
     DEV_STARTED=1
-    info "Sudah ada server OpenMAIC di http://localhost:${DEV_PORT} — dev server tidak dijalankan ulang."
+    info "Sudah ada server Kelas Kecerdasan Artifisial di http://localhost:${DEV_PORT} — dev server tidak dijalankan ulang."
   else
     LANGKAH="dev: server"
     mkdir -p data

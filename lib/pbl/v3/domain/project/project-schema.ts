@@ -364,7 +364,7 @@ export const projectSchema = z
       if (!openmaicService?.courseRelease) {
         context.addIssue({
           code: 'custom',
-          message: `course stage ${stage.courseId} requires an OpenMAIC course release`,
+          message: `course stage ${stage.courseId} requires a Kelas Kecerdasan Artifisial course release`,
           path: ['milestones', milestoneIndex, 'stages', stageIndex],
         });
         continue;
@@ -375,7 +375,7 @@ export const projectSchema = z
       ) {
         context.addIssue({
           code: 'custom',
-          message: `course stage ${stage.courseId} is not pinned to the OpenMAIC service release`,
+          message: `course stage ${stage.courseId} is not pinned to the Kelas Kecerdasan Artifisial service release`,
           path: ['milestones', milestoneIndex, 'stages', stageIndex],
         });
       }
