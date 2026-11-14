@@ -20,7 +20,6 @@ import { cn } from '@/lib/utils/cn';
 import { WorkbenchChat } from '@/components/workbench/WorkbenchChat';
 import type { MaterialSeed } from '@/components/workbench/compose-extras';
 import { PaneFoldButton } from './PaneFoldButton';
-import { WorkbenchModelPicker } from './WorkbenchModelPicker';
 
 /** The split's timing: a gentle ease-out, a little slow on purpose. */
 export const PANE_SPLIT_MS = 400;
@@ -104,7 +103,6 @@ export function WorkspaceChatPane({
   const { t } = useI18n();
   const sessionPrompt = useWorkbenchStore((s) => s.sessionPrompt);
   const sessionTitle = useWorkbenchStore((s) => s.sessionTitle);
-  const sessionId = useWorkbenchStore((s) => s.sessionId);
   const status = useWorkbenchStore((s) => s.status);
   /**
    * How the run is doing, or null when there is no run to report.
@@ -261,7 +259,6 @@ export function WorkspaceChatPane({
         {draftConversation || !presentation ? null : (
           <span className="ws-pane-eyebrow shrink-0">{t(presentation.labelKey)}</span>
         )}
-        <WorkbenchModelPicker sessionId={sessionId} />
         {onCollapse ? (
           <PaneFoldButton
             testId="workspace-chat-fold"

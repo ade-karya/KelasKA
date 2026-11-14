@@ -1543,10 +1543,12 @@ async function executeSession(
     // as activated when the workbench override is checked.
     await activatedAntigravityModelsDynamic();
 
-    const driver = await resolveAgentDriverModel(
-      await backgroundWorkspaceId(meta.ownerId),
-      meta.driverModel ?? null,
-    );
+    // The conversation follows the `agent` slot of "Konfigurasi Model Kursus",
+    // always. A stored per-conversation pick (`agent_sessions.driver_model`,
+    // written by the picker this fork no longer renders) is deliberately not
+    // passed: one place — the slot map — decides the model the workspace runs
+    // on, so a change there reaches every conversation, old ones included.
+    const driver = await resolveAgentDriverModel(await backgroundWorkspaceId(meta.ownerId), null);
     const requestDriver = teaching ? (driver.teaching ?? driver) : driver;
     const teachingBudget = teaching
       ? (await import('@/lib/server/pbl-v3/context-budget')).teachingModelBudget(
