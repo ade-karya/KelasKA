@@ -25,6 +25,7 @@ export type BuiltInProviderId =
   | 'xiaomi'
   | 'tokendance'
   | 'coarena'
+  | 'crowllm'
   | 'opencode'
   | 'opencode-go'
   | 'codex'

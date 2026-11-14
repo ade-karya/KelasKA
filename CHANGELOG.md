@@ -16,6 +16,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `@openmaic/generation` 0.3.33 rewrites the `image-instructions.md` outline snippet: generated-image prompts must not ask for readable text, labels, captions, annotations or numbers (SDXL cannot render them — it produced gibberish pseudo-glyphs such as the Indonesian "label" course images), must visibly match the page's topic rather than a generic genre, and describe pure visual composition (icons, arrows, colour coding) whose wording stays on the slide. The fork's `scene-prompt-golden.test.ts.snap`, stale at HEAD relative to `prompts-pbl/*-system.md`, is regenerated in the same change.
 - The Pro Workbench connect dialog, auth panels, copy buttons and picker footer are now localized in all 13 supported interface languages (previously they were hardcoded Bahasa Indonesia).
 
+### Features
+
+- Chat providers: CrowLLM (`crowllm`) joins the built-in OpenAI-compatible gateways. One `CROWLLM_API_KEY` reaches the free group (`:free` model ids) and the paid tiers through `https://crowllm.com/v1`; the preset ships a flagship-per-vendor snapshot and **Model Services → Fetch models** appends the live `GET /v1/models` catalogue (196 ids on 2026-11-14). CrowLLM exposes reasoning as separate `*-thinking` model ids instead of a `reasoning_effort` parameter and publishes no context windows, so its rows use the app's 128k prompt budget.
+
 ## [1.5.0-rc.2] - 2026-11-12
 
 1.5.0-rc.2 is the second release candidate for 1.5.0. It polishes the workbench (drag to fold the rail and the classroom dock, clearer chat status, no duplicate guide course after sign-in), gives Native classroom agents fresh whiteboard state, and fixes PBL previews, assessments and history. No upgrade conditions over 1.5.0-rc.1: no new migrations, and the 1.5.0-rc.1 **Breaking Changes** still apply when upgrading from 1.4.x.

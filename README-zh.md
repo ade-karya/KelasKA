@@ -140,7 +140,7 @@ slots:
 | 升级：没有 `openmaic.yml` 时，服务商环境变量、`server-providers.yml`、`DEFAULT_MODEL` 和 `MODEL_FALLBACK` 仍然有效；`MODEL_ROUTES` 需改写为槽位 | [从旧配置迁移](packages/docs/content/docs/configuration.zh-cn.mdx#从旧配置迁移) |
 | 用户可选哪些模型：由服务端持有 key、并选择上游模型的服务商只提供其 `models` 列表（`*_MODELS`）中的模型，以及槽位、默认和回退模型 | [模型授权](packages/docs/content/docs/configuration.zh-cn.mdx#服务端托管服务商的模型授权) |
 
-**支持的服务商：** OpenAI、Azure OpenAI、Anthropic、Amazon Bedrock、Google Gemini、DeepSeek、通义千问 Qwen、Kimi、MiniMax、Grok (xAI)、OpenRouter、TokenDance、Coarena（免费）、豆包、腾讯混元 / TokenHub、小米 MiMo、智谱 GLM、Ollama、[Lemonade](#lemonade-local-ai) 与 [FunASR](#funasr-local-asr)（本地），以及任何兼容 OpenAI API 的服务。
+**支持的服务商：** OpenAI、Azure OpenAI、Anthropic、Amazon Bedrock、Google Gemini、DeepSeek、通义千问 Qwen、Kimi、MiniMax、Grok (xAI)、OpenRouter、TokenDance、Coarena（免费）、CrowLLM、豆包、腾讯混元 / TokenHub、小米 MiMo、智谱 GLM、Ollama、[Lemonade](#lemonade-local-ai) 与 [FunASR](#funasr-local-asr)（本地），以及任何兼容 OpenAI API 的服务。
 
 > [!TIP]
 > **推荐配置：** 打开全部模态时 OpenMAIC 效果最好——配图、语音讲解、视频片段、联网检索与网页抓取都会参与生成。Token Plan 可以用一个 Key 配置该套餐支持的能力（见下方示例），默认模型选 `deepseek-v4.1-flash` 这类速度快、长上下文的模型即可。
@@ -193,6 +193,20 @@ slots:
 ```
 
 Coarena 的 Anthropic 兼容端点（`https://coarena.ai/api`）提供同一份模型目录；`coarena` 预设走 OpenAI 兼容端点（`https://coarena.ai/api/v1`），因此 **模型服务** 中的模型发现（`GET /v1/models`）可用。
+
+CrowLLM 快速示例（OpenAI 兼容网关：一个 key 覆盖免费分组与付费套餐）：
+
+```yaml
+providers:
+  crowllm:
+    preset: crowllm
+    apiKey: ${CROWLLM_API_KEY}
+
+slots:
+  llm: crowllm:gemini-3.8-flash:free
+```
+
+`GET https://crowllm.com/v1/models` 列出该 key 可调用的全部 id（2026-11-14 为 196 个）；内置预设只收录每个厂商的旗舰型号，**模型服务 → 获取模型** 会追加其余条目。以 `:free` 结尾的 id 属于免费分组，其余需要付费套餐。CrowLLM 把推理能力做成独立的 `*-thinking` 型号（例如 `deepseek-v4.1-flash-thinking`），而不是 `reasoning_effort` 参数，并且不公布上下文窗口，因此这些条目使用应用默认的 128k 提示预算。
 
 小米 MiMo Token Plan 与智谱 GLM 快速示例：
 

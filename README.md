@@ -140,7 +140,7 @@ The slots you write are the server's defaults; users can change them, or connect
 | Upgrading: provider variables, `server-providers.yml`, `DEFAULT_MODEL` and `MODEL_FALLBACK` still work without `openmaic.yml`; `MODEL_ROUTES` must become slots | [Migrating from the legacy configuration](packages/docs/content/docs/configuration.mdx#migrating-from-the-legacy-configuration) |
 | Which models users may pick: a provider whose key the server holds and that selects an upstream model offers only the models in its `models` list (`*_MODELS`), plus the slot, default and fallback models | [Model authorization](packages/docs/content/docs/configuration.mdx#model-authorization-for-server-managed-providers) |
 
-**Providers:** OpenAI, Azure OpenAI, Anthropic, Amazon Bedrock, Google Gemini, DeepSeek, Qwen, Kimi, MiniMax, Grok (xAI), OpenRouter, TokenDance, Coarena (free), Doubao, Tencent Hunyuan/TokenHub, Xiaomi MiMo, GLM (Zhipu), Ollama, [Lemonade](#lemonade-local-ai) and [FunASR](#funasr-local-asr) (local), and any OpenAI-compatible API.
+**Providers:** OpenAI, Azure OpenAI, Anthropic, Amazon Bedrock, Google Gemini, DeepSeek, Qwen, Kimi, MiniMax, Grok (xAI), OpenRouter, TokenDance, Coarena (free), CrowLLM, Doubao, Tencent Hunyuan/TokenHub, Xiaomi MiMo, GLM (Zhipu), Ollama, [Lemonade](#lemonade-local-ai) and [FunASR](#funasr-local-asr) (local), and any OpenAI-compatible API.
 
 > [!TIP]
 > **Recommended setup:** OpenMAIC is at its best with every modality turned on — generated illustrations, narration, video clips, web search, and web fetch. A token plan configures the capabilities it supports with one key (see the examples below). Choose a fast long-context model such as `deepseek-v4.1-flash` as the default.
@@ -193,6 +193,20 @@ slots:
 ```
 
 Coarena's Anthropic-compatible endpoint (`https://coarena.ai/api`) serves the same catalog; the `coarena` preset uses the OpenAI-compatible endpoint (`https://coarena.ai/api/v1`) so model discovery (`GET /v1/models`) works in **Model Services**.
+
+CrowLLM quick example (OpenAI-compatible gateway: one key for a free group plus paid tiers):
+
+```yaml
+providers:
+  crowllm:
+    preset: crowllm
+    apiKey: ${CROWLLM_API_KEY}
+
+slots:
+  llm: crowllm:gemini-3.8-flash:free
+```
+
+`GET https://crowllm.com/v1/models` lists every id the key may call (196 on 2026-11-14); the built-in preset ships a flagship-per-vendor snapshot, and **Model Services → Fetch models** appends the rest. Ids ending in `:free` are in the free group; the others need a paid tier. CrowLLM exposes reasoning as separate `*-thinking` ids (for example `deepseek-v4.1-flash-thinking`) rather than a `reasoning_effort` parameter, and does not publish context windows, so those rows use the app's 128k prompt budget.
 
 Xiaomi MiMo Token Plan and GLM (Zhipu) quick example:
 
