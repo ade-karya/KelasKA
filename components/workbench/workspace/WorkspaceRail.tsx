@@ -63,6 +63,7 @@ import {
   BookOpen,
   Library,
   Clock3,
+  House,
   LoaderCircle,
   MessageCircleQuestion,
   MessagesSquare,
@@ -73,7 +74,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/hooks/use-i18n';
-import { useBrand } from '@/lib/brand/brand-context';
 import { BrandLogo } from '@/components/brand-logo';
 import type { HomeDiscoveryState } from '@/lib/hooks/use-home-discovery';
 import { cn } from '@/lib/utils/cn';
@@ -188,7 +188,6 @@ export function WorkspaceRail({
   readonly fadeIn?: boolean;
 }) {
   const { t } = useI18n();
-  const brand = useBrand();
 
   // ── Row maintenance: rename in place, delete after a question ────────
   // Which row is currently an input: two rows cannot be renamed at once.
@@ -347,13 +346,11 @@ export function WorkspaceRail({
         className="ws-rail ws-mini relative z-10 hidden h-full shrink-0 flex-col items-center md:flex"
       >
         <div className="flex shrink-0 flex-col items-center gap-1 pb-2 pt-3">
-          <HomeLink testId="pro-nav-home-mini" onGoHome={onGoHome} className="mb-1 p-1">
-            <img
-              src={brand.markSrc}
-              alt=""
-              aria-hidden="true"
-              className="size-7 shrink-0 object-contain"
-            />
+          {/* A house glyph, not the institutional seals: the collapsed strip
+              is navigation, and it should say "home" the way its neighbours
+              say "new chat" or "search". */}
+          <HomeLink testId="pro-nav-home-mini" onGoHome={onGoHome} className="ws-mini-btn mb-1">
+            <House className="size-[18px]" aria-hidden="true" />
           </HomeLink>
           {/* The expanded header's fold keeps its slot's meaning here: the one
               control that brings the rail back as it was. */}
@@ -502,9 +499,11 @@ export function WorkspaceRail({
       style={{ width: 'var(--ws-rail-w)' }}
     >
       <div className="flex h-14 shrink-0 items-center gap-2 pl-4 pr-3">
-        {/* The wordmark is the way home: back to the bare workspace. */}
+        {/* The wordmark is the way home: back to the bare workspace. The rail
+            is a navigator, not a masthead, so it carries the product name
+            alone — the two government logos live on the home hero. */}
         <HomeLink testId="pro-nav-home" onGoHome={onGoHome} className="-ml-1.5 px-1.5 py-1">
-          <BrandLogo size="xs" />
+          <BrandLogo size="sm" showLogos={false} />
         </HomeLink>
         {/* THE rail's header, and therefore where the rail folds — the same
             button, in the same place, that the conversation and the classroom

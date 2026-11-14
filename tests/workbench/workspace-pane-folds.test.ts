@@ -663,9 +663,11 @@ describe('fold placement', () => {
     expect(mini).toContain("label={t('workspace.expandNav')}");
     expect(mini).toContain('direction="right"');
     expect(mini).toContain('onClick={onToggleCollapsed}');
-    // The mark, not the wordmark: 60px holds the square logo only.
+    // A house glyph, not the institutional mark: the strip is navigation, and
+    // the government logos belong to the home hero alone.
     expect(mini).toContain('testId="pro-nav-home-mini"');
-    expect(mini).toContain('brand.markSrc');
+    expect(mini).toContain('<House className="size-[18px]"');
+    expect(mini).not.toContain('brand.markSrc');
     // The strip is the list of destinations, and saved courses are not one any
     // more: the drawer is gone, so there is no glyph that opens it.
     expect(mini).not.toContain('pro-nav-mini-saved');

@@ -37,11 +37,14 @@ export function BrandLogo({
     },
     lg: {
       // Logo pemerintah selalu tinggi sama agar lambang Kemendikdasmen dan
-      // DPRD seimbang (rasio aslinya beda: 300×240 vs 251×240).
-      logo: 'h-9 sm:h-12 md:h-14 w-auto object-contain',
-      text: 'text-xl sm:text-2xl md:text-3xl font-black tracking-tight',
-      gap: 'gap-2 sm:gap-2.5 md:gap-3',
-      divider: 'h-5 sm:h-7 md:h-8 w-px bg-border/60',
+      // DPRD seimbang (rasio aslinya beda: 300×240 vs 251×240). This is the
+      // home hero's masthead: 48/64/80px, large enough that the two seals read
+      // as institutions rather than as favicons. `.ws-home-first`'s vertical
+      // centring constant in `workspace-shell.css` is calibrated to it.
+      logo: 'h-12 sm:h-16 md:h-20 w-auto object-contain',
+      text: 'text-2xl sm:text-3xl md:text-4xl font-black tracking-tight',
+      gap: 'gap-2 sm:gap-3 md:gap-3.5',
+      divider: 'h-6 sm:h-9 md:h-11 w-px bg-border/60',
     },
   };
 

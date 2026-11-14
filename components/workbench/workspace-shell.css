@@ -680,7 +680,10 @@
 
   display: flex;
   flex-direction: column;
-  padding-top: max(var(--ws-home-pad), calc(48vh - 127px - var(--ws-home-chrome, 0px) / 2));
+  /* 139px, not 127px: the hero lockup grew 24px (`BrandLogo` size `lg`), and
+     the subtraction is half the block's height above the composer, so the
+     composer stays where the page was composed around it. */
+  padding-top: max(var(--ws-home-pad), calc(48vh - 139px - var(--ws-home-chrome, 0px) / 2));
   padding-bottom: var(--ws-home-gap);
 }
 
