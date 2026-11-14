@@ -55,7 +55,8 @@ describe('agent scene narration with the VoxCPM auto voice', () => {
     });
     mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
     mocks.persist.mockReset().mockResolvedValue('media/tts-speech.wav');
-    mocks.fetch.mockReset().mockResolvedValue(
+    // Fresh Response per call: the narrator timbre bootstrap consumes one body.
+    mocks.fetch.mockReset().mockImplementation(async () =>
       new Response(new Uint8Array([82, 73, 70, 70]), {
         headers: { 'content-type': 'audio/wav' },
       }),

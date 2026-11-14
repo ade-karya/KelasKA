@@ -26,6 +26,7 @@ import type { LegacySpeechAction, SpeechAction } from '@/lib/types/action';
 import type { GeneratedAgentConfig, Scene } from '@/lib/types/stage';
 import { adapterOptions } from '@/lib/server/model-config/adapter-options';
 import { resolveTTSModel, slotTTSModel } from '@/lib/server/provider-config';
+import { narratorReferenceAudio } from '@/lib/server/generation/run/narrator-reference';
 import { storeGeneratedAssetOrThrow } from '@/lib/server/store-generated-asset';
 
 export interface SceneTtsFailure {
@@ -193,6 +194,11 @@ export interface SceneTtsInput {
   signal?: AbortSignal;
   /** The run's owner, whose tts slot applies. */
   ownerId?: string;
+  /**
+   * Course language / locale — only selects the one-time bootstrap sample
+   * sentence for the narrator's reference clip.
+   */
+  language?: string;
   /** Retry sleep. Production waits; tests pass a fake clock. */
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
   /**
@@ -354,6 +360,21 @@ export async function synthesizeSceneNarration(input: SceneTtsInput): Promise<Sc
   const model =
     activeConnection.modelId ??
     (DEFAULT_TTS_MODELS[providerId as keyof typeof DEFAULT_TTS_MODELS] || '');
+  // Pin the narrator's timbre once per voice for the process's lifetime:
+  // python-api VoxCPM synthesizes a fresh vocal identity every call without an
+  // inline reference, so a page's lines would come out as different teachers.
+  // The bootstrap is the same one the run engine uses; a failure degrades to
+  // the unpinned voice instead of failing the line.
+  const referenceClip = await narratorReferenceAudio(
+    speaker,
+    activeConnection,
+    input.language,
+    input.signal,
+  );
+  const ownProviderOptions = adapterOptions(activeConnection);
+  const providerOptions = referenceClip
+    ? { ...ownProviderOptions, ...referenceClip }
+    : ownProviderOptions;
   let generated = 0;
   let skipped = 0;
   const failed: SceneTtsFailure[] = [];
@@ -414,8 +435,8 @@ export async function synthesizeSceneNarration(input: SceneTtsInput): Promise<Sc
                       voice,
                       ...(activeConnection.voices ? { voices: activeConnection.voices } : {}),
                       speed: speech.speed,
-                      // The provider's own options (a VoxCPM backend, say).
-                      providerOptions: adapterOptions(activeConnection),
+                      // The provider's options with the narrator's pinned timbre.
+                      providerOptions,
                       ...(speaker ? { speaker } : {}),
                       signal: input.signal,
                     },

@@ -626,6 +626,7 @@ export function buildGenerationTools(deps: GenerationToolDeps): AgentTool<never,
           roster: doc.stage.generatedAgentConfigs,
           signal,
           ownerId: deps.ownerId,
+          language: doc.stage.languageDirective || undefined,
         });
         if (audio.changed) {
           await runStageMutation(signal, () =>

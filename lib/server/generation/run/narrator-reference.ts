@@ -19,7 +19,7 @@
 
 import { createHash } from 'node:crypto';
 
-import type { AgentConfig } from '@/lib/orchestration/registry/types';
+import type { VoiceDesign } from '@/lib/audio/voice-design';
 
 import { generateTTS } from '@/lib/audio/tts-providers';
 import { effectiveVoiceDesign } from '@/lib/audio/agent-voice-options';
@@ -45,6 +45,18 @@ const SAMPLE_BY_NUMBER = {
 const clipCache = new Map<string, string>();
 const inflight = new Map<string, Promise<string | null>>();
 
+/**
+ * The narrator fields the timbre bootstrap reads — satisfied by both the
+ * registry's AgentConfig and a course's generated roster entry, so the run
+ * engine and the agent's narration path bootstrap the same clip.
+ */
+export interface NarratorAgentLike {
+  name?: string;
+  role?: string;
+  persona?: string;
+  voiceDesign?: VoiceDesign;
+}
+
 export interface NarratorReference {
   referenceAudioBase64: string;
   referenceAudioMimeType: 'audio/wav';
@@ -67,7 +79,7 @@ function cacheKey(backend: string, language: string, voicePrompt: string): strin
  * then keeps the previous behaviour instead of failing the narration).
  */
 export async function narratorReferenceAudio(
-  agent: AgentConfig | undefined,
+  agent: NarratorAgentLike | undefined,
   connection: MediaConnection,
   language: string | undefined,
   signal?: AbortSignal,

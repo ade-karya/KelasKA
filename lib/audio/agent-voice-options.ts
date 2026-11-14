@@ -53,13 +53,24 @@ export function pickNarratorAgent(agents: AgentConfig[]): AgentConfig | undefine
 }
 
 /**
+ * The voice fields any agent-like descriptor carries — satisfied by both the
+ * registry's AgentConfig and a course's generated roster entry.
+ */
+export interface VoiceDesignAgent {
+  persona?: string;
+  voiceDesign?: VoiceDesign;
+}
+
+/**
  * The descriptor used to bootstrap an agent's voice: the real `voiceDesign`
  * when present (generated agents), otherwise the persona as a fallback seed.
  * Persona is not a vocal description, so the resulting voice is stable but
  * generic — good enough to register a consistent reference clip (no drift),
  * pending a real descriptor if quality matters for that agent.
  */
-export function effectiveVoiceDesign(agent: AgentConfig | undefined): VoiceDesign | undefined {
+export function effectiveVoiceDesign(
+  agent: VoiceDesignAgent | undefined,
+): VoiceDesign | undefined {
   if (agent?.voiceDesign) return agent.voiceDesign;
   const persona = agent?.persona?.trim();
   return persona ? { identity: persona, texture: '', delivery: '' } : undefined;
