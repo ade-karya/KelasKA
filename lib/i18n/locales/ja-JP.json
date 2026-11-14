@@ -2043,6 +2043,7 @@
     "asrTestSuccess": "音声認識に成功しました",
     "availableModels": "利用可能なモデル",
     "azureDeploymentHint": "上に Azure OpenAI エンドポイントを入力し、各 Azure デプロイ名をモデルとして追加してください。",
+    "crowllmLimitsHint": "各モデルに表示される上限は、CrowLLM が再販する基礎となるファーストパーティーモデルをミラーリングしたものです — CrowLLM はコンテキスト・出力・ビジョンの上限を公開していないため、推定値です。推論は別個の *-thinking id で提供されます。",
     "cancelEdit": "キャンセル",
     "capabilities": {
       "streaming": "ストリーミング",

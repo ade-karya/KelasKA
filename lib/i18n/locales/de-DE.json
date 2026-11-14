@@ -2043,6 +2043,7 @@
     "asrTestSuccess": "Spracherkennung erfolgreich",
     "availableModels": "Verfügbare Modelle",
     "azureDeploymentHint": "Gib oben deinen Azure OpenAI-Endpunkt ein und füge anschließend den Namen jeder Azure-Bereitstellung als Modell hinzu.",
+    "crowllmLimitsHint": "Die neben den Modellen angezeigten Limits spiegeln die zugrunde liegenden First-Party-Modelle, die CrowLLM weiterverkauft — CrowLLM veröffentlicht keine Kontext-, Ausgabe- oder Vision-Limits, also sind es Schätzwerte. Reasoning läuft über die separaten *-thinking-IDs.",
     "cancelEdit": "Abbrechen",
     "capabilities": {
       "streaming": "Streaming",

@@ -206,7 +206,7 @@ slots:
   llm: crowllm:gemini-3.8-flash:free
 ```
 
-`GET https://crowllm.com/v1/models` lists the whole catalogue for every key (196 ids on 2026-11-14), paid ids included, so the app narrows it to what the key may run: **Model Services → Fetch models** intersects it with `GET /api/pricing`'s `enable_groups` for the groups CrowLLM advertises as usable (the free group on 2026-11-14) and replaces the list. The built-in snapshot ships free-group ids only (they end in `:free`); a paid id can still be added by hand. CrowLLM exposes reasoning as separate `*-thinking` ids (for example `deepseek-v4.1-flash-thinking`) rather than a `reasoning_effort` parameter, and does not publish context windows, so those rows use the app's 128k prompt budget.
+`GET https://crowllm.com/v1/models` lists the whole catalogue for every key (196 ids on 2026-11-14), paid ids included, so the app narrows it to what the key may run: **Model Services → Fetch models** intersects it with `GET /api/pricing`'s `enable_groups` for the groups CrowLLM advertises as usable (the free group on 2026-11-14) and replaces the list. The built-in snapshot ships free-group ids only (they end in `:free`); a paid id can still be added by hand. CrowLLM exposes reasoning as separate `*-thinking` ids (for example `deepseek-v4.1-flash-thinking`) rather than a `reasoning_effort` parameter, and does not publish context windows, output caps or vision flags — the built-in rows therefore mirror the limits of the underlying first-party models (context, output, vision) as estimates, and the settings panel shows them next to each model with a note.
 
 Xiaomi MiMo Token Plan and GLM (Zhipu) quick example:
 

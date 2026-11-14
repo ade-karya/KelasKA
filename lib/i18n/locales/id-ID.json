@@ -2043,6 +2043,7 @@
     "asrTestSuccess": "Pengenalan suara berhasil",
     "availableModels": "Model tersedia",
     "azureDeploymentHint": "Isi Azure OpenAI Endpoint di atas, lalu tambahkan setiap nama Azure Deployment sebagai model.",
+    "crowllmLimitsHint": "Batas yang ditampilkan di samping tiap model mencerminkan model first-party yang mendasarinya — CrowLLM tidak menerbitkan batas konteks, output, atau visi, jadi ini perkiraan. Penalaran disediakan lewat id *-thinking terpisah.",
     "cancelEdit": "Batal",
     "capabilities": {
       "streaming": "Streaming",

@@ -2043,6 +2043,7 @@
     "asrTestSuccess": "語音辨識成功",
     "availableModels": "可用模型",
     "azureDeploymentHint": "請在上方填寫 Azure OpenAI 端點，並將每個 Azure Deployment 名稱新增為模型。",
+    "crowllmLimitsHint": "每個模型旁顯示的限制是 CrowLLM 轉售的底層第一方模型的鏡像——CrowLLM 不公布上下文、輸出或視覺限制，因此這些只是估算值。推理透過單獨的 *-thinking id 提供。",
     "cancelEdit": "取消",
     "capabilities": {
       "streaming": "串流",

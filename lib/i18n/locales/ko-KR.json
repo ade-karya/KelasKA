@@ -2043,6 +2043,7 @@
     "asrTestSuccess": "음성 인식에 성공했습니다",
     "availableModels": "사용 가능한 모델",
     "azureDeploymentHint": "위에 Azure OpenAI 엔드포인트를 입력한 다음 각 Azure 배포 이름을 모델로 추가하세요.",
+    "crowllmLimitsHint": "각 모델 옆에 표시되는 한도는 CrowLLM이 재판매하는 기반 퍼스트파티 모델을 미러링한 것입니다 — CrowLLM은 컨텍스트·출력·비전 한도를 공개하지 않으므로 추정치입니다. 추론은 별도의 *-thinking id로 제공됩니다.",
     "cancelEdit": "취소",
     "capabilities": {
       "streaming": "스트리밍",

@@ -48,6 +48,8 @@ All preset IDs:
 
 In `openmaic.yml` a chat slot names `<provider id>:<model id>`, where the provider id is the one you declared under `providers`, for example `openai:gpt-5.6`, `qwen:qwen3.7-plus` or `ollama:llama3.3` when the provider ids match the preset ids.
 
+CrowLLM itself publishes no context, output or vision limits for any id, so the built-in `crowllm` rows mirror the limits of the underlying first-party models (shown in the settings panel next to each model as estimates); reasoning ships as separate `*-thinking` ids rather than a request knob.
+
 | Provider        | Provider ID       | Built-in models                                                                                                                                                                                                                                                                                                                                                                                                            |
 | --------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | OpenAI          | `openai`          | GPT-5.6 Sol (`gpt-5.6`)<br />GPT-5.6 Terra (`gpt-5.6-terra`)<br />GPT-5.6 Luna (`gpt-5.6-luna`)<br />GPT-5.5 (`gpt-5.5`)<br />GPT-5.4 Pro (`gpt-5.4-pro`)<br />GPT-5.4 (`gpt-5.4`)<br />GPT-5.4 Mini (`gpt-5.4-mini`)<br />GPT-5.4 Nano (`gpt-5.4-nano`) |

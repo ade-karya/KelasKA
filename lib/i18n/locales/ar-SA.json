@@ -2043,6 +2043,7 @@
     "asrTestSuccess": "نجح التعرف على الكلام",
     "availableModels": "النماذج المتاحة",
     "azureDeploymentHint": "أدخل نقطة نهاية Azure OpenAI أعلاه، ثم أضف اسم كل عملية نشر في Azure كنموذج.",
+    "crowllmLimitsHint": "الحدود المعروضة بجانب كل نموذج مستمدة من النماذج الأولى الأصلية التي تعيد CrowLLM بيعها — CrowLLM لا تنشر حدود سياق أو إخراج أو رؤية، لذا فهي تقديرات. أما الاستدلال فيُقدَّم كمعرّفات *-thinking منفصلة.",
     "cancelEdit": "إلغاء",
     "capabilities": {
       "streaming": "التدفق",

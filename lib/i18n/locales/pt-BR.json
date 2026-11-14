@@ -2043,6 +2043,7 @@
     "asrTestSuccess": "Reconhecimento de fala bem-sucedido",
     "availableModels": "Modelos Disponíveis",
     "azureDeploymentHint": "Informe o endpoint do Azure OpenAI acima e adicione cada nome de implantação do Azure como um modelo.",
+    "crowllmLimitsHint": "Os limites exibidos ao lado de cada modelo espelham os modelos first-party subjacentes que a CrowLLM revende — a CrowLLM não publica limites de contexto, saída ou visão, então são estimativas. O raciocínio é oferecido em ids *-thinking separados.",
     "cancelEdit": "Cancelar",
     "capabilities": {
       "streaming": "Streaming",

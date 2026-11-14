@@ -2043,6 +2043,7 @@
     "asrTestSuccess": "Nhận dạng giọng nói thành công",
     "availableModels": "Model khả dụng",
     "azureDeploymentHint": "Nhập địa chỉ endpoint Azure OpenAI ở trên, rồi thêm từng tên deployment của Azure như một model.",
+    "crowllmLimitsHint": "Giới hạn hiển thị cạnh từng mô hình phản chiếu các mô hình first-party bên dưới mà CrowLLM phân phối lại — CrowLLM không công bố giới hạn ngữ cảnh, đầu ra hay thị giác, nên đây là ước tính. Suy luận được cung cấp qua các id *-thinking riêng biệt.",
     "cancelEdit": "Hủy",
     "capabilities": {
       "streaming": "Truyền liên tục",

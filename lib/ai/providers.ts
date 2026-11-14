@@ -1783,10 +1783,15 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     // carries only ids the free group may run; "Fetch models" adds the rest of
     // the key's own plan (see `fetchCrowllmUsableModelIds`) and any paid id
     // can still be added by hand.
-    // CrowLLM publishes no context window, output cap or vision flag, and
-    // ships reasoning as separate `*-thinking` ids instead of a
-    // `reasoning_effort` knob, so a row only claims what these chat models
-    // share and the app's 128k default budgets the prompt.
+    // CrowLLM publishes no context window, output cap or vision flag for any
+    // id (neither endpoint carries one), so the windows below mirror the
+    // matching first-party rows registered in this file (OpenAI `gpt-5.6`,
+    // Google Gemini 3, DeepSeek V4.1 Flash, Qwen3.x Max, GLM-5.3-Flash,
+    // MiniMax-M3, Grok 4.x, Hunyuan Hy3, MiMo V2.6 Flash, OpenCode Zen's
+    // Nemotron 3 Ultra) and are estimates — the upstream vendor enforces its
+    // own limit, not these. Reasoning ships as separate `*-thinking` ids
+    // instead of a `reasoning_effort` knob, so no row carries a `thinking`
+    // control.
     defaultBaseUrl: 'https://crowllm.com/v1',
     supportsModelDiscovery: true,
     requiresApiKey: true,
@@ -1795,67 +1800,92 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
       {
         id: 'gpt-5.6-sol:free',
         name: 'GPT-5.6 Sol (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 1050000,
+        outputWindow: 128000,
+        capabilities: { streaming: true, tools: true, vision: true },
       },
       {
         id: 'gemini-3.8-flash:free',
         name: 'Gemini 3.8 Flash (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 1048576,
+        outputWindow: 65536,
+        capabilities: { streaming: true, tools: true, vision: true },
       },
       {
         id: 'gemini-3.1-pro:free',
         name: 'Gemini 3.1 Pro (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 1048576,
+        outputWindow: 65536,
+        capabilities: { streaming: true, tools: true, vision: true },
       },
       {
         id: 'deepseek-v4.1-flash:free',
         name: 'DeepSeek V4.1 Flash (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 1048576,
+        outputWindow: 393216,
+        capabilities: { streaming: true, tools: true, vision: true },
       },
       {
         id: 'qwen-3.8-max:free',
         name: 'Qwen3.8 Max (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 1000000,
+        outputWindow: 64000,
+        capabilities: { streaming: true, tools: true, vision: false },
       },
       {
         id: 'glm-5.3-flash:free',
         name: 'GLM-5.3 Flash (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 1000000,
+        outputWindow: 128000,
+        capabilities: { streaming: true, tools: true, vision: true },
       },
       {
         id: 'minimax-m3.1-flash:free',
         name: 'MiniMax M3.1 Flash (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 1000000,
+        outputWindow: 32768,
+        capabilities: { streaming: true, tools: true, vision: true },
       },
       {
         id: 'grok-4.7:free',
         name: 'Grok 4.7 (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 500000,
+        outputWindow: 500000,
+        capabilities: { streaming: true, tools: true, vision: true },
       },
       {
         id: 'hy4:free',
         name: 'Tencent Hy4 (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 256000,
+        outputWindow: 64000,
+        capabilities: { streaming: true, tools: true, vision: false },
       },
       {
         id: 'mimo-v2.6-flash:free',
         name: 'MiMo V2.6 Flash (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 1048576,
+        outputWindow: 131072,
+        capabilities: { streaming: true, tools: true, vision: true },
       },
       {
         id: 'nemotron-3-ultra-550b-a55b:free',
         name: 'Nemotron 3 Ultra 550B A55B (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 256000,
+        outputWindow: 32000,
+        capabilities: { streaming: true, tools: true, vision: false },
       },
       {
         id: 'llama-3.3-70b-instruct:free',
         name: 'Llama 3.3 70B Instruct (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 131072,
+        capabilities: { streaming: true, tools: true, vision: false },
       },
       {
         id: 'mistral-medium-3.5:free',
         name: 'Mistral Medium 3.5 (Free)',
-        capabilities: { streaming: true, tools: true },
+        contextWindow: 128000,
+        outputWindow: 16384,
+        capabilities: { streaming: true, tools: true, vision: true },
       },
     ],
   },

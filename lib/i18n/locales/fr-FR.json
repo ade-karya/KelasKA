@@ -2043,6 +2043,7 @@
     "asrTestSuccess": "Reconnaissance vocale réussie",
     "availableModels": "Modèles disponibles",
     "azureDeploymentHint": "Saisissez ci-dessus le point d’accès de votre Azure OpenAI, puis ajoutez chaque nom de déploiement Azure comme un modèle.",
+    "crowllmLimitsHint": "Les limites affichées à côté de chaque modèle sont calquées sur les modèles first-party sous-jacents que revend CrowLLM — CrowLLM ne publie aucune limite de contexte, de sortie ni de vision, ce sont donc des estimations. Le raisonnement est proposé via des ids *-thinking séparés.",
     "cancelEdit": "Annuler",
     "capabilities": {
       "streaming": "Diffusion en continu",

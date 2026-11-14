@@ -381,6 +381,11 @@ export function ProviderConfigPanel({ view, apply, entry }: ServicePanelProps) {
             {t('settings.azureDeploymentHint')}
           </div>
         )}
+        {entry.registryId === 'crowllm' && (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300">
+            {t('settings.crowllmLimitsHint')}
+          </div>
+        )}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Label className="text-base">{t('settings.models')}</Label>

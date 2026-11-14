@@ -9,10 +9,12 @@ import { PROVIDERS } from '@/lib/ai/providers';
  * therefore lists only ids the free group may run (every one of them ends in
  * `:free`); "Fetch models" adds the rest of the key's own plan via
  * `/api/pricing`, and a paid id can still be added by hand. CrowLLM publishes
- * no context window, output cap or vision flag, and exposes reasoning as
- * separate `*-thinking` ids, so no row carries a `contextWindow` or a
- * `thinking` control. Refresh the ids below from the live catalogue instead of
- * guessing them.
+ * no context window, output cap or vision flag for any id (neither endpoint
+ * carries one), so the windows below are the mirrored ones from the matching
+ * first-party rows in `PROVIDERS` — estimates until CrowLLM itself documents
+ * them. Reasoning ships as separate `*-thinking` ids instead of a
+ * `reasoning_effort` knob, so no row carries a `thinking` control. Refresh
+ * the ids below from the live catalogue instead of guessing them.
  */
 const CATALOG_IDS = `
 gpt-5.6-sol:free
@@ -31,6 +33,32 @@ mistral-medium-3.5:free
 `
   .trim()
   .split(/\s+/);
+
+/**
+ * Mirrored from the matching first-party rows in this file: OpenAI `gpt-5.6`,
+ * Google Gemini 3, DeepSeek `deepseek-flash` (V4.1 Flash), Qwen3.7 Max, `glm-5.3-flash`
+ * (Zhipu), `MiniMax-M3` (MiniMax), Grok 4.6, Tencent Hunyuan `hy3`, Xiaomi
+ * `mimo-v2.6-flash`, OpenCode Zen `nemotron-3-ultra-free`, Ollama `llama3.3`,
+ * Mistral Medium 3.x. `vision` is claimed only where the underlying model is
+ * multimodal in this file's catalogue; `llama-3.3-70b-instruct` omits the
+ * output window (no first-party row publishes one).
+ */
+const WINDOWS: Record<string, { contextWindow: number; outputWindow?: number; vision: boolean }> =
+  {
+    'gpt-5.6-sol:free': { contextWindow: 1050000, outputWindow: 128000, vision: true },
+    'gemini-3.8-flash:free': { contextWindow: 1048576, outputWindow: 65536, vision: true },
+    'gemini-3.1-pro:free': { contextWindow: 1048576, outputWindow: 65536, vision: true },
+    'deepseek-v4.1-flash:free': { contextWindow: 1048576, outputWindow: 393216, vision: true },
+    'qwen-3.8-max:free': { contextWindow: 1000000, outputWindow: 64000, vision: false },
+    'glm-5.3-flash:free': { contextWindow: 1000000, outputWindow: 128000, vision: true },
+    'minimax-m3.1-flash:free': { contextWindow: 1000000, outputWindow: 32768, vision: true },
+    'grok-4.7:free': { contextWindow: 500000, outputWindow: 500000, vision: true },
+    'hy4:free': { contextWindow: 256000, outputWindow: 64000, vision: false },
+    'mimo-v2.6-flash:free': { contextWindow: 1048576, outputWindow: 131072, vision: true },
+    'nemotron-3-ultra-550b-a55b:free': { contextWindow: 256000, outputWindow: 32000, vision: false },
+    'llama-3.3-70b-instruct:free': { contextWindow: 131072, vision: false },
+    'mistral-medium-3.5:free': { contextWindow: 128000, outputWindow: 16384, vision: true },
+  };
 
 describe('crowllm provider', () => {
   it('uses the OpenAI-compatible endpoint and supports live model discovery', () => {
@@ -56,14 +84,20 @@ describe('crowllm provider', () => {
     }
   });
 
-  it('claims only the capabilities every listed chat model shares', () => {
+  it('carries the mirrored first-party limits and shared capabilities', () => {
     for (const model of PROVIDERS.crowllm.models) {
       expect(model.name, model.id).not.toBe(model.id);
-      expect(model.capabilities, model.id).toEqual({ streaming: true, tools: true });
-      // Windows and reasoning are not published per id: keep them unset so the
-      // app's 128k prompt budget applies and no unsupported knob is sent.
-      expect(model.contextWindow, model.id).toBeUndefined();
-      expect(model.outputWindow, model.id).toBeUndefined();
+      const expected = WINDOWS[model.id];
+      expect(expected, model.id).toBeDefined();
+      expect(model.contextWindow, model.id).toBe(expected.contextWindow);
+      expect(model.outputWindow, model.id).toBe(expected.outputWindow);
+      expect(model.capabilities, model.id).toEqual({
+        streaming: true,
+        tools: true,
+        vision: expected.vision,
+      });
+      // Reasoning is sold as separate `*-thinking` ids: no knob on these rows.
+      expect(model.capabilities?.thinking, model.id).toBeUndefined();
     }
   });
 });
