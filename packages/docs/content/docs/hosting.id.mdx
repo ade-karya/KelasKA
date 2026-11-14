@@ -1,0 +1,987 @@
+---
+title: Hosting dan identitas
+description: Apa yang disimpan server, siapa pemiliknya, dan bagaimana host menambahkan akun, penyimpanan, serta hook produk.
+---
+
+Halaman ini mengumpulkan apa yang dibutuhkan operator atau host yang menyematkan di luar langkah pertama: apa yang disimpan server dan siapa yang boleh membacanya, bagaimana aset diklaim kembali, pengaturan mana yang menghentikan server, bagaimana permintaan dikaitkan dengan pemilik, dan titik ekstensi yang didaftarkan host dari `instrumentation.ts`. Untuk pemasangan dan peningkatan, mulailah dari [Deployment](./deployment.mdx); untuk model, [Configuration](./configuration.mdx).
+
+## Docker Compose sebagai pemasangan pribadi
+
+Berkas Compose di repositori disiapkan sebagai **pemasangan pribadi**:
+
+- **Satu pemilik.** `docker-compose.defaults.env` mengaktifkan
+  [mode satu pengguna](#mode-satu-pengguna): setiap permintaan diselesaikan ke satu
+  pemilik, sehingga setiap browser melihat pustaka kursus yang sama dan
+  penerbitan berfungsi. Tidak ada cookie anonim yang dibuat.
+- **Dua kontainer.** Aplikasi dan PostgreSQL; aplikasi mulai setelah PostgreSQL
+  melaporkan sehat.
+- **Hanya loopback.** Aplikasi diterbitkan di `127.0.0.1:3000`, sehingga hanya
+  mesin ini yang dapat menjangkaunya. PostgreSQL tidak diterbitkan sama sekali.
+
+Untuk menjangkaunya dari mesin lain, lindungi dulu:
+
+1. Setel `ACCESS_CODE` acak yang panjang di `.env.local` (lihat
+   [ACCESS_CODE](./configuration.mdx#access_code--kata-sandi-untuk-seluruh-situs)). Ini sangat
+   disarankan: tanpanya, siapa pun yang dapat menjangkau port tersebut menjadi
+   satu-satunya pemilik dan berbagi, menyunting, serta dapat menghapus seluruh
+   pustaka.
+2. Setel `PERSISTENCE_POSTGRES_PASSWORD` ke nilai acak berisi huruf dan angka sebelum
+   mulai pertama kali (untuk volume yang sudah ada, lihat
+   [Kata sandi PostgreSQL](#kata-sandi-postgresql)).
+3. Terbitkan pada alamat jaringan:
+   `OPENMAIC_PUBLISH_ADDRESS=0.0.0.0 docker compose up -d --build`.
+
+Variabel tingkat Compose ini (`OPENMAIC_PUBLISH_ADDRESS`, `OPENMAIC_PORT` untuk
+port host, `PERSISTENCE_POSTGRES_PASSWORD`) berasal dari shell Anda atau berkas `.env`
+di samping `docker-compose.yml`, bukan dari `.env.local`. Mode satu pengguna
+tanpa `ACCESS_CODE` mencatat peringatan yang menonjol saat mulai, dan aplikasi juga
+memperingatkan bila diterbitkan di luar loopback dengan kata sandi PostgreSQL
+bawaan; keduanya tidak menghentikan server. Alur penyiapan pertama kali di masa
+depan mungkin akan meminta kode akses; sampai saat itu, penetapan `ACCESS_CODE` ada di tangan Anda.
+
+Setiap nilai bawaan di `docker-compose.defaults.env` dapat ditimpa di `.env.local`,
+yang dibaca Compose setelahnya: misalnya `OWNER_SINGLE_USER=false` untuk satu
+pemilik anonim per browser (yang dilakukan `bun run dev`), atau untuk memakai
+`PERSISTENCE_SHARED_OWNER_ID` saja, atau `DATABASE_URL` Anda sendiri untuk
+basis data eksternal. Layanan `postgres` bawaan tetap menyala dalam kasus tersebut
+(aplikasi menunggu pemeriksaan kesehatannya) tetapi tidak dipakai; hapus layanan itu dari salinan
+berkas Compose bila Anda tidak menginginkannya.
+
+### Meningkatkan deployment Compose
+
+`docker compose up` sekarang menyalakan
+PostgreSQL, aplikasi selalu menyimpan kursus di sana, dan aplikasi diterbitkan di
+`127.0.0.1` saja.
+
+- Jika Anda menyajikan aplikasi ke mesin lain, mulai dengan
+  `OPENMAIC_PUBLISH_ADDRESS=0.0.0.0`, dan setel `ACCESS_CODE`: setiap pengunjung
+  sekarang menjadi pemilik tunggal yang sama.
+- `--profile server-persistence` masih diterima dan tidak mengubah apa pun;
+  PostgreSQL selalu menyala.
+- Kursus yang pada deployment hanya-browser sebelumnya disimpan di browser tidak
+  dihapus: saat setiap browser membuka aplikasi yang sudah ditingkatkan untuk pertama kalinya,
+  pengimpor satu arah memindahkannya ke server secara otomatis (lihat
+  [Meningkatkan dari build hanya-browser](#meningkatkan-dari-build-hanya-browser)) dan
+  membiarkan salinan di browser tetap utuh.
+- Kursus yang pada deployment berbasis server sebelumnya disimpan di bawah cookie anonim
+  setiap browser tetap bersama pemilik anonim tersebut: tidak ada yang otomatis digabungkan ke
+  pemilik tunggal. Untuk membawanya masuk, klaim secara eksplisit
+  (lihat [Mode satu pengguna](#mode-satu-pengguna)). Jika beberapa orang memakai
+  deployment itu, pertimbangkan `OWNER_SINGLE_USER=false` saja, agar masing-masing mempertahankan
+  pustakanya sendiri.
+- `DATABASE_URL` di `.env.local` tetap menang (basis data eksternal, atau
+  kata sandi yang Anda ganti); tanpanya, aplikasi memakai PostgreSQL bawaan
+  dengan `PERSISTENCE_POSTGRES_PASSWORD`.
+- Jika `.env.local` menetapkan `PERSISTENCE_SHARED_OWNER_ID`, setel juga
+  `OWNER_SINGLE_USER=false` di sana: keduanya saling mengecualikan dan aplikasi
+  menolak untuk mulai dengan keduanya.
+- Tidak ada lagi image yang hanya menyimpan di browser: argumen build
+  `NEXT_PUBLIC_PERSISTENCE` sudah dihapus dan diabaikan.
+
+## Apa yang disimpan server
+
+OpenMAIC selalu menyimpan kursus di server.
+[Deployment Docker](./deployment.mdx#docker) menjalankan tepat dua kontainer, yaitu
+aplikasi OpenMAIC dan PostgreSQL. Server HTTP persistence disematkan di aplikasi
+pada `/api/persistence`; tidak ada layanan persistence tersendiri.
+
+**`DATABASE_URL` wajib ada.** Tanpanya server tidak akan mulai: ia mencetak
+`[boot] Invalid server configuration; the server will not start: DATABASE_URL is
+not set. ...` beserta solusinya lalu keluar dengan kode `1`. Di luar Compose, build
+seperti biasa dan jalankan dengan `DATABASE_URL`:
+
+```bash
+bun run build
+DATABASE_URL=postgres://openmaic:password@localhost:5432/openmaic bun run start
+```
+
+Untuk pengembangan lokal, `bun run db:up` menyalakan basis data pengembangan terpisah
+(definisi layanan `postgres` Compose di bawah proyek dan volume tersendiri,
+`openmaic-dev-db`, dipakai bersama oleh setiap checkout di mesin ini) dan menerbitkannya di `127.0.0.1` (port `OPENMAIC_DB_PORT`, default `5432`); 
+`DATABASE_URL` yang cocok tersedia sebagai komentar di `.env.example`, dan `bun run db:down` menghentikannya
+lagi.
+
+Konfigurasikan model seperti biasa (`openmaic.yml` dengan kunci di `.env.local`, atau Pengaturan → Model Services). Dokumen kursus, folder,
+riwayat obrolan dan sesi runtime pelajar, serta media yang dihasilkan disimpan di
+server. Yang tetap berada di browser adalah yang menjadi milik perangkat dan dapat
+hilang tanpa kehilangan kursus: pengaturan aplikasi dan preferensi UI, posisi
+pemutaran dan adegan yang sedang dibuka di editor, riwayat undo editor, cache lokal
+sulih suara dan media yang sudah disimpan server (dan byte yang ditolak store penuh,
+disimpan untuk dicoba lagi), gambar PDF yang disiapkan selama generasi, dan profil suara TTS yang
+didaftarkan dari browser tersebut. **Pengaturan → Hapus Cache Lokal** membersihkan
+tepat hal-hal itu dan tidak menyentuh apa pun di server.
+
+### Meningkatkan dari build hanya-browser
+
+Kursus yang pada build hanya-browser sebelumnya
+disimpan di browser berpindah ke server secara otomatis, tanpa tindakan dan tanpa
+UI: saat browser tersebut membuka aplikasi yang sudah ditingkatkan untuk pertama kalinya, setelah halaman menganggur,
+pengimpor satu arah menyalin setiap kursus, beserta obrolan, runtime pelajar, posisi
+pemutaran, daftar agen, folder dan keanggotaannya, progres kuis, dan medianya, ke
+pemilik yang diselesaikan server untuk browser tersebut (pemilik cookie anonim secara
+default), dan kursus itu muncul di pustaka. Ini terjadi sekali per browser:
+server mengikat browser ke pemilik pertama yang bertanya
+(`POST /api/identity/legacy-import-binding`), dan sebuah klaim membawa ikatan itu ke
+akun (pemilik anonim yang masuk dan diklaim). Setiap permintaan pengimpor
+membawa id browser dan ditolak
+(`409 LEGACY_IMPORT_NOT_BOUND`) untuk pemilik mana pun yang tidak memegang ikatan tersebut, sehingga
+pemilik lain yang kemudian memakai browser yang sama tidak mengimpor apa pun. Salinan di browser dibiarkan
+utuh, dan **Pengaturan → Hapus Cache Lokal** tidak menghapusnya. Kursus yang sudah dimiliki
+server untuk pemilik itu tetap sebagaimana server menyimpannya; kursus yang id-nya
+dipegang pemilik lain diimpor dengan id baru; kursus yang dihapus di server tidak
+dikembalikan. Pengimpor mencatat progresnya di browser (dengan id browser acak dan
+tanpa informasi pemilik), sehingga impor yang terputus dilanjutkan pada pemuatan berikutnya dan tidak ada yang diimpor dua kali; masalah
+dicatat di konsol browser dengan awalan `[legacy-browser-import]`. Pengimpor ini
+bersifat sementara dan akan dihapus beberapa rilis kemudian.
+
+### Pustaka kursus dan runtime agen
+
+Pustaka kursus di server beserta foldernya (`/api/stages/**`, `/api/folders/**`)
+melayani permintaan baik saat [runtime agen](#workbench-dan-runtime-agen)
+(`OPENMAIC_AGENT_RUNTIME_ENABLED`) aktif maupun tidak. `GET /api/agent/runtime` melaporkan
+`persistence`, di samping `enabled` dan `runtimeEnabled` milik runtime itu sendiri.
+
+## Siapa yang boleh membaca dan menulis data tersimpan
+
+Setiap permintaan `/api/persistence` dikaitkan dengan pemilik yang
+diselesaikan oleh [seam identitas pemilik](#identitas-pemilik) — secara default
+cookie anonim (400 hari, diperbarui selama dipakai), satu pemilik per browser; dalam deployment Compose, satu
+pemilik [mode satu pengguna](#mode-satu-pengguna). Tidak ada kredensial persistence
+tersendiri:
+
+- **Dokumen.** Pembacaan bersifat capability-by-id: jika meta stage ada dan tidak
+  ditombstone, `decideDocumentAccess` mengizinkannya tanpa pemeriksaan pemilik
+  (`lib/persistence/document-access.ts`), sehingga siapa pun yang dapat menjangkau endpoint
+  dan mengetahui id stage dapat membaca kursus tersebut. Penulisan dan penghapusan
+  diperiksa kepemilikannya.
+- **Sesi runtime** (`/runtime/*`) dipartisi menurut learner key, dan
+  learner key **adalah id pemilik**. Browser mempelajarinya dari
+  `GET /api/persistence/learner-key`; permintaan yang menyebut learner key lain
+  ditolak (`403 FORBIDDEN_LEARNER`), dan sesi pelajar lain menjawab
+  `404`. Runtime kursus yang dihapus (ditombstone) terbaca sebagai tidak ada dan tidak menerima
+  penulisan baru. Penggabungan pelajar dan pembersihan admin tetap ditolak.
+- **Aset** dialokasikan dalam partisi per pemilik, sehingga `ASSET_QUOTA_BYTES` adalah
+  batas atas per pemilik dan hanya pemilik yang dapat mengganti atau menghapus entri.
+  Pembacaan tetap capability-by-id untuk media yang dibutuhkan penonton kursus: pemilik membaca entri
+  miliknya sendiri, dan siapa pun membaca entri yang sudah di-commit milik pemilik lain selama kursus aktif
+  pemilik yang sama mereferensikannya. Kursus hanya mereferensikan (dan meng-commit)
+  media milik pemiliknya sendiri: menyebut id aset pemilik lain di kursus Anda tidak mencatat
+  apa pun, sehingga tidak dapat mengekspos unggahan mereka yang belum disimpan maupun menjaga media mereka
+  tetap hidup. Entri yang ditulis sebelum partisi per pemilik (partisi bersama
+  lama) tetap dapat dibaca berdasarkan id oleh semua orang, dan hanya dapat diganti atau dihapus
+  oleh pemilik yang memiliki setiap kursus yang mereferensikannya; kolektor
+  mengklaimnya kembali saat kursus berhenti menyebutnya, seperti sebelumnya.
+
+Tanpa metode autentikasi host, kekuatan pemilik hanya sekuat cookie (atau, dalam
+mode satu pengguna, sekuat `ACCESS_CODE` atau ikatan loopback): ini cocok
+untuk localhost, jaringan tepercaya, atau deployment satu tim. Deployment
+dengan akunnya sendiri mendaftarkan metode autentikasi pemilik (lihat
+[Identitas pemilik](#identitas-pemilik)) dan setiap permukaan di atas mengikutinya.
+
+<Callout type="warn" title="Meningkatkan persistence server">
+`PERSISTENCE_DEV_TOKEN`,
+`NEXT_PUBLIC_PERSISTENCE_TOKEN` dan `PERSISTENCE_ALLOW_INSECURE_DEV_AUTH` sudah
+dihapus dan diabaikan; hapus dari environment dan argumen build Anda.
+Sesi runtime yang ditulis sebelum perubahan ini dikunci oleh learner key yang
+dibuat browser, bukan oleh id pemilik, sehingga **tidak lagi dapat dijangkau** (dokumen
+kursus dan media tidak terpengaruh). Sesi itu tidak dimigrasikan secara otomatis,
+karena memercayai kunci lama yang dikirim klien akan mengembalikan identitas yang dipilih klien.
+
+**Jika `PERSISTENCE_DEV_TOKEN` adalah satu-satunya gerbang akses Anda, bertindaklah sebelum meningkatkan.**
+Tanpanya endpoint menjawab setiap pengunjung yang menjangkaunya, masing-masing sebagai
+pemilik anonimnya sendiri. Tempatkan deployment di belakang `ACCESS_CODE` atau gateway
+Anda sendiri, atau daftarkan metode autentikasi pemilik yang didukung akun Anda (lihat
+[Identitas pemilik](#identitas-pemilik)).
+</Callout>
+
+## Kata sandi PostgreSQL
+
+`PERSISTENCE_POSTGRES_PASSWORD` (default `openmaic-dev`, hanya untuk penggunaan lokal)
+menginisialisasi peran PostgreSQL hanya ketika direktori data kosong, dan
+`DATABASE_URL` bawaan di `docker-compose.defaults.env` dibangun dari
+variabel yang sama tanpa encoding, jadi gunakan huruf dan angka saja (karakter
+seperti `@`, `/`, `#` atau `?` merusak URL; untuk kata sandi semacam itu, setel
+`DATABASE_URL` yang sudah di-encode di `.env.local` saja). Mengubahnya di kemudian hari tidak merotasi
+volume `openmaic-postgres` yang sudah ada. Untuk basis data lokal sekali pakai, jalankan
+`docker compose down -v`, setel kata sandi baru, lalu mulai lagi. Untuk mempertahankan
+data, jalankan
+`docker compose exec postgres psql -U openmaic -d openmaic -c "ALTER ROLE openmaic WITH PASSWORD 'new-password';"`,
+lalu mulai dengan `PERSISTENCE_POSTGRES_PASSWORD=new-password` (atau setel
+`DATABASE_URL` yang cocok di `.env.local`).
+
+## Penyimpanan aset
+
+### Pengumpulan
+
+Aset diklaim kembali oleh kolektor offline, bukan pada jalur permintaan.
+**Deployment ini menjalankan kolektor tersebut secara default**, sehingga tidak ada yang perlu
+dikonfigurasi agar penyimpanan aset berhenti membengkak. Satu putaran berjalan setiap
+`ASSET_COLLECTION_INTERVAL_MS` (default 15 menit) dan memiliki dua tingkat. Pertama ia
+melepaskan entri registri — alokasi yang tidak diklaim dokumen apa pun sebelum jendela
+pending-nya habis, dan entri yang referensi dokumen terakhirnya hilang lebih lama dari
+`ASSET_COLLECTION_GRACE_MS` (default 1 jam) — lalu menghapus byte yang
+entri terakhirnya hilang, setelah masa tenggang yang sama. Kedua tingkat menunggu secara berurutan:
+melepaskan entri itulah yang membuat bytenya tidak lagi direferensikan, jadi byte memulai
+masa tenggangnya sendiri hanya setelah entri menjalani masa tenggangnya. Kasus terburuk dari "dokumen
+terakhir berhenti menyebut ini" sampai "bytenya hilang" karena itu adalah dua
+masa tenggang, bukan satu. Jendela itulah retensi yang benar-benar didapat media terhapus
+milik pengguna, jadi naikkan dengan sengaja. Setel
+`ASSET_COLLECTION_ENABLED=0` untuk mematikan pengumpulan dalam satu proses. Deployment
+yang diskalakan horizontal boleh membiarkannya menyala di setiap instans — setiap baris
+dikunci dan diperiksa ulang sebelum apa pun dihapus, sehingga kolektor konkuren berjalan berseri
+bukan berlomba — atau mematikannya di semua tempat dan menjalankan miliknya sendiri.
+
+Server memiliki pembukuan itu dari ujung ke ujung, dan tidak butuh konfigurasi
+karena di sini sifatnya wajib: setiap penulisan dokumen mencatat aset yang
+disebut dokumen dan meng-commit alokasi yang disebutnya, dan itulah tepatnya yang dibaca
+kolektor. Browser tidak pernah menghapus aset dan tidak pernah diminta melakukannya.
+
+### Menghapus kursus
+
+Menghapus kursus melepaskan aset yang dipegangnya. Id kursus itu sendiri
+dipensiunkan secara permanen, bukan dihapus — itulah yang mencegah id yang dihapus
+diklaim lagi — tetapi referensi yang dipegangnya ditarik dalam transaksi
+yang sama, sehingga medianya berhenti dihitung terhadap kuota seketika. Entri
+dilepaskan setelah satu masa tenggang dan bytenya setelah masa tenggang kedua, seperti
+di atas. Masa tenggang adalah undo-nya: selama masa itu aset masih ada.
+
+### Alokasi pending
+
+`ASSET_PENDING_TTL_MS` (default 24 jam) adalah berapa lama alokasi tetap
+*pending* — bytenya sudah disimpan, tetapi belum ada dokumen yang menyebut id-nya. Klien
+menyimpan byte lebih dulu dan menulis id-nya ke dokumen setelahnya, dan tidak ada yang
+menyewakan celah itu, sehingga jendelanya harus lebih panjang dari satu putaran generasi penuh ditambah
+penulisan balik yang menunggu slide tempatnya berada: media rutin selesai sebelum
+slide itu ada. Satu hari sengaja dibuat longgar, karena byte yang tidak diklaim memakan
+penyimpanan sementara kedaluwarsa yang terlalu cepat memakan media sebuah kursus. Nilai yang
+bukan bilangan bulat positif menghentikan server untuk mulai, dengan alasan yang sama
+seperti `ASSET_QUOTA_BYTES`.
+
+### Kuota
+
+Setiap pemilik boleh memegang `ASSET_QUOTA_BYTES` (default 10 GiB) aset aktif —
+pending yang belum kedaluwarsa atau masih direferensikan dokumen — sebelum alokasi berikutnya
+ditolak; store menegakkannya di dalam transaksi penulisan, sehingga
+unggahan konkuren tidak dapat melompatinya. Batas atasnya per pemilik, bukan per
+deployment: dengan pemilik cookie anonim bawaan, pengunjung yang menghapus
+cookie-nya menjadi pemilik baru dengan kuota baru, jadi batasi total penyimpanan di tempat lain
+jika itu penting. Entri dari sebelum partisi per pemilik tetap dihitung terhadap
+partisi bersama lama. Setel `ASSET_QUOTA_BYTES=0` untuk memilih keluar dan membatasi
+penyimpanan di tempat lain; penulisan nol dalam bentuk apa pun melakukannya. Nilai yang bukan
+bilangan bulat non-negatif ditolak saat server mulai, bukan diganti dengan
+default, sehingga batas atas yang salah ketik menghentikan proses alih-alih diam-diam berjalan
+dengan batas yang tidak dipilih siapa pun.
+
+Browser tidak pernah menghapus aset: aset yang tidak direferensikan apa pun diserahkan ke
+kolektor, dan tidak ada yang berubah di jalur data saat aset di-commit — penulisan dokumen
+melakukannya sebagai efek samping. Mengganti atau menghapus lewat endpoint dibatasi
+untuk pemilik, seperti dijelaskan di atas.
+
+### Egress byte dan kontrak HTTP
+
+Egress byte aset bersifat langsung secara default: rute tersemat menampilkan
+byte di badan respons. Setel `ASSET_BYTE_EGRESS=redirect` untuk memilih egress
+**tidak langsung**, di mana `GET` byte menjawab dengan URL S3 bertanda tangan berdurasi singkat
+saat lapisan byte dapat menandatangani (S3 bisa; kolom byte PostgreSQL tidak bisa
+dan jatuh kembali ke byte langsung). Dua prasyarat object store membuat itu aman:
+bucket harus mengizinkan origin aplikasi ini melalui CORS dan mengekspos `Content-Type` pada
+respons bertanda tangan, dan identitas penandatangan harus memegang `s3:ListBucket` pada
+bucket agar kunci yang hilang menjawab `404 NoSuchKey` alih-alih `403` — klien hanya
+dapat membaca aset yang diklaim kembali sebagai miss saat store mengonfirmasinya lewat kode. Kompromi
+yang dipilih di sini dijelaskan dalam
+[kontrak HTTP aset](https://github.com/THU-MAIC/OpenMAIC/blob/main/packages/@openmaic/storage/docs/asset-http-contract.md).
+
+Endpoint tersemat mengimplementasikan
+[kontrak HTTP RuntimeStore](https://github.com/THU-MAIC/OpenMAIC/blob/main/packages/@openmaic/storage/docs/runtime-http-contract.md)
+dan
+[kontrak HTTP DocumentStore](https://github.com/THU-MAIC/OpenMAIC/blob/main/packages/@openmaic/storage/docs/document-http-contract.md)
+milik paket tersebut.
+
+## Pemeriksaan saat mulai
+
+Konfigurasi tidak valid menghentikan server. Hook `register()` pada
+`instrumentation.ts` menolak untuk mulai pada:
+
+- `DATABASE_URL` yang tidak ada;
+- `ASSET_QUOTA_BYTES`, `ASSET_PENDING_TTL_MS`,
+  `OWNER_WRITE_LOCK_WAIT_MS` atau `OWNER_CLAIM_LOCK_WAIT_MS` yang tidak berbentuk benar;
+- `OWNER_CLAIM_TRIGGER` yang disetel ke apa pun selain `explicit` atau `auto`;
+- `OWNER_ANONYMOUS_PREMINT` yang bukan boolean;
+- variabel `OWNER_AUTHENTICATOR` / `TRUSTED_PROXY_*` yang sudah dihapus, bila disetel;
+- `PERSISTENCE_SHARED_OWNER_ID` yang tidak berbentuk benar, disetel tanpa `ACCESS_CODE`,
+  atau disetel di samping pendaftaran autentikasi pemilik yang tidak menyertakan
+  `sharedTeamAuthMethod()`; `sharedTeamAuthMethod()` yang didaftarkan tanpa
+  variabel tersebut, atau bukan sebagai metode terakhir;
+- `OWNER_SINGLE_USER` yang bukan boolean, `OWNER_SINGLE_USER_ID` yang tidak berbentuk
+  benar atau disetel saat mode mati, mode satu pengguna
+  di samping `PERSISTENCE_SHARED_OWNER_ID`, atau di samping pendaftaran yang tidak menyertakan
+  `singleUserAuthMethod()`; `singleUserAuthMethod()` yang didaftarkan tanpa
+  sakelar itu, atau bukan sebagai metode terakhir;
+- `ASSET_S3_BUCKET` yang disetel di samping store byte aset yang terdaftar, atau
+  `ASSET_BYTE_EGRESS=redirect` dengan store byte terdaftar yang tidak
+  mendeklarasikan `signsReadUrls: true`.
+
+Untuk salah satu dari ini, server Node.js mencetak satu baris,
+`[boot] Invalid server configuration; the server will not start:` diikuti
+alasannya, lalu keluar dengan kode `1` (baik di bawah `next start` maupun
+`server.js` standalone), sehingga supervisor atau runtime kontainer melihat kegagalan
+alih-alih proses yang mendengarkan dan menjawab setiap permintaan dengan `500`. Kegagalan lain
+selama boot, seperti modul yang hilang dari build atau panggilan pendaftaran host yang melempar error, juga keluar dengan kode `1`, dicetak sebagai
+`[boot] Server startup failed; the server will not start:` beserta stack-nya.
+Peringatan, seperti pemberitahuan `ACCESS_CODE` yang tidak disetel dan pemeriksaan perutean model,
+tidak pernah menghentikan server.
+
+## Workbench dan runtime agen
+
+Workbench adalah permukaan pembuatan kursus yang, setelah diaktifkan, menjadi halaman
+beranda itu sendiri (beranda klasik dipakai selagi fitur ini mati). Rel navigasi yang dapat
+diciutkan, panel percakapan, dan panel kelas bertab berbagi rute bidang kendali `/api/agent/*` dan
+runner sesi dalam proses.
+Fitur ini mati secara default. Aktifkan titik masuk build-time-nya dan runtime server;
+ia memakai koneksi PostgreSQL yang sama dengan bagian lain aplikasi:
+
+```bash
+NEXT_PUBLIC_WORKBENCH_ENABLED=true
+OPENMAIC_AGENT_RUNTIME_ENABLED=true
+DATABASE_URL=postgres://openmaic:openmaic-dev@postgres:5432/openmaic
+```
+
+Agen berjalan pada slot `agent` di `openmaic.yml` (atau pengaturan model), yang mengikuti
+model obrolan default kecuali ia punya penugasan sendiri dan membutuhkan model dengan tool calling:
+
+```yaml
+providers:
+  openai:
+    preset: openai
+    apiKey: ${OPENAI_API_KEY}
+
+slots:
+  llm: openai:gpt-5.5
+  agent:
+    model: openai:gpt-5.5
+    api: openai-completions        # or openai-responses
+```
+
+Selagi flag mati, rute `/api/agent/sessions*` dan `/api/agent/owner-events`
+menjawab `404`; rute pustaka kursus dan folder tidak bergantung pada
+flag tersebut (lihat [Pustaka kursus dan runtime agen](#pustaka-kursus-dan-runtime-agen)). `api` pada slot
+`agent` adalah `openai-completions` (default) atau `openai-responses`, dan tidak boleh menyetel
+`thinking.effort` (konfigurasi ditolak saat mulai atau saat disimpan); ia boleh menyetel
+`thinking.mode`. Effort yang diwarisi agen dari `llm` dihapus untuk agen. Deployment yang masih
+dikonfigurasi hanya melalui `DEFAULT_MODEL` membuat agen mati sampai slot `agent`
+ditetapkan.
+
+Irama runner (interval pemindaian, heartbeat, TTL lease, konkurensi, percobaan) dan
+kenop pemadatan yang disediakan tercantum di `.env.example`.
+
+## Identitas pemilik
+
+Kursus, folder, materi, sesi agen dan skill dipartisi menurut
+**id pemilik**, yang diselesaikan server untuk setiap permintaan di satu tempat
+(`lib/server/identity/`). Setiap rute dan Server Action yang dibatasi pemilik menanyakannya,
+sekali per permintaan; tidak ada yang lain yang membaca cookie atau header identitas.
+
+Resolusi menanyakan daftar berurutan **metode autentikasi pemilik**. Setiap metode mencari
+satu jenis kredensial dan menjawab tepat salah satu dari:
+
+| Jawaban | Arti | Resolusi |
+|---|---|---|
+| `authenticated` | Kredensialnya ada dan valid | Principal itu adalah pemilik; metode berikutnya tidak ditanya |
+| `not-applicable` | Tidak ada kredensial jenis itu | Metode berikutnya ditanya |
+| `invalid` | Kredensialnya ada tetapi tidak valid | `401 INVALID_CREDENTIAL` seketika; metode berikutnya dan fallback tidak ditanya |
+
+Ketika setiap metode menjawab `not-applicable`, **fallback anonim** bawaan
+menyelesaikan permintaan: satu pemilik per browser, `anon:<uuid>` dari
+cookie `anonymous_id` `HttpOnly` yang bertahan 400 hari (yang terlama yang disimpan browser)
+dan diperbarui, dengan nilai yang sama, pada setiap handler rute dan respons Server Action
+yang diselesaikan ke cookie itu, sehingga hanya kedaluwarsa setelah 400 hari tanpa dipakai.
+Respons halaman tidak memperbaruinya, sehingga halaman tetap dapat di-cache, dan respons yang
+menghapusnya (sebuah klaim, pemilik yang dipensiunkan) tidak pernah memperbaruinya. Kehilangannya (pembersihan
+manual, atau 400 hari menganggur) menghilangkan akses ke pustaka pemilik itu dari
+browser: identitas anonim tidak punya kunci lain, itulah sebabnya deployment Compose
+default ke mode satu pengguna dan host multi-pengguna sebaiknya memakai
+akun. Middleware membuatnya pada respons halaman
+pemuatan pertama sebuah browser, sehingga setiap permintaan yang dikirim halaman menyajikan
+satu pemilik; handler rute yang dijangkau tanpa cookie valid membuatnya dengan cara yang sama,
+dan cookie yang valid tidak pernah diganti. Cookie ini tidak dapat menerbitkan. Host dapat mematikan fallback, dan
+permintaan semacam itu juga menjadi `401`. Permintaan yang ditolak tidak pernah dilayani sebagai pemilik anonim.
+
+Dari awal tidak ada yang terdaftar, jadi setiap permintaan adalah pemilik anonim,
+kecuali salah satu dari dua bawaan dipilih oleh environment (keduanya saling
+mengecualikan):
+
+- `PERSISTENCE_SHARED_OWNER_ID` (memerlukan `ACCESS_CODE`): metode `sharedTeam` bawaan
+  menyelesaikan setiap permintaan ke id tetap itu, sehingga tim
+  di balik kode akses berbagi satu pustaka dan boleh menerbitkan.
+- `OWNER_SINGLE_USER=true` (default Compose): metode `singleUser` bawaan
+  menyelesaikan setiap permintaan ke satu pemilik untuk pemasangan pribadi; lihat
+  [Mode satu pengguna](#mode-satu-pengguna).
+
+Otorisasi membaca `kind` dan `roles` milik principal, tidak pernah bentuk
+id-nya. Peran inti adalah `course:publish` (menerbitkan dan menarik kursus) dan
+`admin` (disiapkan untuk permukaan administratif; tidak ada bawaan yang memberikannya).
+
+### Mode satu pengguna
+
+`OWNER_SINGLE_USER=true` menyelesaikan setiap permintaan ke satu pemilik tetap,
+`OWNER_SINGLE_USER_ID` (default `local`; 1-128 karakter dari `[A-Za-z0-9._-]`,
+sehingga awalan `anon:` yang disediakan tidak mungkin muncul). Principal-nya adalah
+`kind: 'user'` dengan peran `course:publish`: ini adalah pemasangan pribadi satu orang,
+jadi penerbitan berfungsi, dan tidak seperti `sharedTeam` (tim di balik satu
+kode, bukan satu orang) ia mendapat kandidat klaim, lihat di bawah. Tidak ada cookie anonim
+yang dibuat.
+
+**Eksposur.** Setiap permintaan menjadi pemilik seluruh pustaka, dan handler rute
+tidak dapat membedakan klien lokal dari klien jarak jauh (ia tidak melihat peer TCP,
+dan header penerusan disetel oleh klien), jadi tidak ada yang memeriksa
+permintaan. Mode satu pengguna berjalan dengan atau tanpa `ACCESS_CODE`:
+
+- **Dengan `ACCESS_CODE`**, gerbang kode akses menerima permintaan, seperti pada
+  `sharedTeam`.
+- **Tanpanya**, deployment bergantung pada tidak ada orang lain yang menjangkau server:
+  ikat ke loopback atau jaringan privat (berkas Compose menerbitkan pada
+  `127.0.0.1` secara default; di luar Compose, misalnya
+  `bun run start -H 127.0.0.1`). Server mencatat satu peringatan menonjol saat mulai
+  yang menjelaskan bahwa siapa pun yang dapat menjangkaunya berbagi, menyunting, dan dapat menghapus
+  pustaka tunggal itu, serta cara menyetel `ACCESS_CODE`. Server tidak menolak untuk mulai.
+
+Alur penyiapan pertama kali di masa depan mungkin akan meminta kode akses; untuk sekarang, setel
+`ACCESS_CODE` sendiri sebelum server dapat dijangkau orang lain.
+
+**Pekerjaan anonim sebelumnya.** Browser yang memakai deployment secara anonim
+sebelumnya tetap mengirim cookie `anonymous_id` miliknya. Principal satu pengguna mendapat
+`pendingClaim` untuk cookie itu (lihat [Mengklaim pekerjaan anonim](#mengklaim-pekerjaan-anonim)),
+tetapi tidak ada yang berpindah sendiri: pemicu default adalah eksplisit. Untuk membawa
+pekerjaan itu ke dalam pemilik tunggal, kirim `POST /api/identity/claim` (JSON same-origin,
+body `{}`) dari browser tersebut, atau setel `OWNER_CLAIM_TRIGGER=auto` dengan sadar.
+
+<Callout type="warn">
+Sebuah klaim tidak dapat dibatalkan. Dengan `OWNER_CLAIM_TRIGGER=auto`, **setiap** browser
+yang berkunjung menggabungkan pustaka anonimnya ke pemilik tunggal pada permintaan
+pertamanya. Jika beberapa orang sebelumnya memakai deployment secara anonim,
+itu menggabungkan semua pustaka mereka menjadi satu pustaka bersama yang dapat dihapus.
+</Callout>
+
+**Id pemilik bersifat permanen.** Mengubah `OWNER_SINGLE_USER_ID` di kemudian hari, atau
+berpindah dari `PERSISTENCE_SHARED_OWNER_ID`, membuat pustaka pemilik sebelumnya
+terdampar: ia bukan anonim, sehingga tidak dapat diklaim. Untuk mempertahankan pustaka
+tim bersama, setel `OWNER_SINGLE_USER_ID` ke id yang sama.
+
+Host yang mendaftarkan metodenya sendiri dan juga menginginkan pemilik tunggal sebagai
+upaya terakhir menyertakan `singleUserAuthMethod()` (diekspor dari
+`@/lib/server/identity`) di posisi terakhir, dengan aturan yang sama seperti `sharedTeamAuthMethod()`.
+
+### Mendaftarkan metode autentikasi pemilik
+
+Host dengan akunnya sendiri menulis satu metode per kredensial yang diterimanya dan mendaftarkannya
+sekali, dari `instrumentation.ts` `register()`, sebelum server melayani
+permintaan:
+
+```ts
+const { configureOwnerAuthentication } = await import('@/lib/server/identity');
+configureOwnerAuthentication({
+  methods: [
+    {
+      name: 'session',
+      async authenticate(req) {
+        const session = await readSession(req.headers); // host code
+        if (session === undefined) return { status: 'not-applicable' };
+        if (!session.valid) return { status: 'invalid', reason: 'expired session' };
+        return {
+          status: 'authenticated',
+          principal: {
+            ownerId: `user:${session.userId}`,
+            kind: 'user',
+            roles: new Set(session.canPublish ? ['course:publish'] : []),
+            assurance: 'verified',
+          },
+        };
+      },
+      describeStoredOwner: (ownerId) =>
+        ownerId.startsWith('user:') ? { kind: 'user' } : undefined,
+    },
+  ],
+  // anonymousFallback: false, // refuse requests no method applies to
+});
+```
+
+- **Ada tetapi tidak dapat dipakai adalah `invalid`, tidak pernah `not-applicable`.** Jawab
+  `not-applicable` hanya ketika header atau cookie metode itu tidak ada. Metode
+  yang menjawab `not-applicable` untuk kredensial jenisnya sendiri yang cacat atau kedaluwarsa
+  diam-diam menyerahkan permintaan ke metode berikutnya atau ke pemilik
+  anonim; inti tidak dapat membedakannya. Metode yang tidak dapat memutuskan (endpoint kuncinya atau
+  penyimpanan sesinya mati) melempar error, dan permintaan gagal sebagai error server.
+- `setCookies` pada jawaban `authenticated` ikut pada setiap respons, termasuk
+  error. `reason` pada jawaban `invalid` hanya untuk log server.
+- Server Action menanyakan metode yang sama dalam urutan yang sama, melalui
+  `authenticateFromContext()` bila suatu metode memilikinya dan jika tidak
+  `authenticate()` dengan header permintaan. Dalam Server Action cookie harus
+  ditulis melalui `next/headers`; jawaban yang membawa `setCookies` ditolak.
+- `describeStoredOwner(ownerId)` menyatakan jenis pemilik sebuah id tersimpan, untuk
+  pekerjaan yang hanya memegang id-nya (sebuah run agen, sebuah klaim). Fallback anonim
+  ditanya lebih dulu, lalu metode-metodenya secara berurutan. Id yang tidak dikenali siapa pun adalah
+  `user` tanpa peran.
+- Middleware membuat cookie anonim pada navigasi halaman setiap kali
+  `OWNER_SINGLE_USER` maupun `PERSISTENCE_SHARED_OWNER_ID` tidak disetel: ia dapat
+  berjalan di runtime Edge dan tidak dapat melihat pendaftaran ini. Cookie halaman di samping
+  kredensial host adalah kandidat klaim seperti cookie anonim lainnya.
+  - Dengan `anonymousFallback: false`, setel `OWNER_ANONYMOUS_PREMINT=false`: cookie
+    itu tidak akan melayani permintaan apa pun, dan dengan `OWNER_CLAIM_TRIGGER=auto` ia
+    akan diklaim lalu dihapus setelah setiap pemuatan halaman tanpa cookie. Server
+    memperingatkan saat mulai ketika pendaftaran ini membiarkan pra-pembuatan tetap menyala.
+  - Dengan fallback anonim menyala (default), pertahankan pra-pembuatan: tanpanya,
+    permintaan API pertama setiap pengunjung anonim masing-masing membuat pemiliknya sendiri
+    lagi. Untuk menghindari kandidat klaim di samping kredensial Anda, lewati
+    `anonymousOwnerForNavigation` di `middleware.ts` hanya untuk permintaan yang
+    diautentikasi sendiri oleh metode Anda (permintaan halaman yang membawa cookie sesi Anda, misalnya).
+- `issuesAnonymousOwners: true` dengan `clearCredential()` hanya untuk metode
+  yang mengautentikasi principal anonim itu sendiri dengan cookie: nilai `Set-Cookie`
+  tersebut ikut pada setiap `403 OWNER_RETIRED`. Inti tidak pernah memanggil
+  `clearCredential()` di sana pada metode lain, sehingga cookie sesi sebuah akun tidak pernah dihapus
+  karena identitas anonim dipensiunkan.
+- Principal diperiksa per permintaan: id pemilik yang bukan 1-256 karakter ASCII
+  non-spasi yang dapat dicetak, `kind` atau `assurance` yang tidak dikenal, atau
+  `pendingClaim` yang disetel oleh metode tersebut adalah `500` untuk permintaan itu alih-alih
+  disimpan. Pemilik yang diselesaikan sama menjadi learner key runtime dan
+  partisi aset `/api/persistence`, sehingga metode-metode itu mengaturnya juga.
+
+Pendaftaran diperiksa saat boot, dan masing-masing berikut melempar error dari `register()`
+sehingga server tidak mulai: panggilan kedua, panggilan setelah resolusi pemilik
+dimulai, daftar metode kosong, metode cacat atau bernama ganda, dan aturan
+`sharedTeam` di bawah. Untuk mempertahankan pemilik tim bersama di samping metode host,
+sertakan `sharedTeamAuthMethod()` (juga diekspor dari `@/lib/server/identity`)
+sebagai metode **terakhir**: ia selalu mengautentikasi, sehingga apa pun setelahnya tidak akan
+ditanya. `PERSISTENCE_SHARED_OWNER_ID` yang disetel di samping pendaftaran yang tidak
+menyertakannya, atau `sharedTeamAuthMethod()` yang didaftarkan tanpa variabel tersebut, menggagalkan
+boot alih-alih diabaikan.
+
+`OWNER_AUTHENTICATOR` dan variabel `TRUSTED_PROXY_*` dari autentikator header gateway
+bawaan sebelumnya tidak ada lagi; jika salah satunya disetel,
+boot gagal dengan pesan yang menunjuk ke sini, alih-alih diam-diam melayani setiap
+permintaan sebagai pemilik anonim.
+
+### Resep: akun melalui gateway identitas (JWT bertanda tangan)
+
+OpenMAIC tidak memiliki autentikator gateway bawaan. Deployment di belakang gateway
+identitas menulis metode kecil yang memverifikasi asersi **bertanda tangan** yang
+diteruskan gateway, terhadap kunci publik penerbit identitas. Berbeda dengan
+header pengguna biasa, token bertanda tangan tidak dapat dipalsukan oleh klien yang menjangkau
+aplikasi di sekitar gateway. Sumber umum:
+
+| Gateway | Header | Issuer / kunci |
+|---|---|---|
+| oauth2-proxy dengan `--pass-authorization-header` (atau `injectRequestHeaders` di `--alpha-config` yang menyetel `Authorization: Bearer <id_token>`) | `Authorization: Bearer …` | Issuer dan `jwks_uri` IdP; audiensnya adalah id klien OAuth |
+| Cloudflare Access | `Cf-Access-Jwt-Assertion` | `https://<team>.cloudflareaccess.com`, kunci di `/cdn-cgi/access/certs`; audiensnya adalah tag AUD aplikasi |
+| Google Cloud IAP | `x-goog-iap-jwt-assertion` | `https://cloud.google.com/iap`, kunci di `https://www.gstatic.com/iap/verify/public_key-jwk` |
+
+Sketsa di bawah memakai pustaka [`jose`](https://github.com/panva/jose), yang
+ditambahkan host sebagai dependensinya sendiri. **Ini adalah resep milik host dan harus
+diuji host**, bukan kode yang dikirim atau dipelihara OpenMAIC. Letakkan berkasnya di
+`lib/server/identity/host/`: uji batas
+(`tests/server/identity/cookie-guard.test.ts`) gagal pada pembacaan header identitas
+gateway atau header `Authorization` yang masuk di tempat lain mana pun, termasuk berkas
+identitas inti. Daftarkan metodenya dari `instrumentation.ts`.
+
+```ts
+// lib/server/identity/host/gateway-jwt.ts (host code)
+import { createRemoteJWKSet, errors, jwtVerify } from 'jose';
+
+import type { OwnerAuthMethod } from '@/lib/server/identity';
+
+const ISSUER = 'https://idp.example.org/';
+const AUDIENCE = 'openmaic';
+const JWKS = createRemoteJWKSet(new URL('https://idp.example.org/.well-known/jwks.json'));
+const ADMIN_GROUPS = new Set(['openmaic-admins']);
+/** jose errors that mean "this token is bad", as opposed to "the keys could not be fetched". */
+const TOKEN_ERRORS = [
+  errors.JWTExpired, // exp / nbf
+  errors.JWTClaimValidationFailed, // iss, aud, other claim checks
+  errors.JWTInvalid, // not a usable JWT payload
+  errors.JWSInvalid, // malformed compact serialization
+  errors.JWSSignatureVerificationFailed,
+  errors.JWKSNoMatchingKey, // unknown kid
+  errors.JWKSMultipleMatchingKeys, // no kid and several candidate keys
+  errors.JOSEAlgNotAllowed, // alg outside `algorithms`
+  errors.JOSENotSupported, // alg or header this library cannot verify
+];
+
+/** The token, `undefined` when this method does not apply. */
+function bearerToken(headers: Headers): string | undefined {
+  // Cloudflare Access / IAP: return headers.get('cf-access-jwt-assertion') ?? undefined;
+  const match = /^Bearer\s+(\S+)$/i.exec(headers.get('authorization')?.trim() ?? '');
+  return match?.[1];
+}
+
+export const gatewayJwtMethod: OwnerAuthMethod = {
+  name: 'gatewayJwt',
+  async authenticate(req) {
+    const token = bearerToken(req.headers);
+    if (token === undefined) return { status: 'not-applicable' };
+    let payload;
+    try {
+      // Checks the signature against the IdP's keys, `iss`, `aud`, `exp` and `nbf`.
+      ({ payload } = await jwtVerify(token, JWKS, {
+        issuer: ISSUER,
+        audience: AUDIENCE,
+        algorithms: ['RS256', 'ES256'],
+        clockTolerance: 30,
+      }));
+    } catch (error) {
+      // Only a failure of the token itself is `invalid`. Anything else (the key
+      // endpoint unreachable, answering non-200 or unparsable data, a timeout)
+      // is a server fault: rethrown, it fails the request as a 500 instead of
+      // refusing every user as if their token were forged.
+      if (TOKEN_ERRORS.some((type) => error instanceof type)) {
+        return { status: 'invalid', reason: (error as errors.JOSEError).code };
+      }
+      throw error;
+    }
+    const ownerId = `user:${payload.sub ?? ''}`;
+    if (!payload.sub || !/^[\x21-\x7e]{1,256}$/.test(ownerId)) {
+      return { status: 'invalid', reason: 'unusable sub' };
+    }
+    const groups: unknown[] = Array.isArray(payload.groups) ? payload.groups : [];
+    const roles = new Set(['course:publish']);
+    if (groups.some((group) => typeof group === 'string' && ADMIN_GROUPS.has(group))) {
+      roles.add('admin');
+    }
+    return {
+      status: 'authenticated',
+      principal: { ownerId, kind: 'user', roles, assurance: 'verified', channel: 'gateway' },
+    };
+  },
+  describeStoredOwner: (ownerId) =>
+    ownerId.startsWith('user:') ? { kind: 'user', roles: new Set(['course:publish']) } : undefined,
+};
+```
+
+```ts
+// instrumentation.ts, inside register()
+const { configureOwnerAuthentication } = await import('@/lib/server/identity');
+const { gatewayJwtMethod } = await import('@/lib/server/identity/host/gateway-jwt');
+configureOwnerAuthentication({ methods: [gatewayJwtMethod], anonymousFallback: false });
+```
+
+Catatan untuk host:
+
+- **Tidak ada berarti not-applicable, ada tetapi buruk berarti invalid.** Permintaan
+  tanpa header jatuh ke bawah (ke fallback anonim, atau `401`
+  dengan `anonymousFallback: false`, pilihan biasa ketika gateway mencakup
+  setiap rute). Tanda tangan, issuer, atau audiens yang salah, atau token yang kedaluwarsa, adalah
+  `401`, tidak pernah menjadi pemilik anonim.
+- **Gangguan endpoint kunci bukan token buruk.** Hanya error token yang tercantum
+  menjawab `invalid`. `jose` melaporkan endpoint JWKS yang tidak dapat dijangkau, menjawab
+  non-200, atau mengembalikan data yang tidak dapat diurai sebagai `JOSEError` generik
+  (`ERR_JOSE_GENERIC`), yang dilempar ulang oleh resep ini: permintaan gagal sebagai
+  error server alih-alih menolak setiap pengguna seolah token mereka dipalsukan.
+- **Sematkan `issuer`, `audience` dan `algorithms`.** Tanpa pemeriksaan audiens, token apa pun yang
+  diterbitkan IdP untuk aplikasi lain akan diterima.
+- **`sub` adalah id yang stabil**; email dapat berubah atau dialihkan. Pilih skema
+  id pemilik sekali: mengubahnya di kemudian hari mengubah setiap pemilik.
+- **Grup** bersifat spesifik IdP (klaim `groups` memerlukan IdP untuk merilisnya;
+  IAP tidak mengirimnya). Hapus pemetaan admin jika milik Anda tidak punya klaim semacam itu.
+- Gateway tetap seharusnya tidak dapat dilewati, dan tidak boleh mengecualikan rute aplikasi
+  dari autentikasi, tetapi klien yang menjangkau aplikasi secara langsung tidak dapat membuat
+  token yang valid, sehingga tidak diperlukan rahasia bersama.
+
+### Mengklaim pekerjaan anonim
+
+Pengunjung yang bekerja secara anonim lalu masuk memiliki dua pemilik: pemilik
+anonim tempat kursusnya ditulis, dan akunnya. Sebuah **klaim**
+memindahkan semua yang dipegang pemilik anonim ke akun dalam satu transaksi basis data,
+dan mempensiunkan id anonimnya.
+
+**Kapan sebuah klaim dapat muncul.** Inti memasang kandidat klaim itu sendiri: ketika
+metode host mengautentikasi principal non-anonim dan permintaan yang sama juga
+membawa cookie `anonymous_id` yang valid, principal mendapat `pendingClaim`
+yang menamai pemilik anonim tersebut. Ini mencakup pengunjung yang bekerja secara anonim lalu
+masuk (dengan fallback anonim menyala), dan deployment yang berpindah
+dari penggunaan anonim ke akun selagi pengunjung masih memegang cookie lama mereka
+(dengan fallback menyala atau mati). Tidak ada kandidat tanpa cookie yang valid,
+untuk principal anonim, atau untuk `sharedTeam` bawaan (ia tidak punya
+kredensial sendiri, jadi tidak ada yang menyatakan pekerjaan browser siapa itu); sebuah metode
+tidak dapat menyetelnya sendiri. `singleUser` bawaan mendapatkannya: deployment-nya
+hanya berisi satu orang, sehingga cookie menamai pekerjaan anonim orang itu sebelumnya.
+
+Tidak ada yang berpindah sampai klaim dipicu:
+
+- **Secara eksplisit (default):** aplikasi memanggil `POST /api/identity/claim` dengan
+  body JSON (`{}`) dari halamannya sendiri. Jawabannya adalah
+  `200 { status: 'claimed', moved }` atau `200 { status: 'already-claimed' }`,
+  dengan `Set-Cookie` yang menghapus cookie anonim.
+- **Secara otomatis:** `OWNER_CLAIM_TRIGGER=auto` mengklaim pada permintaan rute
+  pertama yang membawa klaim pending, sebelum handler berjalan. Rute eksplisit
+  dikecualikan, sehingga tetap melaporkan klaimnya sendiri. Server Action tidak pernah
+  memicunya. Utamakan pemicu eksplisit ketika satu browser dapat dipakai bersama oleh
+  beberapa orang: siapa pun yang masuk lebih dulu mengambil pekerjaan anonim di dalamnya.
+
+**Cookie anonim adalah kredensial bearer.** Siapa pun yang menyajikannya dapat membaca
+dan menyunting pekerjaan anonim itu, dan, di samping akun yang sudah masuk, mengklaimnya ke
+akun tersebut. Pada perangkat bersama, bersihkan (sebuah klaim melakukannya) sebelum orang berikutnya
+masuk. Cookie tidak ditandatangani dan tidak terikat ke akun, dan itulah
+kandidat klaim yang dibaca inti. Cookie ini host-only, tetapi subdomain saudara di bawah
+domain yang dapat didaftarkan sama dapat menyetel `anonymous_id` berlingkup Domain yang mungkin dikirim browser
+lebih dulu, sehingga subdomain yang bermusuhan dapat menanam identitas anonim mana yang
+diklaim pengunjung yang sudah masuk. Sajikan OpenMAIC pada domain yang dapat didaftarkan miliknya sendiri
+(atau di tempat tidak ada pihak tak tepercaya yang mengendalikan subdomain saudara). Pengerasan
+cookie itu sendiri (nama `__Host-` pada deployment HTTPS, menolak permintaan yang
+menyajikan lebih dari satu `anonymous_id`) adalah butir yang ditunda.
+
+| Permintaan                                                                                                                       | Hasil                                                   |
+| -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Bukan JSON same-origin (`Sec-Fetch-Site` selain `same-origin`, `Origin` asing, atau tipe konten apa pun selain `application/json`) | `403 CROSS_ORIGIN_REFUSED`, tidak ada yang berubah       |
+| Peminta anonim                                                                                                                    | `403 TARGET_ANONYMOUS`                                  |
+| Tidak ada cookie anonim di samping akun                                                                                           | `409 NO_PENDING_CLAIM`                                  |
+| Pemilik anonim sudah diklaim akun lain                                                                                            | `409 ALREADY_CLAIMED_ELSEWHERE`; cookie dihapus          |
+| Salah satu pemilik sedang ditulis (klaim tidak dapat mengambil kuncinya tepat waktu)                                              | `503 OWNER_BUSY` dengan `Retry-After`; coba lagi apa adanya |
+| Klaim yang ditolak aturan di bawah                                                                                                | `4xx` dengan kode aturannya; tidak ada yang berubah      |
+
+Apa yang berpindah, dalam urutan tetap ini (host menambahkan tabelnya sendiri dengan
+`registerClaimParticipant`, lihat di bawah):
+
+1. **Folder.** Folder yang namanya sudah dipakai akun (dibandingkan
+   tanpa membedakan huruf besar-kecil, seperti `createFolder`) digabungkan ke milik akun; folder
+   yang id-nya sudah dipakai akun untuk nama lain berpindah ke id baru;
+   sisanya berpindah apa adanya, setelah milik akun sendiri. Pengarsipan mengikuti.
+2. **Kursus** (`stage_meta`), termasuk yang sudah dihapus.
+3. **Materi.**
+4. **Sesi agen** dan riwayat daftar sesinya.
+5. **Skill pengguna.** Handle yang sudah dipakai akun diganti namanya menjadi handle pertama
+   yang tidak dipegang kedua belah pihak (`my-notes-2`, `my-notes-3`, ...).
+6. **Sesi runtime** (learner key). Kunci-kuncinya diganti sebagaimana tersimpan, sehingga
+   sesi yang ditulis versi lebih baru tidak menghentikan klaim.
+7. **Entri aset** (partisi per pemilik), sehingga kursus yang diklaim tetap
+   merender medianya untuk setiap penonton.
+8. **Ikatan impor legacy** (sementara, bersama impor browser legacy satu arah): browser
+   yang data pra-servernya dipegang pemilik anonim lalu menjadi milik akun, sehingga impor berlanjut
+   untuknya.
+9. **Agen kustom.** Id agen yang sudah dipakai akun mempertahankan
+   agen milik akun.
+
+Kuota tidak diterapkan pada apa yang berpindah: akun mempertahankan semuanya, dan jika sekarang
+ia di atas batas aset, materi, skill, agen, atau foldernya, ia tidak dapat menambah lagi
+sampai kembali di bawah batas. Klaim dicatat di `owner_merges`.
+
+Aturan: hanya pemilik anonim yang dapat diklaim, dan hanya oleh pemilik
+non-anonim; mengklaim pasangan yang sama lagi berhasil dan tidak melakukan apa pun; pemilik anonim
+yang sudah diklaim satu akun tidak dapat diklaim akun lain; dan tidak ada
+rantai (akun yang dipensiunkan tidak dapat mengklaim, dan pemilik yang menyerap yang lain
+tidak dapat diklaim), sehingga setiap id yang dipensiunkan diteruskan dalam satu langkah.
+
+Setelah klaim, id anonim **dipensiunkan**. Permintaan yang masih menyajikannya
+tidak menulis apa pun di bawahnya:
+
+- Pembuatan melalui `/api/persistence` (dokumen, folder, aset, sesi runtime),
+  rute folder, kursus, materi, dan unggahan skill, serta setiap
+  penulisan lain melalui `/api/persistence` menjawab `403 OWNER_RETIRED`.
+- Penulisan berdasarkan id ke baris yang berpindah (menghapus skill, mengirim ke sesi
+  agen) juga menjawab `403 OWNER_RETIRED`.
+- Setiap respons semacam itu membawa nilai `Set-Cookie` yang menghapus cookie anonim
+  yang dipensiunkan (dan nilai dari metode apa pun yang mendeklarasikan `issuesAnonymousOwners`), sehingga browser
+  mendapat pemilik anonim baru pada permintaan berikutnya. Pustaka id yang dipensiunkan
+  terbaca kosong.
+
+Pekerjaan yang dimulai sebelum klaim dan berjalan terus tanpa permintaan (suntingan kursus
+sebuah run agen, media yang dihasilkan, dan skill baru) justru mengikuti id ke
+akun, sehingga kursus yang masih digenerasi ketika penulisnya masuk
+mendarat di akun mereka. Sesi agen yang dibuat oleh permintaan yang berlomba
+dengan klaim ditulis untuk akun, seolah-olah dibuat sesaat sebelum
+klaim.
+
+Setiap penulisan yang membuat atau mengubah baris pemilik mengambil kunci advisory
+PostgreSQL per pemilik (kunci identitas) dalam mode shared sebagai pernyataan pertama
+transaksinya. Sebuah klaim mengambilnya dalam mode exclusive untuk kedua
+pemilik sebelum menyentuh sebuah baris. Penulisan berpagar yang berlomba dengan klaim karena itu entah
+commit lebih dulu lalu dipindahkan, atau menunggu lalu ditolak; pengujian menunjukkan tidak ada
+deadlock dan tidak ada yang tertinggal di bawah id yang dipensiunkan untuk penulisan ini.
+
+Waktu tunggu dibatasi:
+
+- Sebuah klaim menunggu hingga `OWNER_CLAIM_LOCK_WAIT_MS` (default 5000) untuk kedua
+  kunci identitas. Selagi menunggu, PostgreSQL mengantrekan penulis baru dari kedua pemilik
+  di belakangnya, jadi ini dijaga singkat.
+- Sebuah penulisan menunggu hingga `OWNER_WRITE_LOCK_WAIT_MS` (default 30000) untuk
+  kunci pemiliknya.
+- Sebuah unggahan memegang kunci selagi bytenya ditulis, sehingga klaim menunggu
+  unggahan yang sedang berjalan, hingga batasnya.
+- Kehabisan waktu adalah `503 OWNER_BUSY` dengan `Retry-After`, dan tidak ada yang
+  ditulis.
+
+Kolektor aset tidak mengambil kunci identitas; putaran kolektor yang berlomba dengan
+klaim atas entri yang sama dapat membuat PostgreSQL membatalkan salah satunya, dan klaim
+yang dibatalkan begitu juga menjawab `OWNER_BUSY`.
+
+Host mendaftarkan peserta untuk tabelnya sendiri yang dikunci pemilik dari
+`instrumentation.ts`:
+
+```ts
+const { registerClaimParticipant } = await import('@/lib/persistence/owner-claims');
+registerClaimParticipant({
+  name: 'course-notes',
+  order: 1000, // after core's 100-950; see lib/persistence/owner-claims.ts
+  rekey: async (tx, fromOwnerId, toOwnerId) =>
+    (
+      await tx.query('UPDATE course_notes SET owner_id = $2 WHERE owner_id = $1 RETURNING 1', [
+        fromOwnerId,
+        toOwnerId,
+      ])
+    ).rows.length,
+});
+```
+
+Seorang peserta berjalan di dalam transaksi klaim; jika ia melempar error, tidak ada yang
+dilakukan peserta mana pun yang dipertahankan. `claimOwner(from, to)` dan
+`claimPendingOwner(principal)` menjalankan klaim dari kode host.
+
+Sumber sebuah klaim harus dideskripsikan sebagai anonim (`describeStoredOwner`,
+melalui `principalFromStoredOwner`). Penerusan id yang dipensiunkan adalah milik inti sendiri
+(`owner_merges`); tidak ada hook host untuk itu. `owner_merges` mencatat klaim
+pemilik anonim saja, karena pagar penulisan hanya menegakkan pensiun untuk
+id yang dideskripsikan sebagai anonim: `describeStoredOwner` harus terus mendeskripsikan sebuah id
+dengan cara yang sama, dan baris yang mempensiunkan pemilik lain ditolak saat dibaca. Host
+yang menggabungkan dua akun yang sudah masuk memindahkan barisnya sendiri (pesertanya
+sendiri) dan menolak akun yang digabungkan-hilang di metode autentikasinya. `OWNER_WRITE_LOCK_WAIT_MS` dan
+`OWNER_CLAIM_LOCK_WAIT_MS` diperiksa saat mulai.
+
+## Hook ekstensi host
+
+Host dapat menambahkan perilaku produk di empat titik tanpa mem-fork sebuah rute. Hook-hook itu
+didaftarkan seperti metode autentikasi pemilik: sekali, dari `instrumentation.ts`
+`register()`, dan disegel pada penggunaan pertama (panggilan kedua, atau panggilan setelah
+server mulai memakainya, melempar error). Objek biasa maupun instans kelas sama-sama
+bekerja; setiap hook dibaca sekali saat pendaftaran dan diikat ke objek yang diberikan.
+Hook yang salah ejaan ditolak alih-alih diam-diam tidak pernah dipanggil: objek biasa
+hanya boleh membawa kunci yang dikenal, dan instans kelas tidak boleh membawa metode publik
+selain hook, jadi jaga helper kelas host tetap privat (`#helper`) atau
+daftarkan objek biasa. Tanpa apa pun yang terdaftar, setiap titik berperilaku tepat seperti dijelaskan di atas.
+
+```ts
+// instrumentation.ts, inside register(), next to configureOwnerAuthentication
+const { configurePersistenceHooks, configureAssetByteStore } =
+  await import('@/lib/server/persistence-hooks');
+
+configurePersistenceHooks({
+  name: 'my-host',
+  // Course creation, inside the transaction that creates the course.
+  async authorizeCreate(tx, actor) {
+    const retired = await tx.query('SELECT 1 FROM host_retired_owners WHERE owner_id = $1', [
+      actor.ownerId,
+    ]);
+    return retired.rows.length ? { allow: false, message: 'account retired' } : { allow: true };
+  },
+  async onCreate(tx, actor, stageId) {
+    await tx.query('INSERT INTO host_library (owner_id, stage_id) VALUES ($1, $2)', [
+      actor.ownerId,
+      stageId,
+    ]);
+  },
+  // What GET /api/stages lists.
+  library: {
+    name: 'owned-and-saved',
+    async list({ principal, queryable, ownedStageIds }) {
+      const saved = await queryable.query<{ stage_id: string }>(
+        'SELECT stage_id FROM host_saved_courses WHERE owner_id = $1',
+        [principal.ownerId],
+      );
+      return [...(await ownedStageIds()), ...saved.rows.map((row) => row.stage_id)];
+    },
+  },
+  // Upload admission (req.operation: 'create' | 'replace'), before any byte
+  // is stored or counted. Also asked before a classroom import stores its PBL
+  // project packages; a refusal fails that import.
+  async beforeAssetAllocate(principal, req) {
+    const exhausted = await uploadBudgetExhausted(principal.ownerId, req.headers); // host code
+    return exhausted
+      ? Response.json({ error: { code: 'UPLOAD_BUDGET' } }, { status: 429 })
+      : undefined;
+  },
+});
+
+// Where asset bytes live, for the request path and the collector alike.
+configureAssetByteStore({
+  name: 'my-object-store',
+  create: () => createMyObjectByteStore(), // host code: an AssetByteStore
+  signsReadUrls: true, // required for ASSET_BYTE_EGRESS=redirect
+});
+```
+
+| Hook | Dipanggil | Kontrak |
+|---|---|---|
+| `authorizeCreate(tx, actor, stageId)` | Sekali per kursus yang dibuat, di dalam transaksinya, setelah baris kursus ditulis | Selesaikan `{ allow: true }` atau `{ allow: false, message? }`. Penolakan membatalkan semuanya dan menjawab `403 CREATE_REFUSED` (pada `/api/persistence` dan `POST /api/stages`). |
+| `onCreate(tx, actor, stageId)` | Tepat setelah `authorizeCreate` mengizinkannya, transaksi yang sama | Pernyataan pada `tx` di-commit bersama kursus; error yang dilempar membatalkan seluruh pembuatan. |
+| `library.list({ principal, queryable, ownedStageIds })` | `GET /api/stages` | Selesaikan paling banyak 5000 id stage (lebih dari itu adalah `500`). Rute mencantumkannya dalam urutan itu sebagai item biasa, tanpa duplikat, dan membuang setiap id yang akan ditolak jalur baca (dihapus, tidak diklaim, atau sama sekali tidak dapat dialamatkan, seperti `..` atau yang berisi NUL). `folderId` hanya ditampilkan pada kursus milik principal sendiri. |
+| `beforeAssetAllocate(principal, req)` | Setiap unggahan melalui `/api/persistence/assets`: `POST /assets` (`req.operation: 'create'`) dan `PUT /assets/{id}/content` (`'replace'`, dengan `req.assetId` yang sudah didekode), setelah pemilik diselesaikan dan sebelum body dibaca. Juga setiap pemasangan paket proyek melalui `POST /api/pbl/v3/packages` (`req.operation: 'create'`), sekali per permintaan, setelah body dibaca dan divalidasi dan sebelum paket apa pun disimpan | Selesaikan `undefined` untuk melanjutkan atau sebuah `Response` untuk menjawab dengannya; tidak ada yang disimpan dan tidak ada kuota yang dihitung. Menolak pemasangan paket menggagalkan seluruh impor kelas yang mengirimnya, karena impor berhenti sebelum menulis kursus. Putuskan berdasarkan `operation` / `assetId`, yang merupakan perutean handler penyimpanan itu sendiri; `url` adalah permintaan sebagaimana diterima. Media yang digenerasi run agen di server bukan unggahan HTTP dan tidak melewati hook ini; kuota per pemilik tetap membatasinya. |
+| `configureAssetByteStore({ name, create, signsReadUrls? })` | Secara lazy, oleh rute persistence dan oleh kolektor aset | `create({ queryable })` mengembalikan `AssetByteStore` (`@openmaic/storage`) yang menyimpan byte di luar basis data registri dan mendeklarasikannya dengan `writesOutsideRegistryDatabase: true`. Flag itu dipercaya: store yang menyetelnya tetapi menulis melalui basis data registri dapat mengalami deadlock. Menggantikan sakelar `ASSET_S3_BUCKET`; menyetel keduanya menghentikan server. |
+
+**Apa yang dihitung sebagai pembuatan.** Sebuah kursus dibuat oleh transaksi yang
+mencatat pemiliknya untuk pertama kali: penyimpanan pertama sebuah id stage baru, dari
+permintaan atau dari run agen. Menyimpan, menyunting, atau mengganti nama kursus yang sudah
+dipegang pemilik adalah pembaruan dan tidak memanggil hook pembuatan mana pun; begitu juga pembuatan yang
+kalah berlomba dengan pembuatan konkuren id yang sama oleh pemilik yang sama.
+`actor.ownerId` selalu pemiliknya. `actor.source` menyatakan siapa yang menulis:
+`'request'` membawa `actor.principal`, principal tempat permintaan diselesaikan;
+`'background'` adalah run agen yang menulis atas nama pemilik setelah permintaannya
+berakhir, dan tidak punya principal karena run hanya mencatat id pemilik. Penulisan
+background bukan pemanggil tepercaya: pemilik yang memulainya, jadi terapkan
+batas yang sama padanya. Pada penulisan background, penolakan sampai ke agen sebagai hasil tetap
+"refused by this deployment"; `message` hanya dikirim ke klien permintaan.
+
+Kursus yang ditulis sebelum baris kepemilikan ada diadopsi oleh backfill sekali jalan
+saat server mulai. Itu berjalan di luar permintaan apa pun, sehingga tidak ada hook pembuatan
+yang berjalan untuknya; server mencatat berapa banyak yang diadopsinya.
+
+**Apa yang boleh dicantumkan pustaka.** Pembacaan kursus bersifat capability-by-id, sehingga mencantumkan
+sebuah id berarti membagikannya: penyedia hanya mencantumkan kursus pemilik lain ketika
+principal berhak mengetahui id-nya (ia menyimpannya, kursus itu dibagikan kepadanya). Rute
+menjamin sisanya: ia tidak pernah mencantumkan kursus yang tidak akan dilayani
+`GET /api/stages/{id}`.
+
+**Egress redirect.** Lapisan bawaan tidak berubah (S3 menandatangani; kolom
+PostgreSQL jatuh kembali ke byte langsung). Store yang dikonfigurasi yang tidak
+mendeklarasikan `signsReadUrls: true` menghentikan server saat boot di bawah
+`ASSET_BYTE_EGRESS=redirect`, alih-alih baru ditemukan pada pembacaan pertama. Store yang
+mendeklarasikannya tetapi ternyata tidak punya `signReadUrl` dicatat di log dan dilayani
+dengan byte langsung, seperti fallback bawaan; kolektor tidak pernah menandatangani.
+
+### Hook run generasi
+
+Generasi kursus berjalan di server (`POST /api/generation-runs`, dan
+`POST /api/generate-classroom` yang headless). Host yang mengukur penggunaan, menegakkan
+kuota, atau menyimpan jejak audit mendaftarkan hook run generasinya dengan cara yang sama,
+dari `register()`; pendaftarannya divalidasi dan disegel seperti hook
+di atas. Tanpa apa pun yang terdaftar, run berperilaku tepat seperti sebelumnya.
+
+```ts
+// instrumentation.ts, inside register()
+const { configureGenerationRunHooks } = await import('@/lib/server/generation-run-hooks');
+
+configureGenerationRunHooks({
+  name: 'my-host',
+  // After every built-in check, inside the transaction that creates the run.
+  async authorizeStart({ principal, input, origin, tx }) {
+    const plan = await planFor(principal.ownerId, tx); // host code
+    return plan.exhausted
+      ? { allow: false, status: 402, code: 'QUOTA_EXHAUSTED', message: 'No quota left' }
+      : { allow: true, attributes: { plan: plan.id } };
+  },
+  // Around every claimed execution, in whichever process claims it.
+  wrapExecution: (context, execute) => usageScope.run(context, execute), // an AsyncLocalStorage
+  classifyFailure: (error) =>
+    error instanceof QuotaExhaustedError // thrown by host code inside the scope
+      ? { errorCode: 'QUOTA_EXHAUSTED', retryable: false }
+      : undefined,
+  onRunEvent: (event) => auditLog.write(event), // host code
+});
+```
+
+| Hook | Dipanggil | Kontrak |
+|---|---|---|
+| `authorizeStart(context)` | Sekali per start di kedua rute, setelah pemeriksaan body, model wajib, materi, agen, dan batas run, di dalam transaksi pembuatan (`context.tx`), sebelum baris run ada, selagi start pemilik diserialkan: jaga tetap cepat dan jangan melakukan I/O jaringan di dalamnya. `context` membawa `runId`, `principal`, `ownerId`, `input`, `request` dan `origin` (`'generation-runs'` atau `'generate-classroom'`). | Selesaikan `{ allow: true, attributes? }` atau `{ allow: false, status, code, message, headers? }`. Penolakan menjawab dengan status itu (400-599), `errorCode: code` dan `error: message`, dan tidak ada run yang dibuat. `attributes` (nilai string, paling banyak 8 KiB) disimpan pada run, tidak pernah ditampilkan ke pemiliknya, dan diteruskan ke hook lain. Jawaban cacat atau error yang dilempar adalah `500`. |
+| `wrapExecution(context, execute)` | Di sekitar setiap eksekusi run yang diklaim: klaim pertama, pengambilalihan setelah lease menjadi basi (`takeover: true`), klaim setelah konfirmasi outline atau Retry, dan satu lagi untuk media run yang dijeda atau selesai (`kind: 'generation-run'`, dengan `runId`, `ownerId` sebagaimana tersimpan, `currentOwnerId` setelah klaim akun, `stageId?`, `attributes`). Juga di sekitar setiap ekstraksi latar belakang materi yang diunggah (`kind: 'material-extraction'`, dengan `materialId`). | Panggil `execute` sekali dan jawab apa yang dijawabnya. Melempar sebelum `execute` menolak eksekusi: run dijeda pada langkahnya dengan kegagalan terklasifikasi (medianya yang pending gagal saja, untuk eksekusi media saja), dan Retry pemilik melanjutkannya; sebuah ekstraksi gagal. |
+| `classifyFailure(error)` | Sebelum keputusan retry dan kode error bawaan sebuah langkah run, retry aliran outline, fallback model, sebuah item media, dan ekstraksi materi. Error yang dibungkus sebuah kegagalan (`cause`, `lastError`, `errors`) juga ditanyakan. | Jawab `{ errorCode, retryable, statusCode? }` untuk error milik host, `undefined` jika tidak. `retryable: false` melewati sisa retry otomatis (termasuk retry SDK penyedia sendiri untuk status yang dapat dicoba ulang) dan model fallback serta menjeda run pada langkah itu dengan `errorCode`. Jawaban juga menimpa aturan bawaan untuk penolakan kuota eksplisit sebuah penyedia, yang biasanya melewati retry otomatis tetapi masih mungkin memakai model fallback. Sebuah item media mempertahankan Retry-nya; sebuah ekstraksi mencatat `retryable`. Classifier yang melempar error diabaikan. |
+| `onRunEvent(event)` | Setelah transisi sebuah run di-commit: `started`, `outline-ready`, `scene-appended`, `paused`, `completed`, `ended` (oleh pembuangan atau penghapusan kursus juga). Masing-masing membawa `runId`, `ownerId` (sebagaimana tersimpan), `currentOwnerId` (akun tempat run diklaim sejak itu, diselesaikan seperti untuk `wrapExecution`) dan `attributes`. | Atribusikan penggunaan ke `currentOwnerId`. Dipanggil dalam urutan commit di dalam satu proses, tidak ditunggu. Pemilik saat ini dicari paling lama 5 s (jika tidak, pemilik tersimpan dilaporkan, dengan peringatan), dan paling banyak 1000 notifikasi menunggu dalam satu proses: notifikasi yang menemukan antrean penuh dibuang, dengan peringatan yang menghitung pembuangan itu; error atau penolakan dicatat di log dan diabaikan serta tidak pernah memengaruhi run. Best effort, paling banyak sekali: proses yang berhenti antara commit dan panggilan tidak mengulanginya, jadi jangan menagih dari situ. Log peristiwa run tetap menjadi catatannya. |
+
+**Celah yang diketahui.** Ekstraksi materi yang dilampirkan ke sesi workbench agen
+(`lib/server/material-extraction/runner.ts`) belum melewati
+`wrapExecution` atau `classifyFailure`; hanya ekstraksi materi pemilik yang diunggah
+yang melewatinya.

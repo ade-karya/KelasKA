@@ -54,7 +54,9 @@
 #      (dari pnpm-workspace.yaml) dan `trustedDependencies` ke package.json
 #      agar monorepo + modul native bekerja di Bun, lalu menulis bun.lock.
 #   6. Verifikasi vendor PPTX + kontrak engine, opsional build produksi,
-#      opsional browser Playwright, dan opsional PM2.
+#      opsional browser Playwright, dan opsional PM2. Situs dokumentasi statis
+#      `/docs` (packages/docs) dibangun paralel dengan build aplikasi lalu
+#      disalin ke public/docs-site; lewati dengan --no-docs.
 #   7. PM2 (--with-pm2) dijalankan dengan Bun (tanpa Node). Aplikasi memakai
 #      ecosystem.bun.config.cjs -> server standalone Next.js di Bun.
 #
@@ -77,6 +79,10 @@
 #                         punya key/transport yang jelas).
 #   --build               Jalankan `bun --bun run build` di akhir.
 #   --with-pm2            Instal PM2 (via Bun) + build + jalankan aplikasi.
+#   --no-docs             Jangan bangun situs dokumentasi /docs (packages/docs);
+#                         /docs lalu menjawab "belum dibangun". Default: bangun
+#                         paralel dengan build produksi.
+#   --with-docs           Paksa build dokumentasi (default).
 #   --with-playwright     Instal browser Chromium untuk e2e Playwright.
 #   --full                Setara --build --with-playwright.
 #   --fast                Build cepat untuk demo: lewati typecheck Next.js dan
@@ -254,6 +260,9 @@ on_exit() {
   if [[ -n "${BOOTSTRAP_PID:-}" ]]; then
     kill "$BOOTSTRAP_PID" 2>/dev/null || true
   fi
+  if [[ -n "${DOCS_BUILD_PID:-}" ]]; then
+    kill "$DOCS_BUILD_PID" 2>/dev/null || true
+  fi
   [[ "$rc" -eq 0 || "$rc" -eq 141 ]] && return 0
   if [[ "$FAILED_BY_FAIL" -eq 0 ]]; then
     echo -e "${MERAH}[install] GAGAL:${RESET} berhenti di langkah '${LANGKAH}' (exit ${rc})." >&2
@@ -286,6 +295,8 @@ GOOGLE_KEY_ARG=""
 GITHUB_TOKEN_ARG=""
 WITH_BUILD=0
 WITH_PLAYWRIGHT=0
+# Situs dokumentasi /docs (packages/docs) dibangun paralel dengan build utama.
+WITH_DOCS=1
 WITH_PM2=0
 WITH_COLAB=0
 WITH_KAGGLE=0
@@ -383,6 +394,8 @@ for arg in "$@"; do
     --google-key=*)      GOOGLE_KEY_ARG="${arg#*=}" ;;
     --github-token=*)    GITHUB_TOKEN_ARG="${arg#*=}" ;;
     --build)             WITH_BUILD=1 ;;
+    --with-docs)         WITH_DOCS=1 ;;
+    --no-docs)           WITH_DOCS=0 ;;
     --with-pm2)          WITH_PM2=1 ;;
     --with-playwright)   WITH_PLAYWRIGHT=1 ;;
     --full|--with-dev-tools) WITH_BUILD=1; WITH_PLAYWRIGHT=1 ;;
@@ -2821,6 +2834,59 @@ fi
 
 # ============================================================ 8. Build
 BUILD_DONE=0
+
+# ------------------------------------------------ dokumentasi /docs (paralel)
+# packages/docs adalah aplikasi Next statis terpisah (di luar workspace Bun).
+# Build-nya berjalan di latar selama build utama, lalu public/docs-site
+# disalin ke standalone oleh langkah PM2. Non-fatal: tanpa docs, rute /docs
+# menjawab halaman "belum dibangun".
+DOCS_BUILD_PID=""
+DOCS_BUILD_LOG=""
+DOCS_BUILD_RC_FILE=""
+bangun_docs_di_latar() {
+  [[ "$WITH_DOCS" -eq 1 ]] || return 0
+  [[ "$WITH_INSTALL" -eq 1 ]] || return 0
+  [[ -f packages/docs/package.json ]] || return 0
+  [[ -f scripts/build-docs.sh ]] || return 0
+  DOCS_BUILD_LOG="$(mktemp)"
+  DOCS_BUILD_RC_FILE="${DOCS_BUILD_LOG}.rc"
+  rm -f "$DOCS_BUILD_RC_FILE"
+  (
+    _docs_rc=0
+    as_owner env NEXT_TELEMETRY_DISABLED=1 BUN_BIN="$BUN_BIN" \
+      bash scripts/build-docs.sh || _docs_rc=$?
+    printf '%s\n' "$_docs_rc" > "$DOCS_BUILD_RC_FILE"
+  ) >"$DOCS_BUILD_LOG" 2>&1 &
+  DOCS_BUILD_PID=$!
+  info "Build dokumentasi /docs berjalan di latar (PID ${DOCS_BUILD_PID})."
+}
+
+pastikan_docs() {
+  [[ -n "$DOCS_BUILD_PID" ]] || return 0
+  LANGKAH="docs: build situs /docs"
+  wait "$DOCS_BUILD_PID" 2>/dev/null || true
+  DOCS_BUILD_PID=""
+  local _docs_rc=0
+  if [[ -f "$DOCS_BUILD_RC_FILE" ]]; then
+    _docs_rc="$(cat "$DOCS_BUILD_RC_FILE" 2>/dev/null || echo 1)"
+  fi
+  if [[ "$_docs_rc" == "0" ]]; then
+    info "Situs dokumentasi siap di public/docs-site."
+  else
+    warn "Build dokumentasi /docs gagal (exit ${_docs_rc}); halaman /docs akan menjawab 'belum dibangun'. Jalankan manual: bash scripts/build-docs.sh"
+    if [[ -n "$DOCS_BUILD_LOG" && -f "$DOCS_BUILD_LOG" ]]; then
+      tail -n 25 "$DOCS_BUILD_LOG" >&2 || true
+    fi
+  fi
+  if [[ -n "$DOCS_BUILD_LOG" ]]; then rm -f "$DOCS_BUILD_LOG"; fi
+  if [[ -n "$DOCS_BUILD_RC_FILE" ]]; then rm -f "$DOCS_BUILD_RC_FILE"; fi
+  DOCS_BUILD_LOG=""
+  DOCS_BUILD_RC_FILE=""
+  preset_mark "build dokumentasi selesai"
+}
+
+bangun_docs_di_latar
+
 jalankan_build() {
   LANGKAH="bun: build produksi"
   # Heap adaptif untuk tsc/esbuild yang dijalankan bun saat build (pola
@@ -2854,6 +2920,9 @@ if [[ "$WITH_BUILD" -eq 1 ]]; then
   fi
   jalankan_build
 fi
+# Dokumentasi dibangun paralel dengan build utama; PM2 menyalin public/ di
+# bawah, jadi tunggu hasilnya sebelum salinan standalone dibuat.
+pastikan_docs
 # Skema database berjalan di latar sejak bun install; build tidak membutuhkannya
 # tetapi PM2 (di bawah) butuh skema siap saat server start.
 pastikan_bootstrap_db

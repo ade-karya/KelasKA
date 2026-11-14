@@ -7,6 +7,7 @@ export type OramaTokenizer =
   | 'mandarin'
   | 'japanese'
   | 'english'
+  | 'indonesian'
   | 'russian'
   | 'arabic';
 

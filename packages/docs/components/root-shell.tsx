@@ -5,7 +5,7 @@ import { DocsRootProvider } from '@/components/docs-root-provider';
 /**
  * Shared <html> shell for every root layout (default-locale tree and the
  * prefixed [lang] tree). Each route group has its own root layout so that the
- * default locale (en) can live at unprefixed URLs while other locales keep a
+ * default locale can live at unprefixed URLs while other locales keep a
  * /<lang> prefix — this is what makes the static export hydrate cleanly.
  */
 export function RootShell({

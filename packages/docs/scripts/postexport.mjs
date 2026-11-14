@@ -37,24 +37,24 @@ async function main() {
     console.log(`[postexport] wrote out/${lang}/index.html -> ${target}`);
   }
 
-  // The default locale (en) is unprefixed, so /docs/en/<slug> has no generated
-  // page and would 404. Emit redirect stubs that bounce the prefixed English
-  // form to its canonical unprefixed URL, so /docs/en/getting-started works too.
+  // The default locale (id) is unprefixed, so /docs/id/<slug> has no generated
+  // page and would 404. Emit redirect stubs that bounce the prefixed default
+  // form to its canonical unprefixed URL, so /docs/id/getting-started works too.
   const SPECIAL = new Set(['404', '_not-found', 'index']);
-  const enSlugs = (await readdir(OUT))
+  const defaultSlugs = (await readdir(OUT))
     .filter((f) => f.endsWith('.html'))
     .map((f) => f.slice(0, -'.html'.length))
     .filter((s) => !SPECIAL.has(s));
-  const enDir = join(OUT, DEFAULT_LANG);
-  await mkdir(enDir, { recursive: true });
-  await writeFile(join(enDir, 'index.html'), redirectHtml(`${DOCS_BASE_PATH}/`));
-  for (const slug of enSlugs) {
+  const defaultDir = join(OUT, DEFAULT_LANG);
+  await mkdir(defaultDir, { recursive: true });
+  await writeFile(join(defaultDir, 'index.html'), redirectHtml(`${DOCS_BASE_PATH}/`));
+  for (const slug of defaultSlugs) {
     await writeFile(
-      join(enDir, `${slug}.html`),
+      join(defaultDir, `${slug}.html`),
       redirectHtml(`${DOCS_BASE_PATH}/${slug}`),
     );
   }
-  console.log(`[postexport] wrote out/${DEFAULT_LANG}/{index,${enSlugs.join(',')}}.html -> unprefixed`);
+  console.log(`[postexport] wrote out/${DEFAULT_LANG}/{index,${defaultSlugs.join(',')}}.html -> unprefixed`);
 
   // Sanity report. Derived from the locale source so it can't drift.
   const expect = [

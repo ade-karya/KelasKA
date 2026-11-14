@@ -1,0 +1,183 @@
+---
+title: Men-deploy OpenMAIC
+description: Deploy OpenMAIC dengan Docker, atau dengan bun run start di host Anda sendiri.
+---
+
+OpenMAIC adalah aplikasi Next.js yang memerlukan proses Node.js berjalan lama dan PostgreSQL. Pembuatan kursus berjalan di server: setiap run disimpan di basis data dan dieksekusi oleh worker di dalam proses server, yang tetap berjalan setelah browser meninggalkan halaman dan diambil alih oleh proses lain (atau proses yang sama setelah restart) dari langkah terakhir yang selesai. Dua bentuk deployment didukung:
+
+- **Docker Compose** (direkomendasikan): aplikasi dan PostgreSQL dalam dua kontainer.
+- **Image Docker atau `bun run start`** dengan basis data PostgreSQL yang Anda jalankan sendiri.
+
+Host serverless seperti Vercel tidak didukung sejak 1.2.0: fungsi yang berakhir bersama permintaannya tidak dapat menjalankan pembuatan. Lihat [Vercel (hingga 1.1.x)](#vercel-hingga-11x).
+
+## Memperbarui instance yang berbagi satu basis data
+
+Instance yang berbagi satu basis data harus menjalankan versi kode yang kompatibel. Beberapa fitur memigrasikan tabelnya saat pertama kali digunakan, sehingga instance lama dapat menjadi tidak kompatibel setelah lolos pemeriksaan startup-nya ketika instance yang lebih baru meningkatkan versi basis data.
+
+Setiap server Node.js juga memantau kompatibilitas skema setiap 30 detik, terlepas dari `OPENMAIC_AGENT_RUNTIME_ENABLED`, sehingga deployment yang hanya melakukan pembuatan dan persistensi juga dipensiunkan. Kegagalan pemantauan sementara dicoba lagi pada polling berikutnya; pemantauan berhenti sebelum persistensi ditutup. Worker Agent juga memeriksa kompatibilitas skema sebelum klaim pertamanya, lalu menggunakan kembali pemeriksaan yang berhasil selama 30 detik. Setelah jendela itu berakhir, pemindaian berikutnya harus lolos pemeriksaan baru sebelum mengklaim pekerjaan lagi; kegagalan pemeriksaan sementara dicoba lagi pada pemindaian berikutnya tanpa mengklaim. Penolakan skema saat eksekusi langsung memensiunkan instance. Instance yang tidak kompatibel berhenti mengambil pekerjaan dan berupaya memarkir serta melepaskan klaim yang ada sebelum keluar. Pensiun memiliki tenggat total 30 detik, termasuk pengurasan worker dan penutupan pool; jika pembersihan tetap terblokir, ia mencatat timeout dan keluar dengan kode non-nol. Lease yang belum selesai kemudian mengikuti aturan pemulihan lease basi yang sudah ada. Instance yang kompatibel dapat melanjutkan input aslinya. Jendela deteksi terbatas ini tidak membuat rilis lama menjadi kompatibel dengan skema yang lebih baru.
+
+Saat pertama kali men-deploy perlindungan ini, kuras dan hentikan instance lama yang belum memilikinya sebelum memulai rilis yang mungkin memigrasikan basis data. Rilis berikutnya juga harus menghindari meninggalkan versi yang tidak kompatibel pada basis data yang sama. Periksa dukungan skema sebelum melakukan rollback image; jangan pernah menghapus catatan migrasi, menurunkan nomor versinya, atau mengubah checksum untuk melewati penolakan.
+
+## Docker
+
+Repositori menyertakan `Dockerfile` yang siap produksi. Image ini menggunakan Node.js 22 secara internal. Bangun dan jalankan dengan:
+
+```bash
+docker build -t openmaic .
+
+docker run --env-file .env.local -e DATABASE_URL=postgres://user:password@db-host:5432/openmaic -v openmaic-data:/app/data -p 3000:3000 openmaic
+```
+
+Kami merekomendasikan konfigurasi Docker Compose dari repositori:
+
+```bash
+cp .env.example .env.local
+# Edit .env.local (keys and server options), then:
+docker compose up --build
+```
+
+Deployment Compose bawaan menjalankan dua kontainer, aplikasi OpenMAIC dan PostgreSQL, menghubungkan `DATABASE_URL` di antara keduanya, dan memasang volume `openmaic-data` serta `openmaic-postgres`. Konfigurasikan penyedia dan fitur lain sesuai kebutuhan; lihat [Konfigurasi](./configuration.mdx).
+
+Model dikonfigurasi dengan salah satu dari dua cara. Untuk instalasi pribadi, jalankan stack, buka aplikasi, dan hubungkan layanan model di pengaturan model; konfigurasinya disimpan di basis data. Untuk deployment yang Anda kelola sebagai file, salin `openmaic.example.yml` ke `openmaic.yml`, simpan key di `.env.local`, dan pasang file tersebut (lihat di bawah). Lihat [Konfigurasi](./configuration.mdx#model-dan-penyedia).
+
+Image membuat direktori data volume dengan kepemilikan pengguna runtime, sehingga volume baru menyimpan kelas dan catatan penggunaan secara langsung. Volume yang dibuat oleh image lama mungkin dimiliki root, yang membuat setiap penyimpanan sisi server gagal dengan `EACCES` sementara aplikasi tetap melayani dengan normal (kelas diam-diam tidak pernah mencapai disk; log menampilkan `Failed to record usage ... EACCES: permission denied`). Perbaiki volume seperti itu sekali, lalu restart aplikasi:
+
+```bash
+docker exec -u root <container> chown -R 1001:1001 /app/data
+```
+
+`NEXT_PUBLIC_*` feature flag disuntikkan pada waktu build Docker dan tidak dapat disetel hanya di `.env.local` runtime. Misalnya, untuk mengaktifkan ekspor video dan impor PPTX eksperimental:
+
+```bash
+NEXT_PUBLIC_ENABLE_VIDEO_EXPORT=true \
+NEXT_PUBLIC_ENABLE_PPTX_IMPORT=true \
+docker compose --profile video-export up --build
+```
+
+Feature flag sisi klien lainnya dapat diberikan dengan cara yang sama. Saat menggunakan `docker build`, gunakan opsi `--build-arg` yang sesuai.
+
+Untuk menggunakan `openmaic.yml`, pasang di direktori kerja aplikasi, atau di mana pun selama `OPENMAIC_CONFIG` mengarah ke sana:
+
+```yaml
+services:
+  openmaic:
+    volumes:
+      - ./openmaic.yml:/app/openmaic.yml:ro
+```
+
+Jangan memasang path yang tidak ada di host: Docker akan membuat direktori sebagai gantinya, dan server menolak untuk mulai. Dengan `docker run`, tambahkan `-v "$PWD/openmaic.yml:/app/openmaic.yml:ro"`. Restart kontainer setelah mengedit file. `openmaic.yml` tercantum di `.dockerignore`, sehingga tidak pernah tertanam ke image yang dibangun dari repositori: pasang saat runtime sebagai gantinya. `server-providers.yml` lama masih dibaca dari `/app/server-providers.yml` ketika tidak ada `openmaic.yml`.
+
+Di dalam kontainer Docker, `localhost` merujuk ke kontainer itu sendiri. Jika Ollama, Lemonade, VoxCPM, atau ComfyUI berjalan di host, gunakan `host.docker.internal`, misalnya `http://host.docker.internal:11434/v1` atau `http://host.docker.internal:8188`. Docker di Linux biasanya juga memerlukan `extra_hosts: ["host.docker.internal:host-gateway"]` pada layanan `openmaic`. Penyedia yang dideklarasikan di `openmaic.yml` (atau melalui variabel lama) dikelola server, sehingga endpoint-nya boleh berada di host atau jaringan privat tanpa `ALLOW_LOCAL_NETWORKS`. Variabel itu hanya berlaku untuk endpoint yang diketik pengguna: base URL chat yang ditambahkan di **Pengaturan → Layanan Model**, dan field permintaan yang sudah usang.
+
+## Self-host di VM
+
+Host memerlukan Bun `1.3.14` atau lebih baru (bawaan), atau Node.js `24.21.0` atau lebih baru dengan toolchain pnpm lama. Bangun dan jalankan dengan Bun:
+
+```bash
+bun install
+bun run build
+DATABASE_URL=postgres://user:password@db-host:5432/openmaic bun run start      # listens on port 3000 by default
+```
+
+Jalankan di bawah manajer proses (systemd, pm2, kontainer) yang menjaganya tetap berjalan dan me-restart-nya, dan letakkan nginx atau Caddy di depan untuk terminasi TLS. Kursus dan media kursus yang dihasilkan disimpan di PostgreSQL (atau S3), sehingga beberapa instance dapat berbagi satu basis data, asalkan mereka juga berbagi direktori data dan `OPENMAIC_SECRET_KEY` (lihat di bawah).
+
+`bun run start` menjalankan `next start`, yang memperingatkan bahwa ia tidak berfungsi dengan pengaturan `output: standalone`. Peringatan itu tidak berbahaya: `next start` melayani build lengkap dari `.next`. Image Docker menjalankan server standalone sebagai gantinya (`node server.js`), tetapi server itu mengubah direktori kerjanya ke foldernya sendiri, jadi di VM tetap gunakan `bun run start`, yang membaca `data/` dan `openmaic.yml` dari direktori tempat ia dijalankan.
+
+## Konfigurasi yang diperlukan
+
+| Pengaturan | Docker Compose | Image Docker atau `bun run start` |
+| --- | --- | --- |
+| `DATABASE_URL` | disetel untuk PostgreSQL bawaan | wajib; server keluar saat startup tanpanya |
+| Mode identitas | pengguna tunggal (`OWNER_SINGLE_USER=true` di `docker-compose.defaults.env`) | satu pemilik anonim per browser kecuali Anda memilih salah satu |
+| `OPENMAIC_SECRET_KEY` | opsional: secret yang dihasilkan disimpan di volume `openmaic-data` | wajib untuk beberapa instance, atau tanpa direktori `data/` yang persisten |
+| Direktori data | volume `openmaic-data` di `/app/data` | direktori `data/` persisten di direktori kerja, dibagi oleh setiap instance |
+| Model | `openmaic.yml` atau **Pengaturan → Model** | sama |
+
+**Mode identitas** menentukan siapa yang memiliki sebuah kursus. Tanpa mode identitas, setiap browser adalah pemilik anonimnya sendiri dan browser kedua melihat pustaka yang kosong. Setel `OWNER_SINGLE_USER=true` untuk instalasi pribadi, `PERSISTENCE_SHARED_OWNER_ID` bersama `ACCESS_CODE` untuk satu tim yang berbagi satu pustaka, atau daftarkan metode autentikasi pemilik untuk akun nyata; lihat [Identitas pemilik](./hosting.mdx#identitas-pemilik) dan `.env.example`.
+
+Dalam mode anonim, cookie pemilik membawa `Secure` di produksi, begitu juga cookie `ACCESS_CODE`. Browser hanya menyimpan cookie `Secure` melalui HTTPS atau pada `http://localhost` (Safari bahkan tidak di sana), jadi deployment yang disajikan melalui HTTP biasa harus menyetel `COOKIE_SECURE=0` (tepatnya `0`): jika tidak, setiap permintaan menjadi pemilik baru, penulisan gagal dengan `403`, dan kode akses diminta lagi. Tanpa TLS cookie berjalan tanpa enkripsi, jadi lakukan ini hanya di jaringan tepercaya.
+
+HTTP biasa pada alamat apa pun selain `localhost` (IP LAN, IP Tailscale, atau nama MagicDNS) juga bukan secure context, sehingga browser tidak memiliki Web Locks API. OpenMAIC tetap menyimpan di sana, tetapi tab dari kursus yang sama tidak dikoordinasikan: jika dua tab mengubah chat yang sama, penyimpanan terakhir yang menang, dan chat yang dihapus di satu tab tetap terhapus meskipun tab lain masih mengeditnya. Untuk ponsel atau tablet di jaringan Anda, utamakan HTTPS, misalnya `tailscale serve` di depan server.
+
+**`OPENMAIC_SECRET_KEY`** mengenkripsi key penyedia yang disimpan di pengaturan model. Tanpanya, setiap instance membuat secret sendiri di `data/instance-secret.key`, sehingga instance yang berbagi basis data tidak dapat membaca key tersimpan milik instance lain. Simpan bersama cadangan basis data; lihat [Secret dan OPENMAIC_SECRET_KEY](./configuration.mdx#rahasia-dan-openmaic_secret_key).
+
+**Beberapa instance** yang berbagi satu basis data juga memerlukan satu direktori data persisten yang dibagi bersama (`data/` di direktori kerja, `/app/data` di image; misalnya volume atau sistem file jaringan yang sama di setiap instance). Dokumen kursus dan media kursus yang dihasilkan berada di PostgreSQL (atau S3 dengan `ASSET_S3_BUCKET`), tetapi setiap proses menyimpan file berikut di direktori datanya: file materi yang diunggah beserta hasil ekstraksinya, media sulih suara dan materi dari kursus yang diedit agen (`data/classrooms`, atau `OPENMAIC_CLASSROOMS_DIR`), catatan penggunaan (`data/usage`), dan secret instance yang dihasilkan. Run pembuatan yang diambil alih instance lain membaca materi yang diunggah dari sana.
+
+## Run pembuatan
+
+Setiap proses server menjalankan worker pembuatan; ini tidak bergantung pada `OPENMAIC_AGENT_RUNTIME_ENABLED`. Variabel berikut menyetelnya (nilai bawaan ditampilkan, bilangan bulat positif):
+
+| Variabel | Bawaan | Arti |
+| --- | --- | --- |
+| `OPENMAIC_MAX_ACTIVE_RUNS_PER_OWNER` | `2` | Run yang boleh dimiliki satu pemilik secara berjalan. Run yang menunggu outline-nya dikonfirmasi, atau dijeda pada langkah yang gagal, tidak dihitung. Melebihi batas ini, memulai, mengonfirmasi, atau mencoba ulang akan menjawab `429 ACTIVE_RUN_LIMIT`. |
+| `OPENMAIC_MAX_WAITING_RUNS_PER_OWNER` | `10` | Run yang boleh dimiliki satu pemilik sambil menunggu konfirmasi outline. |
+| `OPENMAIC_GENERATION_RUN_MAX_CONCURRENT` | `4` | Run yang dieksekusi satu proses sekaligus. |
+| `OPENMAIC_GENERATION_RUN_STREAMS_PER_OWNER` | `16` | Aliran peristiwa run yang boleh ditahan terbuka oleh satu pemilik pada satu proses. |
+| `OPENMAIC_GENERATION_RUN_RETENTION_HOURS` | `24` | Berapa lama run yang sudah selesai menyimpan log peristiwa lengkapnya sebelum dipadatkan. |
+
+Run berbagi pewaktuan lease runtime agen (`OPENMAIC_AGENT_RUNTIME_SCAN_INTERVAL_MS`, `_HEARTBEAT_MS`, `_LEASE_TTL_MS`, `_MAX_ATTEMPTS`; lihat `.env.example`). Ketika server berhenti atau restart, termasuk pembaruan bergulir, run-nya berlanjut di instance lain, atau di instance yang sama ketika server mulai lagi, dari langkah terakhir yang selesai: progres berhenti sekitar TTL lease (10 detik secara bawaan) dan langkah yang sedang berjalan dibuat ulang. Run yang terinterupsi `OPENMAIC_AGENT_RUNTIME_MAX_ATTEMPTS` kali berturut-turut (5 secara bawaan) tanpa menyelesaikan satu langkah akan dijeda pada langkah itu dengan Coba lagi; naikkan nilainya jika pembaruan bergulir di banyak instance mencapainya.
+
+## Persistensi sisi server (PostgreSQL)
+
+OpenMAIC menyimpan kursus, riwayat chat, progres pelajar, dan media yang dihasilkan di PostgreSQL, dan **`DATABASE_URL` wajib diisi**: tanpanya server mencetak `[boot] Invalid server configuration; the server will not start: DATABASE_URL is not set. ...` beserta solusinya dan keluar dengan kode `1`. API HTTP persistensi tertanam di OpenMAIC; tidak diperlukan layanan persistensi terpisah.
+
+`docker compose up` menjalankan PostgreSQL di samping aplikasi dan menyetel `DATABASE_URL` untuknya. Untuk pengembangan lokal, `bun run db:up` menjalankan basis data pengembangan terpisah dari definisi layanan yang sama (proyek Compose dan volume sendiri, `openmaic-dev-db`, dibagi oleh setiap checkout di mesin ini, sehingga tidak pernah menyentuh basis data stack), dipublikasikan di `127.0.0.1` (port `OPENMAIC_DB_PORT`, bawaan `5432`); `bun run db:down` menghentikannya lagi. Lalu setel koneksi di `.env.local`:
+
+```bash
+DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
+```
+
+Tidak ada kredensial persistensi terpisah: setiap permintaan diatribusikan ke pemilik yang dikembalikan resolusi pemilik (secara bawaan cookie anonim per browser), dan sesi runtime serta media dipartisi menurut pemilik tersebut. Identitas bawaan mengisolasi browser tetapi tidak mengautentikasi siapa pun, jadi deployment yang melayani pengguna nyata sebaiknya mendaftarkan metode autentikasi pemilik yang didukung akunnya sendiri. Rilis sebelumnya menggunakan `PERSISTENCE_DEV_TOKEN` / `NEXT_PUBLIC_PERSISTENCE_TOKEN`; keduanya dihapus dan diabaikan, dan sesi runtime yang tersimpan di bawah kunci pelajar lama yang dibuat browser tidak lagi dapat dijangkau. Jika `PERSISTENCE_DEV_TOKEN` adalah satu-satunya gerbang akses Anda, letakkan deployment di belakang `ACCESS_CODE` atau gateway, atau daftarkan metode autentikasi pemilik, sebelum meningkatkan versi.
+
+Data PostgreSQL disimpan di volume `openmaic-postgres`. `PERSISTENCE_POSTGRES_PASSWORD` hanya menyetel kata sandi saat direktori basis data pertama kali diinisialisasi. Mengubah variabel lingkungan itu nanti tidak otomatis mengubah kata sandi pengguna basis data yang sudah ada.
+
+Volume `openmaic-data` juga menyimpan `instance-secret.key`, secret instance yang dihasilkan untuk mengenkripsi key penyedia yang disimpan di pengaturan model, kecuali `OPENMAIC_SECRET_KEY` disetel. Cadangkan bersama basis data: tanpanya, key yang tersimpan harus dimasukkan lagi. Menjalankan beberapa replika, atau aplikasi tanpa volume persisten atau pada sistem file read-only? Setel `OPENMAIC_SECRET_KEY` sebagai gantinya (nilai yang sama di setiap replika); lihat [Secret dan OPENMAIC_SECRET_KEY](./configuration.mdx#rahasia-dan-openmaic_secret_key).
+
+Rilis sebelumnya dapat menyimpan kursus di browser (IndexedDB). Mode itu sudah tidak ada, dan variabel build `NEXT_PUBLIC_PERSISTENCE` diabaikan. Kursus yang disimpan browser dengan cara itu dipindahkan ke server secara otomatis saat browser tersebut pertama kali membuka aplikasi yang sudah ditingkatkan: pengimpor satu arah menyalinnya (beserta chat, progres pelajar, folder, dan medianya) ke pemilik yang ditentukan server untuk browser itu, dan membiarkan salinan browser tidak tersentuh. Ini berjalan sekali per browser: server mengikat browser ke pemilik pertama yang memuat aplikasi yang sudah ditingkatkan, dan klaim membawa ikatan itu ke akun (pemilik anonim yang diklaim ke akun saat masuk). Server menolak permintaan pengimpor untuk pemilik lain, sehingga pemilik lain yang belakangan memakai browser yang sama tidak mendapat apa pun yang diimpor. Ini tidak memerlukan tindakan dan tidak menampilkan UI; masalah dicatat di konsol browser dengan awalan `[legacy-browser-import]`.
+
+## Meningkatkan versi dari 1.1.x
+
+| Deployment | Lakukan |
+| --- | --- |
+| `docker compose` | Tarik rilis baru dan jalankan `docker compose up --build`. Pindahkan pengaturan model ke `openmaic.yml` atau **Pengaturan → Model** (variabel penyedia tetap berfungsi selama tidak ada `openmaic.yml`), dan tulis ulang `MODEL_ROUTES` sebagai slot: server yang menyetelnya tanpa `openmaic.yml` menolak untuk mulai. Buka aplikasi sekali di setiap browser yang memiliki kursus lokal, agar kursusnya diimpor. Jika `.env.local` menyetel `PERSISTENCE_SHARED_OWNER_ID`, setel juga `OWNER_SINGLE_USER=false`: Compose kini dimulai dalam mode pengguna tunggal. Kursus yang disimpan deployment berbasis server sebelumnya untuk pemilik anonim tidak digabungkan ke pengguna tunggal secara otomatis; klaim kursus itu dengan `POST /api/identity/claim` dari setiap browser yang membuatnya (membuka browser hanya mengimpor apa yang disimpannya secara lokal). |
+| `bun run start` dengan PostgreSQL Anda sendiri | Hentikan server, tarik rilis baru, jalankan `bun install` dan `bun run build`, lalu jalankan lagi dengan `bun run start` di direktori kerja yang sama, agar `data/` tetap dipertahankan. Setel `DATABASE_URL`, mode identitas, dan `OPENMAIC_SECRET_KEY` ketika beberapa instance berbagi basis data; beberapa instance juga memerlukan satu direktori data bersama (lihat [Konfigurasi yang diperlukan](#konfigurasi-yang-diperlukan)). Pengaturan model, `MODEL_ROUTES`, dan kursus browser seperti pada baris di atas. |
+| Vercel | Tetap di 1.1.x, atau pindah ke host yang berjalan lama dengan basis data yang sama (di bawah). |
+| Skill / API | Ikuti skill `openmaic` yang diperbarui: unggah materi, kirim, dan polling sebagai pemilik yang sama. |
+
+Sebelum start pertama 1.2.0:
+
+- **Pertahankan direktori data.** Mulai 1.2.0 dengan `data/` yang sama di direktori kerjanya (atau `OPENMAIC_CLASSROOMS_DIR` yang sama), atau volume `openmaic-data` yang sama dengan Compose. Kelas yang disimpan 1.1.x sebagai file di bawah `data/classrooms` diimpor ke basis data sekali, di latar belakang setelah startup; server yang dimulai tanpa direktori itu tidak memiliki apa pun untuk diimpor.
+- **Setel mode identitas lebih dulu.** Impor memberikan kelas tersebut kepada pemilik yang dikonfigurasi pada start itu: pengguna tunggal (`OWNER_SINGLE_USER=true`) atau pemilik tim bersama (`PERSISTENCE_SHARED_OWNER_ID`), dan jika tidak ada (mode anonim) pemilik khusus `system:legacy-classrooms`, yang di bawahnya kelas tersebut terbuka hanya-baca dari tautan lamanya dan tidak muncul di pustaka mana pun. Setiap kelas hanya diimpor sekali, sehingga kelas yang diimpor dalam mode anonim tetap bersama `system:legacy-classrooms` meskipun Anda menyetel mode identitas nanti.
+- **Daftarkan model.** Setiap penyedia dengan kredensial yang dikelola server yang mengirim model terpilih ke hulu (chat, gambar, video, suara, transkripsi, pencarian web berbasis model) memerlukan daftar model eksplisit (`*_MODELS`, atau `models` di bawah penyedia pada `openmaic.yml` atau `server-providers.yml`). Tanpanya, hanya model bawaan, fallback, dan slot yang diotorisasi, dan log startup menyebutkan setiap penyedia yang tidak memiliki daftar. Layanan tanpa pemilihan model, seperti Tavily atau parser dokumen, tidak memerlukan daftar. Lihat [Otorisasi model](./configuration.mdx#otorisasi-model-untuk-penyedia-yang-dikelola-server).
+- **Tingkatkan render-service bersama aplikasi.** Jika Anda menjalankan ekspor video MP4, tingkatkan setiap instance render-service bersama aplikasi atau sebelum aplikasi: pekerjaan render terikat ke pemiliknya, dan campuran versi lama dan baru menolak dengan aman (fail closed).
+- **Periksa model kelas.** Chat kelas Pi menolak model yang katalog bawaannya daftarkan tanpa pemanggilan tool (`tool_calling_required`) dan endpoint Gemini yang kompatibel OpenAI dari Google (`gemini_native_required`). Konfigurasikan Gemini dengan preset native `google`; lihat [Penyedia LLM](./configuration.mdx#penyedia-llm).
+
+Data browser (kursus, pengaturan model, agen kustom) diimpor sekali per browser, saat browser tersebut pertama kali membuka aplikasi yang sudah ditingkatkan. Lihat [Konfigurasi](./configuration.mdx#migrasi-dari-konfigurasi-legacy) untuk memindahkan pengaturan model dan [changelog](https://github.com/THU-MAIC/OpenMAIC/blob/main/CHANGELOG.md) untuk daftar lengkap perubahan yang merusak.
+
+## Vercel (hingga 1.1.x)
+
+Deployment serverless didukung hingga OpenMAIC 1.1.x, dan [README repositori](https://github.com/THU-MAIC/OpenMAIC#vercel-deployment-up-to-11x) menjelaskan cara men-deploy cabang `release/1.1.x` di Vercel. Deployment seperti itu dapat pindah ke host yang berjalan lama nanti tanpa kehilangan data: arahkan `DATABASE_URL` host baru ke basis data yang digunakannya, jika ia menggunakannya, dan sajikan di alamat yang sama: browser menyimpan datanya per situs, dan kursus yang disimpan pengunjung di sana diimpor saat setiap browser pertama kali membuka aplikasi yang sudah ditingkatkan.
+
+## Opsional: ekspor video MP4
+
+Fitur “Ekspor video” pertama-tama menghasilkan proyek Hyperframes mandiri di browser, lalu mengirimkannya ke `render-service` terpisah yang menggunakan Chromium dan FFmpeg untuk merender MP4. Layanan ini opsional dan tidak memengaruhi pembuatan kelas normal.
+
+Aktifkan profil `video-export`:
+
+```bash
+docker compose --profile video-export up --build
+```
+
+Compose menghubungkan OpenMAIC ke layanan rendering melalui `RENDER_SERVICE_URL`. Jika profil dinonaktifkan atau layanan rendering tidak tersedia, ekspor beralih ke mengunduh ZIP proyek untuk dirender dengan CLI lokal. Layanan rendering menggunakan jaringan terisolasi dan memerlukan kapabilitas `NET_ADMIN` saat startup. Lihat [`render-service/README.md`](https://github.com/THU-MAIC/OpenMAIC/blob/main/render-service/README.md) untuk batasan lain dan instruksi deployment mandiri. Saat meningkatkan versi, tingkatkan render-service bersama aplikasi atau sebelum aplikasi.
+
+## Variabel lingkungan
+
+Lihat [Konfigurasi](./configuration.mdx) untuk konfigurasi model (`openmaic.yml` dan pengaturan model) dan setiap variabel lingkungan. Setidaknya satu model chat harus dikonfigurasi sebelum kursus dapat dibuat.
+
+## Kontrol akses
+
+Demo bersama dapat menggunakan `ACCESS_CODE` untuk memasang gerbang kata sandi di depan seluruh situs. Lihat [Konfigurasi → ACCESS_CODE](./configuration.mdx#access_code--kata-sandi-untuk-seluruh-situs).
+
+## Layanan self-host opsional
+
+- [VoxCPM2: TTS self-host dan kloning suara →](./voxcpm.mdx)

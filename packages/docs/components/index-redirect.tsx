@@ -13,7 +13,7 @@ export function IndexRedirect({ target }: { target: string }) {
         }}
       />
       <p style={{ padding: '2rem' }}>
-        Redirecting to <a href={target}>{target}</a>…
+        Mengalihkan ke <a href={target}>{target}</a>…
       </p>
     </>
   );

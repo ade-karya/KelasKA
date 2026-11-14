@@ -1,0 +1,973 @@
+---
+title: Konfigurasi
+description: Model dan penyedia (openmaic.yml dan pengaturan model), kontrol akses, feature flag, dan opsi server lainnya.
+---
+
+OpenMAIC memiliki tiga sumber konfigurasi, dan masing-masing memiliki satu tugas:
+
+| Sumber | Ditulis oleh | Berisi | Berlaku |
+| --- | --- | --- | --- |
+| `openmaic.yml` | Operator | Penyedia, penetapan default server, apa yang dikunci, dan apakah pengguna boleh menambahkan key | Saat startup (restart untuk menerapkan) |
+| Pengaturan model di aplikasi web | Pengguna sebuah workspace | Penyedia milik mereka sendiri, dan penetapan untuk setiap slot yang tidak dikunci `openmaic.yml`, tersimpan di basis data | Segera |
+| Variabel lingkungan (`.env.local`, secret container) | Operator | Rahasia yang dirujuk `openmaic.yml`, dan setiap opsi server lainnya | Saat startup |
+
+`DATABASE_URL` wajib diisi; variabel lingkungan lain bersifat opsional (lihat [Deployment](./deployment.mdx)). Penyedia yang memakai kredensial server untuk pemilihan model juga memerlukan daftar model yang diotorisasi, seperti dijelaskan di bawah. Lihat [`.env.example`](https://github.com/THU-MAIC/OpenMAIC/blob/main/.env.example) untuk variabel lingkungan, [`openmaic.example.yml`](https://github.com/THU-MAIC/OpenMAIC/blob/main/openmaic.example.yml) untuk contoh konfigurasi model, dan [Model yang didukung](./supported-models.mdx) untuk preset dan id model.
+
+Rilis sebelumnya mengonfigurasi model hanya melalui variabel lingkungan penyedia, `server-providers.yml`, `DEFAULT_MODEL`, dan `MODEL_ROUTES`. Semuanya masih berfungsi untuk sementara ini, kecuali `MODEL_ROUTES`, dan sudah deprekasi; lihat [Migrasi dari konfigurasi legacy](#migrasi-dari-konfigurasi-legacy).
+
+## Model dan penyedia
+
+### Konsep
+
+- **Penyedia**: sebuah akun yang dapat dipanggil server, seperti key OpenAI, paket token MiniMax, atau server kompatibel OpenAI yang di-host sendiri. Setiap penyedia memiliki id yang Anda pilih dan sebuah **preset** yang menyatakan vendor-nya serta kemampuan apa saja yang dicakupnya.
+- **Slot**: sebuah pemakaian AI di dalam produk, seperti kerangka kursus, konten slide, text to speech, atau pencarian web. Slot membentuk satu pohon per kemampuan; slot tanpa penetapan mengikuti induknya.
+- **Penetapan**: penyedia dan model mana yang dipakai sebuah slot (`provider:model`), opsional beserta parameter panggilan dan model fallback, atau `null` untuk mematikan slot tersebut.
+
+Sebuah kemampuan tersedia tepat ketika slot-nya ter-resolve ke sebuah penetapan. Tidak ada sakelar on/off terpisah.
+
+### openmaic.yml
+
+Server membaca `openmaic.yml` dari direktori tempat ia dijalankan (root repositori; `/app` di image Docker). Set `OPENMAIC_CONFIG` untuk memakai path lain; path relatif di-resolve terhadap direktori yang sama, dan berkas tersebut harus ada. Tanpa berkas itu, server memakai pengaturan web dan, selama masih di-set, [variabel legacy](#migrasi-dari-konfigurasi-legacy).
+
+Berkas dibaca sekali saat startup: restart server setelah mengubahnya. Berkas divalidasi sepenuhnya sebelum server mulai. `${VAR}` yang tidak di-set, preset atau slot yang tidak dikenal, referensi ke penyedia yang tidak dideklarasikan, atau penyedia yang tidak menawarkan kemampuan sebuah slot akan menghentikan server, dan setiap masalah dicantumkan beserta lokasinya:
+
+```text
+[boot] Invalid server configuration; the server will not start: Invalid model configuration in /app/openmaic.yml:
+  - providers.openai.apiKey: environment variable OPENAI_API_KEY is not set
+  - slots.course.outlines: unknown slot
+```
+
+Jauhkan rahasia dari berkas itu sendiri: rujuk sebagai `${VAR}` dan set variabelnya di environment. Nilai yang berasal dari variabel tidak pernah dicetak dalam pesan-pesan ini.
+
+### Contoh lengkap
+
+```yaml title="openmaic.yml"
+providers:
+  # <provider id>: lowercase letters, digits and dashes
+  openai:
+    preset: openai
+    apiKey: ${OPENAI_API_KEY}      # read from the environment at startup
+  anthropic:
+    preset: anthropic
+    apiKey: ${ANTHROPIC_API_KEY}
+  openai-image:                    # the same key, used for images
+    preset: openai-image
+    apiKey: ${OPENAI_API_KEY}
+  minimax:                         # a token plan: chat, image, video, TTS, search
+    preset: minimax
+    apiKey: ${MINIMAX_API_KEY}
+  tavily:
+    preset: tavily
+    apiKey: ${TAVILY_API_KEY}
+  local:                           # any OpenAI-compatible server
+    preset: openai-compatible
+    baseUrl: http://ollama:11434/v1
+    models: [qwen3:8b]
+
+slots:
+  llm: openai:gpt-5.5              # default for every chat slot below
+  course.outline:
+    model: anthropic:claude-sonnet-4-6
+    fallback: openai:gpt-5.4-mini  # tried once on a retryable failure
+  course.content.slide:
+    model: minimax:MiniMax-M3
+    thinking: { enabled: false }
+    fallback: minimax:MiniMax-M2.7
+  classroom: local:qwen3:8b        # the model id may contain colons
+  agent:
+    model: openai:gpt-5.5          # needs tool calling
+    api: openai-completions
+  tts: minimax:speech-2.8-turbo
+  image: openai-image:gpt-image-2
+  webSearch: tavily                # provider only: its default model
+  video: null                      # off by default; users may turn it on
+
+lock: [tts]                        # fixed for everyone, with its subtree
+allowUserKeys: false               # users choose among these providers and add none
+```
+
+Dengan berkas ini, slot yang ditulis di bawah `slots` adalah default server: pengguna boleh mengubah masing-masingnya di pengaturan model, kecuali `tts`, yang dikunci `lock` untuk semua orang. Slot chat yang tidak dicantumkan, seperti `course.agents`, mengikuti induknya (`llm`); root kemampuan yang tidak dicantumkan, seperti `asr` atau `document`, tetap belum terkonfigurasi sampai seorang pengguna menetapkannya. Dengan `allowUserKeys: false`, pengguna hanya memilih di antara penyedia yang dideklarasikan di sini.
+
+### Penyedia
+
+Setiap entri di bawah `providers` mendeklarasikan satu penyedia. Key-nya adalah id penyedia tersebut, yang dipakai slot dalam referensi: 1 sampai 63 huruf kecil, angka, dan tanda hubung, dimulai dengan huruf atau angka.
+
+| Field | Wajib | Arti |
+| --- | --- | --- |
+| `preset` | Ya | Preset bawaan mana yang dipakai penyedia ini. Lihat [Model yang didukung → Preset](./supported-models.mdx#preset). |
+| `apiKey` | Biasanya | API key-nya. Layanan tanpa key (server lokal, Brave, SearXNG, unpdf) tidak mencantumkannya. |
+| `baseUrl` | Sebagian preset | Endpoint yang dipanggil alih-alih endpoint milik preset. Wajib untuk `openai-compatible`, `azure`, `searxng`, dan `mineru`. |
+| `models` | Untuk kredensial yang dikelola server | Id model yang diotorisasi. Default/fallback slot deployment untuk kemampuan tersebut juga diotorisasi; katalog dan penetapan workspace tidak memberikan model tambahan. |
+| `proxy` | Tidak | URL proxy HTTP untuk permintaan penyedia ini. |
+| `credentials` | Sebagian preset | Pasangan key untuk layanan yang tidak memakai satu key. AliDocMind memakai `accessKeyId` dan `accessKeySecret`. |
+| `options` | Tidak | Pengaturan khusus penyedia yang bukan rahasia, seperti `backend` untuk `voxcpm-tts` atau field `/infer` FLUX.1-dev (`seed`, `randomizeSeed`, `width`, `height`, `guidanceScale`, `numInferenceSteps`) untuk penyedia gambar Hugging Face. Nama berupa huruf, angka, `_`, dan `-`; nilainya string, angka, atau boolean (tanpa map atau list bersarang), dan `${VAR}` berfungsi. Pengaturan model menampilkan opsi deployment sebagai hanya-baca (misalnya panel FLUX), jadi jangan pernah menaruh key di dalamnya. Khusus deployment: suntingan workspace tidak dapat menyetelnya. Opsi penyedia yang dikonfigurasi menang atas opsi permintaan. |
+| `voices` | Tidak | Hanya untuk preset TTS. Menggantikan katalog bawaan dengan daftar entri yang tidak boleh kosong: `id` dan `name` wajib, `language` dan `gender` opsional (`male`, `female`, `neutral`). ID harus unik dan tidak boleh mengandung pembatas binding yang dicadangkan, `::`. Profil suara pengguna tetap tersedia; klon Qwen tetap memakai model klonnya. Tidak mencantumkan field ini mempertahankan katalog bawaan. |
+| `options.defaultVoice` | Tidak | ID suara default lokal penyedia; harus string yang tidak kosong. Memerlukan daftar `voices` tidak kosong yang memuat ID ini. Dengan `voices` saja, entri pertamanya yang dipakai. Pemilihan eksplisit yang valid lebih diutamakan. Tanpa salah satu override itu, default yang ada tetap berlaku. |
+
+Sebagian besar preset mencakup satu kemampuan, mengikuti registri bawaan: preset `openai` hanya untuk chat, sedangkan gambar dan suara OpenAI adalah preset `openai-image`, `openai-tts`, dan `openai-whisper`. Deklarasikan satu penyedia per kemampuan, dan rujuk `${VAR}` yang sama ketika satu key mencakup beberapa kemampuan. **Preset paket token** (`minimax`, `tokendance`, `volcengine-ark`, `kimi-coding-plan`) mencakup beberapa kemampuan dengan satu key, masing-masing di endpoint milik paket tersebut. `baseUrl` pada sebuah penyedia menggantikan endpoint untuk setiap kemampuan yang dicakup penyedia itu, jadi berikan `baseUrl` pada paket token hanya ketika semua kemampuannya ikut berpindah bersamanya.
+
+Amazon Bedrock (`preset: bedrock`) menandatangani permintaan dengan rantai kredensial AWS milik server (environment, profil, atau role) dan membaca region dari `BEDROCK_REGION`, `AWS_REGION`, atau `AWS_DEFAULT_REGION`; `apiKey` adalah bearer token opsional.
+
+### Slot
+
+| Slot | Kemampuan | Induk | Yang dikendalikan |
+| --- | --- | --- | --- |
+| `llm` | chat | — | Model chat default: setiap panggilan chat yang tidak dicakup slot di bawah |
+| `course.research` | chat | `llm` | Penulisan ulang kueri pencarian web saat meriset sebuah kursus |
+| `course.outline` | chat | `llm` | Kerangka adegan |
+| `course.agents` | chat | `llm` | Profil agen guru dan teman sekelas |
+| `course.content` | chat | `llm` | Konten adegan, untuk jenis adegan yang tidak punya slot sendiri |
+| `course.content.slide` | chat | `course.content` | Adegan slide |
+| `course.content.quiz` | chat | `course.content` | Adegan kuis |
+| `course.content.interactive` | chat | `course.content` | Adegan interaktif |
+| `course.content.pbl` | chat | `course.content` | Adegan pembelajaran berbasis proyek |
+| `course.actions` | chat | `llm` | Aksi adegan (apa yang dikatakan dan dilakukan para agen pada setiap adegan) |
+| `classroom` | chat | `llm` | Chat kelas, penilaian kuis, dan runtime pembelajaran berbasis proyek |
+| `agent` | chat | `llm` | Agen workbench. **Memerlukan tool calling.** Juga menerima `api` dan `contextWindow` |
+| `agent.title` | chat | `agent` | Judul sesi workbench. Hanya dapat dikonfigurasi di `openmaic.yml`; pengaturan model tidak menampilkannya |
+| `tts` | tts | — | Text to speech |
+| `asr` | asr | — | Pengenalan suara (input suara, transkrip audio dan video) |
+| `image` | image | — | Pembuatan gambar |
+| `video` | video | — | Pembuatan video |
+| `webFetch` | webFetch | — | Ekstraksi halaman web (default: `builtin`) |
+| `webSearch` | webSearch | — | Pencarian web |
+| `document` | document | — | Layanan penguraian dokumen (MinerU, MinerU Cloud, AliDocMind). Ekstraksi teks PDF bawaan tidak memerlukan layanan |
+
+Cara sebuah slot ter-resolve:
+
+- Resolusi dimulai dari slot panggilan dan menelusuri ke atas hingga root kemampuannya. Penetapan pertama yang ditemukan menang, sehingga penetapan sebuah induk menjadi default untuk seluruh subtreenya. Mengubah induk mengubah setiap anak yang tidak punya penetapan sendiri.
+- Di dalam subtree yang terkunci (slot atau salah satu leluhurnya disebut oleh `lock`, atau `lock: all`), hanya `openmaic.yml` yang berlaku: penelusuran naik hingga slot yang terkunci dan penetapan pertama yang ditulis berkas itulah yang menang. Di tempat lain, pilihan pengguna yang menang: penelusuran lebih dulu mencari penetapan milik workspace dari slot hingga root, dan hanya bila tidak ada, mencari default yang ditulis `openmaic.yml`, lagi-lagi dari slot ke atas. Jadi slot yang default servernya belum diubah workspace mengikuti pilihan workspace pada induknya; nilai server hanyalah default.
+- `null` menghentikan penelusuran: slot itu dan setiap slot di bawahnya yang tidak punya penetapan sendiri menjadi mati.
+- Mencapai root tanpa penetapan membuat kemampuan tersebut belum terkonfigurasi. Panggilan gagal dengan galat yang menyebut slotnya; tidak ada fallback ke vendor mana pun.
+- Persyaratan melekat pada slot yang mendeklarasikannya dan diperiksa terhadap model yang di-resolve slot itu, baik yang ditetapkan maupun diwarisi. `agent` memerlukan tool calling; jika katalog bawaan menyatakan modelnya tidak memilikinya, agen menolak berjalan alih-alih sekadar memaksakan diri. Model yang tidak dikenal katalog diperbolehkan. `agent.title` tidak punya persyaratan, jadi ia dapat memakai model yang lebih kecil.
+
+### Penetapan
+
+Sebuah penetapan memiliki salah satu dari empat bentuk:
+
+```yaml
+slots:
+  llm: openai:gpt-5.5            # provider:model
+  webSearch: tavily              # provider only: the provider's default model
+  course.outline:                # an object with parameters
+    model: openai:gpt-5.5
+    fallback: anthropic:claude-sonnet-4-6
+    thinking: { effort: low }
+  video: null                    # off
+```
+
+Bentuk objek menerima:
+
+| Field | Arti |
+| --- | --- |
+| `model` | Wajib. `provider:model`, atau `provider` saja di luar slot chat. |
+| `fallback` | Model untuk dicoba ulang sekali, dalam bentuk yang sama. Hanya slot model bahasa; lihat [Fallback](#fallback). |
+| `thinking` | Parameter penalaran untuk model chat: `enabled` (true/false), `mode` (`default`, `disabled`, `enabled`, `auto`), `effort` (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`), `level` (`minimal`, `low`, `medium`, `high`), `budgetTokens`, `excludeReasoningOutput`. Setiap adaptor penyedia menerapkan apa yang didukung API-nya. |
+| `api` | Hanya `agent`: transportnya, `openai-completions` (default), `openai-responses`, `opencode-cli` (OpenCode CLI lokal), `codex-sdk` (Codex SDK lokal), atau `antigravity-sdk` (Google Antigravity CLI lokal). |
+| `contextWindow` | Hanya `agent`: context window yang diasumsikan untuk pemadatan, ketika nilainya seharusnya lebih rendah daripada yang ada di katalog. |
+
+Pada transport HTTP, slot `agent` tidak boleh menyetel `thinking.effort`: ia tidak dapat menggabungkan reasoning effort dengan function tool. Transport lokal (`opencode-cli`, `codex-sdk`, `antigravity-sdk`) membawa effort sebagai instruksi prompt atau flag CLI, sehingga effort diterima di sana.
+
+### Transport agen lokal
+
+Agen Pro workbench dapat menjawab gilirannya melalui CLI atau SDK lokal alih-alih endpoint HTTP. Semua transport ini tetap mempertahankan loop OpenMAIC: harness tetap memegang kendali atas tool, allowlist, timeout, kuota, transkrip, dan aliran event, dan agen lokal hanya memutuskan pesan asisten serta panggilan tool berikutnya.
+
+```yaml title="openmaic.yml"
+providers:
+  codex:
+    preset: codex
+    models: [gpt-5.6-codex]
+
+slots:
+  agent:
+    model: codex:gpt-5.6-codex
+    api: codex-sdk
+    thinking: { effort: high }
+```
+
+```yaml title="openmaic.yml (Antigravity)"
+providers:
+  antigravity:
+    preset: antigravity
+    models: [gemini-3.8-flash, claude-sonnet-4-6, claude-opus-4-6]
+
+slots:
+  agent:
+    model: antigravity:gemini-3.8-flash
+    api: antigravity-sdk
+    thinking: { effort: high }
+```
+
+- `codex` menjalankan [`@openai/codex-sdk`](https://learn.chatgpt.com/docs/codex-sdk) native terhadap instalasi Codex milik server sendiri. Ia tidak memerlukan key di pengaturan model: autentikasi dengan `codex login` di server (atau set `CODEX_API_KEY`). `CODEX_MODELS` mencantumkan id model yang ditawarkan di pemilih workbench; `CODEX_PATH` menunjuk ke binary `codex` ketika paket platform SDK tidak terpasang; `OPENMAIC_CODEX_WORKDIR`, `OPENMAIC_CODEX_SANDBOX`, dan `OPENMAIC_CODEX_TIMEOUT_MS` menyetel giliran (sandbox default `read-only`, tanpa persetujuan, jaringan, atau pencarian web). Sebuah giliran dibatasi pada satu balasan terstruktur (`text` plus panggilan tool), yang merupakan cara agen SDK dipakai sebagai transport model.
+- `antigravity` menjalankan Google Antigravity CLI (`agy`) terhadap instalasi Antigravity milik server sendiri. Pasang dengan `curl -fsSL https://antigravity.google/cli/install.sh | bash` (`./install.sh --with-antigravity` melakukannya untuk Anda; transport CLI nonaktif secara default di installer), lalu masuk dengan `agy` (login Google interaktif) atau melalui pemilih model Pro Workbench. `ANTIGRAVITY_MODELS` mencantumkan id model yang ditawarkan di pemilih workbench — penemuan `agy models` saat instalasi menjaganya tetap mutakhir — `ANTIGRAVITY_MODEL` menyetel default, dan `OPENMAIC_ANTIGRAVITY_TIMEOUT_MS` membatasi satu giliran. Harness tetap mengeksekusi setiap tool.
+- `opencode` dan `opencode-go` menjalankan `opencode run` dan melakukan autentikasi melalui `opencode auth login`; daftar modelnya berasal dari `OPENCODE_MODELS` dan `OPENCODE_GO_MODELS`.
+
+Tidak satu pun transport ini ditawarkan di pengaturan model klasik, dan tidak satu pun dapat dijangkau lewat HTTP: referensi model yang memilih salah satunya hanya ter-resolve untuk slot `agent`.
+
+### Referensi khusus penyedia
+
+Referensi tanpa `:model` berarti model default penyedianya: model yang direkomendasikan paket token untuk kemampuan tersebut, jika tidak ada maka default registri bawaan. Layanan pencarian dan dokumen umumnya tidak punya model untuk dipilih, jadi `webSearch: tavily` atau `document: mineru-cloud` adalah bentuk yang biasa. Slot chat selalu menyebutkan model; `llm: openai` ditolak saat startup.
+
+### Fallback
+
+Fallback berlaku untuk slot model bahasa: `llm` dan setiap slot di bawahnya. `fallback` pada slot `tts`, `asr`, `image`, `video`, `webSearch`, `webFetch`, atau `document` ditolak, saat startup untuk `openmaic.yml` dan saat menyimpan di pengaturan model.
+
+`fallback` sebuah slot dicoba sekali ketika panggilan pada model utama gagal setelah retry-nya sendiri dengan kegagalan yang dapat di-retry: galat SDK sementara, timeout, galat jaringan, rate limit (429), kapasitas (503), atau output kosong. Penolakan kuota eksplisit dari penyedia (kode kompatibel OpenAI seperti `insufficient_quota`, apa pun status HTTP-nya) tidak di-retry pada model utama: panggilan langsung dialihkan ke fallback. Penolakan karena keamanan konten dan galat 4xx lainnya tidak pernah beralih ke fallback. Fallback berlaku untuk panggilan biasa maupun streaming dan memakai parameter `thinking` slot tersebut.
+
+Fallback melekat pada penetapan dan diwarisi bersamanya: `course.content.slide` tanpa penetapan sendiri memakai model dan fallback dari `course.content`. Slot dengan persyaratan tidak melakukan retry pada fallback yang gagal memenuhinya.
+
+### Mematikan sebuah kemampuan
+
+Tulis `null` pada slot-nya. `video: null` mematikan pembuatan video secara default, dan pengguna masih dapat menyalakannya di pengaturan model; tambahkan `lock: [video]` untuk menjaganya tetap mati bagi semua orang. `course.content.pbl: null` mematikan pembuatan adegan pembelajaran berbasis proyek sementara bagian lain `course.content` tetap berfungsi. Panggilan pada slot yang mati langsung gagal, dan rute media menjawab `403` alih-alih memilih vendor lain.
+
+### Default, kunci, dan pengaturan model
+
+Apa yang ditulis `openmaic.yml` di bawah `slots` adalah **default** server: pengguna boleh mengubahnya di pengaturan model, tempat kartunya bertuliskan **Default server**, dan **Kembalikan ke default server** menghapus perubahan mereka. Apa yang disebutnya di bawah `lock` **dikunci oleh administrator** untuk semua orang, beserta seluruh subtreenya:
+
+```yaml
+lock: [llm, video]   # these slots and every slot below them
+# lock: all          # every slot
+```
+
+- Setiap slot model yang disebut `lock` harus ditulis di bawah `slots` (`null` juga dihitung: `video: null` dengan `lock: [video]` menjaga video tetap mati bagi semua orang). Slot yang tidak dikenal, atau slot terkunci yang tidak ditulis `slots`, menghentikan server saat startup beserta posisinya (`lock.1: ...`).
+- Slot yang terkunci juga mengunci anak-anaknya: dengan `lock: [llm]`, tidak ada pengguna yang dapat menyetel `course.outline` atau slot model bahasa lain, dan semuanya hanya ter-resolve dari `openmaic.yml`.
+- `lock: all` mengunci setiap slot, ditulis maupun tidak; root kemampuan yang tidak dicantumkan `slots` kemudian menjadi belum terkonfigurasi bagi semua orang. Untuk `webFetch`, penetapan yang tidak dicantumkan memakai `builtin`; set `webFetch: null` untuk menonaktifkannya.
+- `null`, default server, dan kunci berpadu sesuai dugaan Anda: `video: null` saja berarti mati sampai seorang pengguna menyalakannya; dengan `lock: [video]` ia tetap mati.
+
+Pengaturan mengambil salah satu dari tiga bentuk, yang diturunkan dari konfigurasi:
+
+| Bentuk | Kapan | Yang ditampilkan |
+| --- | --- | --- |
+| **Atur sendiri** | `allowUserKeys` aktif (default) | Paket Token, Layanan Model, dan Konfigurasi Model Kursus |
+| **Pilih model** | `allowUserKeys: false` | Hanya Konfigurasi Model Kursus, memilih di antara penyedia yang dideklarasikan `openmaic.yml` |
+| **Dikonfigurasi oleh administrator** | Semua slot terkunci (`lock: all`) | Diagram model kursus, setiap kartu hanya-baca (masing-masing menampilkan modelnya, atau bahwa ia mati atau belum di-set) |
+
+Satu aturan menentukan setiap kontrol: kontrol ditampilkan hanya jika penggunaannya dapat mengubah sesuatu. Tab Layanan Model, dan penambahan layanan di sana, muncul hanya selama kemampuannya memiliki slot yang boleh disetel pengguna; Paket Token muncul hanya selama sebuah paket masih dapat mengisi slot yang tidak terkunci, dan menghubungkan paket tidak pernah menyentuh slot yang terkunci. Kartu terkunci di Konfigurasi Model Kursus berupa satu baris hanya-baca yang ditandai **Dikunci oleh administrator**. Pemilih model di halaman beranda muncul hanya ketika model default dapat diubah (`llm` tidak terkunci dan sebuah penyedia menawarkan model bahasa).
+
+Pengaturan model di aplikasi web membaca dan menyunting pohon yang sama untuk workspace saat ini:
+
+- **Paket Token**: menghubungkan paket menambahkan penyedianya beserta key dan mengisi slot yang direkomendasikan paket tersebut yang masih belum ditetapkan. Memutuskan menghapus penyedianya; slot yang memakainya kembali mengikuti induknya.
+- **Layanan Model**: satu tab per kemampuan (model bahasa, gambar, video, text to speech, pengenalan suara, penguraian dokumen, pencarian web) mencantumkan layanannya. Penyedia dari `openmaic.yml` ditampilkan hanya-baca dan tanpa apa pun tentang key-nya. Layanan yang disiapkan workspace menjadi penyedia workspace: key-nya hanya-tulis dan hanya ditampilkan sebagai mask seperti `…abcd`, endpoint kustom hanya dimungkinkan untuk model bahasa (Azure Speech mengambil endpoint regional resminya, seperti `https://<region>.tts.speech.microsoft.com`), dan layanan yang di-host sendiri serta pasangan key dikonfigurasi di `openmaic.yml`. Tombol uji memeriksa penyedia yang tersimpan di server.
+- **Konfigurasi Model Kursus**: model utama adalah slot `llm` dan setiap tahap pipeline adalah slotnya sendiri (mengikuti model utama berarti tahap itu tidak punya penetapan sendiri); sakelar gambar, video, suara, pencarian, dan transkripsi menyetel slot-nya ke `null`. Slot yang terkunci berupa satu baris hanya-baca, dan slot yang memakai default server menawarkan **Kembalikan ke default server** setelah seorang pengguna mengubahnya.
+
+Pengaturan penyedia yang disimpan browser pada versi sebelumnya (penyedia beserta key dan base URL-nya, model yang dipilih, pendaftaran paket token, dan pilihan setiap kemampuan) diimpor ke workspace satu kali. Impor tidak pernah menggantikan pengaturan workspace yang sudah ada atau slot di subtree yang dikunci `openmaic.yml`, dan ia melewati item yang ditolak `allowUserKeys: false` atau validasi. Setelah jawaban 2xx, hanya apa yang kini dipegang workspace yang meninggalkan browser: setiap item yang dilewati server (endpoint kustom untuk layanan media, preset yang tidak boleh dipakai sebuah workspace, id penyedia yang dideklarasikan deployment, ...) tetap disimpan di browser ini beserta key-nya, tidak pernah dikirim lagi, diumumkan sekali, dan dicantumkan di Pengaturan → Layanan Model beserta alasannya sampai ia disiapkan ulang atau dibuang. Penyedia Azure Speech beserta endpoint regionalnya diimpor. Jawaban 400 menolak seluruh proposal: proposal itu tidak dikirim lagi, dan item-itemnya tetap disimpan di browser ini beserta key-nya serta dicantumkan seperti item yang dilewati. Proposal yang tidak terbaca dibuang. Proposal tetap di browser untuk percobaan berikutnya hanya pada 401, 404, 409, 5xx, atau galat jaringan. Input suara yang secara eksplisit dimatikan menjadi `asr: null`, dan sulih suara, gambar, atau video yang dimatikan sementara penyedia yang dapat dipakai untuknya sudah disiapkan menjadi `tts: null`, `image: null`, atau `video: null` (slot yang dikunci `openmaic.yml` dibiarkan apa adanya). Hal-hal berikut harus disiapkan ulang secara manual: model per tahap (di Konfigurasi Model Kursus, atau `slots` di `openmaic.yml`), pengaturan thinking (`thinking` pada slot), penyedia suara dan transkripsi kustom serta pasangan key AliDocMind (di `openmaic.yml`; semuanya tetap di browser dan dicantumkan bersama item yang dilewati), backend VoxCPM (`options.backend`), dan sub-sumber pencarian Baidu (default server berlaku). Riset yang dimatikan tidak dibawa serta (ia hanya menghentikan riset kursus; chat dan agen tetap mencari), begitu pula sakelar yang mati hanya karena default: setiap kemampuan kini berjalan setiap kali slot-nya ter-resolve.
+
+Sebuah workspace adalah pemilik (owner) dalam pengertian [dokumentasi persistensi](./deployment.mdx#persistensi-sisi-server-postgresql): dengan setup Docker Compose default (mode pengguna tunggal) ada satu workspace, dan dalam deployment multi-pengguna setiap akun yang masuk memiliki workspace sendiri.
+
+### Eksekusi sandbox (eksperimental)
+
+Penyedia eksekusi bersama memakai model deployment/default/override yang sama. Konfigurasikan
+`sandbox` di `openmaic.yml`; hanya administrator instalasi yang boleh menimpanya melalui
+**Pengaturan → Sandbox**. Pelajar biasa tidak dapat membaca atau mengubah konfigurasi ini.
+
+```yaml
+sandbox:
+  enabled: true
+  provider: e2b-compatible
+  connectionId: my-installation
+  apiUrl: https://api.e2b.dev
+  domain: e2b.app
+  apiKey: ${SANDBOX_API_KEY}
+  template: your-code-template
+  lifetimeMs: 300000
+  maxActive: 5
+  maxActivePerOwner: 1
+# lock: [sandbox]  # Or add sandbox to your existing lock list
+```
+
+`desktopTemplate` opsional. Bagian yang tidak ada berarti nonaktif. Variabel yang dirujuk namun tidak
+ada dan nilai yang tidak valid menghentikan startup beserta lokasinya (misalnya `sandbox.apiKey`). Tanpa
+berkas YAML, variabel koneksi dan batas `OPENMAIC_SANDBOX_*` yang sudah ada menyediakan bentuk yang
+sama; berkas YAML tidak memakai nilai-nilai itu sebagai fallback ketika ia tidak mencantumkan `sandbox`.
+
+Suntingan web hanya menyimpan nilai yang berbeda dari default deployment dan key yang dimasukkan secara
+eksplisit. Menyimpan sebuah field pada nilai deployment-nya memulihkan pewarisan untuk field itu tanpa
+mereset override lain. Key yang tersimpan tetap dipatok ke akun dan endpoint-nya. Key memakai penyegelan
+instance-secret yang sudah ada; jaga `OPENMAIC_SECRET_KEY` tetap stabil di seluruh replika. Key
+deployment tetap diwarisi sehingga merotasinya tidak meninggalkan salinan usang di basis data.
+`lock: [sandbox]` atau `lock: all` membuat halaman menjadi hanya-baca dan mengeluarkan pengaturan serta
+key sandbox yang tersimpan dari runtime. **Kembalikan ke konfigurasi deployment** menghapus override web.
+Menyimpan dan mereset sama-sama mengharuskan semua environment telah dilepas atau direkonsiliasi, dan
+memakai penulisan yang diperiksa revisi di bawah kunci basis data yang sama dengan alokasi sandbox.
+Kosongkan (drain) environment sebelum mengubah koneksi atau kunci di tingkat deployment dan restart semua
+replika secara konsisten. Suntingan berkas tidak dilindungi oleh penjaga tulis web.
+
+Konfigurasi sandbox bersifat menyeluruh instalasi, terpisah dari workspace model setiap pengguna.
+Key manajemen sandbox tidak pernah mencapai browser. Jaringan pratinjau dan penyimpanan checkpoint
+masih dikonfigurasi oleh deployment; menyimpan formulir ini tidak menguji konektivitas atau
+mengalokasikan sumber daya berbayar.
+
+Setelah sandbox diaktifkan, pemilik mana pun yang diizinkan deployment boleh memakainya, termasuk
+pengunjung anonim dan workspace tim bersama; tidak ada peran yang diperlukan. Setiap pemilik hanya
+menjangkau sandbox, berkas, dan pratinjau miliknya sendiri. Pada deployment yang dapat dijangkau publik,
+mengaktifkan sandbox memungkinkan pengunjung mana pun menjalankan sandbox berbayar hingga
+`maxActivePerOwner` dan `maxActive`: lindungi dengan [`ACCESS_CODE`](#access_code--kata-sandi-untuk-seluruh-situs)
+atau sistem masuk Anda sendiri, jaga batas dan `lifetimeMs` tetap rendah, dan set anggaran di penyedia
+sandbox.
+
+### allowUserKeys
+
+```yaml
+allowUserKeys: false
+```
+
+`allowUserKeys` (default `true`) menentukan apakah pengguna boleh menambahkan penyedia, key, dan paket token mereka sendiri. Dengan `false`, pengguna hanya memilih di antara penyedia yang dideklarasikan `openmaic.yml`, untuk slot yang tidak dikuncinya: Paket Token dan penambahan layanan tidak ditampilkan, dan penyedia yang ditambahkan workspace sebelumnya tidak lagi dipakai. Permintaan yang masih menyebut model, key, atau endpoint sendiri (header `x-model`, `x-api-key`, dan `x-base-url` yang deprekasi, serta field penyedia pada rute media) diabaikan saat itu, dan bentuk header dari tombol uji penyedia ditolak. Deployment multi-pengguna yang membayar semua pemakaian biasanya menyetelnya dan mengunci slot yang ingin dipatok.
+
+### Rahasia dan OPENMAIC_SECRET_KEY
+
+- Key di `openmaic.yml` berasal dari environment melalui `${VAR}`. Key tidak pernah disimpan di basis data dan tidak pernah dikirim ke browser.
+- Key yang dimasukkan workspace di pengaturan model disimpan di basis data, dienkripsi dengan AES-256-GCM di bawah instance secret `OPENMAIC_SECRET_KEY`.
+- Ketika `OPENMAIC_SECRET_KEY` tidak di-set, server membuat secret acak pada pemakaian pertama di `data/instance-secret.key` (di dalam volume `openmaic-data` dengan Docker Compose) dan memakainya sejak saat itu.
+
+Simpan secret tersebut bersama cadangan basis data: key yang tersimpan di bawah secret yang hilang atau berubah tidak dapat dibaca dan harus dimasukkan lagi (pengaturan model menandainya). Set `OPENMAIC_SECRET_KEY` secara eksplisit ketika lebih dari satu instance berbagi basis data, atau ketika server tidak punya direktori data persisten (container tanpa volume data); string apa pun berfungsi, misalnya keluaran `openssl rand -base64 32`.
+
+Tanpanya, direktori data yang tidak bertahan melewati restart (container tanpa volume, disk ephemeral) berarti secret baru pada setiap start, dan beberapa replika masing-masing menghasilkan secret sendiri; pada direktori kerja hanya-baca tidak ada secret yang dapat dibuat dan menyimpan key di pengaturan model gagal. Saat startup server memberi peringatan ketika `OPENMAIC_SECRET_KEY` tidak di-set dan direktori data tidak dapat ditulis, dan ketika basis data menyimpan key yang disegel di bawah secret yang berbeda dari yang sekarang (misalnya karena `data/instance-secret.key` hilang); server tetap berjalan.
+
+```bash
+OPENMAIC_SECRET_KEY=...        # instance secret for keys saved in the model settings
+OPENMAIC_CONFIG=/etc/openmaic/openmaic.yml   # optional: another path for openmaic.yml
+```
+
+### Apa yang boleh ditambahkan workspace
+
+Penyedia dari `openmaic.yml` dapat berupa apa pun yang diterima skema. Penyedia yang ditambahkan workspace di pengaturan model lebih terbatas, karena endpoint dan key-nya diketik oleh pengguna aplikasi web:
+
+- Amazon Bedrock tidak ditawarkan: ia akan menandatangani dengan kredensial AWS milik server sendiri.
+- Tidak ada `proxy`, dan tidak ada pasangan key (`credentials`): preset yang melakukan autentikasi dengan pasangan key, seperti AliDocMind, hanya untuk deployment.
+- `baseUrl` kustom hanya diizinkan untuk preset yang menawarkan chat, dan penyedia dengan `baseUrl` seperti itu hanya melayani slot chat. URL tidak boleh mengandung kredensial, query string, atau fragmen, dan harus ter-resolve ke alamat publik kecuali server menyetel `ALLOW_LOCAL_NETWORKS=true`. Permintaan ke sana tidak mengikuti pengalihan (redirect).
+- Server model lokal (Ollama, Lemonade) harus menyebut endpoint-nya sendiri alih-alih memakai default `localhost` milik preset.
+- Layanan media, pencarian, dan dokumen yang di-host sendiri (VoxCPM2, FunASR, Lemonade speech dan images, ComfyUI, SearXNG, MinerU yang di-host sendiri) berjalan di jaringan server sendiri dan hanya untuk deployment.
+- Penyedia yang dimatikan operator dengan variabel legacy `<CAP>_<VENDOR>_ENABLED=false` tidak ditawarkan.
+- Workspace tidak dapat mendeklarasikan id penyedia yang sudah dideklarasikan `openmaic.yml`.
+
+Deployment yang ingin penggunanya menjangkau layanan internal mendeklarasikan penyedia tersebut di `openmaic.yml`.
+
+### Klien API dan field permintaan yang deprekasi
+
+Permintaan pembuatan tidak lagi perlu membawa key atau pilihan model: panggilan API tanpa browser seperti `/api/generate-classroom` ter-resolve melalui slot yang sama dengan aplikasi web, untuk workspace pemanggilnya.
+
+Header permintaan lama `x-model`, `x-api-key`, `x-base-url`, `x-provider-type`, `x-model-routes`, `x-image-provider`, `x-image-model`, `x-video-provider`, dan `x-video-model`, serta field body yang setara pada rute speech, search, dan document, sudah deprekasi. Semuanya dihormati hanya selama slot yang akan terpengaruh belum punya penetapan atau, pada server yang masih dikonfigurasi melalui variabel legacy, hanya punya default yang diterjemahkan dari variabel itu (sebagaimana `DEFAULT_MODEL` selalu berperingkat di bawah model yang disebut sebuah permintaan); default di `openmaic.yml`, pilihan workspace sendiri, dan slot yang terkunci menang, dan slot yang di-set ke `null` menolak permintaan apa pun yang disebutnya. Dengan `allowUserKeys: false` semuanya diabaikan sepenuhnya. Server mencatat peringatan saat pertama kali sebuah permintaan memakainya. Semuanya akan dihapus dua versi minor setelah pengaturan model yang dijelaskan di atas dirilis.
+
+### Migrasi dari konfigurasi legacy
+
+Ketika `openmaic.yml` tidak ada, server menerjemahkan konfigurasi legacy saat startup dan mencatat pemberitahuan deprekasi, ditambah pemberitahuan untuk setiap entri yang tidak dapat dibawa:
+
+| Pengaturan legacy | Menjadi |
+| --- | --- |
+| Variabel penyedia (`OPENAI_API_KEY`, `TTS_MINIMAX_API_KEY`, …) dan `server-providers.yml` | Penyedia deployment (hanya-baca di pengaturan model). Id penyedia adalah id preset, yaitu id penyedia legacy kecuali untuk web search MiniMax (`minimax-search`), web search Doubao (`doubao-search`), dan gambar Lemonade (`lemonade-image`) |
+| `<PREFIX>_MODELS` | `models` penyedia |
+| `DEFAULT_MODEL` | Penetapan `llm`, sebagai default yang dapat ditimpa workspace (tidak terkunci). Slot `agent` tetap mati, seperti sebelumnya |
+| `MODEL_FALLBACK` | Fallback dari `DEFAULT_MODEL`. Tanpa `DEFAULT_MODEL` ia dibuang dengan pemberitahuan |
+| Penyedia TTS, ASR, image, video, dan document pertama yang dikonfigurasi, serta web search dalam urutan prioritas lama | Penetapan default kemampuan tersebut (`DEFAULT_IMAGE_PROVIDER` memilih penyedia image) |
+| `MODEL_ROUTES` | **Tidak diterjemahkan.** Server menolak start (lihat di bawah) |
+| `<CAP>_<VENDOR>_ENABLED=false` | Tetap dihormati: penyedia tetap mati apa pun yang menetapkannya |
+
+Ketika `openmaic.yml` ada, variabel penyedia, `server-providers.yml`, `DEFAULT_MODEL`, `MODEL_FALLBACK`, dan `MODEL_ROUTES` diabaikan untuk resolusi model, dengan sebuah pemberitahuan. `<CAP>_<VENDOR>_ENABLED=false` tetap berlaku; untuk mematikan sebuah kemampuan, set slot-nya ke `null` sebagai gantinya.
+
+**Variabel lingkungan.** Sebelum:
+
+```bash
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+DEFAULT_MODEL=openai:gpt-5.5
+MODEL_FALLBACK=anthropic:claude-sonnet-4-6
+TTS_MINIMAX_API_KEY=...
+TAVILY_API_KEY=tvly-...
+```
+
+Sesudah (key tetap di environment):
+
+```yaml title="openmaic.yml"
+providers:
+  openai:
+    preset: openai
+    apiKey: ${OPENAI_API_KEY}
+  anthropic:
+    preset: anthropic
+    apiKey: ${ANTHROPIC_API_KEY}
+  minimax-tts:
+    preset: minimax-tts
+    apiKey: ${TTS_MINIMAX_API_KEY}
+  tavily:
+    preset: tavily
+    apiKey: ${TAVILY_API_KEY}
+
+slots:
+  llm:
+    model: openai:gpt-5.5
+    fallback: anthropic:claude-sonnet-4-6
+  tts: minimax-tts
+  webSearch: tavily
+```
+
+Hapus `DEFAULT_MODEL` dan `MODEL_FALLBACK` setelahnya. Variabel penyedia dapat tetap menjadi sumber referensi `${VAR}`. `<PREFIX>_BASE_URL` menjadi `baseUrl` penyedia (`OPENAI_BASE_URL` → `baseUrl` di bawah `openai`; tulis URL-nya, atau `${OPENAI_BASE_URL}` selama variabel itu tetap di-set), dan `<PREFIX>_MODELS` menjadi daftar `models`-nya. Seperti `DEFAULT_MODEL` yang diterjemahkan, `llm` yang ditulis di sini adalah default server yang dapat diubah workspace; tambahkan `lock: [llm]` untuk mematoknya bagi semua orang. Berbeda dengan penerjemahan, `agent` kini mengikuti `llm`: tulis `agent: null` untuk menjaga agen workbench tetap mati.
+
+**server-providers.yml.** Sebelum:
+
+```yaml title="server-providers.yml"
+providers:
+  azure:
+    apiKey: ...
+    baseUrl: https://YOUR-RESOURCE.openai.azure.com/openai
+    models: [my-deployment]
+pdf:
+  alidocmind:
+    accessKeyId: ...
+    accessKeySecret: ...
+web-search:
+  searxng:
+    baseUrl: http://searxng:8080
+```
+
+Sesudah:
+
+```yaml title="openmaic.yml"
+providers:
+  azure:
+    preset: azure
+    apiKey: ${AZURE_OPENAI_API_KEY}
+    baseUrl: https://YOUR-RESOURCE.openai.azure.com/openai
+    models: [my-deployment]
+  alidocmind:
+    preset: alidocmind
+    credentials:
+      accessKeyId: ${ALIDOCMIND_ACCESS_KEY_ID}
+      accessKeySecret: ${ALIDOCMIND_ACCESS_KEY_SECRET}
+  searxng:
+    preset: searxng
+    baseUrl: http://searxng:8080
+
+slots:
+  llm: azure:my-deployment
+  document: alidocmind
+  webSearch: searxng
+```
+
+Setiap bagian `server-providers.yml` menjadi penyedia dengan preset yang sesuai (`providers` → preset chat, `tts`, `asr`, `pdf` → document, `image`, `video`, `web-search`), dan `accessKeyId`/`accessKeySecret` pindah ke bawah `credentials`.
+
+**MODEL_ROUTES.** Server yang menyetel `MODEL_ROUTES` tanpa `openmaic.yml` tidak akan start:
+
+```text
+MODEL_ROUTES does not carry over to the model configuration: write the per-stage models as slots in openmaic.yml (or the file named by OPENMAIC_CONFIG) and remove MODEL_ROUTES
+```
+
+Rute per tahap tidak dipetakan satu lawan satu ke slot, jadi tidak diterjemahkan. Tulis ulang setiap rute sebagai slot tempat tahapnya berada:
+
+| Tahap `MODEL_ROUTES` | Slot |
+| --- | --- |
+| `web-search-query-rewrite` | `course.research` |
+| `scene-outlines-stream` | `course.outline` |
+| `agent-profiles` | `course.agents` |
+| `scene-content` | `course.content` |
+| `scene-content:slide`, `:quiz`, `:interactive`, `:pbl` | `course.content.slide`, `.quiz`, `.interactive`, `.pbl` |
+| `scene-actions` | `course.actions` |
+| `chat-adapter`, `quiz-grade`, `pbl-v2-runtime` dan varian `:instructor`, `:open-task`, `:evaluate`, `:simulator`-nya | `classroom` |
+| `generate-classroom` | `llm` |
+| `maic-agent-driver` | `agent` |
+| `conversation-title` | `agent.title` |
+| `pbl-chat`, `maic-agent` | Tidak ada: tahap-tahap ini telah dihapus. Buang saja |
+
+Beberapa tahap berbagi satu slot: berikan slot itu satu model yang seharusnya mereka pakai. `thinking` sebuah rute pindah ke `thinking` slot, dan `api` serta `contextWindow` rute `maic-agent-driver` pindah ke slot `agent`. Sebelum:
+
+```bash
+DEFAULT_MODEL=openai:gpt-5.5
+MODEL_ROUTES='{"scene-outlines-stream":"anthropic:claude-sonnet-4-6","scene-content:slide":{"model":"openai:gpt-5.4","thinking":{"effort":"low"}},"maic-agent-driver":{"model":"openai:gpt-5.5","api":"openai-completions"}}'
+```
+
+Sesudah:
+
+```yaml title="openmaic.yml"
+providers:
+  openai:
+    preset: openai
+    apiKey: ${OPENAI_API_KEY}
+  anthropic:
+    preset: anthropic
+    apiKey: ${ANTHROPIC_API_KEY}
+
+slots:
+  llm: openai:gpt-5.5
+  course.outline: anthropic:claude-sonnet-4-6
+  course.content.slide:
+    model: openai:gpt-5.4
+    thinking: { effort: low }
+  agent:
+    model: openai:gpt-5.5
+    api: openai-completions
+```
+
+Setelah `openmaic.yml` ada, variabel penyedia tidak mengonfigurasi apa pun dengan sendirinya: penyedia TTS, image, document, atau web search yang tadinya hanya punya variabel (`TTS_MINIMAX_API_KEY`, `IMAGE_SEEDREAM_API_KEY`, `PDF_MINERU_BASE_URL`, `TAVILY_API_KEY`, …) tidak lagi dipakai, dan kemampuan lain tidak mendapat penyedia default. Deklarasikan setiap penyedia yang Anda pakai di bawah `providers` dan tetapkan `tts`, `image`, `document`, `webSearch` (serta `asr`, `video`) di `slots`, seperti pada contoh variabel lingkungan di atas; slot untuk kemampuan lain yang dibiarkan tanpa penetapan tetap belum terkonfigurasi kecuali sebuah workspace menetapkannya di pengaturan model.
+
+Lalu hapus `MODEL_ROUTES`, `DEFAULT_MODEL`, dan `MODEL_FALLBACK`.
+
+**Docker.** Mount berkasnya di samping aplikasi dan simpan key di `.env.local`:
+
+```yaml
+services:
+  openmaic:
+    volumes:
+      - ./openmaic.yml:/app/openmaic.yml:ro
+```
+
+## ACCESS_CODE — kata sandi untuk seluruh situs
+
+Untuk deployment bersama seperti demo internal atau kelas, set access code agar pengunjung harus memasukkan kata sandi sebelum dapat melihat aplikasi:
+
+```bash
+ACCESS_CODE=your-secret-code
+```
+
+Gunakan nilai acak yang panjang (minimal 16 karakter) — kode ini adalah satu-satunya rahasia yang menjaga deployment. Kode diingat dalam token bertanda tangan yang disimpan di cookie HTTP-only selama 7 hari; masa berlakunya ditegakkan di sisi server, sehingga pengunjung harus memverifikasi ulang setelah kedaluwarsa. Verifikasi dibatasi lajunya hanya ketika `TRUST_PROXY_HEADERS=true` di-set di belakang proxy tepercaya yang menimpa `x-forwarded-for` / `x-real-ip`: setiap klien mendapat 10 percobaan per 60 detik, dan verifikasi yang berhasil menghapus penghitung klien tersebut. Tanpa proxy tepercaya, aplikasi tidak dapat mengaitkan sebuah permintaan ke klien, sehingga tidak ada pembatasan; andalkan panjang dan keacakan kode. Biarkan kosong untuk menonaktifkan kontrol akses.
+
+## Feature flag
+
+Feature flag menerima `true` atau `1`; kecuali dinyatakan lain, semua nilai lain diperlakukan sebagai nonaktif. Flag `NEXT_PUBLIC_*` disuntikkan ke klien saat build, jadi mengubahnya memerlukan build ulang:
+
+```bash
+# MAIC Editor (classroom editor)
+NEXT_PUBLIC_MAIC_EDITOR_ENABLED=true
+
+# PPT and Interactive courseware references in Pi playback (build-time; editor references are separate)
+NEXT_PUBLIC_COURSEWARE_REFERENCE_ENABLED=true
+
+# Vocational education task engine (server-side flag)
+OPENMAIC_ENABLE_VOCATIONAL=true
+
+# Show the vocational education experimental switch
+NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI=true
+
+# Show the video export entry point
+NEXT_PUBLIC_ENABLE_VIDEO_EXPORT=true
+
+# Show the experimental PPTX import entry point
+NEXT_PUBLIC_ENABLE_PPTX_IMPORT=true
+
+# Docs site opened from the account menu (default: /docs on the same origin)
+NEXT_PUBLIC_DOCS_URL=https://docs.example.com
+```
+
+Chat kelas selalu berjalan di Pi, yang memerlukan model dengan tool (function) calling: pilih satu untuk **Classroom** di **Konfigurasi Model Kursus**, atau set slot `classroom` (atau slot `llm` yang diwarisinya) di `openmaic.yml`. Untuk Gemini, gunakan preset native `google` alih-alih endpoint kompatibel OpenAI dari Google. Ia menolak model yang menurut katalog bawaan tidak memiliki tool calling sebelum inferensi, dengan `400 MODEL_CONFIG_INVALID` (`reason: tool_calling_required`), dan **Konfigurasi Model Kursus** mencatat persyaratan itu pada slot classroom.
+
+Chat kelas berbasis director-graph yang lama telah dihapus, dan `NEXT_PUBLIC_PI_CHAT_ENABLED` tidak lagi memilih jalur chat. Hapus variabel itu dari konfigurasi Anda: build produksi hanya menerima tidak-di-set, string kosong, `true`, atau `1` (cocok persis) dan gagal dengan panduan migrasi pada nilai lain. Dengan Docker Compose, `env_file` layanan (`.env.local`) menyediakan nilai runtime, bukan build arg.
+
+Impor PPTX masih eksperimental, dan output hasil penguraiannya belum sepenuhnya terintegrasi ke alur data kelas. Semua variabel `NEXT_PUBLIC_*` di atas adalah flag build-time. Deployment Docker juga harus meneruskannya sebagai build arg; menyetelnya hanya sebagai variabel lingkungan runtime container tidak cukup.
+
+## Opsi server lainnya
+
+Opsi server berikut juga dapat dikonfigurasi dengan variabel lingkungan:
+
+```bash
+# Parallel scene-content generation; 0 or unset means sequential
+PARALLEL_SCENE_CONCURRENCY=3
+
+# Allow localhost and private-network addresses; self-hosted/private deployments only
+ALLOW_LOCAL_NETWORKS=true
+
+# Optional MP4 rendering service
+RENDER_SERVICE_URL=http://render-service:9000
+
+# Logging and reasoning
+LOG_LEVEL=info
+LOG_FORMAT=pretty
+LLM_THINKING_DISABLED=false
+```
+
+## Variabel lingkungan penyedia legacy
+
+Variabel-variabel ini dan `server-providers.yml` adalah konfigurasi rilis sebelumnya. Semuanya masih berfungsi ketika tidak ada `openmaic.yml` (lihat [Migrasi dari konfigurasi legacy](#migrasi-dari-konfigurasi-legacy)) dan sudah deprekasi: akan dihapus dua versi minor setelah pengaturan model dirilis. Dengan `openmaic.yml`, gunakan hanya sebagai sumber referensi `${VAR}`. `DEFAULT_MODEL` dan `MODEL_FALLBACK` dibahas di bagian migrasi; `MODEL_ROUTES` tidak lagi dibaca.
+
+### Penyedia LLM
+
+Penyedia cloud umumnya memakai tiga variabel lingkungan: API key, base URL, dan daftar model. API key biasanya wajib; base URL dan daftar model opsional. Azure OpenAI memerlukan endpoint resource, sedangkan Ollama dan Lemonade tidak memerlukan API key.
+
+```bash
+OPENAI_API_KEY=sk-...
+OPENAI_BASE_URL=                # optional base URL override
+OPENAI_MODELS=                  # optional model allowlist (comma-separated)
+```
+
+Prefiks penyedia yang didukung:
+
+| Prefiks            | Penyedia                                      |
+| ------------------ | --------------------------------------------- |
+| `OPENAI_`          | OpenAI                                        |
+| `AZURE_OPENAI_`    | Azure OpenAI                                  |
+| `ANTHROPIC_`       | Anthropic                                     |
+| `GOOGLE_`          | Google Gemini                                 |
+| `DEEPSEEK_`        | DeepSeek                                      |
+| `QWEN_`            | Alibaba Qwen                                  |
+| `KIMI_`            | Moonshot Kimi                                 |
+| `MINIMAX_`         | MiniMax (endpoint kompatibel Anthropic secara default) |
+| `GLM_`             | Zhipu GLM                                     |
+| `SILICONFLOW_`     | SiliconFlow                                   |
+| `DOUBAO_`          | Doubao (ByteDance)                            |
+| `OPENROUTER_`      | OpenRouter                                    |
+| `GROK_`            | xAI Grok                                      |
+| `TENCENT_`         | Tencent Hunyuan                               |
+| `TENCENT_HUNYUAN_` | Tencent Hunyuan (alias)                       |
+| `XIAOMI_`          | Xiaomi MiMo                                   |
+| `MIMO_`            | Xiaomi MiMo (alias)                           |
+| `OLLAMA_`          | Ollama (lokal)                                |
+| `LEMONADE_`        | Lemonade (lokal)                              |
+
+Azure OpenAI memakai nama deployment sebagai ID model:
+
+```bash
+AZURE_OPENAI_API_KEY=...
+AZURE_OPENAI_BASE_URL=https://YOUR-RESOURCE.openai.azure.com/openai
+AZURE_OPENAI_MODELS=your-deployment-name
+```
+
+Untuk menghubungkan layanan LLM kompatibel OpenAI lainnya, deklarasikan penyedia `openai-compatible` beserta `baseUrl` dan `models`-nya di `openmaic.yml`, atau tambahkan satu melalui **Tambahkan penyedia** di **Pengaturan → Layanan Model → LLM**.
+
+Untuk interaksi kelas Gemini, gunakan preset native `google`: tambahkan Google di **Pengaturan → Layanan Model** dan pilih untuk **Classroom** di **Konfigurasi Model Kursus**. Pi menolak endpoint kompatibel OpenAI resmi Google (`https://generativelanguage.googleapis.com/v1beta/openai`) dengan panduan migrasi; dukungan tool calling yang kompatibel dilacak di [#1556](https://github.com/THU-MAIC/OpenMAIC/issues/1556). Pemeriksaan ini hanya mengenali endpoint resmi tersebut dan tidak dapat mengidentifikasi upstream di balik gateway pihak ketiga mana pun.
+
+### Model lokal (Ollama dan Lemonade)
+
+Ollama dan Lemonade tidak memerlukan API key. Letakkan base URL layanan lokal di konfigurasi server agar lolos validasi SSRF:
+
+```bash
+OLLAMA_BASE_URL=http://localhost:11434/v1
+# LEMONADE_BASE_URL=http://localhost:13305/v1
+```
+
+Untuk membatasi model yang tersedia, gunakan `OLLAMA_MODELS` atau `LEMONADE_MODELS` sebagai allowlist model.
+
+### Penyedia TTS
+
+Penyedia TTS sisi server memakai `TTS_<PROVIDER>_API_KEY` dan opsional `TTS_<PROVIDER>_BASE_URL`.
+
+```bash
+# Doubao TTS (Volcengine Seed-TTS, native MP3)
+TTS_DOUBAO_API_KEY=appId:accessKey
+TTS_DOUBAO_BASE_URL=       # optional override
+
+# Qwen TTS
+TTS_QWEN_API_KEY=
+TTS_QWEN_BASE_URL=         # optional override
+
+# Xiaomi MiMo TTS
+TTS_XIAOMI_API_KEY=
+TTS_XIAOMI_BASE_URL=https://api.xiaomimimo.com/v1
+
+# Any OpenAI-compatible TTS endpoint
+TTS_OPENAI_API_KEY=
+TTS_OPENAI_BASE_URL=
+
+# VoxCPM2 (self-hosted TTS with voice cloning; see the dedicated VoxCPM2 page)
+TTS_VOXCPM_BASE_URL=http://localhost:8000
+```
+
+Prefiks TTS yang didukung mencakup `TTS_OPENAI_`, `TTS_AZURE_`, `TTS_GLM_`, `TTS_QWEN_`, `TTS_MINIMAX_`, `TTS_DOUBAO_`, `TTS_ELEVENLABS_`, `TTS_GOOGLE_`, `TTS_VOXCPM_`, `TTS_XIAOMI_`, dan `TTS_LEMONADE_`. Lemonade TTS lokal dan VoxCPM2 tidak memerlukan API key. TTS bawaan browser tidak memerlukan konfigurasi server.
+
+Administrator dapat memaksa mematikan penyedia TTS di server dengan `TTS_<PROVIDER>_ENABLED=false`. Lihat bagian [VoxCPM2](./voxcpm.mdx) khusus untuk TTS yang di-host sendiri dan kloning suara.
+
+Untuk layanan TTS yang di-host sendiri dan lambat atau hanya CPU (seperti Kokoro atau VoxCPM), operasi sintesis untuk baris sulih suara yang lebih panjang dapat melebihi timeout default per permintaan, yaitu 30 detik (`30000` ms). Operator dapat mengonfigurasi `TTS_REQUEST_TIMEOUT_MS` (misalnya `TTS_REQUEST_TIMEOUT_MS=120000` atau `300000`) di `.env.local` untuk memberi waktu sintesis yang memadai dan mencegah galat timeout.
+
+Untuk memakai endpoint TTS kompatibel OpenAI lainnya, deklarasikan penyedia `openai-tts` dengan `baseUrl` tersebut di `openmaic.yml` dan tetapkan slot `tts` kepadanya. Workspace tidak dapat menambahkan endpoint TTS kustom di pengaturan model.
+
+### ASR (ucapan ke teks)
+
+```bash
+# OpenAI Whisper
+ASR_OPENAI_API_KEY=
+ASR_OPENAI_BASE_URL=       # optional override
+
+# Qwen ASR
+ASR_QWEN_API_KEY=
+ASR_QWEN_BASE_URL=         # optional override
+
+# Xiaomi MiMo ASR
+ASR_XIAOMI_API_KEY=
+ASR_XIAOMI_BASE_URL=https://api.xiaomimimo.com/v1
+
+# Azure ASR
+ASR_AZURE_API_KEY=
+ASR_AZURE_BASE_URL=https://{region}.api.cognitive.microsoft.com
+
+# FunASR (local, no key required)
+ASR_FUNASR_BASE_URL=http://localhost:8000/v1
+
+# Lemonade ASR (local, no key required)
+ASR_LEMONADE_BASE_URL=http://localhost:13305/v1
+```
+
+Mulai layanan FunASR kompatibel OpenAI dengan `funasr-server --device cuda`. Ia menerima unggahan WAV di `/v1/audio/transcriptions` dan menyediakan SenseVoiceSmall, Paraformer, serta Fun-ASR-Nano melalui pemilih model.
+
+ASR bawaan browser tidak memerlukan konfigurasi server.
+
+Untuk memakai endpoint ASR kompatibel OpenAI lainnya, deklarasikan di `openmaic.yml` dengan preset `openai-whisper` dan `baseUrl`-nya, lalu tetapkan slot `asr` kepadanya. Workspace tidak dapat menambahkan endpoint ASR kustom di pengaturan model:
+
+```yaml title="openmaic.yml"
+providers:
+  my-asr:
+    preset: openai-whisper
+    apiKey: ${MY_ASR_API_KEY}
+    baseUrl: https://asr.example.com/v1
+
+slots:
+  asr: my-asr:whisper-1
+```
+
+### Penyedia pembuatan gambar
+
+Penyedia pembuatan gambar memakai `IMAGE_<PROVIDER>_API_KEY` dan opsional `IMAGE_<PROVIDER>_BASE_URL`. Prefiks yang didukung mencakup:
+
+`IMAGE_OPENAI_`, `IMAGE_SEEDREAM_`, `IMAGE_QWEN_IMAGE_`, `IMAGE_NANO_BANANA_`, `IMAGE_MINIMAX_`, `IMAGE_GROK_`, `IMAGE_GLM_`, dan `IMAGE_LEMONADE_`.
+
+GLM Image (Zhipu CogView) menghasilkan gambar dengan model CogView (`cogview-3-flash`, `cogview-4`):
+
+```yaml title="openmaic.yml"
+providers:
+  glm-image-service:
+    preset: glm-image
+    apiKey: ${IMAGE_GLM_API_KEY}
+    # Optional:
+    baseUrl: https://open.bigmodel.cn/api/paas/v4
+
+slots:
+  image: glm-image-service:cogview-3-flash
+```
+
+Atau konfigurasikan melalui variabel lingkungan:
+
+```bash
+IMAGE_GLM_API_KEY=
+# Optional:
+IMAGE_GLM_BASE_URL=https://open.bigmodel.cn/api/paas/v4
+```
+
+Lemonade adalah layanan lokal dan tidak memerlukan key:
+
+```bash
+IMAGE_LEMONADE_BASE_URL=http://localhost:13305/v1
+```
+
+ComfyUI Image tidak memerlukan API key. Ia berjalan di jaringan Anda sendiri, jadi dikonfigurasi oleh deployment: deklarasikan di `openmaic.yml` dengan alamat server ComfyUI Anda dan tetapkan slot `image` kepadanya.
+
+```yaml title="openmaic.yml"
+providers:
+  comfyui:
+    preset: comfyui-image
+    baseUrl: http://host.docker.internal:8188
+
+slots:
+  image: comfyui
+```
+
+Letakkan JSON workflow yang diekspor dalam format API di direktori `public/` OpenMAIC. Gunakan nama berkas yang cocok dengan `comfyui-*.json` atau mengandung `workflow`; OpenMAIC menemukan berkas-berkas ini secara otomatis dan menawarkannya sebagai workflow. Dengan Docker, tambahkan workflow sebelum mem-build image atau mount satu berkas workflow ke `/app/public/` di dalam container. Karena penyedianya dideklarasikan oleh deployment, server ComfyUI di host atau di jaringan privat tidak memerlukan `ALLOW_LOCAL_NETWORKS`.
+
+### Penyedia pembuatan video
+
+Penyedia pembuatan video memakai `VIDEO_<PROVIDER>_API_KEY` dan opsional `VIDEO_<PROVIDER>_BASE_URL`. Prefiks yang didukung mencakup:
+
+`VIDEO_SEEDANCE_`, `VIDEO_KLING_`, `VIDEO_SORA_`, `VIDEO_MINIMAX_`, `VIDEO_GROK_`, dan `VIDEO_HAPPYHORSE_`.
+
+### Penguraian dokumen dan media
+
+Format materi kursus yang tepat bergantung pada parser yang dipilih. OpenMAIC saat ini mendukung teks, PDF, dokumen Office, gambar, dan sebagian format audio/video; format serta kemampuan yang didukung berbeda-beda per penyedia.
+
+```bash
+# MinerU self-hosted
+PDF_MINERU_BASE_URL=http://localhost:8888
+
+# Optional backend for self-hosted MinerU
+PDF_MINERU_BACKEND=pipeline
+
+# MinerU Cloud
+PDF_MINERU_CLOUD_API_KEY=
+PDF_MINERU_CLOUD_BASE_URL=https://mineru.net/api/v4
+
+# AliDocMind (uses Alibaba Cloud AccessKey, not a separate API key)
+ALIDOCMIND_ACCESS_KEY_ID=
+ALIDOCMIND_ACCESS_KEY_SECRET=
+ALIDOCMIND_BASE_URL=       # optional override
+```
+
+`unpdf` terpasang bawaan di OpenMAIC dan mendukung penguraian PDF dasar. Untuk dokumen Office, gambar, dan materi yang memerlukan OCR serta analisis tabel, rumus, atau tata letak, pilih penyedia MinerU atau AliDocMind yang kompatibel.
+
+Penguraian dokumen AliDocMind mendukung PDF, DOCX, PPTX, XLSX, dan PNG, JPG/JPEG, BMP, serta GIF. Materi audio dan video saat ini hanya didukung melalui AliDocMind: MP4, MOV, AVI, MKV, dan WMV untuk video; MP3, WAV, dan AAC untuk audio. M4A tidak didukung.
+
+### Pencarian web
+
+Konfigurasikan Tavily, Exa, Firecrawl, Bocha, Brave, Baidu, SearXNG, atau MiniMax:
+
+```bash
+TAVILY_API_KEY=
+TAVILY_BASE_URL=           # optional override
+
+EXA_API_KEY=
+EXA_BASE_URL=https://api.exa.ai  # optional override
+
+FIRECRAWL_API_KEY=
+FIRECRAWL_BASE_URL=https://api.firecrawl.dev  # optional override
+
+BOCHA_API_KEY=
+BOCHA_BASE_URL=            # optional override
+
+BAIDU_API_KEY=
+BAIDU_BASE_URL=https://qianfan.baidubce.com  # optional override
+
+# Self-hosted SearXNG, no API key required
+SEARXNG_BASE_URL=
+
+WEB_SEARCH_MINIMAX_API_KEY=
+WEB_SEARCH_MINIMAX_BASE_URL=https://api.minimaxi.com  # optional override
+```
+
+Brave dan SearXNG tidak memerlukan API key. Pencarian web tidak punya sakelar per pembuatan: ia berjalan setiap kali slot `webSearch` workspace ter-resolve, dan mematikannya (`webSearch: null` di `openmaic.yml`, atau dengan sakelar pencarian di **Pengaturan → Konfigurasi Model Kursus**) memengaruhi pembuatan berikutnya di workspace tersebut. Pencarian web Grok disediakan melalui tool pencarian Grok LLM, bukan penyedia pencarian web mandiri.
+
+### server-providers.yml
+
+Sudah deprekasi dan digantikan oleh `openmaic.yml`. Ketika keduanya ada, hanya `openmaic.yml` yang mengonfigurasi model.
+
+Selain variabel lingkungan, letakkan konfigurasi untuk penyedia yang terdaftar di kode pada `server-providers.yml` di root proyek. Server memuatnya saat startup, dan strukturnya mengikuti kategori variabel lingkungan:
+
+```yaml title="server-providers.yml"
+providers:
+  openai:
+    apiKey: sk-...
+    baseUrl: https://api.openai.com/v1
+    models:
+      - gpt-5.5
+  anthropic:
+    apiKey: sk-ant-...
+
+tts:
+  doubao-tts:
+    apiKey: appId:accessKey
+
+asr:
+  openai-whisper:
+    apiKey: sk-...
+
+pdf:
+  mineru:
+    baseUrl: http://localhost:8888
+  alidocmind:
+    accessKeyId: your-access-key-id
+    accessKeySecret: your-access-key-secret
+
+image:
+  seedream:
+    apiKey: ...
+
+video:
+  seedance:
+    apiKey: ...
+
+web-search:
+  tavily:
+    apiKey: tvly-...
+  exa:
+    apiKey: ...
+  firecrawl:
+    apiKey: fc-...
+  searxng:
+    baseUrl: http://localhost:8080
+```
+
+Variabel lingkungan menimpa field penyedia YAML yang cocok satu per satu. Key harus memakai ID penyedia yang terdaftar di kode, seperti `openai`, `doubao-tts`, `openai-whisper`, `mineru`, `alidocmind`, `seedream`, `seedance`, `exa`, `tavily`, atau `searxng`. ID yang tidak dikenal tidak dapat mendaftarkan penyedia LLM kustom di sini.
+
+## Otorisasi model untuk penyedia yang dikelola server
+
+Untuk penyedia yang memakai kredensial deployment untuk mengirim model terpilih ke upstream, set daftar `models` eksplisit di `openmaic.yml` (`providers.<id>.models`), atau variabel lingkungan `*_MODELS` yang setara / daftar `models` pada bagian `server-providers.yml`. Ini berlaku untuk chat, image, video, text to speech, pengenalan suara, dan pencarian web berbasis model. ID model dicocokkan persis, termasuk huruf besar-kecil, setelah spasi di sekitarnya dihapus saat pemuatan konfigurasi. Alias adaptor deterministik memakai ID model yang dideklarasikan untuk otorisasi. Permintaan untuk model yang tidak tercantum mengembalikan HTTP 403 dengan `PROVIDER_DISABLED` dan pesan “This model is not authorized for server-managed credentials”.
+
+**Perubahan yang memutus kompatibilitas:** tanpa daftar eksplisit, hanya model default/fallback deployment dan model primer/fallback yang dirujuk slot untuk kemampuan tersebut yang dapat dipakai. `DEFAULT_MODEL` dan `MODEL_FALLBACK` memberikan model chat pada deployment legacy. Slot media yang hanya menyebut penyedia memberikan satu model default adaptornya; ia tidak memberikan katalog preset. Penetapan workspace tidak dapat memperluas set yang diotorisasi deployment. Pendaftaran dan sintesis suara juga harus mengotorisasi model apa pun yang dipilih untuk kompatibilitas suara.
+
+Untuk bermigrasi, cantumkan setiap model yang seharusnya dapat dipilih pengguna, restart server, dan perbarui pilihan workspace mana pun yang tidak lagi diotorisasi. Log startup menyebutkan pengaturan yang harus ditambahkan untuk setiap penyedia yang punya kredensial tetapi tidak punya daftar. Kredensial penyedia milik pengguna dan penyedia lokal tanpa key seperti Ollama dan Lemonade tidak terpengaruh. Penyedia yang dikonfigurasi tanpa kredensial tidak dibatasi, jadi jangan mengarahkan satu pun ke gateway yang menambahkan kredensial upstream-nya sendiri (misalnya proxy kompatibel OpenAI internal): beri gateway itu key dan konfigurasikan sebagai penyedia berkredensial dengan daftar `models`, atau batasi model di gateway itu sendiri. Pengurai dokumen dan layanan pencarian tanpa pemilihan model (seperti Tavily) tidak memerlukan daftar model.
+
+```yaml
+providers:
+  openai:
+    preset: openai
+    apiKey: ${OPENAI_API_KEY}
+    models: [gpt-5.4-mini]
+slots:
+  llm: openai:gpt-5.4-mini
+```
+
+Setara dengan legacy: `OPENAI_API_KEY=...` dan `OPENAI_MODELS=gpt-5.4-mini`. Untuk media, gunakan prefiks kemampuannya, misalnya `IMAGE_SEEDREAM_MODELS`, `VIDEO_SEEDANCE_MODELS`, `TTS_OPENAI_MODELS`, `ASR_OPENAI_MODELS`, dan `WEB_SEARCH_CLAUDE_MODELS`.
+
+### Pencarian dan pengambilan web DeepSeek
+
+Preset `deepseek` berbagi `DEEPSEEK_API_KEY` dan API base untuk chat, pencarian web, dan ekstraksi Markdown yang di-host. Pencarian memakai `POST /v1/tools/search`, mengembalikan hingga 50 hasil, memotong kueri menjadi 128 code point Unicode, dan memakai `summary` dengan `snippet` sebagai fallback. Fetch memakai `POST /v1/tools/fetch` dan membaca `content` serta `title` opsional yang tidak kosong.
+
+Pada konfigurasi legacy, aktifkan dengan `WEB_SEARCH_DEEPSEEK_ENABLED=true` atau entri `web-search.deepseek` eksplisit di `server-providers.yml`. Kredensial chat saja tidak pernah mengaktifkan pencarian atau menggantikan default pencarian lain. `WEB_SEARCH_DEEPSEEK_ENABLED=false` memaksa mematikan pencarian. Ketika `openmaic.yml` ada, variabel legacy tidak dapat menetapkan slot: deklarasikan penyedianya secara eksplisit dan tetapkan `webSearch` dan/atau `webFetch`.
+
+API base default-nya `https://api.deepseek.com/v1`. Di `api.deepseek.com`, setiap base path (termasuk `/beta`) dinormalisasi ke `/v1` sebelum menambahkan `/tools/search` atau `/tools/fetch`. Base gateway kustom mempertahankan prefiks path yang dikonfigurasi; root kosong lebih dulu mendapat `/v1`. Endpoint kustom termasuk dalam konfigurasi deployment, sedangkan override klien dan workspace tetap dibatasi ke endpoint resmi. Reader fetch default tetap `builtin`. Lihat [harga resmi DeepSeek](https://api-docs.deepseek.com/quick_start/pricing) untuk biaya permintaan saat ini. Permintaan yang gagal dan pencarian tanpa hasil tidak ditagih.
+
+```yaml
+providers:
+  deepseek:
+    preset: deepseek
+    apiKey: ${DEEPSEEK_API_KEY}
+    baseUrl: https://api.deepseek.com/v1
+slots:
+  webSearch: deepseek
+  webFetch: deepseek
+```
+
+### Chat dan pencarian web Kimi
+
+Deklarasikan satu akun Kimi dan tetapkan kedua slot kepadanya:
+
+```yaml
+providers:
+  kimi:
+    preset: kimi
+    apiKey: ${KIMI_API_KEY}
+    # Optional: https://api.moonshot.ai/v1 for the international Open Platform.
+    # baseUrl: https://api.moonshot.ai/v1
+slots:
+  llm: kimi:kimi-k3
+  webSearch: kimi
+```
+
+Untuk key Coding Plan, gunakan `preset: kimi-coding-plan` dan `llm: kimi:kimi-for-coding`; base default-nya `https://api.kimi.com/coding/v1`. Key Open Platform dan Coding Plan harus dipasangkan dengan base URL yang sesuai. Pada konfigurasi legacy, `KIMI_API_KEY` dan `KIMI_BASE_URL` opsional hanya menyediakan kredensial pencarian setelah opt-in eksplisit: set `WEB_SEARCH_KIMI_ENABLED=true` atau tambahkan `web-search.kimi` di `server-providers.yml` (misalnya dengan `enabled: true`). Kredensial chat saja tidak mengaktifkan pencarian atau mengubah penyedia pencarian default. `WEB_SEARCH_KIMI_ENABLED=false` menonaktifkan pencarian Kimi bahkan ketika sebuah slot menetapkannya. `WEB_SEARCH_KIMI_ENABLED` adalah satu-satunya sakelar pencarian Kimi. `KIMI_MODELS` hanya berlaku untuk chat. Akun chat dan pencarian legacy yang saling bertentangan menghasilkan peringatan dan entri pencarian dilewati; deklarasikan id penyedia terpisah di `openmaic.yml` ketika akun yang terpisah diperlukan. Ketika `openmaic.yml` ada, deklarasikan penyedianya dan tetapkan slot secara eksplisit. Pengaturan dan wizard pertama kali menawarkan kedua kemampuan melalui akun yang sama.
+
+
+Pemilihan endpoint mengikuti base path: setelah garis miring di akhir dihapus, path yang berakhir dengan `/coding/v1` memakai `/search`; selain itu memakai `/tools/search_pro`. Proxy kustom yang dikonfigurasi deployment harus mempertahankan tata letak path tersebut. Wizard hanya merekomendasikan pencarian untuk base akun resmi, jadi proxy chat workspace kustom tidak otomatis memperoleh penetapan pencarian.
+
+Ketika `openmaic.yml` ada, deklarasikan `providers.<id>: { preset: kimi }` dan tetapkan `slots.webSearch: <id>`; variabel legacy `WEB_SEARCH_KIMI_ENABLED` tidak dapat menetapkan slot itu.
+
+## Slot penyedia pengambilan web
+
+`webFetch` memilih reader yang dipakai tool `fetch_url` milik agen. Default-nya `builtin` pada konfigurasi legacy, kosong, dan YAML, termasuk root yang tidak dicantumkan di bawah `lock: all`. `webFetch: null` eksplisit menonaktifkan pengambilan dan menghapus tool serta prompt-nya dari proses berikutnya. Setiap permintaan memakai satu penyedia, tanpa fallback atau eskalasi. Referensi penyedia yang tidak valid atau endpoint workspace yang ditolak kebijakan menggagalkan seluruh proses agen saat resolusi kemampuan, sebelum agen mulai, seperti halnya `webSearch`. Ini adalah galat konfigurasi, bukan hasil `fetch_url` yang gagal; ia tidak beralih ke reader builtin.
+
+| Penyedia | Kredensial | Ekstraksi |
+| --- | --- | --- |
+| `builtin` | Tidak ada | Reader Readability/Turndown lokal; PDF memakai slot `document` |
+| `kimi` | Key dan base URL penyedia Kimi yang sudah ada | Ekstraksi Markdown yang di-host, termasuk URL PDF |
+| `deepseek` | Key chat dan API base DeepSeek yang sudah ada | Ekstraksi Markdown yang di-host |
+| `firecrawl` | API key Firecrawl (`preset: firecrawl`) | Ekstraksi Markdown yang di-host atas konten utama halaman, termasuk URL PDF |
+
+```yaml
+providers:
+  reader:
+    preset: kimi
+    apiKey: ${KIMI_API_KEY}
+    baseUrl: https://api.moonshot.cn/v1
+slots:
+  webFetch: reader
+```
+
+Baik preset `kimi` maupun `kimi-coding-plan` menawarkan `webFetch`. Untuk kredensial Coding Plan, gunakan `preset: kimi-coding-plan`; base default-nya `https://api.kimi.com/coding/v1`. Base URL yang dikonfigurasi secara eksplisit selalu dipertahankan. Base Moonshot Open Platform (`https://api.moonshot.cn/v1` dan `https://api.moonshot.ai/v1`) memakai `/tools/fetch`; Coding Plan memakai `/fetch`. Keduanya mengirim `POST` dengan `{ "url": ... }` dan autentikasi Bearer. Adaptor menerima `markdown` atau `content`. Seorang maintainer menguji langsung `POST https://api.kimi.com/coding/v1/fetch` dengan key asli dan mengonfirmasi `{ markdown, title, url }`; ketersediaan endpoint internasional masih belum terverifikasi. Permintaan menghormati pengaturan `proxy` penyedia dan variabel lingkungan proxy standar.
+
+DeepSeek juga menawarkan ekstraksi Markdown yang di-host melalui preset `deepseek`, dengan memakai ulang key chat dan API base-nya. Tetapkan `webFetch` secara eksplisit seperti ditunjukkan di atas. Ia memakai `/v1/tools/fetch`; base gateway deployment yang eksplisit dipertahankan. Ia mempertahankan tenggat transport dan satu retry galat transport yang sama dengan Kimi, tanpa me-retry galat HTTP atau respons tidak valid.
+
+Di **Pengaturan → Layanan Model → Web Fetch**, gunakan kredensial penyedia yang sudah ada. Key-nya dipakai bersama dengan layanan chat penyedia tersebut: menyunting atau menghapusnya juga memengaruhi chat. Pilih reader di **Konfigurasi Model Kursus → Web Fetch**. Penguncian oleh administrator membuat kartunya hanya-baca. Setup pertama kali mempertahankan default builtin sampai sebuah reader dipilih secara eksplisit. Kredensial workspace dapat memakai base API resmi; endpoint fetch dan proxy arbitrer harus dideklarasikan administrator di `openmaic.yml`.
+
+Berbeda dengan `kimi`, `firecrawl` punya key sendiri: deklarasikan penyedia dengan `preset: firecrawl` dan `apiKey` (misalnya `${FIRECRAWL_API_KEY}`), atau masukkan key-nya di **Pengaturan → Layanan Model → Web Fetch**. Ia mengirim `POST /v2/scrape` dengan autentikasi Bearer dan meminta konten utama halaman sebagai Markdown. Base default-nya `https://api.firecrawl.dev`; base Firecrawl yang di-host sendiri harus dideklarasikan administrator di `openmaic.yml`.
+
+Penyedia `firecrawl` yang sama juga melayani pencarian web (`POST /v2/search`): satu key dan base URL mencakup keduanya, jadi satu penyedia dapat ditetapkan ke `slots.webSearch` dan `slots.webFetch`. Variabel legacy `FIRECRAWL_API_KEY` dan `FIRECRAWL_BASE_URL` mengonfigurasi penyedia itu; web fetch tetap di `builtin` sampai `webFetch` ditetapkan kepadanya.
+
+Gerbang URL sesi, normalisasi URL yang ketat, dan semua pemeriksaan alamat DNS lokal berjalan sebelum meneruskan URL ke reader yang di-host. Pemeriksaan yang sama berjalan terhadap URL final yang dilaporkan sebelum kontennya diterima. Reader yang di-host mengendalikan DNS dan pengalihan perantara mereka sendiri; pemeriksaan lokal tidak dapat mematok jaringan mereka. Teksnya tetap tidak tepercaya, dengan deteksi halaman tantangan, batas byte, pemberitahuan pemotongan, serta persistensi materi web dan hasil `{trusted, untrusted}` yang sudah ada.
+
+## Pustaka adegan interaktif
+
+Adegan interaktif memuat KaTeX, Three.js (beserta addon-nya), Chart.js, dan runtime browser Tailwind v4 dari deployment alih-alih CDN publik. `bun install`, `bun run dev`, dan `bun run build` menyalin versi yang dipatok dari paket terpasang ke `public/vendor/interactive`, yang disajikan di `/vendor/interactive`. KaTeX hanya dimuat pada halaman yang berisi matematika.
+
+`INTERACTIVE_ASSET_BASE_URL` adalah pengaturan publik saat build. Untuk menyajikan berkas-berkas ini dari CDN atau object storage Anda sendiri, salin `public/vendor/interactive` dengan path paket/versinya tetap utuh, set variabelnya ke base URL baru (misalnya `https://assets.example.com/interactive`), dan build ulang; untuk Docker, teruskan dengan `--build-arg`. Karena adegan interaktif berjalan di iframe sandbox, host harus menyajikan JavaScript, CSS, dan font dengan MIME type yang benar serta mengirim `Access-Control-Allow-Origin: *`.
+
+HTML interaktif yang tersimpan diproses ulang ketika dibuka di kelas dan sebelum ekspor HTML mandiri atau video, sehingga referensi CDN publik yang kompatibel ke pustaka-pustaka ini ditulis ulang tanpa membuat ulang kursus. Referensi ke pustaka lain, versi yang tidak kompatibel, Play CDN Tailwind v3 legacy (`cdn.tailwindcss.com`), dan Google Fonts dibiarkan tidak berubah dan masih memerlukan akses jaringan ke host tersebut.

@@ -9,9 +9,9 @@ const docsRoot = dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
-  // Static export: served as plain files by nginx, no Node server.
+  // Static export: served as plain files by the main app's /docs route.
   output: 'export',
-  // Target deploy path: open.maic.chat/docs
+  // Target deploy path: kelaska.riau.ai/docs (served from public/docs-site).
   basePath: DOCS_BASE_PATH,
   // This package is a standalone Next.js app with its own lockfile and alias
   // map. Without an explicit boundary, Turbopack walks up to the repository

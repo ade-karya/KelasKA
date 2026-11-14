@@ -7,11 +7,15 @@
 // Importers: lib/i18n.ts, app/static.json/route.ts, components/search-dialog.tsx,
 // scripts/postexport.mjs.
 
-/** Default locale. It is served WITHOUT a path prefix (/docs/getting-started). */
-export const DEFAULT_LANGUAGE = 'en';
+/**
+ * Default locale. It is served WITHOUT a path prefix (/docs/getting-started).
+ * Kelas KA is an Indonesian deployment, so the unprefixed documentation is
+ * Indonesian; every other locale keeps its prefix (/docs/en/getting-started).
+ */
+export const DEFAULT_LANGUAGE = 'id';
 
 /** All locales, in sidebar / language-switcher order. */
-export const LANGUAGES = ['en', 'zh-cn', 'zh-tw', 'ja', 'ru', 'ar'];
+export const LANGUAGES = ['id', 'en', 'zh-cn', 'zh-tw', 'ja', 'ru', 'ar'];
 
 // Orama tokenizer discriminator per locale. Each search side (build index in
 // app/static.json/route.ts and client query in components/search-dialog.tsx)
@@ -20,9 +24,10 @@ export const LANGUAGES = ['en', 'zh-cn', 'zh-tw', 'ja', 'ru', 'ar'];
 //   'mandarin' / 'japanese' -> custom @orama/tokenizers (CJK has no spaces, so
 //                              the default whitespace tokenizer indexes a whole
 //                              doc as one token and search returns nothing).
-//   'english' / 'russian' / 'arabic' -> Orama built-in `language`.
-/** @type {Record<string, 'mandarin' | 'japanese' | 'english' | 'russian' | 'arabic'>} */
+//   'english' / 'indonesian' / 'russian' / 'arabic' -> Orama built-in `language`.
+/** @type {Record<string, 'mandarin' | 'japanese' | 'english' | 'indonesian' | 'russian' | 'arabic'>} */
 export const ORAMA_TOKENIZER = {
+  id: 'indonesian',
   en: 'english',
   'zh-cn': 'mandarin',
   'zh-tw': 'mandarin',
@@ -36,6 +41,7 @@ export const DOCS_BASE_PATH = '/docs';
 
 /** Human label per locale, shown in the language switcher (displayName). */
 export const LOCALE_LABELS = {
+  id: 'Bahasa Indonesia',
   en: 'English',
   'zh-cn': '简体中文',
   'zh-tw': '繁體中文',

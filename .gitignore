@@ -80,6 +80,8 @@ next-env.d.ts
 
 # docs
 /docs
+# static export of packages/docs, served at /docs by app/docs/[[...slug]]/route.ts
+/public/docs-site
 # Eval results
 eval/whiteboard-shapes/results/
 eval/whiteboard-layout/results/

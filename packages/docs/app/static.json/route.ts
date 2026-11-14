@@ -22,7 +22,7 @@ function oramaConfig(tokenizer: OramaTokenizer) {
     case 'japanese':
       return { components: { tokenizer: createJapaneseTokenizer() } };
     default:
-      // Orama built-in language ('english' | 'russian' | 'arabic').
+      // Orama built-in language ('english' | 'indonesian' | 'russian' | 'arabic').
       return tokenizer;
   }
 }

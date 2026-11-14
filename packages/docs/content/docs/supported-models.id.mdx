@@ -1,0 +1,235 @@
+---
+title: Model yang Didukung
+description: Daftar model dan penyedia bawaan untuk edisi OpenMAIC sumber terbuka.
+---
+
+Halaman ini mencantumkan penyedia dan model yang terpasang di edisi OpenMAIC sumber terbuka. Di [`openmaic.yml`](./configuration.mdx) sebuah penyedia menamai salah satunya sebagai `preset`-nya, dan pengaturan model aplikasi web menawarkan katalog yang sama. Ketersediaan juga bergantung pada akun penyedia, wilayah, dan konfigurasi server, serta daftar `models` sebuah penyedia dapat mempersempit apa yang ditawarkan pengaturan model.
+
+## Preset
+
+Preset adalah templat penyedia bawaan: vendor mana, endpoint mana, dan kapabilitas mana yang dicakup satu akun. Setiap penyedia di `openmaic.yml` atau di pengaturan model menamai sebuah preset.
+
+**Preset satu kapabilitas** memiliki ID penyedia dari tabel di bawah, satu per kapabilitas: `openai` adalah chat OpenAI, sedangkan gambar, ucapan, dan transkripsi OpenAI adalah `openai-image`, `openai-tts`, dan `openai-whisper`. Tiga ID berbeda dari ID registri karena preset lain sudah memakainya: pencarian web MiniMax adalah `minimax-search`, pencarian web Doubao adalah `doubao-search`, dan pembuatan gambar Lemonade adalah `lemonade-image`.
+
+**Preset paket token** mencakup beberapa kapabilitas dengan satu key, masing-masing pada endpoint paket itu sendiri. Menghubungkan salah satunya di **Pengaturan → Paket Token** juga mengisi slot yang direkomendasikan paket tersebut dan masih belum ditetapkan.
+
+| Preset | Paket | Mencakup |
+| --- | --- | --- |
+| `minimax` | MiniMax | Chat, gambar, video, TTS, pencarian web |
+| `tokendance` | TokenDance | Chat, gambar, video, TTS, pencarian web |
+| `volcengine-ark` | Volcengine Ark Agent Plan | Chat, gambar, video, TTS, pencarian web |
+| `kimi-coding-plan` | Kimi Coding Plan | Chat, pencarian web, pengambilan web |
+| `deepseek-token-plan` | DeepSeek | Chat, pencarian web, pengambilan web |
+
+Menghubungkan Kimi Coding Plan di **Pengaturan → Paket Token** merekomendasikan chat, pencarian web, dan pengambilan web sekaligus, menggunakan key Coding Plan dan `https://api.kimi.com/coding/v1`. Jika pengambilan web hanya menggunakan bawaan implisit, menghubungkan akan menetapkan Kimi secara langsung tanpa konflik, bahkan ketika pengaturan saat ini dipertahankan. Pilihan workspace eksplisit (termasuk `null`) dan pembaca non-bawaan yang dikonfigurasi deployment atau `null` menggunakan pilihan konflik yang ada. Memutuskan koneksi menghapus penetapan paket dan memulihkan bawaan server (pembaca bawaan bila tidak ada pembaca yang dikonfigurasi); ini tidak memulihkan pilihan workspace eksplisit sebelumnya. Slot yang terkunci tetap tidak berubah. Paket yang tidak mendeklarasikan pengambilan web membiarkannya tidak tersentuh.
+
+Menghubungkan DeepSeek di **Pengaturan → Paket Token** merekomendasikan chat (`deepseek-flash` secara bawaan), pencarian web, dan pengambilan web sekaligus, menggunakan satu API key DeepSeek dan `https://api.deepseek.com/v1`. Ini adalah akun dan endpoint bayar sesuai pemakaian yang sama dengan preset `deepseek`; paket ini memakai preset `deepseek-token-plan` sendiri agar memutuskan koneksinya hanya menghapus penyedia dan penetapan paket tersebut, dan membiarkan penyedia `deepseek` terpisah tetap tidak berubah.
+
+Wizard pertama kali membiarkan pengambilan web pada pembaca bawaan; hanya menghubungkan paket melalui halaman pengaturan Paket Token yang menerapkan rekomendasi pengambilan webnya.
+
+`openai-compatible` menghubungkan server chat apa pun yang kompatibel dengan OpenAI: ia memerlukan `baseUrl`, dan daftar `models`-nya adalah yang ditawarkan pengaturan model.
+
+Semua ID preset:
+
+| Kapabilitas | Preset |
+| --- | --- |
+| Chat | `openai`, `azure`, `atlascloud`, `anthropic`, `bedrock`, `google`, `glm`, `qwen`, `deepseek`, `kimi`, `siliconflow`, `doubao`, `openrouter`, `grok`, `tencent-hunyuan`, `xiaomi`, `coarena`, `crowllm`, `ollama`, `lemonade`, `openai-compatible`, dan paket token |
+| TTS | `openai-tts`, `azure-tts`, `glm-tts`, `qwen-tts`, `minimax-tts`, `xiaomi-tts`, `voxcpm-tts`, `doubao-tts`, `elevenlabs-tts`, `google-tts`, `browser-native-tts`, `lemonade-tts` |
+| ASR | `openai-whisper`, `qwen-asr`, `azure-asr`, `browser-native`, `funasr-asr`, `lemonade-asr`, `xiaomi-asr` |
+| Gambar | `seedream`, `openai-image`, `qwen-image`, `nano-banana`, `minimax-image`, `grok-image`, `comfyui-image`, `lemonade-image`, `openrouter-image` |
+| Video | `seedance`, `kling`, `minimax-video`, `grok-video`, `happyhorse`, `openrouter-video` |
+| Pencarian web | `tavily`, `exa`, `firecrawl`, `bocha`, `brave`, `baidu`, `claude`, `minimax-search`, `doubao-search`, `deepseek`, `deepseek-token-plan`, `kimi`, `kimi-coding-plan`, `searxng` |
+| Pengambilan web | `builtin`, `deepseek`, `deepseek-token-plan`, `firecrawl`, `kimi`, `kimi-coding-plan` |
+| Parsing dokumen | `unpdf`, `mineru`, `mineru-cloud`, `alidocmind` |
+
+`azure`, `openai-compatible`, `searxng`, dan `mineru` memerlukan `baseUrl`; `alidocmind` mengautentikasi dengan `credentials` (pasangan key). Preset TTS, ASR, gambar, pencarian, dan dokumen yang di-host sendiri, preset pasangan key, serta Bedrock hanya dapat dikonfigurasi di `openmaic.yml`; lihat [Konfigurasi](./configuration.mdx).
+
+## Model LLM
+
+Di `openmaic.yml` sebuah slot chat menamai `<provider id>:<model id>`, di mana ID penyedia adalah yang Anda deklarasikan di bawah `providers`, misalnya `openai:gpt-5.6`, `qwen:qwen3.7-plus`, atau `ollama:llama3.3` bila ID penyedia cocok dengan ID preset.
+
+CrowLLM sendiri tidak menerbitkan batas konteks, output, atau visi untuk ID mana pun, sehingga baris `crowllm` bawaan mencerminkan batas model pihak pertama yang mendasarinya (ditampilkan di panel pengaturan di samping setiap model sebagai perkiraan); reasoning dikirim sebagai ID `*-thinking` terpisah alih-alih sebagai tombol permintaan.
+
+| Penyedia        | ID Penyedia       | Model bawaan                                                                                                                                                                                                                                                                                                                                                                                                            |
+| --------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenAI          | `openai`          | GPT-5.6 Sol (`gpt-5.6`)<br />GPT-5.6 Terra (`gpt-5.6-terra`)<br />GPT-5.6 Luna (`gpt-5.6-luna`)<br />GPT-5.5 (`gpt-5.5`)<br />GPT-5.4 Pro (`gpt-5.4-pro`)<br />GPT-5.4 (`gpt-5.4`)<br />GPT-5.4 Mini (`gpt-5.4-mini`)<br />GPT-5.4 Nano (`gpt-5.4-nano`) |
+| Azure OpenAI    | `azure`           | Tidak ada ID model preset; masukkan nama deployment Azure OpenAI. |
+| Claude          | `anthropic`       | Claude Opus 5 (`claude-opus-5`)<br />Claude Sonnet 5 (`claude-sonnet-5`)<br />Claude Fable 5 (`claude-fable-5`)<br />Claude Opus 4.8 (`claude-opus-4-8`)<br />Claude Opus 4.7 (`claude-opus-4-7`)<br />Claude Opus 4.6 (`claude-opus-4-6`)<br />Claude Sonnet 4.6 (`claude-sonnet-4-6`)<br />Claude Sonnet 4.5 (`claude-sonnet-4-5`)<br />Claude Haiku 4.5 (`claude-haiku-4-5`) |
+| Gemini          | `google`          | Gemini 3.8 Flash (`gemini-3.8-flash`)<br />Gemini 3.7 Flash (`gemini-3.7-flash`)<br />Gemini 3.6 Flash (`gemini-3.6-flash`)<br />Gemini 3.5 Flash-Lite (`gemini-3.5-flash-lite`)<br />Gemini 3.5 Flash (`gemini-3.5-flash`)<br />Gemini 3.1 Pro Preview (`gemini-3.1-pro-preview`)<br />Gemini 3 Flash Preview (`gemini-3-flash-preview`)<br />Gemini 2.5 Flash (`gemini-2.5-flash`)<br />Gemini 2.5 Flash Lite (`gemini-2.5-flash-lite`)<br />Gemini 2.5 Pro (`gemini-2.5-pro`) |
+| GLM             | `glm`             | GLM-5.3 (`glm-5.3`)<br />GLM-5.3-Flash (`glm-5.3-flash`)<br />GLM-5.2 (`glm-5.2`)<br />GLM-5.1 (`glm-5.1`)<br />GLM-5V-Turbo (`glm-5v-turbo`)<br />GLM-5 (`glm-5`)<br />GLM-4.7 (`glm-4.7`)<br />GLM-4.7-FlashX (`glm-4.7-flashx`)<br />GLM-4.7-Flash (`glm-4.7-flash`)<br />GLM-4.6 (`glm-4.6`)<br />GLM-4.6V (`glm-4.6v`)<br />GLM-4.6V-Flash (`glm-4.6v-flash`) |
+| Qwen            | `qwen`            | Qwen3.7 Plus (`qwen3.7-plus`)<br />Qwen3.7 Max (`qwen3.7-max`)<br />Qwen3.6 Plus (`qwen3.6-plus`)<br />Qwen3.6 Plus 2026-04-02 (`qwen3.6-plus-2026-04-02`)<br />Qwen3.6 Flash (`qwen3.6-flash`)<br />Qwen3.6 Flash 2026-04-16 (`qwen3.6-flash-2026-04-16`)<br />Qwen3.6 35B A3B (`qwen3.6-35b-a3b`)<br />Qwen3.5 Flash (`qwen3.5-flash`)<br />Qwen3.5 Plus (`qwen3.5-plus`)<br />Qwen3 VL Plus (`qwen3-vl-plus`) |
+| DeepSeek        | `deepseek`        | DeepSeek V4 Pro (`deepseek-v4-pro`)<br />DeepSeek Flash (`deepseek-flash`) |
+| Kimi            | `kimi`            | Kimi K3 (`kimi-k3`)<br />Kimi K2.7 Code (`kimi-k2.7-code`)<br />Kimi K2.7 Code HighSpeed (`kimi-k2.7-code-highspeed`)<br />Kimi K2.6 (`kimi-k2.6`) |
+| MiniMax         | `minimax`         | MiniMax M3 (`MiniMax-M3`)<br />MiniMax M2.7 (`MiniMax-M2.7`)<br />MiniMax M2.7 Highspeed (`MiniMax-M2.7-highspeed`)<br />MiniMax M2.5 (`MiniMax-M2.5`)<br />MiniMax M2.5 Highspeed (`MiniMax-M2.5-highspeed`)<br />MiniMax M2.1 (`MiniMax-M2.1`)<br />MiniMax M2.1 Highspeed (`MiniMax-M2.1-highspeed`)<br />MiniMax M2 (`MiniMax-M2`) |
+| SiliconFlow     | `siliconflow`     | DeepSeek-V3.2 (`deepseek-ai/DeepSeek-V3.2`)<br />DeepSeek-R1 (`deepseek-ai/DeepSeek-R1`)<br />Qwen3-VL-32B-Instruct (`Qwen/Qwen3-VL-32B-Instruct`) |
+| Doubao          | `doubao`          | Doubao Seed 2.1 Pro (`doubao-seed-2-1-pro-260628`)<br />Doubao Seed 2.1 Turbo (`doubao-seed-2-1-turbo-260628`)<br />Doubao Seed Evolving (`doubao-seed-evolving`)<br />Doubao Seed Character (`doubao-seed-character-260628`)<br />Doubao Seed 2.0 Pro (`doubao-seed-2-0-pro-260215`)<br />Doubao Seed 2.0 Lite (`doubao-seed-2-0-lite-260215`)<br />Doubao Seed 2.0 Mini (`doubao-seed-2-0-mini-260215`) |
+| OpenRouter      | `openrouter`      | DeepSeek V4 Pro (`deepseek/deepseek-v4-pro`)<br />DeepSeek V4 Flash (`deepseek/deepseek-v4-flash`)                                                                                                                                                                                                                                                                                                                         |
+| Grok            | `grok`            | Grok 4.6 (`grok-4.6`)<br />Grok 4.5 (`grok-4.5`)<br />Grok 4.3 (`grok-4.3`)<br />Grok Build 0.1 (`grok-build-0.1`)<br />Grok 4.20 Reasoning (`grok-4.20-reasoning`)<br />Grok 4.20 (`grok-4.20`)<br />Grok 4.20 Multi-Agent (`grok-4.20-multi-agent`) |
+| Tencent Hunyuan | `tencent-hunyuan` | Tencent Hy3 (`hy3`) |
+| Xiaomi MiMo     | `xiaomi`          | MiMo V2.6 Pro (`mimo-v2.6-pro`)<br />MiMo V2.6 Flash (`mimo-v2.6-flash`)<br />MiMo V2.5 Pro (`mimo-v2.5-pro`)<br />MiMo V2.5 (`mimo-v2.5`) |
+| Ollama          | `ollama`          | Llama 3.3 70B (`llama3.3`)<br />Gemma 3 12B (`gemma3`)<br />DeepSeek R1 (`deepseek-r1`)                                                                                                                                                                                                                                                                                                                                    |
+| Lemonade        | `lemonade`        | Gemma 4 26B A4B IT GGUF (`Gemma-4-26B-A4B-it-GGUF`) |
+| Atlas Cloud | `atlascloud` | Qwen3.5 Flash (`qwen/qwen3.5-flash`)<br />DeepSeek V4 Pro (`deepseek-ai/deepseek-v4-pro`) |
+| Amazon Bedrock | `bedrock` | Claude Sonnet 5 (Bedrock) (`us.anthropic.claude-sonnet-5`)<br />Claude Opus 4.8 (Bedrock) (`us.anthropic.claude-opus-4-8`)<br />Claude Opus 4.7 (Bedrock) (`us.anthropic.claude-opus-4-7`)<br />Claude Sonnet 4.6 (Bedrock) (`us.anthropic.claude-sonnet-4-6`)<br />Amazon Nova Pro (`us.amazon.nova-pro-v1:0`)<br />Amazon Nova Lite (`us.amazon.nova-lite-v1:0`)<br />Amazon Nova Micro (`us.amazon.nova-micro-v1:0`)<br />Llama 3.3 70B Instruct (Bedrock) (`us.meta.llama3-3-70b-instruct-v1:0`) |
+| TokenDance | `tokendance` | Cogevol Base (`cogevol-base`)<br />Cogevol Slide (`cogevol-slide-0828`)<br />Cogevol Interactive (`cogevol-interactive-0828`)<br />DeepSeek V4.1 Flash (`deepseek-v4.1-flash`)<br />DeepSeek V4 Pro (`deepseek-v4-pro`)<br />GLM-5.3 (`glm-5.3`)<br />Kimi K3 (`kimi-k3`)<br />Qwen3.8 Max (`qwen3.8-max`)<br />Seed 2.1 Pro (`seed-2.1-pro`)<br />MiniMax M3 (`minimax-m3`) |
+| Coarena | `coarena` | Claude Fable 5 (`claude-fable-5`)<br />Claude Fable 5.1 (`claude-fable-5-1`)<br />Claude Fable 5.2 (`claude-fable-5-2`)<br />Claude Haiku 5.5 (`claude-haiku-5-5`)<br />Claude Opus 5.5 (`claude-opus-5-5`)<br />Claude Sonnet 5.5 (`claude-sonnet-5-5`)<br />DeepSeek V4.1 Flash 1017 (`deepseek-v4-1-flash-1017`)<br />Gemini 3.8 Flash (`gemini-3-8-flash`)<br />Gemini 4 Argon (`gemini-4-argon`)<br />Gemini 4 Carbon (`gemini-4-carbon`)<br />GLM 5.3 Flash (`glm-5-3-flash`)<br />GPT-6.1 Sol (`gpt-6-1-sol`)<br />GPT-6.1 Terra (`gpt-6-1-terra`)<br />GPT-6 Astra (`gpt-6-astra`)<br />GPT-6 Luna (`gpt-6-luna`)<br />Grok 4.7 (`grok-4-7`)<br />Hy4 (`hy4`)<br />Kimi K3.1 Pro (`kimi-k3-1-pro`)<br />MiMo V2.6 Pro (`mimo-v2-6-pro`)<br />MiniMax M3.1 Flash (`minimax-m3-1-flash`) |
+| CrowLLM | `crowllm` | GPT-5.6 Sol (Free) (`gpt-5.6-sol:free`)<br />Gemini 3.8 Flash (Free) (`gemini-3.8-flash:free`)<br />Gemini 3.1 Pro (Free) (`gemini-3.1-pro:free`)<br />DeepSeek V4.1 Flash (Free) (`deepseek-v4.1-flash:free`)<br />Qwen3.8 Max (Free) (`qwen-3.8-max:free`)<br />GLM-5.3 Flash (Free) (`glm-5.3-flash:free`)<br />MiniMax M3.1 Flash (Free) (`minimax-m3.1-flash:free`)<br />Grok 4.7 (Free) (`grok-4.7:free`)<br />Tencent Hy4 (Free) (`hy4:free`)<br />MiMo V2.6 Flash (Free) (`mimo-v2.6-flash:free`)<br />Nemotron 3 Ultra 550B A55B (Free) (`nemotron-3-ultra-550b-a55b:free`)<br />Llama 3.3 70B Instruct (Free) (`llama-3.3-70b-instruct:free`)<br />Mistral Medium 3.5 (Free) (`mistral-medium-3.5:free`) |
+
+## Model pembuatan gambar
+
+| Penyedia             | ID Penyedia     | Model bawaan                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Seedream             | `seedream`      | Seedream 5.0 Lite (`doubao-seedream-5-0-260128`)<br />Seedream 5.0 Lite Alias (`doubao-seedream-5-0-lite-260128`)<br />Seedream 4.5 (`doubao-seedream-4-5-251128`)<br />Seedream 4.0 (`doubao-seedream-4-0-250828`) |
+| OpenAI Image         | `openai-image`  | GPT Image 2 (`gpt-image-2`)<br />GPT Image 2 2026-04-21 (`gpt-image-2-2026-04-21`)<br />GPT Image 1.5 (`gpt-image-1.5`)<br />GPT Image 1 (`gpt-image-1`)<br />GPT Image 1 Mini (`gpt-image-1-mini`)<br />ChatGPT Image Latest (`chatgpt-image-latest`)                                                                                                                                                                                                                                             |
+| Qwen Image           | `qwen-image`    | Qwen Image 3.0 (`qwen-image-3.0`)<br />Qwen Image 2.0 Pro (`qwen-image-2.0-pro`)<br />Qwen Image 2.0 Pro 2026-03-03 (`qwen-image-2.0-pro-2026-03-03`)<br />Qwen Image 2.0 (`qwen-image-2.0`)<br />Qwen Image 2.0 2026-03-03 (`qwen-image-2.0-2026-03-03`)<br />Z-Image Turbo (`z-image-turbo`) |
+| Nano Banana (Gemini) | `nano-banana`   | Nano Banana 2.1 (`gemini-nano-banana-2.1`)<br />Gemini 3 Pro Image (`gemini-3-pro-image`)<br />Gemini 2.5 Flash Image (Nano Banana) (`gemini-2.5-flash-image`) |
+| MiniMax Image        | `minimax-image` | Image 01 (`image-01`)<br />Image 01 Live (`image-01-live`)                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Grok Image           | `grok-image`    | Grok Imagine Image (`grok-imagine-image`) |
+| GLM Image (Zhipu)    | `glm-image`     | CogView-3-Flash (`cogview-3-flash`)<br />CogView-4 (`cogview-4`)                                                                                                                                                                                                                                                                                                                                   |
+| ComfyUI Image        | `comfyui-image` | Tidak ada ID model preset; menemukan dan memilih alur kerja ComfyUI dari `public/` saat runtime. |
+| Lemonade Image       | `lemonade`      | Qwen Image GGUF (`Qwen-Image-GGUF`)<br />Stable Diffusion (sd-cpp) (`sd-cpp`)                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| OpenRouter Image | `openrouter-image` | Gemini 3 Pro Image (`google/gemini-3-pro-image`)<br />GPT Image 2 (`openai/gpt-image-2`)<br />Seedream 5.0 Pro (`bytedance-seed/seedream-5-0-pro`) |
+
+## Model pembuatan video
+
+| Penyedia      | ID Penyedia     | Model bawaan                                                                                                                                                                                                                                    |
+| ------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Seedance      | `seedance`      | Seedance 2.0 (`doubao-seedance-2-0-260128`)<br />Seedance 2.0 Fast (`doubao-seedance-2-0-fast-260128`)<br />Seedance 2.0 Mini (`doubao-seedance-2-0-mini-260615`)<br />Seedance 1.0 Pro (`doubao-seedance-1-0-pro-250528`)<br />Seedance 1.0 Pro Fast (`doubao-seedance-1-0-pro-fast-251015`)<br />Seedance 1.0 Lite T2V (`doubao-seedance-1-0-lite-t2v-250428`) |
+| Kling         | `kling`         | Kling V2.6 (`kling-v2-6`)<br />Kling V1.6 (`kling-v1-6`)                                                                                                                                                                                           |
+| MiniMax Video | `minimax-video` | Hailuo 2.3 (`MiniMax-Hailuo-2.3`)<br />Hailuo 02 (`MiniMax-Hailuo-02`)<br />T2V-01 Director (`T2V-01-Director`)<br />T2V-01 (`T2V-01`) |
+| Grok Video    | `grok-video`    | Grok Imagine Video (`grok-imagine-video`)                                                                                                                                                                                                          |
+| HappyHorse    | `happyhorse`    | HappyHorse 1.0 T2V (`happyhorse-1.0-t2v`) |
+| OpenRouter Video | `openrouter-video` | Veo 3.1 (`google/veo-3.1`)<br />Kling v3.0 Pro (`kwaivgi/kling-v3.0-pro`)<br />Seedance 2.5 (`bytedance/seedance-2.5`) |
+
+## Model dan backend TTS
+
+Tabel ini mencantumkan pemilih model dan backend yang di-host sendiri. Tabel ini tidak menjabarkan setiap opsi suara.
+
+| Penyedia           | ID Penyedia          | Model atau backend                                                                                                                                                                                                                     |
+| ------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenAI TTS         | `openai-tts`         | GPT-4o Mini TTS (`gpt-4o-mini-tts`)<br />TTS-1 (`tts-1`)<br />TTS-1 HD (`tts-1-hd`)                                                                                                                                                    |
+| Azure TTS          | `azure-tts`          | Tidak ada pemilih model. Menggunakan suara neural Azure yang dikonfigurasi.                                                                                                                                                                                |
+| GLM TTS            | `glm-tts`            | GLM TTS (`glm-tts`)                                                                                                                                                                                                                    |
+| Qwen TTS           | `qwen-tts`           | Qwen3 TTS Flash (`qwen3-tts-flash`)<br />CosyVoice Voice Clone (`cosyvoice-v3.5-plus`)<br />Suara hasil kloning mempertahankan ID pengelompokan lama `qwen3-tts-vc-2026-01-22`. Kloning ulang suara Qwen yang sudah dihentikan dari audio referensinya. Izinkan target CosyVoice di daftar model penyedia; API key memerlukan izin pendaftaran suara dan model target. |
+| MiniMax TTS        | `minimax-tts`        | Speech 2.8 HD (`speech-2.8-hd`)<br />Speech 2.8 Turbo (`speech-2.8-turbo`)<br />Speech 2.6 HD (`speech-2.6-hd`)<br />Speech 2.6 Turbo (`speech-2.6-turbo`)<br />Speech 02 HD (`speech-02-hd`)<br />Speech 02 Turbo (`speech-02-turbo`) |
+| VoxCPM2            | `voxcpm-tts`         | VoxCPM2 (`voxcpm2`)<br />Backend: vLLM-Omni, Python API, Nano-vLLM                                                                                                                                                                    |
+| Lemonade TTS       | `lemonade-tts`       | Kokoro v1 (`kokoro-v1`)                                                                                                                                                                                                                |
+| Xiaomi MiMo TTS   | `xiaomi-tts`        | MiMo V2.5 TTS (`mimo-v2.5-tts`) — preset suara 冰糖 / 茉莉 / 苏打 / 白桦 / Mia / Chloe / Milo / Dean; kecepatan melalui instruksi pacing — kecepatan adalah petunjuk gaya, bukan tepat |
+| Doubao TTS 2.0     | `doubao-tts`         | Tidak ada pemilih model. Menggunakan ID suara Doubao TTS 2.0.                                                                                                                                                                                      |
+| ElevenLabs TTS     | `elevenlabs-tts`     | Multilingual v2 (`eleven_multilingual_v2`)<br />Flash v2.5 (`eleven_flash_v2_5`)<br />Flash v2 (`eleven_flash_v2`)                                                                                                                     |
+| Google Gemini TTS  | `google-tts`         | Gemini 3.8 Flash-Lite TTS (`gemini-3.8-flash-lite-tts`)<br />Gemini 3.8 Flash TTS (`gemini-3.8-flash-tts`)<br />Gemini 3.1 Flash TTS Preview (`gemini-3.1-flash-tts-preview`)<br />Gemini 2.5 Flash Preview TTS (`gemini-2.5-flash-preview-tts`)<br />Gemini 2.5 Pro Preview TTS (`gemini-2.5-pro-preview-tts`)                                        |
+| Browser Native TTS | `browser-native-tts` | Tidak ada pemilih model. Menggunakan katalog suara browser dan sistem operasi.                                                                                                                                                                |
+
+Google TTS secara bawaan memakai `gemini-3.8-flash-lite-tts`. Pilihan model eksplisit yang sudah ada dipertahankan. Google mencantumkan **17 November 2026** sebagai [tanggal penghentian paling awal](https://ai.google.dev/gemini-api/docs/deprecations) untuk tiga model pratinjau di atas. Pilih model 3.8 sebelum model tersebut pensiun; untuk kredensial yang dikelola deployment, perbarui juga slot `tts` atau allowlist `models` penyedia di `openmaic.yml`. Respons WAV Gemini 3.8 dipertahankan; respons PCM yang lebih lama tetap dikonversi ke WAV untuk pemutaran.
+
+### Suara hasil kloning Qwen
+
+Integrasi ini menggunakan API sintesis HTTP non-real-time CosyVoice. Wilayah terdokumentasinya adalah **Beijing**; gunakan endpoint dan API key Beijing. Singapura mendukung pendaftaran untuk `cosyvoice-v3-plus` dan `cosyvoice-v3-flash`, tetapi [tabel dukungan sintesis non-real-time](https://www.alibabacloud.com/help/en/model-studio/non-realtime-tts-user-guide#supported-models) tidak mencantumkan CosyVoice di Singapura. Memilih salah satu model tersebut saja tidak membuat integrasi ini mendukung pemutaran di Singapura. Lihat [wilayah pendaftaran](https://www.alibabacloud.com/help/en/model-studio/voice-cloning-user-guide#supported-models) dan [CosyVoice HTTP API](https://www.alibabacloud.com/help/en/model-studio/cosyvoice-tts-http-api).
+
+Target bawaannya adalah `cosyvoice-v3.5-plus`. `TTS_QWEN_VOICE_CLONE_MODEL` berlaku untuk pendaftaran dan pemutaran yang dikelola server maupun BYOK; nilai kosong atau nilai pensiun persis `qwen3-tts-vc-2026-01-22` menggunakan bawaan tersebut. Override eksplisit lainnya dipertahankan dan tetap memerlukan otorisasi model. API key tidak digunakan untuk menyimpulkan wilayah, dan override tidak mengubah transport sintesis.
+
+Deployment terkelola harus mempertahankan `qwen3-tts-flash` bersama target kloning, misalnya `TTS_QWEN_MODELS=qwen3-tts-flash,cosyvoice-v3.5-plus`, atau mencantumkan keduanya di allowlist `models` penyedia di `openmaic.yml`. Menetapkan hanya target kloning akan menggantikan otorisasi model katalog implisit dan menyebabkan suara katalog mengembalikan HTTP 403. Pertahankan juga otorisasi untuk model lain yang sudah Anda gunakan.
+
+Pendaftaran suara menggunakan sampel audio dan tidak memerlukan transkrip.
+
+Profil lama yang tersimpan dan sampel referensinya dipertahankan, tetapi tidak ada migrasi sampel sekali klik. Untuk membuat ulang suara yang tidak kompatibel, unggah lagi audio referensi aslinya melalui pengaturan suara dan buat kloning baru. Gunakan sampel bersih dengan setidaknya lima detik ucapan; sampel lama yang lebih pendek dari lima detik harus diganti dengan rekaman yang lebih panjang. Menyimpan sampel dalam profil tidak secara otomatis mendaftarkannya ulang.
+
+## Model ASR
+
+| Penyedia           | ID Penyedia      | Model bawaan                                                                                                                                                                                                                                |
+| ------------------ | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenAI Whisper     | `openai-whisper` | GPT-4o Mini Transcribe (`gpt-4o-mini-transcribe`)<br />GPT-4o Transcribe (`gpt-4o-transcribe`)<br />Whisper-1 (`whisper-1`)                                                                                                                    |
+| Qwen ASR           | `qwen-asr`       | Qwen3 ASR Flash (`qwen3-asr-flash`)                                                                                                                                                                                                            |
+| Azure STT          | `azure-asr`      | Tidak ada pemilih model. Menggunakan Azure Speech to Text. |
+| FunASR             | `funasr-asr`     | SenseVoiceSmall (`sensevoice`)<br />Paraformer (`paraformer`)<br />Fun-ASR-Nano (`fun-asr-nano`) |
+| Lemonade ASR       | `lemonade-asr`   | Whisper Base (`Whisper-Base`)<br />Whisper Large v3 (`Whisper-Large-v3`)<br />Whisper Large v3 Turbo (`Whisper-Large-v3-Turbo`)<br />Whisper Medium (`Whisper-Medium`)<br />Whisper Small (`Whisper-Small`)<br />Whisper Tiny (`Whisper-Tiny`) |
+| Xiaomi MiMo ASR   | `xiaomi-asr`        | MiMo V2.5 ASR (`mimo-v2.5-asr`) — wav/mp3, auto/zh/en |
+| Browser Native ASR | `browser-native` | Tidak ada pemilih model. Menggunakan browser Web Speech API.                                                                                                                                                                                            |
+
+## Penyedia parsing dokumen
+
+| Penyedia     | ID Penyedia    | Fitur                                        |
+| ------------ | -------------- | ----------------------------------------------- |
+| unpdf        | `unpdf`        | Teks, gambar, metadata                          |
+| MinerU       | `mineru`       | Teks, gambar, tabel, rumus, analisis tata letak |
+| MinerU Cloud | `mineru-cloud` | Teks, gambar, tabel, rumus, analisis tata letak |
+| AliDocMind   | `alidocmind`   | Teks, gambar, tabel, rumus, analisis tata letak, OCR |
+
+## Penyedia pencarian web
+
+Sebagian besar penyedia pencarian web tidak memiliki pemilih model, sehingga slot biasanya menamainya hanya dengan ID penyedia (`webSearch: tavily`). SearXNG hanya dapat dikonfigurasi di `openmaic.yml`; penyedia lain memerlukan API key atau base URL seperti yang tercantum. ID preset pencarian web MiniMax dan Doubao adalah `minimax-search` dan `doubao-search`.
+
+| Penyedia | ID Penyedia | Model |
+| ------------ | ----------- | --- |
+| Tavily       | `tavily`    | Tidak ada ID model preset. |
+| Exa          | `exa`       | Tidak ada ID model preset. |
+| Firecrawl    | `firecrawl`       | Tidak ada ID model preset. |
+| Bocha        | `bocha`     | Tidak ada ID model preset. |
+| Brave Search | `brave`     | Tidak ada ID model preset. |
+| Baidu        | `baidu`     | Tidak ada ID model preset. |
+| MiniMax      | `minimax`   | Tidak ada ID model preset. |
+| Kimi         | `kimi`      | Tidak ada ID model preset. |
+| DeepSeek | `deepseek` | Tidak ada ID model preset. |
+| Doubao       | `doubao`    | Tidak ada ID model preset. |
+| SearXNG      | `searxng`   | Tidak ada ID model preset. |
+| Claude | `claude` | Claude Opus 5 (`claude-opus-5`)<br />Claude Sonnet 5 (`claude-sonnet-5`)<br />Claude Opus 4.6 (`claude-opus-4-6`)<br />Claude Sonnet 4.6 (`claude-sonnet-4-6`)<br />Claude Haiku 4.5 (`claude-haiku-4-5`) |
+
+### Pencarian dan pengambilan web DeepSeek
+
+Preset `deepseek` berbagi `DEEPSEEK_API_KEY` dan basis API di seluruh chat, pencarian web, serta ekstraksi Markdown terkelola. Pencarian menggunakan `POST /v1/tools/search`, mengembalikan hingga 50 hasil, memotong kueri hingga 128 titik kode Unicode, dan menggunakan `summary` dengan `snippet` sebagai cadangan. Pengambilan menggunakan `POST /v1/tools/fetch` dan membaca `content` serta `title` opsional yang tidak kosong.
+
+Pada konfigurasi lama, aktifkan dengan `WEB_SEARCH_DEEPSEEK_ENABLED=true` atau entri eksplisit `web-search.deepseek` di `server-providers.yml`. Kredensial chat saja tidak pernah mengaktifkan pencarian atau menggantikan bawaan pencarian lain. `WEB_SEARCH_DEEPSEEK_ENABLED=false` memaksa penonaktifan pencarian. Bila `openmaic.yml` ada, variabel lama tidak dapat menetapkan slot: deklarasikan penyedia secara eksplisit dan tetapkan `webSearch` dan/atau `webFetch`.
+
+Basis API bawaan adalah `https://api.deepseek.com/v1`. Pada `api.deepseek.com`, setiap jalur basis (termasuk `/beta`) dinormalisasi ke `/v1` sebelum `/tools/search` atau `/tools/fetch` ditambahkan. Basis gateway kustom mempertahankan prefiks jalur yang dikonfigurasi; akar kosong mendapat `/v1` terlebih dahulu. Endpoint kustom termasuk dalam konfigurasi deployment, sementara override klien dan workspace tetap dibatasi pada endpoint resmi. Pembaca pengambilan bawaan tetap `builtin`. Lihat [harga resmi DeepSeek](https://api-docs.deepseek.com/quick_start/pricing) untuk biaya permintaan saat ini. Permintaan yang gagal dan pencarian tanpa hasil tidak ditagih.
+
+```yaml
+providers:
+  deepseek:
+    preset: deepseek
+    apiKey: ${DEEPSEEK_API_KEY}
+    baseUrl: https://api.deepseek.com/v1
+slots:
+  webSearch: deepseek
+  webFetch: deepseek
+```
+
+### Pencarian web Kimi
+
+Preset `kimi` (Moonshot Open Platform) dan preset `kimi-coding-plan` sama-sama melayani chat dan pencarian web dengan satu API key dan base URL. Tetapkan `webSearch` ke penyedia yang sama dengan yang dipakai untuk chat; tidak diperlukan key kedua atau model pencarian.
+
+Basis Open Platform `https://api.moonshot.cn/v1` dan `https://api.moonshot.ai/v1` menggunakan `/tools/search_pro`; konten hasil menggabungkan potongan halaman, dengan snippet sebagai cadangan. Basis Coding Plan `https://api.kimi.com/coding/v1` dan `https://api.kimi.ai/coding/v1` menggunakan `/search` dengan perayapan halaman diaktifkan; konten hasil lebih mengutamakan konten halaman daripada snippet. Setiap permintaan mengembalikan paling banyak 20 hasil.
+
+Kredensial chat saja tidak mengaktifkan pencarian pada konfigurasi lama. Aktifkan dengan `WEB_SEARCH_KIMI_ENABLED=true` atau entri eksplisit `web-search.kimi` di `server-providers.yml`. Di `openmaic.yml`, tetapkan slot `webSearch` secara eksplisit. Wizard merekomendasikan pencarian hanya untuk basis akun resmi.
+
+Pemilihan endpoint mengikuti jalur basis: setelah garis miring di akhir dihapus, jalur yang berakhiran `/coding/v1` menggunakan `/search`; setiap basis lain menggunakan `/tools/search_pro`. Proxy kustom yang dikonfigurasi di `openmaic.yml` harus mempertahankan tata letak jalur tersebut.
+
+Bila `openmaic.yml` ada, deklarasikan `providers.<id>: { preset: kimi }` dan tetapkan `slots.webSearch: <id>`; variabel lama `WEB_SEARCH_KIMI_ENABLED` tidak dapat menetapkan slot tersebut.
+
+## Pengambilan web
+
+Slot `webFetch` secara bawaan memakai pembaca `builtin` tanpa key (Readability dan Turndown; PDF tetap menggunakan `document`). Baik `kimi` maupun `kimi-coding-plan` menggunakan ulang key dan basis API penyedianya untuk ekstraksi terkelola. Moonshot Open Platform menggunakan `/tools/fetch`, sedangkan Coding Plan menggunakan `/fetch`. `firecrawl` menggunakan key Firecrawl-nya sendiri, yang dibagi dengan pencarian web Firecrawl, dan memanggil `/v2/scrape`. Tidak ada fallback. Pilih pembaca di Layanan Model / Konfigurasi Model Kursus atau tetapkan `slots.webFetch` di `openmaic.yml`. Key Kimi dibagi dengan chat. Semua pembaca mempertahankan pemeriksaan sesi lokal dan alamat publik serta hasil yang tidak tepercaya.
+
+DeepSeek juga menawarkan ekstraksi Markdown terkelola melalui preset `deepseek`, dengan menggunakan ulang key chat dan basis API. Tetapkan `webFetch` secara eksplisit seperti ditunjukkan di atas. Ini menggunakan `/v1/tools/fetch`; basis gateway deployment yang eksplisit dipertahankan. Ini mempertahankan tenggat transport yang sama dan satu percobaan ulang kesalahan transport yang sama seperti Kimi, tanpa mencoba ulang kesalahan HTTP atau respons yang tidak valid.
+
+## ID model paket token
+
+ID ini milik endpoint paket, terlepas dari katalog penyedia langsung. Ketersediaan bergantung pada tier paket.
+
+| Preset | Modalitas | ID Model |
+| --- | --- | --- |
+| `tokendance` | llm | `deepseek-v4.1-flash`, `deepseek-v4-pro`, `glm-5.3`, `kimi-k3`, `qwen3.8-max`, `seed-2.1-pro`, `minimax-m3` |
+| `tokendance` | image | `seedream-5.0-lite`, `seedream-5.0-pro` |
+| `tokendance` | video | `minimax-h3`, `minimax-h3-max` |
+| `tokendance` | tts | `minimax-speech-2.8-turbo`, `minimax-speech-2.8-hd` |
+| `minimax` | llm | `MiniMax-M3`, `MiniMax-M2.7`, `MiniMax-M2.7-highspeed`, `MiniMax-M2.5`, `MiniMax-M2.5-highspeed`, `MiniMax-M2.1`, `MiniMax-M2.1-highspeed`, `MiniMax-M2` |
+| `minimax` | image | `image-01`, `image-01-live` |
+| `minimax` | video | `MiniMax-Hailuo-2.3`, `MiniMax-Hailuo-02`, `T2V-01-Director`, `T2V-01` |
+| `minimax` | tts | `speech-2.8-hd`, `speech-2.8-turbo`, `speech-2.6-hd`, `speech-2.6-turbo`, `speech-02-hd`, `speech-02-turbo` |
+| `volcengine-ark` | llm | `doubao-seed-2.1-pro`, `doubao-seed-2.1-lite`, `ark-code-latest`, `doubao-seed-2.0-mini`, `deepseek-v4-pro`, `deepseek-v4-flash`, `minimax-m3`, `glm-5.3`, `kimi-k3`, `kimi-k2.8-preview`, `kimi-k2.7-code` |
+| `volcengine-ark` | image | `doubao-seedream-5.0-pro` |
+| `volcengine-ark` | video | `doubao-seedance-2.0-mini`, `doubao-seedance-2.0` |
+| `volcengine-ark` | tts | `seed-tts-2.0` |
+| `kimi-coding-plan` | llm | `k3`, `k3-256k`, `kimi-for-coding`, `kimi-for-coding-highspeed` |
+| `deepseek-token-plan` | llm | `deepseek-flash`, `deepseek-v4-pro` |
+
+Target migrasi Ark mengikuti [daftar model yang didukung](https://docs.volcengine.com/docs/ark/agent-plan-personal-plan-overview?lang=zh) dan [pemberitahuan penghentian](https://docs.volcengine.com/docs/ark/agent-plan-personal-model-deprecation-announcement?lang=zh). Kimi K3 memerlukan tier Medium atau lebih tinggi; Kimi K2.8 Preview adalah pengganti tier Small untuk Kimi K2.7 Code.

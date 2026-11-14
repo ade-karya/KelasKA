@@ -12,6 +12,7 @@
     "build:packages": "bun scripts/build-packages.mjs || node scripts/build-packages.mjs",
     "sync:maic-importer": "node scripts/sync-maic-importer.mjs",
     "build:standalone-player": "node scripts/build-standalone-player.mjs",
+    "build:docs": "bash scripts/build-docs.sh",
     "gen:video-export-katex": "node scripts/generate-video-export-katex.mjs",
     "gen:video-export-noto-cjk": "node scripts/generate-video-export-noto-cjk.mjs",
     "gen:video-export-noto-script-fonts": "node scripts/generate-video-export-noto-script-fonts.mjs",

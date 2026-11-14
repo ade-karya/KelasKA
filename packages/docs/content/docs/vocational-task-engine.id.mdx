@@ -1,0 +1,84 @@
+---
+title: Mesin tugas vokasi
+description: Aktifkan pelajaran vokasi eksperimental dengan latihan prosedural, keputusan, dan umpan balik konsekuensi.
+---
+
+Mesin tugas vokasi menghasilkan pelajaran seputar tugas di tempat kerja: apa yang perlu dilakukan peserta didik, alat apa yang terlibat, kapan harus melanjutkan atau berhenti, dan bagaimana memeriksa penyelesaiannya. Mesin ini menggabungkan slide pengarahan, latihan prosedural interaktif, penjelasan, dan tantangan tugas.
+
+Fitur ini eksperimental dan nonaktif secara default. Mulailah dengan [Memulai](./getting-started.mdx) untuk mengonfigurasi OpenMAIC dan penyedia LLM, lalu aktifkan flag di bawah ini pada deployment Anda.
+
+## Tugas yang cocok
+
+Pilih tugas konkret dengan alur kerja berurutan, alat atau peralatan, kondisi yang dapat diamati, dan keputusan seperti melanjutkan, berhenti, memeriksa ulang, atau serah terima. Pemeriksaan peralatan, persiapan perakitan, dan pemeriksaan keselamatan pemeliharaan adalah beberapa contohnya.
+
+Prompt outline meminta pengarahan tugas lebih dulu, diikuti segmen latihan dan tantangan yang melayani pekerjaan yang sama. Perencana diinstruksikan untuk menilai kesesuaian: permintaan yang hanya berisi konsep sebaiknya memakai slide biasa dan widget interaktif alih-alih memaksakan latihan prosedural. Outline yang dihasilkan tetap perlu ditinjau.
+
+## Mengaktifkan fitur
+
+Tambahkan entri berikut ke `.env.local` aplikasi OpenMAIC:
+
+```bash
+OPENMAIC_ENABLE_VOCATIONAL=true
+NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI=true
+```
+
+| Flag                                  | Tujuan                                                                               | Kapan berlaku                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `OPENMAIC_ENABLE_VOCATIONAL`          | Mengizinkan server memakai perencanaan tugas vokasi dan pembuatan konten prosedural. | Saat runtime; mulai ulang aplikasi setelah mengubah lingkungan prosesnya.   |
+| `NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI` | Menampilkan sakelar vokasi eksperimental di halaman beranda.                         | Saat build; bangun ulang aplikasi produksi setelah mengubahnya.             |
+
+Kedua flag menerima `true` atau `1`; nilai yang tidak diset membuatnya tetap nonaktif. Mulai ulang `bun run dev` setelah mengubah konfigurasi pengembangan lokal. Untuk produksi, set flag publik sebelum `bun run build`, dan sediakan flag server saat menjalankan aplikasi. Flag ini milik aplikasi OpenMAIC, bukan server dokumentasi. Lihat [Konfigurasi](./configuration.mdx#feature-flag).
+
+Menampilkan sakelar tidak dengan sendirinya mengaktifkan jalur server. Pembuatan vokasi memerlukan flag server sekaligus `requirements.taskEngineMode` dari permintaan pembuatan. Jika flag server mati, permintaan mengikuti jalur pembuatan standar atau interaktif yang biasa.
+
+## Menghasilkan pelajaran vokasi
+
+1. Buka halaman beranda OpenMAIC dan konfigurasikan model yang ingin Anda gunakan.
+2. Aktifkan sakelar eksperimental berlabel **职教任务** (tugas vokasi).
+3. Jelaskan tugas kerja, tingkat peserta didik, alat, titik keputusan, dan kriteria penyelesaian. Lampirkan materi kursus yang relevan bila tersedia.
+4. Hasilkan outline, tinjau, lalu lanjutkan ke kelas.
+
+Contoh permintaan:
+
+```text
+Create a vocational lesson on pre-work safety checks for electric-vehicle
+battery maintenance, for learners with basic workshop knowledge. Begin with
+a task briefing, then practise checking protective equipment and tools,
+interpreting inspection results, deciding GO/STOP, and confirming handover.
+Use the supplied materials for procedure details and approved limits.
+Include feedback for incorrect decisions and a way to reset each exercise.
+```
+
+Kursus vokasi yang aktif mencatat mode yang berlaku di server dan dapat menampilkan lencana **Mode Vokasi** di daftar kursus. Pembuatan adegan berikutnya dan percobaan ulang membawa mode yang tersimpan sehingga latihan prosedural tetap tersedia selama flag server aktif. Lencana mode menjelaskan mode pembuatan, bukan jaminan bahwa setiap adegan adalah widget prosedural.
+
+## Yang dilatih peserta didik
+
+Widget `procedural-skill` dihasilkan sebagai latihan HTML di dalam perender adegan interaktif yang sudah ada. Prompt-nya meminta kontrol yang terlihat, daftar tugas dan alat, langkah berurutan, kemajuan, umpan balik, kondisi penyelesaian, dan reset. Setidaknya satu interaksi harus melibatkan pilihan, pengukuran, atau penilaian; pilihan yang salah harus menampilkan konsekuensi operasional seperti langkah yang terblokir atau pemeriksaan ulang yang diwajibkan.
+
+Kondisi penyelesaian dimaksudkan untuk mengikuti status latihan. Reset seharusnya memulihkan langkah yang tertunda, kemajuan, umpan balik, dan kontrol. Karena HTML dihasilkan oleh model, periksa perilaku ini sebelum memakai pelajaran. Latihan ini menyediakan praktik prosedural yang ringan; status langkah lokalnya bukan catatan penilaian platform yang tahan lama atau simulasi fisik.
+
+## Pemecahan masalah
+
+| Gejala                                                  | Yang perlu diperiksa                                                                                                                                        |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sakelar vokasi tidak muncul                             | Periksa `NEXT_PUBLIC_SHOW_VOCATIONAL_TEST_UI` di lingkungan build aplikasi; bangun ulang produksi atau mulai ulang pengembangan.                            |
+| Sakelar terlihat tetapi konten biasa yang dihasilkan    | Periksa nilai `OPENMAIC_ENABLE_VOCATIONAL` di server dan pastikan sakelar aktif saat mengirim permintaan.                                                   |
+| Topik teori tidak menghasilkan latihan prosedural       | Perencana diinstruksikan untuk menghindari widget prosedural bila permintaan tidak memuat operasi tempat kerja atau keputusan yang berarti. Jelaskan tugas yang konkret. |
+| Kontrol, reset, atau umpan balik tidak berperilaku benar | Tinjau HTML adegan yang dihasilkan dan hasilkan ulang konten yang terdampak. Mengaktifkan mode tidak menjamin model menerapkan setiap interaksi dengan benar. |
+
+## Catatan implementasi
+
+Fitur yang diperkenalkan oleh [PR #685](https://github.com/THU-MAIC/OpenMAIC/pull/685) memakai pipeline pembuatan dan perenderan interaktif yang sudah ada. Komponen yang relevan pada `main` saat ini adalah:
+
+| Komponen | Tanggung jawab |
+| --- | --- |
+| [Flag fitur](https://github.com/THU-MAIC/OpenMAIC/blob/main/lib/config/feature-flags.ts) | `resolveVocationalActive` menggabungkan `taskEngineMode` dari permintaan dengan flag server; flag UI terpisah. |
+| [Rute outline](https://github.com/THU-MAIC/OpenMAIC/blob/main/app/api/generate/scene-outlines-stream/route.ts) dan [prompt task-engine](https://github.com/THU-MAIC/OpenMAIC/tree/main/lib/prompts/templates/task-engine-outlines) | Memilih perencana vokasi dan membawa mode efektif dalam peristiwa penyelesaian stream. |
+| [Rute konten adegan](https://github.com/THU-MAIC/OpenMAIC/blob/main/app/api/generate/scene-content/route.ts) dan [paket generation](https://github.com/THU-MAIC/OpenMAIC/blob/main/packages/%40openmaic/generation/src/scene-generator.ts) | Memeriksa ulang gerbang server dan meneruskan field tugas ke prompt konten prosedural. Outline prosedural yang dinonaktifkan dapat diturunkan menjadi diagram oleh fallback outline; generator widget juga menolak konten prosedural yang tidak melewati gerbang. |
+| [Helper mode pratinjau](https://github.com/THU-MAIC/OpenMAIC/blob/main/app/generation-preview/vocational-mode.ts) dan [hook pembuatan adegan](https://github.com/THU-MAIC/OpenMAIC/blob/main/lib/hooks/use-scene-generator.ts) | Menyimpan mode kursus efektif dan meneruskannya untuk adegan berikutnya serta percobaan ulang, termasuk perbaikan lanjutan di [PR #716](https://github.com/THU-MAIC/OpenMAIC/pull/716). |
+
+Outline prosedural membawa `procedureType` (`repair`, `assembly`, `inspection`, `operation`, atau `custom`), `task`, `tools`, `steps`, `successCriteria`, dan `errorConsequences`. [Templat konten](https://github.com/THU-MAIC/OpenMAIC/tree/main/packages/%40openmaic/generation/templates/procedural-skill-content) mengubah field ini menjadi latihan yang dihasilkan.
+
+Aksi guru memakai ulang pesan platform-ke-iframe yang sudah ada: `SET_WIDGET_STATE`, `HIGHLIGHT_ELEMENT`, `ANNOTATE_ELEMENT`, dan `REVEAL_ELEMENT`. Prompt prosedural meminta selektor langkah yang stabil dan jalur pembaruan status bersama untuk kontrol peserta didik dan `SET_WIDGET_STATE`, termasuk `completedSteps`. Ini menjaga latihan prosedural tetap dalam kontrak adegan dan aksi yang sudah ada.
+
+Karya ini didukung oleh National Key Research and Development Program of China dengan Grant 2024YFC3308500.

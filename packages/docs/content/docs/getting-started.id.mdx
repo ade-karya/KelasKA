@@ -1,0 +1,107 @@
+---
+title: Memulai
+description: Jalankan OpenMAIC secara lokal dalam lima menit.
+---
+
+OpenMAIC adalah aplikasi Next.js yang berjalan di mesin Anda sendiri. Anda perlu mengonfigurasi setidaknya satu penyedia LLM: penyedia cloud biasanya memerlukan API key, sedangkan Ollama atau Lemonade lokal tidak.
+
+## Prasyarat
+
+- **Bun** 1.3.14 atau lebih baru (manajer paket bawaan)
+- **Node.js** 24.21.0 atau lebih baru untuk alat yang masih memerlukan Node
+- Setidaknya satu penyedia LLM; penyedia cloud biasanya memerlukan API key, sedangkan Ollama atau Lemonade lokal tidak
+
+## Instalasi
+
+Clone repositori dan pasang dependensi:
+
+```bash
+git clone https://github.com/THU-MAIC/OpenMAIC.git
+cd OpenMAIC
+bun install
+```
+
+Instalasi membangun paket workspace yang dibutuhkan proyek, sehingga instalasi pertama mungkin memakan waktu.
+
+## Konfigurasi
+
+Salin file lingkungan contoh dan konfigurasikan setidaknya satu penyedia LLM:
+
+```bash
+cp .env.example .env.local
+```
+
+Lalu konfigurasikan sebuah model. Pengaturan file paling sederhana adalah `openmaic.yml` minimal di samping `.env.local`, dengan key di `.env.local`:
+
+```bash title=".env.local"
+OPENAI_API_KEY=sk-...
+```
+
+```yaml title="openmaic.yml"
+providers:
+  openai:
+    preset: openai
+    apiKey: ${OPENAI_API_KEY}
+
+slots:
+  llm: openai:gpt-5.5
+```
+
+`openmaic.example.yml` adalah titik awal yang sama, dengan penyedia dan slot opsional dalam komentar. Tanpa file tersebut, variabel penyedia lama masih berfungsi selama `DEFAULT_MODEL` menyebutkan modelnya:
+
+```bash title=".env.local"
+ANTHROPIC_API_KEY=sk-ant-...
+DEFAULT_MODEL=anthropic:claude-sonnet-4-6
+```
+
+Untuk melewati keduanya, jalankan aplikasi lalu masukkan key paket di **Pengaturan → Paket Token**, atau key layanan di **Pengaturan → Layanan Model**. Tanpa `openmaic.yml`, `DEFAULT_MODEL`, atau layanan yang disiapkan di sana, tidak ada model yang terkonfigurasi dan pembuatan akan gagal.
+
+Lihat [Konfigurasi](./configuration.mdx) untuk konfigurasi penyedia, pembuatan gambar/video, TTS, ASR, penguraian dokumen, pencarian web, kontrol akses, dan feature flag secara lengkap.
+
+## Menjalankan
+
+Kursus disimpan di PostgreSQL, dan server menolak untuk mulai tanpa `DATABASE_URL`. Jalankan basis data pengembangan lokal (PostgreSQL terpisah di Docker pada `127.0.0.1:5432`, dipakai bersama oleh setiap checkout di mesin ini; setel `OPENMAIC_DB_PORT` untuk port lain) dan setel `DATABASE_URL` di `.env.local`:
+
+```bash
+bun run db:up
+```
+
+```bash title=".env.local"
+DATABASE_URL=postgres://openmaic:openmaic-dev@127.0.0.1:5432/openmaic
+```
+
+Jalankan server pengembangan:
+
+```bash
+bun run dev
+```
+
+Buka [http://localhost:3000](http://localhost:3000). Anda akan melihat generator kelas OpenMAIC. Masukkan topik atau unggah materi pembelajaran, lalu klik Buat; para guru AI akan membangun kelas lengkap dengan banyak adegan. Format materi yang didukung bergantung pada parser yang dipilih dan biasanya mencakup PDF, dokumen Office, Markdown/teks biasa, gambar, serta beberapa format audio/video. Rujuk format yang didukung parser untuk rentang pastinya.
+
+## Mengekspor kelas
+
+Setelah kelas dan medianya selesai dibuat, tombol unduh di pojok kanan atas kelas membuka menu ekspor:
+
+- **Ekspor PPTX**: slide yang dapat diedit. **Dengan slide pengganti (disarankan)** mempertahankan adegan interaktif, kuis, dan pembelajaran berbasis proyek di posisinya dalam pelajaran, masing-masing sebagai slide dengan tombol **Buka online** dan kode QR yang membuka adegan tersebut di kelas online. **Hanya slide** meninggalkan adegan tersebut.
+- **Ekspor paket sumber belajar**: pilihan PPTX yang sama, ditambah setiap adegan interaktif sebagai halaman web mandiri.
+- **Ekspor sebagai HTML**: satu file mandiri yang memutar kelas tanpa koneksi jaringan, dengan sulih suara dan takarir, sorotan dan laser, video slide, kartu diskusi, serta adegan interaktif. Adegan kuis, interaktif, dan proyek menunggu sampai pelajar melanjutkan. Adegan pembelajaran berbasis proyek hanya menyimpan ringkasan singkatnya (tujuan dan tonggak); melanjutkan proyek memerlukan kelas online dan koneksi jaringan. Jika ekspor melaporkan aset yang tidak dapat digabungkan, bagian adegan interaktif tersebut tidak tampil di HTML offline; bagian itu tetap tersedia di kelas online. **Dengan sulih suara dan video** memutar seperti kelas aslinya; **Tanpa sulih suara** membuat file lebih kecil yang mengatur takarir berdasarkan waktu baca dan mengabaikan video.
+- **Ekspor ZIP kelas**: struktur kursus dan media, untuk mencadangkan kelas atau mengimpornya di deployment OpenMAIC lain.
+
+Kelas yang akan melebihi 400 MB sebagai satu file HTML disimpan sebagai ZIP: ekstrak seluruh ZIP dan buka `classroom.html`, dengan folder `audio/`, `media/`, dan `images/` tetap di sampingnya.
+
+File HTML hasil ekspor memerlukan browser web dengan JavaScript. Di ponsel, buka di browser seperti Safari atau Chrome: di iPhone file itu tidak dapat diputar di dalam WeChat atau pratinjau Files.
+
+## Build untuk produksi
+
+```bash
+bun run build
+DATABASE_URL=postgres://... bun run start
+```
+
+Atau deploy dengan Docker atau di server Anda sendiri—lihat [Panduan deployment](./deployment.mdx).
+
+## Langkah berikutnya
+
+- [Konfigurasikan penyedia, TTS, dan ACCESS_CODE →](./configuration.mdx)
+- [Deploy dengan Docker atau di server Anda sendiri →](./deployment.mdx)
+- Untuk detail arsitektur atau panduan kontribusi, kunjungi [GitHub](https://github.com/THU-MAIC/OpenMAIC#-contributing)

@@ -32,10 +32,36 @@ In the project, you can see:
 
 | Route                       | Description                                                         |
 | --------------------------- | ------------------------------------------------------------------- |
-| `app/(en)`                  | English (default locale), served unprefixed at `/docs/<slug>`.      |
+| `app/(default)`             | Default locale (id, Indonesian), served unprefixed at `/docs/<slug>`. |
 | `app/(intl)/[lang]`         | Other locales, served at `/docs/<lang>/<slug>`.                     |
 | `app/static.json/route.ts`  | Build-time Orama static search index (served at `/docs/static.json`). |
-| `scripts/postexport.mjs`    | Post-build step: per-locale index redirects + English alias stubs.  |
+| `scripts/postexport.mjs`    | Post-build step: per-locale index redirects + default-locale alias stubs. |
+
+The default locale is `id` (Bahasa Indonesia) because this fork deploys to an
+Indonesian audience: `/docs/getting-started` is Indonesian and
+`/docs/en/getting-started` is English. `lib/locales.mjs` stays the single
+source of truth for the locale list, search tokenizers, labels and basePath.
+
+## Serving the docs from the main app
+
+`packages/docs` is excluded from the Bun workspace (it keeps its own dependency
+set), so its static export is not part of the main application build. In the
+Kelas KA deployment `scripts/build-docs.sh` installs this package's
+dependencies, runs `next build` (static export) and copies `out/` to
+`public/docs-site`. `app/docs/[[...slug]]/route.ts` in the main app then serves
+those files at `/docs`, mapping extension-less URLs (`/docs/getting-started`)
+onto `getting-started.html`, `_next/…` assets and `static.json`. The export
+carries `basePath: '/docs'`, so every internal link and asset URL already
+points at the mount path.
+
+```bash
+bun run build:docs   # build once, then /docs works in `bun run dev`/`next start`
+```
+
+`install.sh --colab`/`--kaggle` runs the same script in the background during
+the production build and copies `public/` into `.next/standalone`; `--no-docs`
+skips it. Without a build, `/docs` answers a "not built yet" page instead of a
+404.
 
 ### Fumadocs MDX
 
@@ -45,18 +71,19 @@ Read the [Introduction](https://fumadocs.dev/docs/mdx) for further details.
 
 ## Known limitations
 
-### English supports only top-level docs pages
+### Default-locale docs work only as top-level pages
 
-The default locale (`en`) is served unprefixed (`/docs/getting-started`). To keep
+The default locale (`id`) is served unprefixed (`/docs/getting-started`). To keep
 it unprefixed without the hydration conflict that a catch-all two-route-group
-split causes, the English route `app/(en)/[slug]` is a single (non-catch-all)
-segment. As a result, **nested English pages would 404** — e.g.
-`content/docs/guides/intro.mdx` resolves for every other locale (their routes are
-catch-all under `app/(intl)/[lang]/[...slug]`) but not for English.
+split causes, the default-locale route `app/(default)/[slug]` is a single
+(non-catch-all) segment. As a result, **nested default-locale pages would 404** —
+e.g. `content/docs/guides/intro.mdx` resolves for every other locale (their
+routes are catch-all under `app/(intl)/[lang]/[...slug]`) but not for the
+default locale.
 
-Only top-level English docs pages work today. Adding nested English docs requires
-revisiting the `(en)` route group (and resolving the hydration conflict that the
-current split avoids); this is deliberately deferred.
+Only top-level default-locale docs pages work today. Adding nested pages there
+requires revisiting the `(default)` route group (and resolving the hydration
+conflict that the current split avoids); this is deliberately deferred.
 
 ## Learn More
 

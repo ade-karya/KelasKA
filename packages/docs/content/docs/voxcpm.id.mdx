@@ -1,0 +1,86 @@
+---
+title: VoxCPM2
+description: TTS yang di-host sendiri dan pengkloningan suara. Pemilihan backend, konfigurasi, dan pengelolaan suara.
+---
+
+[VoxCPM2](https://github.com/OpenBMB/VoxCPM) adalah model TTS sumber terbuka dari OpenBMB dengan dukungan pengkloningan suara. OpenMAIC menyertakan adaptor, jadi Anda hanya perlu menjalankan VoxCPM di mesin Anda sendiri lalu menghubungkannya.
+
+## Kapan menggunakan VoxCPM2
+
+- Anda menginginkan TTS yang stabil dan gratis tanpa biaya per karakter.
+- Anda menginginkan pengkloningan suara, dengan setiap Agen menggunakan sampel singkat untuk menghasilkan suaranya sendiri.
+- Anda men-deploy secara lokal atau di lingkungan offline.
+
+Jika Anda hanya membutuhkan satu suara default, penyedia bawaan **Doubao** atau **OpenAI-compatible** lebih sederhana. Lihat [Konfigurasi → Penyedia TTS](./configuration.mdx#penyedia-tts).
+
+## 1. Jalankan backend VoxCPM
+
+OpenMAIC mendukung tiga mode deploy. Ketiganya memakai adaptor OpenMAIC yang sama; pilih yang Anda jalankan melalui `options.backend` pada penyedia di `openmaic.yml` (langkah 2).
+
+| Backend        | Endpoint           | Paling cocok untuk                            |
+| -------------- | ------------------ | --------------------------------------------- |
+| **vLLM-Omni**  | `/v1/audio/speech` | Endpoint suara yang kompatibel dengan OpenAI untuk server GPU. |
+| **Python API** | `/tts/upload`      | Runtime Python VoxCPM resmi berbasis FastAPI. |
+| **Nano-vLLM**  | `/generate`        | Deploy FastAPI Nano-vLLM yang ringan untuk mesin kecil. |
+
+Lihat [repositori VoxCPM](https://github.com/OpenBMB/VoxCPM) untuk petunjuk menjalankan setiap backend. Contoh quick start lokal yang umum:
+
+```bash
+# vLLM-Omni example
+pip install vllm
+python -m vllm_omni.server --model openbmb/VoxCPM2 --port 8000
+# endpoint at http://localhost:8000/v1
+```
+
+## 2. Arahkan OpenMAIC ke sana
+
+VoxCPM2 berjalan di jaringan Anda sendiri, sehingga endpoint-nya dikonfigurasi oleh deployment; ruang kerja tidak dapat menambahkannya di **Pengaturan → Layanan Model**. Deklarasikan di `openmaic.yml`, pilih backend dengan `options.backend`, lalu tetapkan ke slot `tts`. Tidak diperlukan API key:
+
+```yaml title="openmaic.yml"
+providers:
+  voxcpm:
+    preset: voxcpm-tts
+    baseUrl: http://localhost:8000/v1
+    options:
+      backend: vllm-omni          # vllm-omni (default) | python-api | nano-vllm
+
+slots:
+  tts: voxcpm
+```
+
+`options.backend` milik penyedia berlaku untuk setiap permintaan pada slot `tts`. Registrasi suara hanya tersedia pada backend `vllm-omni`; dengan `python-api` dan `nano-vllm`, prompt suara dikirim pada setiap permintaan.
+
+Tanpa `openmaic.yml`, variabel lama mengonfigurasi endpoint tetapi tidak dapat memilih backend, jadi gunakan `openmaic.yml` untuk `python-api` atau `nano-vllm`:
+
+```bash
+TTS_VOXCPM_BASE_URL=http://localhost:8000/v1
+```
+
+Karena penyedia dikelola server, endpoint-nya boleh berada di jaringan privat tanpa `ALLOW_LOCAL_NETWORKS`, dan pengguna tidak dapat menimpanya.
+
+## 3. Pengelolaan suara
+
+Tetapkan VoxCPM2 ke slot `tts` (langkah 2), lalu buka **Pengaturan → Layanan Model → Text-to-Speech → VoxCPM2**. Pengelola suara VoxCPM hanya muncul ketika slot `tts` diselesaikan ke penyedia `voxcpm-tts`, dan pengelola tersebut memiliki tiga mode suara.
+
+### Auto Voice (default)
+
+Selama sintesis, OpenMAIC menghasilkan prompt suara secara dinamis dari persona setiap Agen. Tidak diperlukan konfigurasi; inilah yang Anda dapatkan tanpa melakukan apa pun.
+
+### Suara prompt
+
+Jelaskan sebuah suara dalam bahasa alami. Setelah dihasilkan, suara tersebut dapat digunakan kembali dan ditetapkan ke Agen mana pun.
+
+> _Contoh: “Suara guru perempuan yang hangat, tenang dan memberi semangat, nada menengah, dengan artikulasi yang jelas.”_
+
+### Kloning suara
+
+Unggah klip audio referensi singkat (≤ 60 detik, ≤ 10 MB), atau rekam langsung di browser. Audio disimpan di IndexedDB dan dikirim ke backend pada setiap permintaan sintesis.
+
+## Pemecahan masalah
+
+| Gejala                          | Kemungkinan penyebab                                                        |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| Permintaan gagal dengan 404     | `options.backend` tidak cocok dengan backend yang Anda jalankan; bandingkan dengan tabel endpoint di langkah 1. |
+| Permintaan kloning pertama memakan waktu ~30 detik | Backend sedang cold start; kloning berikutnya memakai ulang runtime yang sudah hangat. |
+| Audio berhenti di tengah jalan  | Batas token keluaran backend terlalu rendah; tingkatkan `--max-tokens` atau pengaturan VoxCPM yang sesuai. |
+| 401 / 403                       | `TTS_VOXCPM_API_KEY` diatur untuk backend yang tidak memerlukan key; biarkan kosong. |

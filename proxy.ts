@@ -83,6 +83,6 @@ export const config = {
   // Middleware forwarding buffers POST bodies and would deadlock a
   // bidirectional stream, so it stays excluded from the matcher entirely.
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|favicon.png|apple-icon.png|sitemap.xml|robots.txt|logos|avatars|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$|.*\\.avif$|.*\\.ico$|.*\\.txt$|.*\\.xml$|.*\\.json$|.*\\.webmanifest$|api/sandbox/preview/tunnel$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|favicon.png|apple-icon.png|sitemap.xml|robots.txt|logos|avatars|docs|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.svg$|.*\\.webp$|.*\\.avif$|.*\\.ico$|.*\\.txt$|.*\\.xml$|.*\\.json$|.*\\.webmanifest$|api/sandbox/preview/tunnel$).*)',
   ],
 };
