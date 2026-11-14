@@ -49,7 +49,12 @@ const PROVIDER_GROUP_NAMES: Record<string, string> = {
 };
 
 /** Local transports lead the picker; HTTP providers follow in settings order. */
-const CLI_GROUP_ORDER = ['opencode', 'opencode-go', 'codex', 'antigravity'] as const;
+const CLI_GROUP_ORDER: readonly string[] = [
+  'opencode',
+  'opencode-go',
+  'codex',
+  'antigravity',
+] as const;
 
 /** "Muse Spark 1.3 Free (Zen)" -> "Muse Spark 1.3 Free". */
 function displayNameOf(model: Pick<AgentModelItem, 'id' | 'name'>): string {

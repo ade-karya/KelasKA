@@ -119,7 +119,12 @@ describe('workbench picker: every model from the model settings, over HTTP', () 
     const res = await GET();
     expect(res.status).toBe(200);
     const body = (await res.json()) as {
-      models: Array<{ modelString: string; provider: string; transport?: string }>;
+      models: Array<{
+        modelString: string;
+        provider: string;
+        id?: string;
+        transport?: string;
+      }>;
     };
     const cli = body.models.filter((m) => m.transport === 'cli').map((m) => m.modelString);
     const http = body.models.filter((m) => m.transport === 'http').map((m) => m.modelString);
@@ -133,7 +138,9 @@ describe('workbench picker: every model from the model settings, over HTTP', () 
     expect(http.every((id) => id.startsWith('google:'))).toBe(true);
     // No CLI provider appears twice, and HTTP models carry no thinking effort.
     expect(
-      body.models.filter((m) => m.transport === 'http').every((m) => !m.id.includes('opencode')),
+      body.models
+        .filter((m) => m.transport === 'http')
+        .every((m) => !(m.id ?? '').includes('opencode')),
     ).toBe(true);
   });
 
