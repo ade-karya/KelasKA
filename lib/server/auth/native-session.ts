@@ -29,7 +29,12 @@ const VERIFY_TIMEOUT_MS = 10_000;
 
 /** Refusals the route turns into stable HTTP answers. */
 export type NativeSignInResult =
-  | { readonly kind: 'signed-in'; readonly user: AuthUser; readonly token: string; readonly maxAge: number }
+  | {
+      readonly kind: 'signed-in';
+      readonly user: AuthUser;
+      readonly token: string;
+      readonly maxAge: number;
+    }
   /** The address is known but waits for an admin's approval; no account data. */
   | { readonly kind: 'pending' }
   /** The token is not a valid Supabase token, or the profile cannot map. */

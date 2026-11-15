@@ -73,11 +73,7 @@ export async function POST(request: NextRequest) {
     return apiError('UNAUTHENTICATED', 401, 'The Google sign-in could not be verified');
   }
   if (result.kind === 'pending') {
-    return apiError(
-      'FORBIDDEN',
-      403,
-      'Your account is waiting for an admin to approve it',
-    );
+    return apiError('FORBIDDEN', 403, 'Your account is waiting for an admin to approve it');
   }
 
   const response = apiSuccess({

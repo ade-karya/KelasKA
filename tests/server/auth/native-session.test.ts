@@ -157,7 +157,13 @@ describe('signInWithSupabaseAccessToken', () => {
 
   it('mints the app session for an approved account bound to the Google subject', async () => {
     const db = fakeDatabase([
-      row({ id: 'u1', email: 'guru@sekolah.id', role: 'teacher', active: true, google_sub: 'google-sub-1' }),
+      row({
+        id: 'u1',
+        email: 'guru@sekolah.id',
+        role: 'teacher',
+        active: true,
+        google_sub: 'google-sub-1',
+      }),
     ]);
 
     const result = await signInWithSupabaseAccessToken(
@@ -180,9 +186,17 @@ describe('signInWithSupabaseAccessToken', () => {
     const result = await signInWithSupabaseAccessToken(
       'supabase-access-token',
       {},
-      deps(fakeFetch(supabaseUser({ email: 'baru@sekolah.id', identities: [
-        { provider: 'google', identity_data: { sub: 'google-new', email_verified: true } },
-      ] })), db),
+      deps(
+        fakeFetch(
+          supabaseUser({
+            email: 'baru@sekolah.id',
+            identities: [
+              { provider: 'google', identity_data: { sub: 'google-new', email_verified: true } },
+            ],
+          }),
+        ),
+        db,
+      ),
     );
 
     expect(result.kind).toBe('pending');
@@ -204,7 +218,13 @@ describe('signInWithSupabaseAccessToken', () => {
 
   it('refuses when Supabase does not recognise the token', async () => {
     const db = fakeDatabase([
-      row({ id: 'u1', email: 'guru@sekolah.id', role: 'teacher', active: true, google_sub: 'google-sub-1' }),
+      row({
+        id: 'u1',
+        email: 'guru@sekolah.id',
+        role: 'teacher',
+        active: true,
+        google_sub: 'google-sub-1',
+      }),
     ]);
 
     const result = await signInWithSupabaseAccessToken(
@@ -222,7 +242,9 @@ describe('signInWithSupabaseAccessToken', () => {
     const unverified = supabaseUser({
       email_confirmed_at: null,
       user_metadata: { full_name: 'Ibu Guru', email_verified: false },
-      identities: [{ provider: 'google', identity_data: { sub: 'google-sub-1', email_verified: false } }],
+      identities: [
+        { provider: 'google', identity_data: { sub: 'google-sub-1', email_verified: false } },
+      ],
     });
 
     const result = await signInWithSupabaseAccessToken(
