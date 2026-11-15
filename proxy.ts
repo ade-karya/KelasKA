@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAgentRuntimeConfigured, isWorkbenchEnabled } from '@/lib/config/feature-flags';
 import { verifyAccessTokenEdge } from '@/lib/server/access-token-edge';
 import { cookiesAreSecure } from '@/lib/server/cookie-secure';
-import { AUTH_COOKIE, authEnabled, authSecret } from '@/lib/server/auth/config';
+import { AUTH_COOKIE, authEnabled, authPublicBaseUrl, authSecret } from '@/lib/server/auth/config';
 import { verifySessionToken } from '@/lib/server/auth/session-token';
 import {
   anonymousOwnerForNavigation,
@@ -41,7 +41,9 @@ function clearAuthCookieHeader(): string {
 }
 
 function loginRedirect(request: NextRequest, pathname: string): NextResponse {
-  const target = new URL('/login', request.url);
+  // Behind a proxy the request origin is the internal listen address; an
+  // operator-set AUTH_PUBLIC_URL pins the public one for this redirect.
+  const target = new URL('/login', authPublicBaseUrl() ?? request.url);
   if (pathname !== '/') target.searchParams.set('next', pathname + request.nextUrl.search);
   return NextResponse.redirect(target);
 }

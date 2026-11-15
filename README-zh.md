@@ -399,7 +399,7 @@ AUTH_ADMIN_EMAILS=admin@sekolah.id
 ```
 
 - 只能用 Google 登录，经由 Supabase Auth（PKCE，要求已验证地址，`prompt=select_account`）。新地址首次登录会创建**待审批**账号且不发会话——由管理员在 `/admin` 批准并选择角色。
-- 在 Supabase 控制台启用 **Authentication → Providers → Google**（使用 type 为 "Web application" 的 Google OAuth client），并在 **Authentication → URL Configuration**（Site URL + Redirect URLs）注册本部署的回调地址 `https://<domain>/api/auth/supabase/callback`。当 `DATABASE_URL` 指向 Supabase pooler 时，这就是同一个数据库。
+- 在 Supabase 控制台启用 **Authentication → Providers → Google**（使用 type 为 "Web application" 的 Google OAuth client），并在 **Authentication → URL Configuration**（Site URL + Redirect URLs）注册本部署的回调地址 `https://<domain>/api/auth/supabase/callback`。当 `DATABASE_URL` 指向 Supabase pooler 时，这就是同一个数据库。在反向代理之后，设置 `AUTH_PUBLIC_URL=https://<domain>`，使登录流程的服务端跳转指向公网源（浏览器侧的 consent 跳转始终由浏览器 origin 构建）。
 - 角色决定登录后的落地页：**学生**进入经典学习主页（`/`），**教师**进入工作区（`/workspace`）且可以发布，**管理员**进入 `/admin` 用户控制台。
 - `AUTH_ADMIN_EMAILS` 是引导项：这些地址首次登录时会被创建为启用的管理员，这是第一份审批得以发生的前提。
 - 需要 `DATABASE_URL`。会话是签名 cookie，背后是可吊销的数据库行；角色变更和停用在下一次请求即生效。回调之后 Supabase 的 token 会被丢弃——应用不会使用它们。

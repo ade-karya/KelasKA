@@ -149,6 +149,11 @@
 #                         Email Google admin pertama (boleh daftar dipisah koma).
 #                         Alamat ini dibuat sebagai admin aktif saat pertama kali
 #                         masuk lewat Google; dialah yang menyetujui akun lain.
+#   --auth-public-url=URL Origin publik aplikasi (mis. https://kelaska.riau.ai).
+#                         OPSIONAL; wajib bila aplikasi di belakang proxy (Colab/
+#                         tunnel) agar redirect alur login (/login, beranda per
+#                         peran, callback) mengarah ke domain publik, bukan ke
+#                         alamat internal listener.
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
 #                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
 #                         latar belakang (log: data/dev-server.log, PID:
@@ -340,6 +345,7 @@ WITH_WORKBENCH_EXPLICIT=0
 WITH_AUTH="auto"
 WITH_AUTH_EXPLICIT=0
 AUTH_ADMIN_EMAIL_ARG="${AUTH_ADMIN_EMAILS:-${AUTH_ADMIN_EMAIL:-}}"
+AUTH_PUBLIC_URL_ARG="${AUTH_PUBLIC_URL:-}"
 WITH_DEV=0
 WITH_SERVER_START=1
 FAST_BUILD="auto"
@@ -433,8 +439,9 @@ for arg in "$@"; do
     --with-auth)         WITH_AUTH="true"; WITH_AUTH_EXPLICIT=1 ;;
     --no-auth)           WITH_AUTH="false"; WITH_AUTH_EXPLICIT=1 ;;
     --auth-admin-email=*) AUTH_ADMIN_EMAIL_ARG="${arg#*=}" ;;
-    --auth-google-client-id=*|--auth-google-client-secret=*|--auth-public-url=*)
-      fail "Opsi --auth-google-client-id/--auth-google-client-secret/--auth-public-url sudah dihapus: masuk kini lewat Supabase Auth (client secret Google tersimpan di dashboard Supabase). Isi NEXT_PUBLIC_SUPABASE_URL + kunci anon/publishable di .env.local, aktifkan provider Google di Supabase, daftarkan https://<domain>/api/auth/supabase/callback, lalu jalankan ulang installer." ;;
+    --auth-public-url=*) AUTH_PUBLIC_URL_ARG="${arg#*=}" ;;
+    --auth-google-client-id=*|--auth-google-client-secret=*)
+      fail "Opsi --auth-google-client-id/--auth-google-client-secret sudah dihapus: masuk kini lewat Supabase Auth (client secret Google tersimpan di dashboard Supabase). Isi NEXT_PUBLIC_SUPABASE_URL + kunci anon/publishable di .env.local, aktifkan provider Google di Supabase, daftarkan https://<domain>/api/auth/supabase/callback, lalu jalankan ulang installer." ;;
     --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
     --no-start)          WITH_SERVER_START=0 ;;
     --with-ffmpeg)       WITH_FFMPEG=1 ;;
@@ -704,7 +711,7 @@ supabase_google_provider_probe() {
 # lib/server/auth/config.ts memakai OPENMAIC_SECRET_KEY yang sudah dijamin
 # pastikan_instance_secret di atas.
 terapkan_akun() {
-  local file=".env.local" aktif=0 email existing_auth sb_url sb_key probe
+  local file=".env.local" aktif=0 email existing_auth sb_url sb_key probe public_url
   case "$WITH_AUTH" in
     true) aktif=1 ;;
     false) aktif=0 ;;
@@ -796,9 +803,22 @@ terapkan_akun() {
   kosongkan_var_env "$file" AUTH_SEED_ADMIN
   kosongkan_var_env "$file" AUTH_GOOGLE_CLIENT_ID
   kosongkan_var_env "$file" AUTH_GOOGLE_CLIENT_SECRET
-  kosongkan_var_env "$file" AUTH_PUBLIC_URL
+
+  # Origin publik (opsional): dipakai untuk redirect alur login ketika
+  # aplikasi di belakang proxy. Nilai argumen/env menang atas .env.local yang
+  # sudah ada; nilai lama dibiarkan bila tidak ada yang baru.
+  public_url="$AUTH_PUBLIC_URL_ARG"
+  if [[ -n "$public_url" ]]; then
+    set_env_value "$file" AUTH_PUBLIC_URL "${public_url%/}"
+  else
+    public_url="$(env_get "$file" AUTH_PUBLIC_URL)"
+  fi
 
   info "Akun ON: AUTH_ENABLED=true — masuk hanya dengan Google lewat Supabase Auth (siswa=/ , guru=/workspace , admin=/admin)."
+  if [[ -z "$public_url" ]]; then
+    warn "AUTH_PUBLIC_URL kosong: di belakang proxy (Colab/tunnel) redirect alur login bisa menunjuk ke alamat internal."
+    warn "  Setel --auth-public-url=https://<domain>-anda, lalu jalankan installer lagi."
+  fi
   if [[ -z "$email" ]]; then
     warn "AUTH_ADMIN_EMAILS kosong: akun Google baru berstatus menunggu dan belum ada admin yang bisa menyetujuinya."
     warn "  Setel --auth-admin-email=EMAIL (alamat Google admin), lalu jalankan installer lagi."
@@ -3478,6 +3498,7 @@ if [[ -f .env.local ]]; then
     [[ -n "$CURRENT_ADMIN_EMAIL" ]] || CURRENT_ADMIN_EMAIL="$(env_get .env.local AUTH_ADMIN_EMAIL)"
     CURRENT_SUPABASE_URL="$(env_get .env.local NEXT_PUBLIC_SUPABASE_URL)"
     [[ -n "$CURRENT_SUPABASE_URL" ]] || CURRENT_SUPABASE_URL="$(env_get .env.local SUPABASE_URL)"
+    CURRENT_PUBLIC_URL="$(env_get .env.local AUTH_PUBLIC_URL)"
     echo "Akun aktif (AUTH_ENABLED=true, masuk hanya dengan Google lewat Supabase Auth):"
     echo "  Login     : /login  (siswa -> beranda, guru -> ruang kerja, admin -> /admin)"
     if [[ -n "$CURRENT_ADMIN_EMAIL" ]]; then
@@ -3489,6 +3510,9 @@ if [[ -f .env.local ]]; then
       echo "  Supabase  : ${CURRENT_SUPABASE_URL} (provider Google + redirect URL /api/auth/supabase/callback harus aktif di dashboard)"
     else
       echo "  Supabase  : BELUM diset (NEXT_PUBLIC_SUPABASE_URL + kunci anon/publishable) — /login belum bisa masuk"
+    fi
+    if [[ -n "$CURRENT_PUBLIC_URL" ]]; then
+      echo "  Publik    : ${CURRENT_PUBLIC_URL} (dipakai untuk redirect alur login)"
     fi
     echo "  Persetujuan: akun Google baru berstatus menunggu; setujui di /admin."
     echo ""

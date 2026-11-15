@@ -162,6 +162,20 @@ export function supabaseAuthConfigured(): boolean {
 }
 
 /**
+ * The externally reachable origin of this deployment, used ONLY to build
+ * absolute redirects in the sign-in flow (`/login`, the role home, the
+ * callback itself). Behind a proxy the request origin is the internal listen
+ * address, which the browser cannot use. Server-rendered redirects get the
+ * right origin from the proxy; route handlers do not, so they need this.
+ * Unset means "plain single-hostname deployment" and the request origin is
+ * used as-is.
+ */
+export function authPublicBaseUrl(): string | undefined {
+  const configured = process.env.AUTH_PUBLIC_URL?.trim();
+  return configured ? configured.replace(/\/+$/, '') : undefined;
+}
+
+/**
  * Whether the *browser* can start the handshake. `NEXT_PUBLIC_*` is baked at
  * build time, so this is the stricter check the login screen gates on: with
  * server-only `SUPABASE_URL` set, the sign-in button would dead-end at

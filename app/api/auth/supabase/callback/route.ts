@@ -16,7 +16,7 @@ import { NextResponse } from 'next/server';
 import { markAuthUserSignedIn, type AuthUser } from '@/lib/persistence/auth-accounts';
 import { createLogger } from '@/lib/logger';
 import { ensureAuthBootstrap } from '@/lib/server/auth/bootstrap';
-import { authEnabled, supabaseAuthConfigured } from '@/lib/server/auth/config';
+import { authEnabled, authPublicBaseUrl, supabaseAuthConfigured } from '@/lib/server/auth/config';
 import { resolveGoogleAccount } from '@/lib/server/auth/google-signin';
 import { safeNextPath } from '@/lib/server/auth/guards';
 import { authDatabase, createSessionForUser, sessionCookieHeader } from '@/lib/server/auth/session';
@@ -46,7 +46,7 @@ function loginError(origin: string, code: string): NextResponse {
 }
 
 export async function GET(request: NextRequest) {
-  const origin = request.nextUrl.origin;
+  const origin = authPublicBaseUrl() ?? request.nextUrl.origin;
   if (!authEnabled()) return NextResponse.redirect(new URL('/', origin));
   if (!supabaseAuthConfigured()) return loginError(origin, 'google_not_configured');
 
