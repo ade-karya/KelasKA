@@ -145,11 +145,17 @@ describe('GET /api/generate-classroom/capabilities', () => {
     expect(mimes).not.toContain('audio/mpeg');
   });
 
-  it('reports the same capabilities as /api/health', async () => {
+  it('reports the same capabilities as /api/health to an authenticated owner', async () => {
+    vi.stubEnv('ACCESS_CODE', 'capabilities-health-secret');
     await configureSlots({ webSearch: 'tv', tts: 'mm', image: null });
+    const { createAccessToken } = await import('@/lib/server/access-token');
     const [capabilities, health] = await Promise.all([
       getCapabilities(capabilitiesRequest()).then((response) => response.json()),
-      getHealth().then((response) => response.json()),
+      getHealth(
+        new NextRequest('http://localhost/api/health', {
+          headers: { cookie: `openmaic_access=${createAccessToken('capabilities-health-secret')}` },
+        }),
+      ).then((response) => response.json()),
     ]);
     expect(capabilities.capabilities).toEqual(health.capabilities);
   });

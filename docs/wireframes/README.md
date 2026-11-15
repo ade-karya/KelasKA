@@ -6,15 +6,14 @@ Dokumen wireframe low-fidelity untuk seluruh permukaan produk Kelas KA: beranda 
 
 Saat server berjalan, buka:
 
-```
-http://localhost:3000/wireframes/
-```
-
-Atau buka file-nya langsung tanpa server:
+Dokumen ini **tidak lagi disajikan oleh aplikasi** — sebelumnya `/wireframes/`
+bisa diakses secara anonim di produksi (membocorkan peta rute dan inventaris
+komponen/domain API), jadi kontennya dipindah ke `docs/wireframes/` di repo.
+Untuk membacanya, buka file-nya langsung:
 
 ```bash
-open public/wireframes/index.html        # macOS
-xdg-open public/wireframes/index.html    # Linux
+open docs/wireframes/index.html          # macOS
+xdg-open docs/wireframes/index.html      # Linux
 ```
 
 Tidak ada build step, font eksternal, atau dependensi JavaScript. Seluruh CSS dan skrip daftar isi ditanam di dalam file. Dokumen optimal dibaca di desktop (lebar 1280–1440px); gunakan **Cetak / PDF** di kanan atas untuk arsip atau review.

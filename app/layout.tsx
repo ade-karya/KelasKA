@@ -53,9 +53,28 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://kelaska.riau.ai'),
   title: 'Kelas KA',
   description:
     'Platform pembelajaran interaktif berbasis AI Kelas KA. Unggah PDF untuk menghasilkan pengalaman belajar imersif secara instan.',
+  // No raster og:image ships in the repo yet (the share wordmark is SVG, which
+  // crawlers do not render). The metadata below still gives every platform a
+  // correct link preview: title, description, site name and locale.
+  openGraph: {
+    type: 'website',
+    url: '/',
+    siteName: 'Kelas Kecerdasan Artifisial',
+    title: 'Kelas KA',
+    description:
+      'Platform pembelajaran interaktif berbasis AI Kelas KA. Unggah PDF untuk menghasilkan pengalaman belajar imersif secara instan.',
+    locale: 'id_ID',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Kelas KA',
+    description:
+      'Platform pembelajaran interaktif berbasis AI Kelas KA. Unggah PDF untuk menghasilkan pengalaman belajar imersif secara instan.',
+  },
   icons: {
     icon: '/favicon.png',
     shortcut: '/favicon.ico',

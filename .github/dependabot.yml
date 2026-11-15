@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Bun workspace; Dependabot reads package.json and the lockfile. CI gates the
+  # PRs. (Bun is covered by the npm ecosystem here, as with upstream.)
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3

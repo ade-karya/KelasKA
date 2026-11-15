@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // Keep Next dev from creating or rewriting repository agent instructions.
   agentRules: false,
   output: 'standalone',
+  // The app used to ship `X-Powered-By: Next.js`, which only helps fingerprint
+  // the stack. There is no consumer of the header.
+  poweredByHeader: false,
   env: {
     INTERACTIVE_ASSET_BASE_URL:
       process.env.INTERACTIVE_ASSET_BASE_URL?.trim() || '/vendor/interactive',
@@ -76,13 +79,6 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: '200mb',
   },
   allowedDevOrigins: ['kelaska.riau.ai'],
-  async rewrites() {
-    return [
-      // public/ files are served as-is, so `/wireframes/` has no directory
-      // index. Map the folder URL to the standalone document explicitly.
-      { source: '/wireframes', destination: '/wireframes/index.html' },
-    ];
-  },
   async headers() {
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
     const frameAncestors = extraAncestors ? `'self' ${extraAncestors}` : "'self'";
@@ -105,6 +101,16 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: `frame-ancestors ${frameAncestors}`,
           },
+          // The app did not send these; the docs static export already did its
+          // own `nosniff`. Browsers only honour HSTS over HTTPS, so this is
+          // inert on plain-HTTP dev and on first visit, and it pins every
+          // HTTPS host that serves this config once the zone forces HTTPS.
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // The microphone is used by the voice features (ASR/TTS in the
+          // classroom and settings), camera and geolocation are not.
+          { key: 'Permissions-Policy', value: 'camera=(), geolocation=(), microphone=(self)' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
         ],
       },
       {

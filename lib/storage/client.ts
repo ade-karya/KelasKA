@@ -1,32 +1,23 @@
-export async function sha256(blob: Blob): Promise<string> {
-  const buffer = await blob.arrayBuffer();
-  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-  return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
-
 /**
  * Upload a single blob to object storage and return its CDN URL.
  *
- * The content hash dedups uploads server-side, so re-uploading the same bytes
- * is cheap and returns the same URL (makes callers idempotent). Returns `null`
- * on any failure or when storage is unconfigured — callers decide the fallback.
+ * The upstream hosted deployment serves `/api/storage/upload` (content-hash
+ * deduplication, returns a public URL). Neither this fork nor a self-hosted
+ * upstream ships that route, so every call was a guaranteed 404 and callers
+ * silently fell back to inline data URLs. This fork keeps the documented
+ * graceful-degradation contract — callers must handle `null` — without the
+ * wasted round-trip. Restore the fetch together with a real
+ * `/api/storage/upload` implementation.
+ *
+ * The signature is kept so existing callers (PBL v2 submissions) do not change.
  */
 export async function uploadBlobToStorage(
-  blob: Blob,
-  type: 'media' | 'audio' | 'poster',
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  blob?: Blob,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  type?: 'media' | 'audio' | 'poster',
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   signal?: AbortSignal,
 ): Promise<string | null> {
-  try {
-    const hash = await sha256(blob);
-    const formData = new FormData();
-    formData.append('hash', hash);
-    formData.append('type', type);
-    formData.append('file', blob);
-    const res = await fetch('/api/storage/upload', { method: 'POST', body: formData, signal });
-    if (!res.ok) return null;
-    const { url } = await res.json();
-    return typeof url === 'string' ? url : null;
-  } catch {
-    return null;
-  }
+  return null;
 }
