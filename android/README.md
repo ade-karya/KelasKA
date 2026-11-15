@@ -3,15 +3,42 @@
 Aplikasi Android **native** (Kotlin + Jetpack Compose, Material 3) untuk Kelas
 Kecerdasan Artifisial — [kelaska.riau.ai](https://kelaska.riau.ai).
 
-## Fitur v1.0.0
+## Fitur v1.1.0
 
 | Layar | Isi |
 |-------|-----|
 | **Beranda** | Hero bermerek (logo Kemendikdasmen & DPRD), statistik kursus milik Anda, sorotan fitur |
 | **Kursus Saya** | Daftar kursus dari `GET /api/stages`: cari, buat, ubah nama, hapus |
 | **Detail Kursus** | Membaca materi: slide dirender sebagai teks (HTML → teks), kuis interaktif (pilihan ganda/tunggal) dengan penilaian otomatis + pembahasan, konten interaktif/PBL dibuka di situs web |
+| **Offline** | Perpustakaan `.maic.zip` di perangkat: impor, putar, hapus — bekerja tanpa internet dan tanpa masuk |
 | **Akun** | Profil (nama/e-mail/peran), buka situs, tentang aplikasi, keluar |
 | **Admin** (role `admin`) | Daftar akun, setujui akun baru, ubah peran (siswa/pengajar/admin), nonaktifkan akun |
+
+## Mode offline (`.maic.zip`)
+
+Ekspor kursus dari situs (**Ekspor → `.maic.zip`**), lalu buka **Offline** di
+aplikasi (tombol "Buka Perpustakaan Offline" juga tersedia di layar masuk) dan
+impor berkasnya. Seluruh isi paket disalin ke penyimpanan aplikasi, jadi kursus
+tetap bisa diputar tanpa jaringan sama sekali — juga sebelum masuk akun.
+
+Yang dirender:
+
+- Slide: teks (HTML → teks), gambar, audio elemen, dan video dari berkas paket.
+- Narasi: klip `speech` diputar berurutan dengan `MediaPlayer`; tiap klip juga
+  bisa diputar sendiri.
+- Kuis: pilihan tunggal/ganda dinilai otomatis beserta pembahasan; soal esai
+  ditandai tidak dinilai otomatis.
+- Scene interaktif: `content.html` yang sudah di-inline eksportir dijalankan di
+  WebView terisolasi. Navigasi keluar dan seluruh pemuatan jaringan diblokir,
+  jadi halaman tidak bisa diam-diam membuka internet.
+- Scene PBL: ditampilkan sebagai kartu penjelasan (butuh sandbox/server, bukan
+  konten yang bisa dijalankan offline).
+
+Keamanan impor: ZIP diekstrak ke direktori staging lalu di-rename setelah
+validasi selesai; entri dengan path tidak aman (zip-slip) ditolak; batas 10.000
+entri, `manifest.json` 64 MiB, total 2 GiB; hanya `manifest.json`, `audio/`, dan
+`media/` yang disalin. Format `formatVersion` 1–2 diterima, termasuk paket PBL
+(kapabilitas `pbl-v3-*`).
 
 ## Tampilan responsif (sidebar)
 
@@ -40,6 +67,11 @@ menggulir normal di kedua mode.
   Mekanisme yang sama persis dengan callback browser — akun baru tetap menjadi
   **pending** sampai admin menyetujui.
 - `ui/` — layar-layar Compose; `ui/AppShell.kt` adalah shell responsif di atas.
+- `data/offline/` — pembaca paket `.maic.zip` murni JVM (bisa diuji tanpa
+  emulator): `OfflinePackageStore` mengekstrak/memvalidasi/menyimpan paket,
+  `OfflineModels` adalah bentuk manifest. Pemutarnya ada di
+  `ui/screens/OfflineLibraryScreen.kt` dan `ui/screens/OfflineCourseScreen.kt`
+  (komponen slide/kuis dibagi dengan jalur daring di `ui/components/`).
 
 ## Prasyarat
 
@@ -52,7 +84,7 @@ menggulir normal di kedua mode.
 ```bash
 export ANDROID_HOME=/root/android-sdk  # atau SDK Anda
 
-# Unit test (14 tes: HtmlText, QuizGrading, SceneContent)
+# Unit test (24 tes: HtmlText, QuizGrading, SceneContent, OfflinePackageStore)
 ./gradlew :app:testDebugUnitTest
 
 # APK debug
@@ -111,15 +143,19 @@ endpoint `/api/auth/native/session` dipakai oleh aplikasi untuk menukar token
 menjadi sesi `kelaska_session` (perlakuan sama dengan callback browser, termasuk
 logika *pending account*).
 
-## Batasan yang disengaja (v1.0.0)
+## Batasan yang disengaja (v1.1.0)
 
-- Gambar dalam slide hanya dimuat bila `src` berupa URL langsung; referensi
-  asset-pool (`ast_…`) tidak bisa diselesaikan oleh klien native, jadi dilewati.
-- Konten interaktif dan PBL tidak dirender ulang secara native; dibuka di
-  kelaska.riau.ai (Custom Tab).
-- Aplikasi membutuhkan jaringan (tidak ada mode offline penuh).
-- Kursus *buatan baru* dari aplikasi hanya membuat dokumen kosong; pembuatan
-  interaktif AI dilakukan di situs (mengalir lewat API yang sama).
+- Di jalur **daring** (Detail Kursus), gambar slide hanya dimuat bila `src`
+  berupa URL langsung; referensi asset-pool (`ast_…`) belum diselesaikan klien
+  native. Jalur **offline** menyelesaikannya lewat `manifest.mediaIndex`.
+- Storyboard/whiteboard, animasi papan tulis, dan widget generatif tidak
+  dirender ulang; hanya teks/gambar/audio/video/kuis/konten interaktif.
+- Scene PBL tidak dijalankan offline (butuh sandbox server); yang tampil hanya
+  kartu penjelasan.
+- Pembuatan kursus interaktif AI tetap dilakukan di situs; kursus baru dari
+  aplikasi hanya membuat dokumen kosong.
+- Impor memakai pemilih berkas sistem (SAF). Berkas `.maic.zip` besar butuh
+  ruang kosong sekitar dua kali ukuran paket saat impor.
 
 ## Konfigurasi build
 

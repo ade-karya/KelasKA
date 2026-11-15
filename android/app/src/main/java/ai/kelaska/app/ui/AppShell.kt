@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Logout
@@ -63,6 +64,7 @@ internal data class NavDest(val route: String, val label: String, val icon: Imag
 internal fun navDestinations(isAdmin: Boolean): List<NavDest> = buildList {
     add(NavDest("home", "Beranda", Icons.Filled.Home))
     add(NavDest("courses", "Kursus Saya", Icons.Filled.MenuBook))
+    add(NavDest("offline", "Offline", Icons.Filled.CloudOff))
     if (isAdmin) add(NavDest("admin", "Admin", Icons.Filled.Shield))
     add(NavDest("account", "Akun", Icons.Filled.Person))
 }

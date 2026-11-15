@@ -2,19 +2,26 @@ package ai.kelaska.app.ui
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import ai.kelaska.app.KelasKaApplication
 import ai.kelaska.app.ui.screens.AccountScreen
 import ai.kelaska.app.ui.screens.AdminScreen
@@ -22,6 +29,8 @@ import ai.kelaska.app.ui.screens.CourseDetailScreen
 import ai.kelaska.app.ui.screens.CoursesScreen
 import ai.kelaska.app.ui.screens.HomeScreen
 import ai.kelaska.app.ui.screens.LoginScreen
+import ai.kelaska.app.ui.screens.OfflineCourseScreen
+import ai.kelaska.app.ui.screens.OfflineLibraryScreen
 
 /** Root aplikasi: gerbang autentikasi → shell responsif + NavHost. */
 @Composable
@@ -30,6 +39,28 @@ fun KelasKaApp(mainViewModel: MainViewModel) {
     val application = context.applicationContext as KelasKaApplication
 
     val authState by mainViewModel.authState.collectAsState()
+    // Perpustakaan offline bisa dibuka tanpa masuk; ini yang membuat aplikasi
+    // tetap berguna saat perangkat sama sekali tidak punya internet.
+    var offlineOnly by rememberSaveable { mutableStateOf(false) }
+    // Setelah masuk, jalur offline-only ditutup supaya keluar akun kembali ke
+    // layar masuk, bukan tiba-tiba membuka perpustakaan offline.
+    LaunchedEffect(authState) {
+        if (authState is AuthState.SignedIn) offlineOnly = false
+    }
+
+    if (authState is AuthState.SignedIn) {
+        SignedInApp(
+            mainViewModel = mainViewModel,
+            application = application,
+            profile = (authState as AuthState.SignedIn).profile,
+        )
+        return
+    }
+
+    if (offlineOnly) {
+        OfflineOnlyApp(application = application, onExit = { offlineOnly = false })
+        return
+    }
 
     when (val state = authState) {
         is AuthState.Loading ->
@@ -38,6 +69,7 @@ fun KelasKaApp(mainViewModel: MainViewModel) {
                 error = null,
                 pendingApproval = false,
                 onSignIn = { "" },
+                onOpenOffline = { offlineOnly = true },
                 modifier = Modifier.fillMaxSize(),
             )
 
@@ -47,6 +79,7 @@ fun KelasKaApp(mainViewModel: MainViewModel) {
                 error = state.error,
                 pendingApproval = false,
                 onSignIn = { mainViewModel.startGoogleSignIn() },
+                onOpenOffline = { offlineOnly = true },
                 modifier = Modifier.fillMaxSize(),
             )
 
@@ -56,15 +89,66 @@ fun KelasKaApp(mainViewModel: MainViewModel) {
                 error = null,
                 pendingApproval = true,
                 onSignIn = { mainViewModel.startGoogleSignIn() },
+                onOpenOffline = { offlineOnly = true },
                 modifier = Modifier.fillMaxSize(),
             )
 
-        is AuthState.SignedIn ->
-            SignedInApp(
-                mainViewModel = mainViewModel,
-                application = application,
-                profile = state.profile,
+        is AuthState.SignedIn -> Unit
+    }
+}
+
+/**
+ * Navigasi khusus mode offline: perpustakaan → pemutar paket. Tidak ada
+ * AppShell karena tidak ada akun, admin, atau data daring di jalur ini.
+ */
+@Composable
+private fun OfflineOnlyApp(
+    application: KelasKaApplication,
+    onExit: () -> Unit,
+) {
+    val navController = rememberNavController()
+    val currentEntry by navController.currentBackStackEntryAsState()
+    // Tombol kembali sistem di daftar paket mengembalikan ke layar masuk,
+    // bukan menutup aplikasi.
+    BackHandler(enabled = currentEntry?.destination?.route == "offline") { onExit() }
+    NavHost(
+        navController = navController,
+        startDestination = "offline",
+        // Jalur offline tidak memakai AppShell/Scaffold, jadi inset sistem
+        // (status bar & navigasi) diterapkan di sini.
+        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+    ) {
+        composable("offline") {
+            val libraryViewModel: OfflineLibraryViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer {
+                        OfflineLibraryViewModel(application.offlineStore, application)
+                    }
+                },
             )
+            OfflineLibraryScreen(
+                viewModel = libraryViewModel,
+                onOpenCourse = { packageId ->
+                    navController.navigate("offline-course/$packageId")
+                },
+                onBack = onExit,
+            )
+        }
+        composable(
+            route = "offline-course/{packageId}",
+            arguments = listOf(navArgument("packageId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val packageId = backStackEntry.arguments?.getString("packageId").orEmpty()
+            val courseViewModel: OfflineCourseViewModel = viewModel(
+                factory = viewModelFactory {
+                    initializer { OfflineCourseViewModel(application.offlineStore, packageId) }
+                },
+            )
+            OfflineCourseScreen(
+                viewModel = courseViewModel,
+                onBack = { navController.popBackStack() },
+            )
+        }
     }
 }
 
@@ -117,6 +201,36 @@ private fun SignedInApp(
                 )
                 CourseDetailScreen(
                     viewModel = detailViewModel,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable("offline") {
+                val libraryViewModel: OfflineLibraryViewModel = viewModel(
+                    factory = viewModelFactory {
+                        initializer {
+                            OfflineLibraryViewModel(application.offlineStore, application)
+                        }
+                    },
+                )
+                OfflineLibraryScreen(
+                    viewModel = libraryViewModel,
+                    onOpenCourse = { packageId ->
+                        navController.navigate("offline-course/$packageId")
+                    },
+                )
+            }
+            composable(
+                route = "offline-course/{packageId}",
+                arguments = listOf(navArgument("packageId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val packageId = backStackEntry.arguments?.getString("packageId").orEmpty()
+                val courseViewModel: OfflineCourseViewModel = viewModel(
+                    factory = viewModelFactory {
+                        initializer { OfflineCourseViewModel(application.offlineStore, packageId) }
+                    },
+                )
+                OfflineCourseScreen(
+                    viewModel = courseViewModel,
                     onBack = { navController.popBackStack() },
                 )
             }

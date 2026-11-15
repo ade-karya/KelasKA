@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.Image
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Box
@@ -23,9 +24,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +51,7 @@ fun LoginScreen(
     error: String?,
     pendingApproval: Boolean,
     onSignIn: () -> String,
+    onOpenOffline: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -124,6 +128,24 @@ fun LoginScreen(
                     }
                 }
             }
+
+            TextButton(
+                onClick = onOpenOffline,
+                modifier = Modifier.padding(top = 18.dp),
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = androidx.compose.ui.graphics.Color.White,
+                ),
+            ) {
+                Icon(Icons.Filled.CloudOff, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Text("Buka Perpustakaan Offline", fontWeight = FontWeight.SemiBold)
+            }
+            Text(
+                "Impor berkas .maic.zip dan belajar tanpa internet — tanpa perlu masuk.",
+                style = MaterialTheme.typography.labelSmall,
+                color = androidx.compose.ui.graphics.Color(0xFFCFCBF5),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 4.dp),
+            )
         }
     }
 }

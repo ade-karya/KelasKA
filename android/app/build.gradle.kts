@@ -36,8 +36,8 @@ android {
         applicationId = "ai.kelaska.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
 
         // Nilai publik (sudah dikirim ke browser sebagai NEXT_PUBLIC_*);
         // aman disimpan di sini. Supabase memakai publishable key, bukan

@@ -13,10 +13,17 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-/** Bacaan satu slide: paragraf teks + URL gambar yang bisa dimuat. */
+/**
+ * Bacaan satu slide: paragraf teks + gambar/audio/video yang bisa dimuat.
+ *
+ * Nilai pada daftar media berupa URL `http(s)` saat dibaca online, atau path
+ * berkas absolut saat slide berasal dari paket `.maic.zip` offline.
+ */
 data class SlideReading(
     val paragraphs: List<String>,
     val imageUrls: List<String>,
+    val audioPaths: List<String> = emptyList(),
+    val videoPaths: List<String> = emptyList(),
 )
 
 object SceneContent {
@@ -34,33 +41,57 @@ object SceneContent {
 
     /**
      * Ekstrak bacaan dari `SlideContent`. Teks HTML (`<p>`, `<li>`, …) diubah
-     * menjadi garis-garis teks polos; gambar hanya disertakan bila `src`
-     * berupa URL langsung (`ast_` mengacu ke asset pool dan tidak punya URL
-     * publik, jadi dilewati dengan anggun).
+     * menjadi garis-garis teks polos.
+     *
+     * `resolveMedia` memetakan referensi aset (`ast_…`) ke path berkas lokal
+     * untuk paket `.maic.zip`. Tanpa resolver, hanya `src` berupa URL langsung
+     * yang dipakai — perilaku baca daring yang sudah ada.
      */
-    fun parseSlide(content: JsonObject): SlideReading {
+    fun parseSlide(
+        content: JsonObject,
+        resolveMedia: (String) -> String? = { null },
+    ): SlideReading {
         val canvas = content["canvas"]?.jsonObject ?: return SlideReading(emptyList(), emptyList())
         val elements = canvas["elements"]?.jsonArray ?: return SlideReading(emptyList(), emptyList())
 
         val sorted = elements.mapNotNull { it as? JsonObject }
             .sortedWith(compareBy({ elementPosition(it).first }, { elementPosition(it).second }))
 
+        fun mediaOf(ref: String?): String? {
+            if (ref.isNullOrBlank()) return null
+            return resolveMedia(ref)
+                ?: ref.takeIf { it.startsWith("http://") || it.startsWith("https://") }
+        }
+
         val paragraphs = mutableListOf<String>()
         val images = mutableListOf<String>()
+        val audio = mutableListOf<String>()
+        val videos = mutableListOf<String>()
+
+        (canvas["background"] as? JsonObject)
+            ?.takeIf { it["type"]?.jsonPrimitive?.contentOrNull == "image" }
+            ?.get("image")
+            ?.let { it as? JsonObject }
+            ?.get("src")
+            ?.jsonPrimitive
+            ?.contentOrNull
+            ?.let(::mediaOf)
+            ?.let { images += it }
+
         for (element in sorted) {
             when (element["type"]?.jsonPrimitive?.contentOrNull) {
                 "text" -> paragraphs += HtmlText.paragraphs(element["content"]?.jsonPrimitive?.contentOrNull)
                 "latex" -> element["latex"]?.jsonPrimitive?.contentOrNull?.let { paragraphs += it }
-                "image" -> (element["src"]?.jsonPrimitive?.contentOrNull)
-                    ?.takeIf { it.startsWith("http://") || it.startsWith("https://") }
-                    ?.let { images += it }
+                "image" -> mediaOf(element["src"]?.jsonPrimitive?.contentOrNull)?.let { images += it }
+                "audio" -> mediaOf(element["src"]?.jsonPrimitive?.contentOrNull)?.let { audio += it }
+                "video" -> mediaOf(element["src"]?.jsonPrimitive?.contentOrNull)?.let { videos += it }
                 "code" -> (element["code"] as? JsonObject)?.get("code")?.jsonPrimitive?.contentOrNull
                     ?.takeIf { it.isNotBlank() }
                     ?.let { paragraphs += it }
                 else -> Unit
             }
         }
-        return SlideReading(paragraphs, images)
+        return SlideReading(paragraphs, images, audio, videos)
     }
 
     /** Parse `QuizContent` menjadi soal-soal yang siap dinilai. */
