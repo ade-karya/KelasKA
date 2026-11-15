@@ -581,22 +581,22 @@ Use a long random value, at least 16 characters from a random generator: it is t
 
 ### Optional: Accounts (students, teachers, admins)
 
-Off by default. With `AUTH_ENABLED=true` each person signs in with Google at `/login` and owns their own courses, chats and uploads:
+Off by default. With `AUTH_ENABLED=true` each person signs in with Google at `/login` and owns their own courses, chats and uploads. Sign-in runs through **Supabase Auth** — the Google client secret lives in your Supabase project, never in this file:
 
 ```env
 AUTH_ENABLED=true
-AUTH_GOOGLE_CLIENT_ID=...
-AUTH_GOOGLE_CLIENT_SECRET=...
-AUTH_PUBLIC_URL=https://kelaska.riau.ai
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+# or the legacy anon key: NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 AUTH_ADMIN_EMAILS=admin@sekolah.id
 ```
 
-- Sign-in is Google-only (authorization-code flow, a verified address required). A first sign-in for a new address creates a **pending** account and no session — an admin approves it at `/admin` and picks the role.
+- Sign-in is Google-only, through Supabase Auth (PKCE, a verified address required, `prompt=select_account`). A first sign-in for a new address creates a **pending** account and no session — an admin approves it at `/admin` and picks the role.
+- In the Supabase dashboard, enable **Authentication → Providers → Google** (with a Google OAuth client of type "Web application") and register this deployment's callback — `https://<domain>/api/auth/supabase/callback` — under **Authentication → URL Configuration** (Site URL + Redirect URLs). The Supabase database is the same one `DATABASE_URL` points at when the app uses the Supabase pooler.
 - Roles decide the landing page: **students** land on the classic learning home (`/`), **teachers** on the workspace (`/workspace`) and may publish, **admins** on `/admin`, the user console.
 - `AUTH_ADMIN_EMAILS` is the bootstrap: those addresses are created as active admins on their first sign-in, which is what makes the first approval possible.
-- Behind a proxy, `AUTH_PUBLIC_URL` must be the externally reachable origin; Google needs `<AUTH_PUBLIC_URL>/api/auth/google/callback` to reach the app.
-- Requires `DATABASE_URL`. Sessions are signed cookies backed by revocable database rows; role changes and deactivation apply on the next request.
-- The installer writes it for `--colab`/`--kaggle` **only when the Google OAuth client is configured** (otherwise an enabled gate would lock everyone out of `/login`); `--with-auth`/`--no-auth` override. It prints the redirect URI to register in the Google Cloud Console. The first admin is created from `AUTH_ADMIN_EMAILS` on their first sign-in.
+- Requires `DATABASE_URL`. Sessions are signed cookies backed by revocable database rows; role changes and deactivation apply on the next request. The Supabase tokens are discarded after the callback — the app never uses them.
+- The installer writes it for `--colab`/`--kaggle` **only when `DATABASE_URL` is set, the Supabase project is configured and the Google provider is reachable and enabled** (checked via `/auth/v1/settings`) — otherwise an enabled gate would lock everyone out of `/login`; `--with-auth`/`--no-auth` override. The first admin is created from `AUTH_ADMIN_EMAILS` on their first sign-in.
 
 ### Optional: Agent workbench and runtime
 

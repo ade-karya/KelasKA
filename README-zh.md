@@ -388,22 +388,22 @@ ACCESS_CODE=your-secret-code
 
 ### 可选：账号（学生、教师、管理员）
 
-默认关闭。设置 `AUTH_ENABLED=true` 后，每个人在 `/login` 用 Google 登录，并拥有自己的课程、对话和上传内容：
+默认关闭。设置 `AUTH_ENABLED=true` 后，每个人在 `/login` 用 Google 登录，并拥有自己的课程、对话和上传内容。登录通过 **Supabase Auth** 完成——Google 的 client secret 保存在你的 Supabase 项目中，而不是本文件：
 
 ```env
 AUTH_ENABLED=true
-AUTH_GOOGLE_CLIENT_ID=...
-AUTH_GOOGLE_CLIENT_SECRET=...
-AUTH_PUBLIC_URL=https://kelaska.riau.ai
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+# 或旧版 anon key：NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 AUTH_ADMIN_EMAILS=admin@sekolah.id
 ```
 
-- 只能用 Google 登录（authorization-code 流程，要求已验证地址）。新地址首次登录会创建**待审批**账号且不发会话——由管理员在 `/admin` 批准并选择角色。
+- 只能用 Google 登录，经由 Supabase Auth（PKCE，要求已验证地址，`prompt=select_account`）。新地址首次登录会创建**待审批**账号且不发会话——由管理员在 `/admin` 批准并选择角色。
+- 在 Supabase 控制台启用 **Authentication → Providers → Google**（使用 type 为 "Web application" 的 Google OAuth client），并在 **Authentication → URL Configuration**（Site URL + Redirect URLs）注册本部署的回调地址 `https://<domain>/api/auth/supabase/callback`。当 `DATABASE_URL` 指向 Supabase pooler 时，这就是同一个数据库。
 - 角色决定登录后的落地页：**学生**进入经典学习主页（`/`），**教师**进入工作区（`/workspace`）且可以发布，**管理员**进入 `/admin` 用户控制台。
 - `AUTH_ADMIN_EMAILS` 是引导项：这些地址首次登录时会被创建为启用的管理员，这是第一份审批得以发生的前提。
-- 在反向代理之后，`AUTH_PUBLIC_URL` 必须是外部可达的源；Google 需要能访问 `<AUTH_PUBLIC_URL>/api/auth/google/callback`。
-- 需要 `DATABASE_URL`。会话是签名 cookie，背后是可吊销的数据库行；角色变更和停用在下一次请求即生效。
-- 安装器只在 Google OAuth 客户端已配置时为 `--colab`/`--kaggle` 写入它（否则启用的门禁会把所有人挡在 `/login` 外）；用 `--with-auth`/`--no-auth` 覆盖。它会打印需要在 Google Cloud Console 注册的重定向 URI。第一个管理员由 `AUTH_ADMIN_EMAILS` 中的地址首次登录时创建。
+- 需要 `DATABASE_URL`。会话是签名 cookie，背后是可吊销的数据库行；角色变更和停用在下一次请求即生效。回调之后 Supabase 的 token 会被丢弃——应用不会使用它们。
+- 安装器只在 `DATABASE_URL` 已设置、Supabase 项目已配置且 Google provider 可达并已启用时，才为 `--colab`/`--kaggle` 写入它（通过 `/auth/v1/settings` 检测；否则启用的门禁会把所有人挡在 `/login` 外）；用 `--with-auth`/`--no-auth` 覆盖。第一个管理员由 `AUTH_ADMIN_EMAILS` 中的地址首次登录时创建。
 
 ### 可选：Lemonade（本地 AI 服务商）
 

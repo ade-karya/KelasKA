@@ -3635,7 +3635,7 @@
     "accountCreatedByAdmin": "Accounts are created by a teacher or the school admin.",
     "pendingTitle": "Waiting for approval",
     "pendingBody": "Your Google account is registered. An admin has to approve it and choose your role before you can sign in.",
-    "errorGoogleNotConfigured": "Google sign-in is not configured on this server yet. Ask the operator to set the Google client ID and secret.",
+    "errorGoogleNotConfigured": "Google sign-in is not configured on this server yet. Ask the operator to enable the Google provider in the Supabase dashboard.",
     "errorGoogleDenied": "You cancelled the Google sign-in.",
     "errorGoogleFailed": "Google sign-in failed. Please try again.",
     "myAccount": "My account",

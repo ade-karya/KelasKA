@@ -1,5 +1,5 @@
 /**
- * `/login` — the Google sign-in page.
+ * `/login` — the Google sign-in page (through Supabase Auth).
  *
  * A browser with a live session is sent to its role's home, so the form is
  * never a dead end. The query carries the deep link the browser asked for and,
@@ -9,7 +9,7 @@
 import { redirect } from 'next/navigation';
 
 import { LoginForm } from '@/components/auth/login-form';
-import { authEnabled, googleOAuthConfigured } from '@/lib/server/auth/config';
+import { authEnabled, supabaseBrowserConfigured } from '@/lib/server/auth/config';
 import { currentPageUser, homeForRole } from '@/lib/server/auth/guards';
 
 export const dynamic = 'force-dynamic';
@@ -27,5 +27,5 @@ export default async function LoginPage({
   const params = await searchParams;
   const next = typeof params.next === 'string' ? params.next : undefined;
   const error = typeof params.error === 'string' ? params.error : undefined;
-  return <LoginForm next={next} error={error} googleEnabled={googleOAuthConfigured()} />;
+  return <LoginForm next={next} error={error} supabaseEnabled={supabaseBrowserConfigured()} />;
 }

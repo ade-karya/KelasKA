@@ -5,8 +5,8 @@ This directory is where a deployment keeps its own owner auth methods (see
 a gateway-signed token such as the README's JWT recipe. Kelas Kecerdasan Artifisial
 ships one here: `session-cookie.ts`, the `kelaska_session` account session
 registered from `instrumentation.node.ts` when `AUTH_ENABLED` is on (see
-"Accounts" in AGENTS.md). The session is minted by the Google sign-in callback
-(`app/api/auth/google/callback/route.ts`); there is no password flow.
+"Accounts" in AGENTS.md). The session is minted by the Supabase sign-in callback
+(`app/api/auth/supabase/callback/route.ts`); there is no password flow.
 
 It is the only place outside core that may read identity headers: the
 boundary test (`tests/server/identity/cookie-guard.test.ts`) fails on gateway

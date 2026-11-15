@@ -10,16 +10,20 @@
  * the workspace, and an admin gets the user console (with the workspace one
  * click away).
  *
- * Signing in is Google-only: `/api/auth/google/start` sends the browser to
- * Google, and the callback creates a *pending* account for a new address. An
- * admin approves it (and picks its role) from `/admin`; the account then signs
- * in normally. AUTH_ADMIN_EMAILS lists the Google addresses that are created
- * as active admins on their first sign-in, which is what breaks the
- * chicken-and-egg of the first approval.
+ * Signing in is Google-only, through Supabase Auth: the browser starts the
+ * consent at Supabase (`signInWithOAuth`), Supabase finishes the handshake,
+ * and `/api/auth/supabase/callback` maps the Supabase user onto the account
+ * row. A brand-new address becomes a **pending** account; an admin approves
+ * it (and picks its role) from `/admin`. The addresses in `AUTH_ADMIN_EMAILS`
+ * are the exception — created as active admins on their first sign-in, which
+ * breaks the chicken-and-egg of the first approval. The app keeps its own
+ * revocable `kelaska_session` after the mapping; the Supabase tokens are
+ * never used, so admin deactivation applies on the next request.
  *
  * This module must stay Edge-safe: the proxy imports it. Node-only work (the
- * OAuth code exchange, database access) lives in `./google-oauth.ts`,
- * `./session.ts` and `@/lib/persistence/auth-accounts`.
+ * code exchange, database access) lives in `@/lib/supabase/server.ts`,
+ * `./google-signin.ts`, `./supabase-identity.ts`, `./session.ts` and
+ * `@/lib/persistence/auth-accounts`.
  */
 
 /** The three account roles. Anything else stored in the database is refused. */
@@ -28,11 +32,6 @@ export type AuthRole = (typeof AUTH_ROLES)[number];
 
 /** The cookie holding the signed session token. */
 export const AUTH_COOKIE = 'kelaska_session';
-
-/** The short-lived cookie binding a Google OAuth callback to its request. */
-export const AUTH_OAUTH_STATE_COOKIE = 'kelaska_oauth_state';
-/** How long a sign-in attempt may take between leaving for Google and returning. */
-export const AUTH_OAUTH_STATE_MAX_AGE_SECONDS = 600;
 
 /** Longest e-mail accepted; RFC 5321's path limit is 254. */
 export const AUTH_EMAIL_MAX_LENGTH = 254;
@@ -120,44 +119,60 @@ export function roleHomePath(role: AuthRole, workbench: boolean): string {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Google sign-in                                                              */
+/* Supabase sign-in                                                            */
 /* -------------------------------------------------------------------------- */
 
-export interface GoogleOAuthCredentials {
-  readonly clientId: string;
-  readonly clientSecret: string;
+/**
+ * Supabase is the identity provider: it hosts the Google consent flow and
+ * issues the session tokens, so the deployment never holds the Google client
+ * secret. The browser talks to Supabase directly (it needs the browser-baked
+ * `NEXT_PUBLIC_SUPABASE_URL` and the publishable/anon key); the server runs
+ * the one code exchange in `/api/auth/supabase/callback` and then discards
+ * the Supabase session, keeping the app's own revocable cookie.
+ *
+ * The service-role/secret key is never used on this path. Sign-in requires
+ * the Google provider to be enabled in the Supabase dashboard (Authentication
+ * → Providers → Google) with this deployment's `…/api/auth/supabase/callback`
+ * registered as a redirect URL.
+ */
+
+/** The Supabase project URL; the browser-baked value wins so both sides agree. */
+export function supabaseUrl(): string | undefined {
+  const raw = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL)?.trim();
+  return raw ? raw.replace(/\/+$/, '') : undefined;
 }
 
 /**
- * The Google OAuth client, when the deployment has one. `AUTH_GOOGLE_*` wins
- * over the generic `GOOGLE_*` names (the same client is often already present
- * for other Google APIs). With nothing configured, `/login` shows a note and
- * the start route refuses instead of sending the browser to a broken consent
- * screen.
+ * The public key for the handshake: the publishable key when the project has
+ * one, else the legacy anon key, browser value first for the same reason.
  */
-export function googleOAuthCredentials(): GoogleOAuthCredentials | null {
-  const clientId = (process.env.AUTH_GOOGLE_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID)?.trim();
-  const clientSecret = (
-    process.env.AUTH_GOOGLE_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET
+export function supabasePublishableKey(): string | undefined {
+  const raw =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_PUBLISHABLE_KEY ??
+    process.env.SUPABASE_ANON_KEY;
+  const trimmed = raw?.trim();
+  return trimmed || undefined;
+}
+
+/** Whether the server can complete the code exchange at all. */
+export function supabaseAuthConfigured(): boolean {
+  return supabaseUrl() !== undefined && supabasePublishableKey() !== undefined;
+}
+
+/**
+ * Whether the *browser* can start the handshake. `NEXT_PUBLIC_*` is baked at
+ * build time, so this is the stricter check the login screen gates on: with
+ * server-only `SUPABASE_URL` set, the sign-in button would dead-end at
+ * Supabase with no project URL to reach.
+ */
+export function supabaseBrowserConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = (
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )?.trim();
-  if (!clientId || !clientSecret) return null;
-  return { clientId, clientSecret };
-}
-
-export function googleOAuthConfigured(): boolean {
-  return googleOAuthCredentials() !== null;
-}
-
-/**
- * The externally visible base URL, used to build the OAuth redirect URI (and
- * anything else that must match what the browser sees). Behind a proxy such as
- * Colab's, the request origin is not reachable by Google, so the operator sets
- * `AUTH_PUBLIC_URL`; without it the request origin is used, which is right for
- * a plain deployment on one hostname.
- */
-export function authPublicBaseUrl(): string | undefined {
-  const configured = process.env.AUTH_PUBLIC_URL?.trim();
-  return configured ? configured.replace(/\/+$/, '') : undefined;
+  return Boolean(url && key);
 }
 
 /**

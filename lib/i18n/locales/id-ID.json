@@ -3635,7 +3635,7 @@
     "accountCreatedByAdmin": "Akun baru perlu disetujui guru atau admin sekolah.",
     "pendingTitle": "Menunggu persetujuan",
     "pendingBody": "Akun Google-mu sudah terdaftar. Admin perlu menyetujuinya dan memilih peranmu sebelum kamu bisa masuk.",
-    "errorGoogleNotConfigured": "Masuk dengan Google belum diatur di server ini. Minta pengelola mengisi client ID dan secret Google.",
+    "errorGoogleNotConfigured": "Masuk dengan Google belum diatur di server ini. Minta pengelola mengaktifkan provider Google di dashboard Supabase.",
     "errorGoogleDenied": "Kamu membatalkan proses masuk dengan Google.",
     "errorGoogleFailed": "Masuk dengan Google gagal. Coba lagi.",
     "myAccount": "Akun saya",

@@ -3,15 +3,15 @@
  *
  * There is nothing to seed any more: sign-in is Google-only, so the first admin
  * is the address named in `AUTH_ADMIN_EMAILS`, who becomes an active admin on
- * their first Google sign-in (see `app/api/auth/google/callback/route.ts`).
+ * their first Google sign-in (see `app/api/auth/supabase/callback/route.ts`).
  * This module's job is the schema — `getServerPersistenceProvider` runs every
  * registered migration, `auth-accounts` included — plus expired-session
  * housekeeping and a loud warning when a deployment has neither a configured
  * admin address nor an active admin, because then nobody can approve the
- * pending accounts that Google sign-ins create.
+ * pending accounts that sign-ins create.
  *
  * It runs in the background from `instrumentation.node.ts` and is awaited by
- * the Google callback before its first write, so a callback that races the
+ * the Supabase callback before its first write, so a callback that races the
  * boot still finds the tables.
  */
 import type { Queryable } from '@openmaic/storage/document/pg';

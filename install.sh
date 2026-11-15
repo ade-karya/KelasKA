@@ -134,29 +134,21 @@
 #                         DAN nama lama NEXT_PUBLIC_PRO_WORKBENCH_ENABLED yang
 #                         dipaksa ON oleh preset versi sebelumnya.
 #   --with-auth           Aktifkan lapisan akun (AUTH_ENABLED=true): masuk hanya
-#                         dengan Google, siswa ke beranda belajar, guru ke ruang
-#                         kerja, admin ke /admin. Default: ON untuk
-#                         --colab/--kaggle BILA DATABASE_URL terisi DAN kredensial
-#                         OAuth Google tersedia (dari .env.local/argumen/GOOGLE_*);
-#                         tanpa kredensial itu semua pengunjung akan terkunci di
-#                         /login yang belum bisa membuka pintu, jadi preset
-#                         tersebut membuatnya tetap OFF dengan catatan. OFF untuk
-#                         mode lain.
+#                         dengan Google lewat Supabase Auth, siswa ke beranda
+#                         belajar, guru ke ruang kerja, admin ke /admin.
+#                         Default: ON untuk --colab/--kaggle BILA DATABASE_URL
+#                         terisi, project Supabase terkonfigurasi (URL + kunci
+#                         anon/publishable, termasuk NEXT_PUBLIC_*) DAN provider
+#                         Google di Supabase aktif (dicek lewat /auth/v1/settings).
+#                         Tanpa itu semua pengunjung akan terkunci di /login yang
+#                         belum bisa membuka pintu, jadi preset tersebut membuatnya
+#                         tetap OFF dengan catatan. OFF untuk mode lain.
 #   --no-auth             Matikan lapisan akun (AUTH_ENABLED dikosongkan);
 #                         deployment kembali memakai ACCESS_CODE/anonymous owner.
 #   --auth-admin-email=EMAIL
 #                         Email Google admin pertama (boleh daftar dipisah koma).
 #                         Alamat ini dibuat sebagai admin aktif saat pertama kali
 #                         masuk lewat Google; dialah yang menyetujui akun lain.
-#   --auth-google-client-id=ID
-#   --auth-google-client-secret=SECRET
-#                         Kredensial OAuth client Google (Web application).
-#                         Tanpa keduanya /login hanya menampilkan catatan bahwa
-#                         masuk dengan Google belum diatur.
-#   --auth-public-url=URL Origin publik aplikasi (mis. https://kelaska.riau.ai)
-#                         untuk menyusun redirect URI OAuth. Wajib bila aplikasi
-#                         di belakang proxy (Colab/tunnel), karena Google harus
-#                         bisa menjangkau URL itu.
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
 #                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
 #                         latar belakang (log: data/dev-server.log, PID:
@@ -348,9 +340,6 @@ WITH_WORKBENCH_EXPLICIT=0
 WITH_AUTH="auto"
 WITH_AUTH_EXPLICIT=0
 AUTH_ADMIN_EMAIL_ARG="${AUTH_ADMIN_EMAILS:-${AUTH_ADMIN_EMAIL:-}}"
-AUTH_GOOGLE_CLIENT_ID_ARG="${AUTH_GOOGLE_CLIENT_ID:-}"
-AUTH_GOOGLE_CLIENT_SECRET_ARG="${AUTH_GOOGLE_CLIENT_SECRET:-}"
-AUTH_PUBLIC_URL_ARG="${AUTH_PUBLIC_URL:-}"
 WITH_DEV=0
 WITH_SERVER_START=1
 FAST_BUILD="auto"
@@ -444,9 +433,8 @@ for arg in "$@"; do
     --with-auth)         WITH_AUTH="true"; WITH_AUTH_EXPLICIT=1 ;;
     --no-auth)           WITH_AUTH="false"; WITH_AUTH_EXPLICIT=1 ;;
     --auth-admin-email=*) AUTH_ADMIN_EMAIL_ARG="${arg#*=}" ;;
-    --auth-google-client-id=*) AUTH_GOOGLE_CLIENT_ID_ARG="${arg#*=}" ;;
-    --auth-google-client-secret=*) AUTH_GOOGLE_CLIENT_SECRET_ARG="${arg#*=}" ;;
-    --auth-public-url=*) AUTH_PUBLIC_URL_ARG="${arg#*=}" ;;
+    --auth-google-client-id=*|--auth-google-client-secret=*|--auth-public-url=*)
+      fail "Opsi --auth-google-client-id/--auth-google-client-secret/--auth-public-url sudah dihapus: masuk kini lewat Supabase Auth (client secret Google tersimpan di dashboard Supabase). Isi NEXT_PUBLIC_SUPABASE_URL + kunci anon/publishable di .env.local, aktifkan provider Google di Supabase, daftarkan https://<domain>/api/auth/supabase/callback, lalu jalankan ulang installer." ;;
     --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
     --no-start)          WITH_SERVER_START=0 ;;
     --with-ffmpeg)       WITH_FFMPEG=1 ;;
@@ -691,8 +679,32 @@ kosongkan_var_env() {
 # perilaku upstream/anonymous owner tidak berubah. AUTH_SECRET tidak ditulis:
 # lib/server/auth/config.ts memakai OPENMAIC_SECRET_KEY yang sudah dijamin
 # pastikan_instance_secret di atas.
+# Cek publik (dengan kunci anon/publishable) apakah provider Google aktif di
+# project Supabase. Echoes "enabled" | "disabled" | "unknown". Kunci hanya
+# dipakai untuk header apikey; tidak pernah dicetak.
+supabase_google_provider_probe() {
+  local url="$1" key="$2" settings
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "unknown"
+    return 0
+  fi
+  if ! settings="$(curl -fsS -m 10 -H "apikey: $key" "${url%/}/auth/v1/settings" 2>/dev/null)"; then
+    echo "unknown"
+    return 0
+  fi
+  if [[ "$settings" =~ \"google\"[[:space:]]*:[[:space:]]*true ]]; then
+    echo "enabled"
+  else
+    echo "disabled"
+  fi
+}
+
+# --colab/--kaggle (preset produksi dengan database), OFF untuk mode lain agar
+# perilaku upstream/anonymous owner tidak berubah. AUTH_SECRET tidak ditulis:
+# lib/server/auth/config.ts memakai OPENMAIC_SECRET_KEY yang sudah dijamin
+# pastikan_instance_secret di atas.
 terapkan_akun() {
-  local file=".env.local" aktif=0 email client_id client_secret public_url redirect port existing_auth have_id have_secret
+  local file=".env.local" aktif=0 email existing_auth sb_url sb_key probe
   case "$WITH_AUTH" in
     true) aktif=1 ;;
     false) aktif=0 ;;
@@ -704,29 +716,60 @@ terapkan_akun() {
     warn "Akun diminta tetapi DATABASE_URL kosong — akun tetap OFF (sesi butuh database)."
     aktif=0
   fi
-  # Jangan aktifkan gerbang masuk bila pintunya belum ada: tanpa kredensial
-  # OAuth, semua pengunjung dialihkan ke /login yang belum bisa membuka pintu
-  # dan tidak ada cara masuk. Mode auto (tanpa --with-auth) tetap OFF dengan
-  # catatan; operator mengaktifkannya setelah kredensial terisi. Bila
-  # AUTH_ENABLED sudah true di .env.local, biarkan (konfigurasi operator yang
-  # sudah berjalan) dan beri peringatan keras.
+
+  # Supabase adalah penyedia identitas: browser membuka consent Google lewat
+  # project Supabase, jadi deployment BUTUH project Supabase (URL + kunci
+  # anon/publishable, termasuk nilai NEXT_PUBLIC_* yang di-bake ke bundle
+  # browser) dan provider Google yang aktif di dashboard Supabase.
+  sb_url="$(env_get "$file" NEXT_PUBLIC_SUPABASE_URL)"
+  [[ -z "$sb_url" ]] && sb_url="$(env_get "$file" SUPABASE_URL)"
+  [[ -z "$sb_url" ]] && sb_url="${NEXT_PUBLIC_SUPABASE_URL:-${SUPABASE_URL:-}}"
+  sb_key="$(env_get "$file" NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)"
+  [[ -z "$sb_key" ]] && sb_key="$(env_get "$file" NEXT_PUBLIC_SUPABASE_ANON_KEY)"
+  [[ -z "$sb_key" ]] && sb_key="$(env_get "$file" SUPABASE_PUBLISHABLE_KEY)"
+  [[ -z "$sb_key" ]] && sb_key="$(env_get "$file" SUPABASE_ANON_KEY)"
+  [[ -z "$sb_key" ]] && sb_key="${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-}}}}"
+
   existing_auth="$(env_get "$file" AUTH_ENABLED)"
-  have_id="$(env_get "$file" AUTH_GOOGLE_CLIENT_ID)"
-  [[ -z "$have_id" ]] && have_id="$AUTH_GOOGLE_CLIENT_ID_ARG"
-  [[ -z "$have_id" ]] && have_id="${GOOGLE_CLIENT_ID:-}"
-  have_secret="$(env_get "$file" AUTH_GOOGLE_CLIENT_SECRET)"
-  [[ -z "$have_secret" ]] && have_secret="$AUTH_GOOGLE_CLIENT_SECRET_ARG"
-  [[ -z "$have_secret" ]] && have_secret="${GOOGLE_CLIENT_SECRET:-}"
-  if [[ "$aktif" -eq 1 && "$WITH_AUTH_EXPLICIT" -eq 0 && ( -z "$have_id" || -z "$have_secret" ) ]]; then
+  if [[ "$aktif" -eq 1 && ( -z "$sb_url" || -z "$sb_key" ) && "$WITH_AUTH_EXPLICIT" -eq 0 ]]; then
     if [[ "$existing_auth" == "true" || "$existing_auth" == "1" ]]; then
-      warn "AUTH_ENABLED tetap ON tetapi kredensial OAuth Google KOSONG — /login belum bisa masuk!"
-      warn "  Isi AUTH_GOOGLE_CLIENT_ID/AUTH_GOOGLE_CLIENT_SECRET di .env.local, lalu restart."
+      warn "AUTH_ENABLED tetap ON tetapi konfigurasi Supabase KOSONG — /login belum bisa masuk!"
+      warn "  Isi NEXT_PUBLIC_SUPABASE_URL (atau SUPABASE_URL) dan kunci anon/publishable di .env.local, lalu restart."
     else
       aktif=0
-      warn "Akun tetap OFF: kredensial OAuth Google belum ada, jadi gerbang masuk belum diaktifkan."
-      warn "  Setelah membuat OAuth client, jalankan: bash install.sh --colab --auth-google-client-id=... --auth-google-client-secret=... --auth-public-url=https://host-anda --auth-admin-email=EMAIL"
+      warn "Akun tetap OFF: konfigurasi Supabase belum lengkap (URL + kunci anon/publishable)."
+      warn "  Isi project Supabase di .env.local (lihat komentar SUPABASE_* di .env.example), lalu jalankan installer lagi."
     fi
   fi
+
+  # Gerbang masuk baru dibuka bila provider Google benar-benar aktif di project
+  # Supabase — dicek lewat endpoint publik /auth/v1/settings dengan kunci yang
+  # dipakai aplikasi. Bila tidak bisa dicek (jaringan/curl tidak ada), anggap
+  # belum siap: gerbang yang tertutup lebih baik daripada semua pengunjung
+  # terkunci di /login. --with-auth memaksa ON dengan peringatan.
+  if [[ "$aktif" -eq 1 && -n "$sb_url" && -n "$sb_key" ]]; then
+    probe="$(supabase_google_provider_probe "$sb_url" "$sb_key")"
+    if [[ "$WITH_AUTH_EXPLICIT" -eq 0 ]]; then
+      if [[ "$probe" != "enabled" ]]; then
+        if [[ "$existing_auth" == "true" || "$existing_auth" == "1" ]]; then
+          warn "AUTH_ENABLED tetap ON tetapi provider Google di Supabase ${probe} — /login belum bisa masuk!"
+          warn "  Aktifkan di Supabase Dashboard: Authentication -> Providers -> Google, lalu restart."
+        else
+          aktif=0
+          warn "Akun tetap OFF: provider Google belum aktif di Supabase (hasil cek: ${probe})."
+          warn "  Aktifkan di Supabase Dashboard: Authentication -> Providers -> Google"
+          warn "  (client ID/secret Google disimpan di sana), daftarkan redirect URL"
+          warn "  https://<domain>/api/auth/supabase/callback, lalu jalankan installer lagi."
+        fi
+      fi
+    else
+      if [[ "$probe" != "enabled" ]]; then
+        warn "--with-auth: provider Google di Supabase ${probe} — /login berhenti di halaman error Supabase sampai diaktifkan."
+        warn "  Aktifkan di Supabase Dashboard: Authentication -> Providers -> Google."
+      fi
+    fi
+  fi
+
   if [[ "$aktif" -ne 1 ]]; then
     if [[ "$WITH_AUTH_EXPLICIT" -eq 1 ]]; then
       kosongkan_var_env "$file" AUTH_ENABLED
@@ -745,54 +788,25 @@ terapkan_akun() {
   [[ -n "$email" ]] || email="$AUTH_ADMIN_EMAIL_ARG"
   set_env_value "$file" AUTH_ADMIN_EMAILS "$email"
 
-  # Draf sebelumnya menanam kata sandi admin di .env.local. Masuk kini hanya
-  # lewat Google dan nilai itu tidak dibaca lagi, jadi kosongkan agar tidak
-  # terlihat seperti kredensial yang masih berlaku.
+  # Draf sebelumnya menanam kredensial Google dan kata sandi admin di .env.local.
+  # Masuk kini lewat Supabase Auth, jadi nilai itu tidak dibaca lagi; kosongkan
+  # agar tidak terlihat seperti kredensial yang masih berlaku.
   kosongkan_var_env "$file" AUTH_ADMIN_PASSWORD
   kosongkan_var_env "$file" AUTH_ADMIN_NAME
   kosongkan_var_env "$file" AUTH_SEED_ADMIN
+  kosongkan_var_env "$file" AUTH_GOOGLE_CLIENT_ID
+  kosongkan_var_env "$file" AUTH_GOOGLE_CLIENT_SECRET
+  kosongkan_var_env "$file" AUTH_PUBLIC_URL
 
-  # OAuth client Google. Nilai yang sudah ada di .env.local menang supaya run
-  # ulang tidak menghapus kredensial; GOOGLE_CLIENT_ID/SECRET dipakai sebagai
-  # cadangan karena banyak deployment sudah memilikinya untuk API lain.
-  client_id="$(env_get "$file" AUTH_GOOGLE_CLIENT_ID)"
-  [[ -n "$client_id" ]] || client_id="$AUTH_GOOGLE_CLIENT_ID_ARG"
-  [[ -n "$client_id" ]] || client_id="${GOOGLE_CLIENT_ID:-}"
-  if [[ -n "$client_id" ]]; then set_env_value "$file" AUTH_GOOGLE_CLIENT_ID "$client_id"; fi
-
-  client_secret="$(env_get "$file" AUTH_GOOGLE_CLIENT_SECRET)"
-  [[ -n "$client_secret" ]] || client_secret="$AUTH_GOOGLE_CLIENT_SECRET_ARG"
-  [[ -n "$client_secret" ]] || client_secret="${GOOGLE_CLIENT_SECRET:-}"
-  if [[ -n "$client_secret" ]]; then
-    set_env_value "$file" AUTH_GOOGLE_CLIENT_SECRET "$client_secret"
-  fi
-
-  # Origin publik: membangun redirect URI OAuth. Di belakang proxy (Colab,
-  # tunnel) origin request bukan URL yang bisa dijangkau Google.
-  public_url="$(env_get "$file" AUTH_PUBLIC_URL)"
-  [[ -n "$public_url" ]] || public_url="$AUTH_PUBLIC_URL_ARG"
-  if [[ -n "$public_url" ]]; then
-    set_env_value "$file" AUTH_PUBLIC_URL "${public_url%/}"
-    public_url="${public_url%/}"
-  fi
-
-  info "Akun ON: AUTH_ENABLED=true — masuk hanya dengan Google (siswa=/ , guru=/workspace , admin=/admin)."
+  info "Akun ON: AUTH_ENABLED=true — masuk hanya dengan Google lewat Supabase Auth (siswa=/ , guru=/workspace , admin=/admin)."
   if [[ -z "$email" ]]; then
     warn "AUTH_ADMIN_EMAILS kosong: akun Google baru berstatus menunggu dan belum ada admin yang bisa menyetujuinya."
     warn "  Setel --auth-admin-email=EMAIL (alamat Google admin), lalu jalankan installer lagi."
   else
     info "  Admin pertama: ${email} (jadi admin aktif saat pertama masuk dengan Google)."
   fi
-  if [[ -n "$client_id" && -n "$client_secret" ]]; then
-    port="$(env_get "$file" PORT)"
-    [[ -n "$port" ]] || port="3000"
-    redirect="${public_url:-http://localhost:${port}}/api/auth/google/callback"
-    info "  Redirect URI OAuth: ${redirect} — daftarkan di Google Cloud Console."
-  else
-    warn "AUTH_GOOGLE_CLIENT_ID/SECRET kosong: /login belum bisa memulai masuk dengan Google."
-    warn "  Buat OAuth client (Web application), lalu jalankan installer dengan"
-    warn "  --auth-google-client-id=... --auth-google-client-secret=... --auth-public-url=https://host-anda"
-  fi
+  info "  Callback Supabase: https://<domain>/api/auth/supabase/callback"
+  info "  Daftarkan URL itu di Supabase Dashboard (Authentication -> URL Configuration) dan pastikan provider Google aktif."
 }
 
 terapkan_flag_workbench() {
@@ -3462,19 +3476,19 @@ if [[ -f .env.local ]]; then
   if [[ "$CURRENT_AUTH" == "true" || "$CURRENT_AUTH" == "1" ]]; then
     CURRENT_ADMIN_EMAIL="$(env_get .env.local AUTH_ADMIN_EMAILS)"
     [[ -n "$CURRENT_ADMIN_EMAIL" ]] || CURRENT_ADMIN_EMAIL="$(env_get .env.local AUTH_ADMIN_EMAIL)"
-    CURRENT_GOOGLE_ID="$(env_get .env.local AUTH_GOOGLE_CLIENT_ID)"
-    CURRENT_PUBLIC_URL="$(env_get .env.local AUTH_PUBLIC_URL)"
-    echo "Akun aktif (AUTH_ENABLED=true, masuk hanya dengan Google):"
+    CURRENT_SUPABASE_URL="$(env_get .env.local NEXT_PUBLIC_SUPABASE_URL)"
+    [[ -n "$CURRENT_SUPABASE_URL" ]] || CURRENT_SUPABASE_URL="$(env_get .env.local SUPABASE_URL)"
+    echo "Akun aktif (AUTH_ENABLED=true, masuk hanya dengan Google lewat Supabase Auth):"
     echo "  Login     : /login  (siswa -> beranda, guru -> ruang kerja, admin -> /admin)"
     if [[ -n "$CURRENT_ADMIN_EMAIL" ]]; then
       echo "  Admin     : ${CURRENT_ADMIN_EMAIL} (admin aktif saat pertama masuk dengan Google)"
     else
       echo "  Admin     : belum diset — setel AUTH_ADMIN_EMAILS agar ada yang menyetujui akun baru"
     fi
-    if [[ -n "$CURRENT_GOOGLE_ID" ]]; then
-      echo "  Redirect  : ${CURRENT_PUBLIC_URL:-http://localhost:3000}/api/auth/google/callback"
+    if [[ -n "$CURRENT_SUPABASE_URL" ]]; then
+      echo "  Supabase  : ${CURRENT_SUPABASE_URL} (provider Google + redirect URL /api/auth/supabase/callback harus aktif di dashboard)"
     else
-      echo "  Google    : BELUM diset (AUTH_GOOGLE_CLIENT_ID/SECRET) — /login belum bisa masuk"
+      echo "  Supabase  : BELUM diset (NEXT_PUBLIC_SUPABASE_URL + kunci anon/publishable) — /login belum bisa masuk"
     fi
     echo "  Persetujuan: akun Google baru berstatus menunggu; setujui di /admin."
     echo ""

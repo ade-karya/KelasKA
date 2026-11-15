@@ -3,17 +3,19 @@
 /**
  * The sign-in screen: one Google button.
  *
- * There is no password form. A sign-in is a navigation to
- * `/api/auth/google/start` (the deep link rides along as `next`), Google
- * returns to the callback, and that route either sets the session and sends
- * the browser to its role's home or returns here with a reason — most often
+ * There is no password form. The button starts Supabase's hosted Google
+ * consent (`signInWithOAuth`) with PKCE; Supabase returns the browser to
+ * `/api/auth/supabase/callback`, which either sets the session and sends the
+ * browser to its role's home or returns here with a reason — most often
  * `pending`, because a new Google address waits for an admin's approval.
  */
-import { AlertCircle, CheckCircle2, LogIn } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, CheckCircle2, Loader2, LogIn } from 'lucide-react';
 
 import { BrandLogo } from '@/components/brand-logo';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 
 const ERROR_KEYS: Record<string, string> = {
   google_not_configured: 'auth.errorGoogleNotConfigured',
@@ -25,18 +27,54 @@ const ERROR_KEYS: Record<string, string> = {
 export function LoginForm({
   next,
   error,
-  googleEnabled,
+  supabaseEnabled,
 }: {
   readonly next?: string;
   readonly error?: string;
-  readonly googleEnabled: boolean;
+  readonly supabaseEnabled: boolean;
 }) {
   const { t } = useI18n();
+  const [signingIn, setSigningIn] = useState(false);
+  const [startFailed, setStartFailed] = useState(false);
   const pending = error === 'pending';
-  const errorKey = error && !pending ? ERROR_KEYS[error] : undefined;
-  const startHref = next
-    ? `/api/auth/google/start?next=${encodeURIComponent(next)}`
-    : '/api/auth/google/start';
+  const errorKey = startFailed
+    ? 'auth.errorGoogleFailed'
+    : error && !pending
+      ? ERROR_KEYS[error]
+      : undefined;
+
+  const onSignIn = async () => {
+    const supabase = createSupabaseBrowserClient();
+    if (!supabase) {
+      // The server gate said the browser is configured, so this is a build
+      // that baked a stale/absent value: surface the generic failure instead
+      // of a dead button.
+      setStartFailed(true);
+      return;
+    }
+    setSigningIn(true);
+    setStartFailed(false);
+    // The deep link rides in a short-lived cookie instead of the redirect URL:
+    // the Supabase redirect target must exactly match an entry in the project's
+    // Redirect URLs, so it has to stay clean — just the callback path.
+    if (next && next.startsWith('/') && !next.startsWith('//')) {
+      const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `kelaska_oauth_next=${encodeURIComponent(next)}; Path=/; SameSite=Lax; Max-Age=600${secure}`;
+    }
+    const callbackUrl = new URL('/api/auth/supabase/callback', window.location.origin);
+    const { error: startError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: callbackUrl.toString(),
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+    if (startError) {
+      setSigningIn(false);
+      setStartFailed(true);
+    }
+    // Otherwise the browser is navigating to Supabase; keep the button busy.
+  };
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-gradient-to-br from-violet-50 via-white to-sky-50 px-4 py-10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -85,12 +123,10 @@ export function LoginForm({
             </p>
           )}
 
-          {googleEnabled ? (
-            <Button asChild className="w-full">
-              <a href={startHref}>
-                <GoogleMark />
-                {t('auth.signInWithGoogle')}
-              </a>
+          {supabaseEnabled ? (
+            <Button type="button" className="w-full" disabled={signingIn} onClick={onSignIn}>
+              {signingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleMark />}
+              {t('auth.signInWithGoogle')}
             </Button>
           ) : (
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">

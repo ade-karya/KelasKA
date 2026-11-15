@@ -26,13 +26,7 @@ import type { AuthUser } from '@/lib/persistence/auth-accounts';
 import { cookiesAreSecure } from '@/lib/server/cookie-secure';
 import { OWNER_ROLES, type OwnerPrincipal } from '@/lib/server/identity';
 import type { AuthRole } from './config';
-import {
-  AUTH_COOKIE,
-  AUTH_OAUTH_STATE_COOKIE,
-  authEnabled,
-  authSecret,
-  authSessionMaxAgeSeconds,
-} from './config';
+import { AUTH_COOKIE, authEnabled, authSecret, authSessionMaxAgeSeconds } from './config';
 import { signSessionToken, verifySessionToken } from './session-token';
 
 /** The session id is 32 random bytes, base64url-encoded. */
@@ -96,24 +90,6 @@ export function sessionCookieHeader(token: string, maxAgeSeconds: number): strin
 export function clearSessionCookieHeader(): string {
   const secure = cookiesAreSecure() ? '; Secure' : '';
   return `${AUTH_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
-}
-
-/**
- * The cookie that ties a Google callback to the browser that started it. It is
- * scoped to the sign-in routes and short-lived; `Lax` is required because the
- * browser arrives back from Google with a top-level GET navigation.
- */
-export function oauthStateCookieHeader(token: string, maxAgeSeconds: number): string {
-  const secure = cookiesAreSecure() ? '; Secure' : '';
-  return (
-    `${AUTH_OAUTH_STATE_COOKIE}=${token}; Path=/api/auth/google; HttpOnly; ` +
-    `SameSite=Lax; Max-Age=${maxAgeSeconds}${secure}`
-  );
-}
-
-export function clearOAuthStateCookieHeader(): string {
-  const secure = cookiesAreSecure() ? '; Secure' : '';
-  return `${AUTH_OAUTH_STATE_COOKIE}=; Path=/api/auth/google; HttpOnly; SameSite=Lax; Max-Age=0${secure}`;
 }
 
 /** The roles an account carries into owner resolution. */
