@@ -1,0 +1,18 @@
+# Build lokal dan artefak
+.gradle/
+build/
+captures/
+out/
+
+# Mesin pengembang
+local.properties
+.idea/
+*.iml
+.kotlin/
+
+# Artefak release tidak disimpan di repo (terbitkan lewat rilis GitHub / Drive)
+*.apk
+*.aab
+*.keystore
+*.jks
+*.mapping

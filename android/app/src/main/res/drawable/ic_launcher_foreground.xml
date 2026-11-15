@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Toga putih: papan, badan, dan rumbai. -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54 30 L86 48.5 L54 67 L22 48.5 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M33 56 V69 C33 74.7 42.6 79 54 79 C65.4 79 75 74.7 75 69 V56 L54 66.5 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M73 52.5 V66.5 H69.4 V54.5 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M71.2 70.5 A2.8 2.8 0 1 1 66.4 67.7 A2.8 2.8 0 1 1 71.2 70.5 Z" />
+</vector>

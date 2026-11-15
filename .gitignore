@@ -117,3 +117,7 @@ render-service/.owner-bound-parent-*/
 
 # Local forced-child eval results
 eval/orchestration/results-child-failure/
+
+# APK dari aplikasi Android (dibangun lokal / dirilis terpisah)
+*.apk
+*.aab
