@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { HomeLibrary } from '@/components/home/home-library';
 import { BrandLogo } from '@/components/brand-logo';
+import { AccountControl } from '@/components/auth/account-control';
 import { useMobileLayout } from '@/lib/adaptive/adaptive-provider';
 import { installPageScrollBoundary } from '@/lib/adaptive/page-scroll-boundary';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -824,6 +825,10 @@ function HomePage() {
             <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
           </button>
         </div>
+
+        {/* Account: who is signed in, the admin console, sign out. Renders
+            nothing when this deployment has no accounts. */}
+        <AccountControl />
       </div>
       <SettingsDialog
         open={settingsOpen}
@@ -855,10 +860,7 @@ function HomePage() {
       >
         {/* ── Logo ── */}
         <div className="home-brand relative">
-          <BrandLogo
-            size="lg"
-            className={heroEnter('fade-in zoom-in-90 duration-500 delay-100')}
-          />
+          <BrandLogo size="lg" className={heroEnter('fade-in zoom-in-90 duration-500 delay-100')} />
         </div>
 
         {mobile && <h1 className="home-mobile-heading">{t('home.mobileTitle')}</h1>}

@@ -32,11 +32,21 @@
  */
 import { redirect } from 'next/navigation';
 import { isWorkbenchEntryEnabled } from '@/lib/workbench/entry-gate';
+import { authEnabled } from '@/lib/server/auth/config';
+import { currentPageUser } from '@/lib/server/auth/guards';
 import { WorkspaceEntry } from '@/components/workbench/WorkspaceEntry';
 
 export const dynamic = 'force-dynamic';
 
-export default function WorkspacePage() {
+export default async function WorkspacePage() {
+  if (authEnabled()) {
+    const user = await currentPageUser();
+    if (!user) redirect('/login?next=%2Fworkspace');
+    // The workspace is the teacher's (and admin's) surface; a student's home is
+    // the classic learning page.
+    if (user.role === 'student') redirect('/');
+  }
+
   if (!isWorkbenchEntryEnabled()) redirect('/');
 
   return <WorkspaceEntry />;

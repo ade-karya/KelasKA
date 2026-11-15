@@ -19,7 +19,8 @@ const SCANNED = [
   'app',
   'lib',
   'components',
-  'middleware.ts',
+  // Next 16 renamed the edge gate: this fork ships `proxy.ts`, not `middleware.ts`.
+  'proxy.ts',
   'instrumentation.ts',
   ...packageSourceDirs(),
 ];

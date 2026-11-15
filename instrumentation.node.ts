@@ -73,6 +73,11 @@ export async function registerNode(): Promise<void> {
   const { startLegacyClassroomImport } = await import('@/lib/server/legacy-classroom-import');
   const legacyClassroomImport = startLegacyClassroomImport();
 
+  // Accounts: provision the schema and the first admin in the background. A
+  // login before it finishes awaits it (`ensureAuthBootstrap`).
+  const { startAuthBootstrap } = await import('@/lib/server/auth/bootstrap');
+  startAuthBootstrap();
+
   // Imported dynamically so the Edge bundle never pulls in `pg`.
   const { startAssetCollectorSchedule } =
     await import('@/lib/persistence/asset-collector-schedule');
@@ -348,6 +353,25 @@ async function validateBootConfiguration(): Promise<void> {
   // the request that discovers it.
   const { resolveAssetPendingTtlMs } = await import('@/lib/persistence/asset-pending-ttl');
   runConfigurationCheck(resolveAssetPendingTtlMs);
+
+  // The account layer, before owner identity because it registers an owner
+  // auth method. With AUTH_ENABLED on there must be a secret to sign session
+  // cookies with, and the registration turns the anonymous fallback off so an
+  // unsigned request is a 401 instead of a fresh anonymous owner.
+  const { authEnabled, authSecret } = await import('@/lib/server/auth/config');
+  if (authEnabled()) {
+    runConfigurationCheck(() => {
+      if (!authSecret()) {
+        throw new Error(
+          'AUTH_ENABLED is set but no session secret is available. Set AUTH_SECRET, or keep ' +
+            'OPENMAIC_SECRET_KEY (the installer creates it) so sessions can be signed.',
+        );
+      }
+    });
+    const { registerHostSessionAuthentication } =
+      await import('@/lib/server/identity/host/session-cookie');
+    registerHostSessionAuthentication();
+  }
 
   // Owner identity, for the same reason and at the same moment. A malformed
   // PERSISTENCE_SHARED_OWNER_ID or single-user setting, the two together, or a

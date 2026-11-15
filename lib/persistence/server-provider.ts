@@ -17,6 +17,7 @@ import { configuredLazyAssetByteStore } from '@/lib/persistence/asset-byte-store
 import { resolveAssetPendingTtlMs } from '@/lib/persistence/asset-pending-ttl';
 import { resolveAssetQuotaBytes } from '@/lib/persistence/asset-quota';
 import { ensureLegacyClassroomImportSchema } from '@/lib/persistence/legacy-classroom-imports';
+import { ensureAuthSchema } from '@/lib/persistence/auth-accounts';
 import { ensureOwnerMaterialSchema } from '@/lib/persistence/owner-materials';
 import { fenceOwnerWrite } from '@/lib/persistence/owner-merges';
 import { withSchemaBootstrapLock } from '@/lib/persistence/schema-bootstrap-lock';
@@ -102,6 +103,7 @@ async function createServerPersistenceProvider(
       await ensurePBLProjectSchema(locked);
       await ensurePBLStudySchema(locked);
       await ensureLegacyClassroomImportSchema(locked);
+      await ensureAuthSchema(locked);
       await ensureWorkspaceModelConfigSchema(locked);
       await ensureOwnerAgentSchema(locked);
     });

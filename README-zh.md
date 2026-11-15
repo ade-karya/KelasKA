@@ -362,7 +362,7 @@ Kelas Kecerdasan Artifisial 把课程保存在服务端。课程文档、文件�
 | 单用户（Compose 默认） | `OWNER_SINGLE_USER=true` | 所有能访问服务的人共用一个；请用 `ACCESS_CODE` 或回环地址保护 |
 | 共享团队 | `PERSISTENCE_SHARED_OWNER_ID=<id>`，并同时设置 `ACCESS_CODE` | 访问码背后的团队共用一个 |
 | 匿名（两者都不设置时的默认） | 无 | 每个浏览器 cookie 一个；换一个浏览器看到的是空课程库 |
-| 自有账号 | 在 `instrumentation.ts` 中注册所有者认证方法 | 每个登录账号一个 |
+| 内置账号 | `AUTH_ENABLED=true`（Google 登录，在 `/admin` 审批） | 每个登录账号一个 |
 
 请在首次启动 1.2.0 之前设置好身份模式：1.1.x 以文件形式保存的课堂会导入给届时配置的所有者。各类部署的升级步骤见[从 1.1.x 升级](packages/docs/content/docs/deployment.zh-cn.mdx)。
 
@@ -385,6 +385,25 @@ ACCESS_CODE=your-secret-code
 请使用足够长的随机值（至少 16 个字符）：它是保护部署的唯一密钥。设置后，访客需要输入密码才能使用，所有 API 路由也会受到保护。未设置时（`.env.example` 的默认），`middleware.ts` 不校验任何凭证，所有路由（包括 API）均可访问：未配置的部署没有门禁，也没有第二道校验。验证结果以签名令牌保存在 HTTP-only cookie 中，有效期 7 天；只有在可信反向代理之后并设置 `TRUST_PROXY_HEADERS=true` 时才会限流。详见[配置说明 → ACCESS_CODE](packages/docs/content/docs/configuration.zh-cn.mdx#access_code--站点级访问密码)。
 
 <a id="lemonade-local-ai"></a>
+
+### 可选：账号（学生、教师、管理员）
+
+默认关闭。设置 `AUTH_ENABLED=true` 后，每个人在 `/login` 用 Google 登录，并拥有自己的课程、对话和上传内容：
+
+```env
+AUTH_ENABLED=true
+AUTH_GOOGLE_CLIENT_ID=...
+AUTH_GOOGLE_CLIENT_SECRET=...
+AUTH_PUBLIC_URL=https://kelaska.riau.ai
+AUTH_ADMIN_EMAILS=admin@sekolah.id
+```
+
+- 只能用 Google 登录（authorization-code 流程，要求已验证地址）。新地址首次登录会创建**待审批**账号且不发会话——由管理员在 `/admin` 批准并选择角色。
+- 角色决定登录后的落地页：**学生**进入经典学习主页（`/`），**教师**进入工作区（`/workspace`）且可以发布，**管理员**进入 `/admin` 用户控制台。
+- `AUTH_ADMIN_EMAILS` 是引导项：这些地址首次登录时会被创建为启用的管理员，这是第一份审批得以发生的前提。
+- 在反向代理之后，`AUTH_PUBLIC_URL` 必须是外部可达的源；Google 需要能访问 `<AUTH_PUBLIC_URL>/api/auth/google/callback`。
+- 需要 `DATABASE_URL`。会话是签名 cookie，背后是可吊销的数据库行；角色变更和停用在下一次请求即生效。
+- 安装器只在 Google OAuth 客户端已配置时为 `--colab`/`--kaggle` 写入它（否则启用的门禁会把所有人挡在 `/login` 外）；用 `--with-auth`/`--no-auth` 覆盖。它会打印需要在 Google Cloud Console 注册的重定向 URI。第一个管理员由 `AUTH_ADMIN_EMAILS` 中的地址首次登录时创建。
 
 ### 可选：Lemonade（本地 AI 服务商）
 

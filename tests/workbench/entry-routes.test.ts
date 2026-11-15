@@ -34,12 +34,13 @@ import WorkspacePage from '@/app/workspace/page';
 describe('workbench entry routes', () => {
   beforeEach(() => {
     state.enabled = false;
+    delete process.env.AUTH_ENABLED;
     navigation.redirect.mockClear();
     navigation.notFound.mockClear();
   });
 
-  it('redirects the workspace home instead of rendering a broken shell when disabled', () => {
-    expect(() => WorkspacePage()).toThrow('redirect:/');
+  it('redirects the workspace home instead of rendering a broken shell when disabled', async () => {
+    await expect(WorkspacePage()).rejects.toThrow('redirect:/');
     expect(navigation.redirect).toHaveBeenCalledWith('/');
   });
 
@@ -48,23 +49,23 @@ describe('workbench entry routes', () => {
     expect(navigation.notFound).toHaveBeenCalledOnce();
   });
 
-  it('renders both entry routes when the shared gate is enabled', () => {
+  it('renders both entry routes when the shared gate is enabled', async () => {
     state.enabled = true;
-    expect(WorkspacePage()).toBeTruthy();
+    expect(await WorkspacePage()).toBeTruthy();
     expect(WorkbenchNewCompatibilityPage()).toBeTruthy();
     expect(navigation.redirect).not.toHaveBeenCalled();
     expect(navigation.notFound).not.toHaveBeenCalled();
   });
 
-  it('keeps the classic home at / when disabled, so the workspace redirect cannot loop', () => {
-    const home = HomePage() as ReactElement;
+  it('keeps the classic home at / when disabled, so the workspace redirect cannot loop', async () => {
+    const home = (await HomePage()) as ReactElement;
     expect(home.type).toBe(ClassicHomePage);
     expect(navigation.redirect).not.toHaveBeenCalled();
   });
 
-  it('renders the workspace itself at / when enabled', () => {
+  it('renders the workspace itself at / when enabled', async () => {
     state.enabled = true;
-    const home = HomePage() as ReactElement;
+    const home = (await HomePage()) as ReactElement;
     expect(home.type).toBe(WorkspaceEntry);
     expect(navigation.redirect).not.toHaveBeenCalled();
   });

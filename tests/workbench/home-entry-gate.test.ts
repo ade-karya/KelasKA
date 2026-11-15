@@ -21,6 +21,7 @@ const FLAGS = [
   'NEXT_PUBLIC_PRO_WORKBENCH_ENABLED',
   'OPENMAIC_AGENT_RUNTIME_ENABLED',
   'DATABASE_URL',
+  'AUTH_ENABLED',
 ] as const;
 
 type Env = Partial<Record<(typeof FLAGS)[number], string>>;
@@ -30,9 +31,9 @@ const RUNTIME: Env = {
   DATABASE_URL: 'postgres://placeholder',
 };
 
-function rendersWorkspace(env: Env): boolean {
+async function rendersWorkspace(env: Env): Promise<boolean> {
   for (const [name, value] of Object.entries(env)) process.env[name] = value;
-  const home = HomePage() as ReactElement;
+  const home = (await HomePage()) as ReactElement;
   if (home.type === ClassicHomePage) return false;
   expect(home.type).toBe(WorkspaceEntry);
   return true;
@@ -77,8 +78,8 @@ describe('the home page gate', () => {
       'the runtime has no database URL',
       { NEXT_PUBLIC_WORKBENCH_ENABLED: 'true', OPENMAIC_AGENT_RUNTIME_ENABLED: 'true' },
     ],
-  ])('keeps the classic home when %s', (_case, env) => {
-    expect(rendersWorkspace(env)).toBe(false);
+  ])('keeps the classic home when %s', async (_case, env) => {
+    expect(await rendersWorkspace(env)).toBe(false);
   });
 
   it.each<[string, Env]>([
@@ -92,7 +93,7 @@ describe('the home page gate', () => {
         ...RUNTIME,
       },
     ],
-  ])('renders the workspace when %s and the runtime is configured', (_case, env) => {
-    expect(rendersWorkspace(env)).toBe(true);
+  ])('renders the workspace when %s and the runtime is configured', async (_case, env) => {
+    expect(await rendersWorkspace(env)).toBe(true);
   });
 });

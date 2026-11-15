@@ -133,6 +133,30 @@
 #   --no-workbench        Pastikan beranda = classic home: kosongkan nama baru
 #                         DAN nama lama NEXT_PUBLIC_PRO_WORKBENCH_ENABLED yang
 #                         dipaksa ON oleh preset versi sebelumnya.
+#   --with-auth           Aktifkan lapisan akun (AUTH_ENABLED=true): masuk hanya
+#                         dengan Google, siswa ke beranda belajar, guru ke ruang
+#                         kerja, admin ke /admin. Default: ON untuk
+#                         --colab/--kaggle BILA DATABASE_URL terisi DAN kredensial
+#                         OAuth Google tersedia (dari .env.local/argumen/GOOGLE_*);
+#                         tanpa kredensial itu semua pengunjung akan terkunci di
+#                         /login yang belum bisa membuka pintu, jadi preset
+#                         tersebut membuatnya tetap OFF dengan catatan. OFF untuk
+#                         mode lain.
+#   --no-auth             Matikan lapisan akun (AUTH_ENABLED dikosongkan);
+#                         deployment kembali memakai ACCESS_CODE/anonymous owner.
+#   --auth-admin-email=EMAIL
+#                         Email Google admin pertama (boleh daftar dipisah koma).
+#                         Alamat ini dibuat sebagai admin aktif saat pertama kali
+#                         masuk lewat Google; dialah yang menyetujui akun lain.
+#   --auth-google-client-id=ID
+#   --auth-google-client-secret=SECRET
+#                         Kredensial OAuth client Google (Web application).
+#                         Tanpa keduanya /login hanya menampilkan catatan bahwa
+#                         masuk dengan Google belum diatur.
+#   --auth-public-url=URL Origin publik aplikasi (mis. https://kelaska.riau.ai)
+#                         untuk menyusun redirect URI OAuth. Wajib bila aplikasi
+#                         di belakang proxy (Colab/tunnel), karena Google harus
+#                         bisa menjangkau URL itu.
 #   --dev                 Preset pengembangan: --yes, tanpa build produksi dan
 #                         tanpa PM2, lalu menjalankan `bun --bun run dev` di
 #                         latar belakang (log: data/dev-server.log, PID:
@@ -320,6 +344,13 @@ WITH_GPU_LLM="auto"
 # nama itu kini deprecated upstream (dibaca hanya bila nama baru kosong).
 WITH_WORKBENCH=0
 WITH_WORKBENCH_EXPLICIT=0
+# Lapisan akun: "auto" = ON hanya untuk --colab/--kaggle dengan DATABASE_URL.
+WITH_AUTH="auto"
+WITH_AUTH_EXPLICIT=0
+AUTH_ADMIN_EMAIL_ARG="${AUTH_ADMIN_EMAILS:-${AUTH_ADMIN_EMAIL:-}}"
+AUTH_GOOGLE_CLIENT_ID_ARG="${AUTH_GOOGLE_CLIENT_ID:-}"
+AUTH_GOOGLE_CLIENT_SECRET_ARG="${AUTH_GOOGLE_CLIENT_SECRET:-}"
+AUTH_PUBLIC_URL_ARG="${AUTH_PUBLIC_URL:-}"
 WITH_DEV=0
 WITH_SERVER_START=1
 FAST_BUILD="auto"
@@ -410,6 +441,12 @@ for arg in "$@"; do
     --gpu-image-model=*) GPU_IMAGE_MODEL="${arg#*=}" ;;
     --with-workbench)    WITH_WORKBENCH=1; WITH_WORKBENCH_EXPLICIT=1 ;;
     --no-workbench)      WITH_WORKBENCH=0; WITH_WORKBENCH_EXPLICIT=1 ;;
+    --with-auth)         WITH_AUTH="true"; WITH_AUTH_EXPLICIT=1 ;;
+    --no-auth)           WITH_AUTH="false"; WITH_AUTH_EXPLICIT=1 ;;
+    --auth-admin-email=*) AUTH_ADMIN_EMAIL_ARG="${arg#*=}" ;;
+    --auth-google-client-id=*) AUTH_GOOGLE_CLIENT_ID_ARG="${arg#*=}" ;;
+    --auth-google-client-secret=*) AUTH_GOOGLE_CLIENT_SECRET_ARG="${arg#*=}" ;;
+    --auth-public-url=*) AUTH_PUBLIC_URL_ARG="${arg#*=}" ;;
     --dev)               WITH_DEV=1; ASSUME_YES=1 ;;
     --no-start)          WITH_SERVER_START=0 ;;
     --with-ffmpeg)       WITH_FFMPEG=1 ;;
@@ -647,6 +684,117 @@ kosongkan_var_env() {
 # Preset versi lama memaksa NEXT_PUBLIC_PRO_WORKBENCH_ENABLED=true (nama yang
 # kini deprecated upstream), jadi --no-workbench mengosongkan KEDUA nama:
 # nama baru menang bila terisi, nama lama hanya dibaca bila nama baru kosong.
+# Lapisan akun (students/teachers/admins). Diputuskan setelah preset fitur,
+# sebelum build: AUTH_ENABLED dibaca server saat boot (bukan NEXT_PUBLIC), tetapi
+# halaman /login, /account dan /admin ikut ter-build. Default "auto": ON untuk
+# --colab/--kaggle (preset produksi dengan database), OFF untuk mode lain agar
+# perilaku upstream/anonymous owner tidak berubah. AUTH_SECRET tidak ditulis:
+# lib/server/auth/config.ts memakai OPENMAIC_SECRET_KEY yang sudah dijamin
+# pastikan_instance_secret di atas.
+terapkan_akun() {
+  local file=".env.local" aktif=0 email client_id client_secret public_url redirect port existing_auth have_id have_secret
+  case "$WITH_AUTH" in
+    true) aktif=1 ;;
+    false) aktif=0 ;;
+    *)
+      if [[ "$WITH_COLAB" -eq 1 || "$WITH_KAGGLE" -eq 1 ]]; then aktif=1; fi
+      ;;
+  esac
+  if [[ "$aktif" -eq 1 && -z "$(env_get "$file" DATABASE_URL)" ]]; then
+    warn "Akun diminta tetapi DATABASE_URL kosong — akun tetap OFF (sesi butuh database)."
+    aktif=0
+  fi
+  # Jangan aktifkan gerbang masuk bila pintunya belum ada: tanpa kredensial
+  # OAuth, semua pengunjung dialihkan ke /login yang belum bisa membuka pintu
+  # dan tidak ada cara masuk. Mode auto (tanpa --with-auth) tetap OFF dengan
+  # catatan; operator mengaktifkannya setelah kredensial terisi. Bila
+  # AUTH_ENABLED sudah true di .env.local, biarkan (konfigurasi operator yang
+  # sudah berjalan) dan beri peringatan keras.
+  existing_auth="$(env_get "$file" AUTH_ENABLED)"
+  have_id="$(env_get "$file" AUTH_GOOGLE_CLIENT_ID)"
+  [[ -z "$have_id" ]] && have_id="$AUTH_GOOGLE_CLIENT_ID_ARG"
+  [[ -z "$have_id" ]] && have_id="${GOOGLE_CLIENT_ID:-}"
+  have_secret="$(env_get "$file" AUTH_GOOGLE_CLIENT_SECRET)"
+  [[ -z "$have_secret" ]] && have_secret="$AUTH_GOOGLE_CLIENT_SECRET_ARG"
+  [[ -z "$have_secret" ]] && have_secret="${GOOGLE_CLIENT_SECRET:-}"
+  if [[ "$aktif" -eq 1 && "$WITH_AUTH_EXPLICIT" -eq 0 && ( -z "$have_id" || -z "$have_secret" ) ]]; then
+    if [[ "$existing_auth" == "true" || "$existing_auth" == "1" ]]; then
+      warn "AUTH_ENABLED tetap ON tetapi kredensial OAuth Google KOSONG — /login belum bisa masuk!"
+      warn "  Isi AUTH_GOOGLE_CLIENT_ID/AUTH_GOOGLE_CLIENT_SECRET di .env.local, lalu restart."
+    else
+      aktif=0
+      warn "Akun tetap OFF: kredensial OAuth Google belum ada, jadi gerbang masuk belum diaktifkan."
+      warn "  Setelah membuat OAuth client, jalankan: bash install.sh --colab --auth-google-client-id=... --auth-google-client-secret=... --auth-public-url=https://host-anda --auth-admin-email=EMAIL"
+    fi
+  fi
+  if [[ "$aktif" -ne 1 ]]; then
+    if [[ "$WITH_AUTH_EXPLICIT" -eq 1 ]]; then
+      kosongkan_var_env "$file" AUTH_ENABLED
+      info "Akun OFF: AUTH_ENABLED dikosongkan (deployment memakai ACCESS_CODE/anonymous owner)."
+    fi
+    return 0
+  fi
+
+  set_env_value "$file" AUTH_ENABLED "true"
+
+  # Alamat Google admin pertama. AUTH_ADMIN_EMAILS (daftar dipisah koma) adalah
+  # bootstrap persetujuan: alamat ini dibuat admin aktif saat pertama masuk,
+  # sehingga dialah yang bisa menyetujui akun Google lain di /admin.
+  email="$(env_get "$file" AUTH_ADMIN_EMAILS)"
+  [[ -n "$email" ]] || email="$(env_get "$file" AUTH_ADMIN_EMAIL)"
+  [[ -n "$email" ]] || email="$AUTH_ADMIN_EMAIL_ARG"
+  set_env_value "$file" AUTH_ADMIN_EMAILS "$email"
+
+  # Draf sebelumnya menanam kata sandi admin di .env.local. Masuk kini hanya
+  # lewat Google dan nilai itu tidak dibaca lagi, jadi kosongkan agar tidak
+  # terlihat seperti kredensial yang masih berlaku.
+  kosongkan_var_env "$file" AUTH_ADMIN_PASSWORD
+  kosongkan_var_env "$file" AUTH_ADMIN_NAME
+  kosongkan_var_env "$file" AUTH_SEED_ADMIN
+
+  # OAuth client Google. Nilai yang sudah ada di .env.local menang supaya run
+  # ulang tidak menghapus kredensial; GOOGLE_CLIENT_ID/SECRET dipakai sebagai
+  # cadangan karena banyak deployment sudah memilikinya untuk API lain.
+  client_id="$(env_get "$file" AUTH_GOOGLE_CLIENT_ID)"
+  [[ -n "$client_id" ]] || client_id="$AUTH_GOOGLE_CLIENT_ID_ARG"
+  [[ -n "$client_id" ]] || client_id="${GOOGLE_CLIENT_ID:-}"
+  if [[ -n "$client_id" ]]; then set_env_value "$file" AUTH_GOOGLE_CLIENT_ID "$client_id"; fi
+
+  client_secret="$(env_get "$file" AUTH_GOOGLE_CLIENT_SECRET)"
+  [[ -n "$client_secret" ]] || client_secret="$AUTH_GOOGLE_CLIENT_SECRET_ARG"
+  [[ -n "$client_secret" ]] || client_secret="${GOOGLE_CLIENT_SECRET:-}"
+  if [[ -n "$client_secret" ]]; then
+    set_env_value "$file" AUTH_GOOGLE_CLIENT_SECRET "$client_secret"
+  fi
+
+  # Origin publik: membangun redirect URI OAuth. Di belakang proxy (Colab,
+  # tunnel) origin request bukan URL yang bisa dijangkau Google.
+  public_url="$(env_get "$file" AUTH_PUBLIC_URL)"
+  [[ -n "$public_url" ]] || public_url="$AUTH_PUBLIC_URL_ARG"
+  if [[ -n "$public_url" ]]; then
+    set_env_value "$file" AUTH_PUBLIC_URL "${public_url%/}"
+    public_url="${public_url%/}"
+  fi
+
+  info "Akun ON: AUTH_ENABLED=true — masuk hanya dengan Google (siswa=/ , guru=/workspace , admin=/admin)."
+  if [[ -z "$email" ]]; then
+    warn "AUTH_ADMIN_EMAILS kosong: akun Google baru berstatus menunggu dan belum ada admin yang bisa menyetujuinya."
+    warn "  Setel --auth-admin-email=EMAIL (alamat Google admin), lalu jalankan installer lagi."
+  else
+    info "  Admin pertama: ${email} (jadi admin aktif saat pertama masuk dengan Google)."
+  fi
+  if [[ -n "$client_id" && -n "$client_secret" ]]; then
+    port="$(env_get "$file" PORT)"
+    [[ -n "$port" ]] || port="3000"
+    redirect="${public_url:-http://localhost:${port}}/api/auth/google/callback"
+    info "  Redirect URI OAuth: ${redirect} — daftarkan di Google Cloud Console."
+  else
+    warn "AUTH_GOOGLE_CLIENT_ID/SECRET kosong: /login belum bisa memulai masuk dengan Google."
+    warn "  Buat OAuth client (Web application), lalu jalankan installer dengan"
+    warn "  --auth-google-client-id=... --auth-google-client-secret=... --auth-public-url=https://host-anda"
+  fi
+}
+
 terapkan_flag_workbench() {
   local file=".env.local" baru lama
   if [[ "$WITH_WORKBENCH" -eq 1 ]]; then
@@ -1715,8 +1863,9 @@ if [[ "$WITH_KAGGLE" -eq 1 ]]; then
   fi
 fi
 
-# Preset selesai: workbench/classic home diputuskan untuk SEMUA mode (bukan
-# hanya --colab/--kaggle), sebelum build yang memanggang NEXT_PUBLIC_*.
+# Preset selesai: akun lalu workbench/classic home diputuskan untuk SEMUA mode
+# (bukan hanya --colab/--kaggle), sebelum build yang memanggang NEXT_PUBLIC_*.
+terapkan_akun
 terapkan_flag_workbench
 
 if [[ "$WITH_POSTGRES" -eq 1 && -n "$PGPORT" && -f .env.local ]]; then
@@ -3309,13 +3458,35 @@ else
 fi
 echo ""
 if [[ -f .env.local ]]; then
-  CURRENT_ACCESS_CODE="$(env_get .env.local ACCESS_CODE)"
-  if [[ -n "$CURRENT_ACCESS_CODE" ]]; then
-    echo "ACCESS_CODE Anda (untuk modal login di browser):"
-    echo "  ${CURRENT_ACCESS_CODE}"
+  CURRENT_AUTH="$(env_get .env.local AUTH_ENABLED)"
+  if [[ "$CURRENT_AUTH" == "true" || "$CURRENT_AUTH" == "1" ]]; then
+    CURRENT_ADMIN_EMAIL="$(env_get .env.local AUTH_ADMIN_EMAILS)"
+    [[ -n "$CURRENT_ADMIN_EMAIL" ]] || CURRENT_ADMIN_EMAIL="$(env_get .env.local AUTH_ADMIN_EMAIL)"
+    CURRENT_GOOGLE_ID="$(env_get .env.local AUTH_GOOGLE_CLIENT_ID)"
+    CURRENT_PUBLIC_URL="$(env_get .env.local AUTH_PUBLIC_URL)"
+    echo "Akun aktif (AUTH_ENABLED=true, masuk hanya dengan Google):"
+    echo "  Login     : /login  (siswa -> beranda, guru -> ruang kerja, admin -> /admin)"
+    if [[ -n "$CURRENT_ADMIN_EMAIL" ]]; then
+      echo "  Admin     : ${CURRENT_ADMIN_EMAIL} (admin aktif saat pertama masuk dengan Google)"
+    else
+      echo "  Admin     : belum diset — setel AUTH_ADMIN_EMAILS agar ada yang menyetujui akun baru"
+    fi
+    if [[ -n "$CURRENT_GOOGLE_ID" ]]; then
+      echo "  Redirect  : ${CURRENT_PUBLIC_URL:-http://localhost:3000}/api/auth/google/callback"
+    else
+      echo "  Google    : BELUM diset (AUTH_GOOGLE_CLIENT_ID/SECRET) — /login belum bisa masuk"
+    fi
+    echo "  Persetujuan: akun Google baru berstatus menunggu; setujui di /admin."
     echo ""
   else
-    warn "ACCESS_CODE tidak diset — API fail-open (tanpa proteksi)."
+    CURRENT_ACCESS_CODE="$(env_get .env.local ACCESS_CODE)"
+    if [[ -n "$CURRENT_ACCESS_CODE" ]]; then
+      echo "ACCESS_CODE Anda (untuk modal login di browser):"
+      echo "  ${CURRENT_ACCESS_CODE}"
+      echo ""
+    else
+      warn "ACCESS_CODE tidak diset — API fail-open (tanpa proteksi)."
+    fi
   fi
 fi
 echo "Langkah berikutnya:"
@@ -3388,4 +3559,6 @@ echo "  - Blok models: di openmaic.yml disegarkan setiap run dari katalog"
 echo "    OpenCode/Codex; edit di luar blok itu untuk kustomisasi, lalu:"
 echo "    pm2 startOrReload ecosystem.bun.config.cjs --update-env"
 echo "  - Ambil ACCESS_CODE kapan saja: grep '^ACCESS_CODE=' .env.local"
+echo "  - Akun aktif: --with-auth/--no-auth; masuk dengan Google, admin pertama"
+echo "    dari AUTH_ADMIN_EMAILS, akun baru disetujui di /admin."
 echo "  - Node.js/pnpm tidak dipakai. Installer Node lama: ./install-node.sh"

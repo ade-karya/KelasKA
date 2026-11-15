@@ -17,11 +17,26 @@
  * The workspace keeps its own URLs: once something is open the shell mirrors
  * it to `/workspace?…`, so existing deep links and their query keep working.
  */
+import { redirect } from 'next/navigation';
 import { isWorkbenchEntryEnabled } from '@/lib/workbench/entry-gate';
+import { authEnabled } from '@/lib/server/auth/config';
+import { currentPageUser, homeForRole } from '@/lib/server/auth/guards';
 import { WorkspaceEntry } from '@/components/workbench/WorkspaceEntry';
 import { ClassicHomePage } from './classic-home';
 
-export default function Page() {
+export default async function Page() {
+  // With accounts on, `/` is the student home. A teacher is sent to the
+  // workspace and an admin to the user console; when the workbench is not part
+  // of this build, `homeForRole` answers `/` for both, and the classic home is
+  // all there is to show.
+  if (authEnabled()) {
+    const user = await currentPageUser();
+    if (!user) redirect('/login');
+    const home = homeForRole(user.role);
+    if (home !== '/') redirect(home);
+    return <ClassicHomePage />;
+  }
+
   if (!isWorkbenchEntryEnabled()) return <ClassicHomePage />;
 
   return <WorkspaceEntry />;

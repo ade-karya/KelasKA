@@ -557,7 +557,7 @@ Kelas Kecerdasan Artifisial keeps courses on the server. Course documents, folde
 | Single user (Compose default) | `OWNER_SINGLE_USER=true` | One library for everyone who can reach the server; guard it with `ACCESS_CODE` or loopback |
 | Shared team | `PERSISTENCE_SHARED_OWNER_ID=<id>` together with `ACCESS_CODE` | One library for the team behind the access code |
 | Anonymous (default without either) | nothing | One library per browser cookie; a second browser sees an empty one |
-| Your own accounts | owner auth methods registered in `instrumentation.ts` | One library per signed-in account |
+| Built-in accounts | `AUTH_ENABLED=true` (Google sign-in, approval at `/admin`) | One library per signed-in account |
 
 Set the mode before the first start of 1.2.0: classrooms that 1.1.x saved as files are imported for the owner configured then. See [Upgrading from 1.1.x](packages/docs/content/docs/deployment.mdx#upgrading-from-11x) for every kind of deployment.
 
@@ -578,6 +578,25 @@ ACCESS_CODE=your-secret-code
 ```
 
 Use a long random value, at least 16 characters from a random generator: it is the only secret guarding the deployment. Visitors then see a password prompt, and every API route is gated too. When it is unset (the default in `.env.example`), `middleware.ts` checks no credential and every route, the API included, is reachable: an unconfigured deployment is not gated, and there is no second enforcement point. The code is remembered for 7 days in a signed HTTP-only cookie; attempts are rate limited only behind a trusted proxy with `TRUST_PROXY_HEADERS=true`. See [Configuration → ACCESS_CODE](packages/docs/content/docs/configuration.mdx#access_code--site-wide-password).
+
+### Optional: Accounts (students, teachers, admins)
+
+Off by default. With `AUTH_ENABLED=true` each person signs in with Google at `/login` and owns their own courses, chats and uploads:
+
+```env
+AUTH_ENABLED=true
+AUTH_GOOGLE_CLIENT_ID=...
+AUTH_GOOGLE_CLIENT_SECRET=...
+AUTH_PUBLIC_URL=https://kelaska.riau.ai
+AUTH_ADMIN_EMAILS=admin@sekolah.id
+```
+
+- Sign-in is Google-only (authorization-code flow, a verified address required). A first sign-in for a new address creates a **pending** account and no session — an admin approves it at `/admin` and picks the role.
+- Roles decide the landing page: **students** land on the classic learning home (`/`), **teachers** on the workspace (`/workspace`) and may publish, **admins** on `/admin`, the user console.
+- `AUTH_ADMIN_EMAILS` is the bootstrap: those addresses are created as active admins on their first sign-in, which is what makes the first approval possible.
+- Behind a proxy, `AUTH_PUBLIC_URL` must be the externally reachable origin; Google needs `<AUTH_PUBLIC_URL>/api/auth/google/callback` to reach the app.
+- Requires `DATABASE_URL`. Sessions are signed cookies backed by revocable database rows; role changes and deactivation apply on the next request.
+- The installer writes it for `--colab`/`--kaggle` **only when the Google OAuth client is configured** (otherwise an enabled gate would lock everyone out of `/login`); `--with-auth`/`--no-auth` override. It prints the redirect URI to register in the Google Cloud Console. The first admin is created from `AUTH_ADMIN_EMAILS` on their first sign-in.
 
 ### Optional: Agent workbench and runtime
 
