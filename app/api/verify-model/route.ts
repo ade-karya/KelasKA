@@ -4,9 +4,13 @@ import {
   attachOwnerCookies,
   invalidOwnerCredentialResponse,
 } from '@/lib/server/identity/with-owner';
+import type { OwnerPrincipal } from '@/lib/server/identity/types';
 import { createLogger } from '@/lib/logger';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModel } from '@/lib/server/resolve-model';
+import { getServerPersistenceProvider } from '@/lib/persistence/server-provider';
+import { readWorkspaceModelConfig } from '@/lib/persistence/workspace-model-config';
+import { recordVerifiedApiKey } from '@/lib/persistence/user-api-keys';
 import {
   savedLanguageModel,
   savedProviderRef,
@@ -19,10 +23,10 @@ const log = createLogger('Verify Model');
 export async function POST(req: NextRequest) {
   const owner = await resolveRequestOwner(req);
   if (!owner.ok) return invalidOwnerCredentialResponse();
-  return attachOwnerCookies(await verify(req), owner.setCookies);
+  return attachOwnerCookies(await verify(req, owner.principal), owner.setCookies);
 }
 
-async function verify(req: NextRequest) {
+async function verify(req: NextRequest, principal: OwnerPrincipal) {
   let model: string | undefined;
   try {
     const body = await req.json();
@@ -32,6 +36,7 @@ async function verify(req: NextRequest) {
     if (typeof model !== 'string' || !model.trim()) {
       return apiError('MISSING_REQUIRED_FIELD', 400, 'Model name is required');
     }
+    const requestedModel = model;
 
     // The settings test a saved provider by its id (`provider`, with `model`
     // its model id): the server's configuration supplies key and endpoint.
@@ -88,6 +93,36 @@ async function verify(req: NextRequest) {
       // fallback for the 'verify-model' source automatically.
       { mode: 'disabled', enabled: false },
     );
+
+    // The key this account just proved works is the one the onboarding gate
+    // counts. Recorded only for a saved workspace provider (the browser never
+    // holds the key again); failures here must not flip the answer the user
+    // sees, the gate simply stays closed until a verification records.
+    if (savedRef && principal.kind === 'user') {
+      try {
+        const colon = savedRef.indexOf(':');
+        const providerId = colon === -1 ? savedRef : savedRef.slice(0, colon);
+        const modelId = colon === -1 ? requestedModel : savedRef.slice(colon + 1);
+        const databaseUrl = process.env.DATABASE_URL?.trim();
+        if (databaseUrl) {
+          const { pool } = await getServerPersistenceProvider(databaseUrl);
+          const queryable = pool as unknown as import('@openmaic/storage/document/pg').Queryable;
+          const stored = await readWorkspaceModelConfig(queryable, principal.ownerId);
+          const provider = stored?.config.providers?.[providerId];
+          if (provider?.apiKey) {
+            await recordVerifiedApiKey(queryable, {
+              ownerId: principal.ownerId,
+              providerId,
+              apiKey: provider.apiKey,
+              preset: provider.preset,
+              modelId,
+            });
+          }
+        }
+      } catch (error) {
+        log.error('The verification could not be recorded for the onboarding gate:', error);
+      }
+    }
 
     return apiSuccess({
       message: 'Connection successful',

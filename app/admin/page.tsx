@@ -10,11 +10,13 @@ import { notFound } from 'next/navigation';
 import { AdminConsole } from '@/components/admin/admin-console';
 import { authEnabled } from '@/lib/server/auth/config';
 import { requirePageRole } from '@/lib/server/auth/guards';
+import { requireApiKeyPass } from '@/lib/server/auth/api-key-gate';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
   if (!authEnabled()) notFound();
   const user = await requirePageRole(['admin'], '/admin');
+  await requireApiKeyPass(user);
   return <AdminConsole currentUser={{ id: user.id, name: user.name }} />;
 }

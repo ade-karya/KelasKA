@@ -22,6 +22,7 @@ import { ensureOwnerMaterialSchema } from '@/lib/persistence/owner-materials';
 import { fenceOwnerWrite } from '@/lib/persistence/owner-merges';
 import { withSchemaBootstrapLock } from '@/lib/persistence/schema-bootstrap-lock';
 import { ensureWorkspaceModelConfigSchema } from '@/lib/persistence/workspace-model-config';
+import { ensureUserApiKeyStatusSchema } from '@/lib/persistence/user-api-keys';
 import { ensureStageMetaSchema } from '@/lib/persistence/stage-meta';
 import { APP_RUNTIME_PAYLOAD_VALIDATORS } from '@/lib/runtime/payload-validators';
 import { ensureOwnerAgentSchema } from '@/lib/server/agents/store';
@@ -104,6 +105,7 @@ async function createServerPersistenceProvider(
       await ensurePBLStudySchema(locked);
       await ensureLegacyClassroomImportSchema(locked);
       await ensureAuthSchema(locked);
+      await ensureUserApiKeyStatusSchema(locked);
       await ensureWorkspaceModelConfigSchema(locked);
       await ensureOwnerAgentSchema(locked);
     });

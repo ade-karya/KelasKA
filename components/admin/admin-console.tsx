@@ -51,6 +51,9 @@ import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { authRoleLabelKey, AUTH_ROLES, type AuthRole } from '@/lib/server/auth/config';
 
+import { cn } from '@/lib/utils';
+import { ApiKeysPanel, type ApiKeySummary } from './api-keys-panel';
+
 interface AdminUser {
   id: string;
   email: string;
@@ -60,6 +63,7 @@ interface AdminUser {
   createdAt: string;
   updatedAt: string;
   lastLoginAt: string | null;
+  apiKey?: ApiKeySummary;
 }
 
 interface AdminConsoleProps {
@@ -122,6 +126,7 @@ export function AdminConsole({ currentUser }: AdminConsoleProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [deleting, setDeleting] = useState<AdminUser | null>(null);
+  const [tab, setTab] = useState<'users' | 'keys'>('users');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -206,146 +211,185 @@ export function AdminConsole({ currentUser }: AdminConsoleProps) {
           </div>
         </header>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <Stat
-            icon={<Users className="h-4 w-4" />}
-            label={t('admin.total')}
-            value={counts.total}
-          />
-          <Stat
-            icon={<CheckCircle2 className="h-4 w-4" />}
-            label={t('admin.pending')}
-            value={counts.pending}
-          />
-          <Stat label={t('admin.students')} value={counts.students} />
-          <Stat label={t('admin.teachers')} value={counts.teachers} />
-          <Stat
-            icon={<ShieldCheck className="h-4 w-4" />}
-            label={t('admin.admins')}
-            value={counts.admins}
-          />
+        <div
+          className="flex gap-1 overflow-x-auto"
+          role="tablist"
+          aria-label={t('admin.consoleLabel')}
+        >
+          {(
+            [
+              { id: 'users', label: t('admin.userList') },
+              { id: 'keys', label: t('admin.apiKeysTab') },
+            ] as const
+          ).map((entry) => (
+            <button
+              key={entry.id}
+              role="tab"
+              aria-selected={tab === entry.id}
+              onClick={() => setTab(entry.id)}
+              className={cn(
+                'inline-flex shrink-0 items-center rounded-full px-3 py-1.5 text-xs transition-colors',
+                tab === entry.id
+                  ? 'bg-primary/10 font-medium text-primary ring-1 ring-inset ring-primary/15'
+                  : 'text-muted-foreground hover:bg-muted',
+              )}
+            >
+              {entry.label}
+            </button>
+          ))}
         </div>
 
-        <Card>
-          <CardHeader className="flex flex-wrap items-center justify-between gap-3">
-            <CardTitle>{t('admin.userList')}</CardTitle>
-            <div className="relative w-full max-w-xs">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t('admin.search')}
-                className="pl-8"
+        {tab === 'keys' ? (
+          <ApiKeysPanel users={users} loading={loading} onChanged={load} />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <Stat
+                icon={<Users className="h-4 w-4" />}
+                label={t('admin.total')}
+                value={counts.total}
+              />
+              <Stat
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                label={t('admin.pending')}
+                value={counts.pending}
+              />
+              <Stat label={t('admin.students')} value={counts.students} />
+              <Stat label={t('admin.teachers')} value={counts.teachers} />
+              <Stat
+                icon={<ShieldCheck className="h-4 w-4" />}
+                label={t('admin.admins')}
+                value={counts.admins}
               />
             </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-12 text-muted-foreground">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {t('common.loading')}
-              </div>
-            ) : loadFailed ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">
-                <p>{t('admin.loadFailed')}</p>
-                <Button variant="outline" className="mt-3" onClick={() => void load()}>
-                  {t('common.retry')}
-                </Button>
-              </div>
-            ) : filtered.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">{t('admin.empty')}</p>
-            ) : (
-              <div className="-mx-2 overflow-x-auto">
-                <table className="w-full min-w-[680px] border-collapse text-sm">
-                  <thead>
-                    <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-                      <th className="px-2 py-2 font-medium">{t('admin.nameColumn')}</th>
-                      <th className="px-2 py-2 font-medium">{t('admin.role')}</th>
-                      <th className="px-2 py-2 font-medium">{t('admin.status')}</th>
-                      <th className="px-2 py-2 font-medium">{t('admin.lastLogin')}</th>
-                      <th className="px-2 py-2 text-right font-medium">{t('admin.actions')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((user) => (
-                      <tr key={user.id} className="border-t border-gray-100 dark:border-slate-800">
-                        <td className="px-2 py-3">
-                          <p className="font-medium text-foreground">
-                            {user.name}
-                            {user.id === currentUser.id && (
-                              <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                                ({t('common.you')})
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
-                        </td>
-                        <td className="px-2 py-3">
-                          <Badge variant={ROLE_BADGE[user.role]}>
-                            {t(authRoleLabelKey(user.role))}
-                          </Badge>
-                        </td>
-                        <td className="px-2 py-3">
-                          {user.active ? (
-                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                              {t('admin.active')}
-                            </span>
-                          ) : user.lastLoginAt ? (
-                            <span className="text-xs font-medium text-gray-400">
-                              {t('admin.inactive')}
-                            </span>
-                          ) : (
-                            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                              {t('admin.pending')}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-3 text-xs text-muted-foreground">
-                          {user.lastLoginAt
-                            ? new Date(user.lastLoginAt).toLocaleString()
-                            : t('admin.never')}
-                        </td>
-                        <td className="px-2 py-3">
-                          <div className="flex justify-end gap-1">
-                            {!user.active && (
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={t('admin.approve')}
-                                title={t('admin.approve')}
-                                onClick={() => void approve(user)}
-                              >
-                                <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                              </Button>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t('admin.edit')}
-                              title={t('admin.edit')}
-                              onClick={() => setEditing(user)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={t('admin.delete')}
-                              title={t('admin.delete')}
-                              onClick={() => setDeleting(user)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
+            <Card>
+              <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+                <CardTitle>{t('admin.userList')}</CardTitle>
+                <div className="relative w-full max-w-xs">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={t('admin.search')}
+                    className="pl-8"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-12 text-muted-foreground">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t('common.loading')}
+                  </div>
+                ) : loadFailed ? (
+                  <div className="py-10 text-center text-sm text-muted-foreground">
+                    <p>{t('admin.loadFailed')}</p>
+                    <Button variant="outline" className="mt-3" onClick={() => void load()}>
+                      {t('common.retry')}
+                    </Button>
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-muted-foreground">
+                    {t('admin.empty')}
+                  </p>
+                ) : (
+                  <div className="-mx-2 overflow-x-auto">
+                    <table className="w-full min-w-[680px] border-collapse text-sm">
+                      <thead>
+                        <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                          <th className="px-2 py-2 font-medium">{t('admin.nameColumn')}</th>
+                          <th className="px-2 py-2 font-medium">{t('admin.role')}</th>
+                          <th className="px-2 py-2 font-medium">{t('admin.status')}</th>
+                          <th className="px-2 py-2 font-medium">{t('admin.lastLogin')}</th>
+                          <th className="px-2 py-2 text-right font-medium">{t('admin.actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((user) => (
+                          <tr
+                            key={user.id}
+                            className="border-t border-gray-100 dark:border-slate-800"
+                          >
+                            <td className="px-2 py-3">
+                              <p className="font-medium text-foreground">
+                                {user.name}
+                                {user.id === currentUser.id && (
+                                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                                    ({t('common.you')})
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{user.email}</p>
+                            </td>
+                            <td className="px-2 py-3">
+                              <Badge variant={ROLE_BADGE[user.role]}>
+                                {t(authRoleLabelKey(user.role))}
+                              </Badge>
+                            </td>
+                            <td className="px-2 py-3">
+                              {user.active ? (
+                                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                  {t('admin.active')}
+                                </span>
+                              ) : user.lastLoginAt ? (
+                                <span className="text-xs font-medium text-gray-400">
+                                  {t('admin.inactive')}
+                                </span>
+                              ) : (
+                                <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                                  {t('admin.pending')}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-3 text-xs text-muted-foreground">
+                              {user.lastLoginAt
+                                ? new Date(user.lastLoginAt).toLocaleString()
+                                : t('admin.never')}
+                            </td>
+                            <td className="px-2 py-3">
+                              <div className="flex justify-end gap-1">
+                                {!user.active && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label={t('admin.approve')}
+                                    title={t('admin.approve')}
+                                    onClick={() => void approve(user)}
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label={t('admin.edit')}
+                                  title={t('admin.edit')}
+                                  onClick={() => setEditing(user)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  aria-label={t('admin.delete')}
+                                  title={t('admin.delete')}
+                                  onClick={() => setDeleting(user)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       <CreateUserDialog

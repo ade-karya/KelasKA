@@ -34,6 +34,7 @@ import { redirect } from 'next/navigation';
 import { isWorkbenchEntryEnabled } from '@/lib/workbench/entry-gate';
 import { authEnabled } from '@/lib/server/auth/config';
 import { currentPageUser } from '@/lib/server/auth/guards';
+import { requireApiKeyPass } from '@/lib/server/auth/api-key-gate';
 import { WorkspaceEntry } from '@/components/workbench/WorkspaceEntry';
 
 export const dynamic = 'force-dynamic';
@@ -45,6 +46,7 @@ export default async function WorkspacePage() {
     // The workspace is the teacher's (and admin's) surface; a student's home is
     // the classic learning page.
     if (user.role === 'student') redirect('/');
+    await requireApiKeyPass(user);
   }
 
   if (!isWorkbenchEntryEnabled()) redirect('/');

@@ -1,6 +1,8 @@
 import { modelAuthorizationResponse } from '@/lib/server/api-response';
 import { LEGACY_IMPORT_HEADER } from '@/lib/persistence/legacy-import-bindings';
 
+import { apiKeyGateResponse } from '@/lib/server/auth/api-key-gate';
+
 import { resolveRequestOwner } from './resolve';
 import { resolveResponseSetCookies } from './set-cookie';
 import type { OwnerAuthRequest, OwnerPrincipal } from './types';
@@ -45,6 +47,14 @@ export async function authenticateRequestOwner(
   const principal = await autoClaim(req, outcome.principal, responseHeaders);
   const fenced = await legacyImportFence(req, principal.ownerId, responseHeaders);
   if (fenced) return { ok: false, response: fenced };
+  // The bring-your-own-key gate: an account without a verified chat key is
+  // answered 403 before any handler runs. The wizard's own endpoints are
+  // exempt (see lib/server/auth/api-key-gate.ts).
+  const gated = await apiKeyGateResponse(req.url, principal);
+  if (gated) {
+    responseHeaders.forEach((value, name) => gated.headers.append(name, value));
+    return { ok: false, response: gated };
+  }
   return { ok: true, principal, responseHeaders };
 }
 

@@ -21,6 +21,7 @@ import { redirect } from 'next/navigation';
 import { isWorkbenchEntryEnabled } from '@/lib/workbench/entry-gate';
 import { authEnabled } from '@/lib/server/auth/config';
 import { currentPageUser, homeForRole } from '@/lib/server/auth/guards';
+import { requireApiKeyPass } from '@/lib/server/auth/api-key-gate';
 import { WorkspaceEntry } from '@/components/workbench/WorkspaceEntry';
 import { ClassicHomePage } from './classic-home';
 
@@ -32,6 +33,7 @@ export default async function Page() {
   if (authEnabled()) {
     const user = await currentPageUser();
     if (!user) redirect('/login');
+    await requireApiKeyPass(user);
     const home = homeForRole(user.role);
     if (home !== '/') redirect(home);
     return <ClassicHomePage />;

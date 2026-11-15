@@ -67,6 +67,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS auth_users_google_sub_idx
 `,
       transaction: false,
     },
+    {
+      version: 3,
+      name: 'api-key-exempt',
+      // The bring-your-own-key gate (see lib/server/auth/api-key-gate.ts): an
+      // account the admin exempts never has to verify a chat provider's key.
+      up: `
+ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS api_key_exempt BOOLEAN NOT NULL DEFAULT false;
+`,
+      transaction: false,
+    },
   ],
 };
 
@@ -84,6 +94,8 @@ export interface AuthUser {
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly lastLoginAt: string | null;
+  /** Exempt from the bring-your-own-key gate (admin-managed). */
+  readonly apiKeyExempt: boolean;
 }
 
 /** An account plus the Google subject bound to it, for the sign-in callback. */
@@ -100,6 +112,7 @@ interface AuthUserRow extends Record<string, unknown> {
   created_at: Date | string;
   updated_at: Date | string;
   last_login_at: Date | string | null;
+  api_key_exempt?: boolean;
 }
 
 interface AuthUserWithGoogleRow extends AuthUserRow {
@@ -121,6 +134,7 @@ function mapUser(row: AuthUserRow): AuthUser {
     createdAt: iso(row.created_at) ?? new Date(0).toISOString(),
     updatedAt: iso(row.updated_at) ?? new Date(0).toISOString(),
     lastLoginAt: iso(row.last_login_at),
+    apiKeyExempt: row.api_key_exempt ?? false,
   };
 }
 
@@ -163,7 +177,7 @@ export async function createAuthUser(
     const result = await queryable.query<AuthUserRow & Record<string, unknown>>(
       `INSERT INTO auth_users (id, email, name, role, active, google_sub)
        VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, email, name, role, active, created_at, updated_at, last_login_at`,
+       RETURNING id, email, name, role, active, created_at, updated_at, last_login_at, api_key_exempt`,
       [
         id,
         normalizeAuthEmail(input.email),
@@ -186,7 +200,7 @@ export async function findAuthUserByEmail(
   email: string,
 ): Promise<AuthUserWithGoogle | null> {
   const result = await queryable.query<AuthUserWithGoogleRow & Record<string, unknown>>(
-    `SELECT id, email, name, role, active, google_sub, created_at, updated_at, last_login_at
+    `SELECT id, email, name, role, active, google_sub, created_at, updated_at, last_login_at, api_key_exempt
        FROM auth_users
       WHERE email = $1`,
     [normalizeAuthEmail(email)],
@@ -202,7 +216,7 @@ export async function findAuthUserByGoogleSub(
   googleSub: string,
 ): Promise<AuthUser | null> {
   const result = await queryable.query<AuthUserRow & Record<string, unknown>>(
-    `SELECT id, email, name, role, active, created_at, updated_at, last_login_at
+    `SELECT id, email, name, role, active, created_at, updated_at, last_login_at, api_key_exempt
        FROM auth_users
       WHERE google_sub = $1`,
     [googleSub],
@@ -226,7 +240,7 @@ export async function bindAuthUserGoogleSub(
 /** Look an account up by id. */
 export async function findAuthUserById(queryable: Queryable, id: string): Promise<AuthUser | null> {
   const result = await queryable.query<AuthUserRow & Record<string, unknown>>(
-    `SELECT id, email, name, role, active, created_at, updated_at, last_login_at
+    `SELECT id, email, name, role, active, created_at, updated_at, last_login_at, api_key_exempt
        FROM auth_users
       WHERE id = $1`,
     [id],
@@ -238,7 +252,7 @@ export async function findAuthUserById(queryable: Queryable, id: string): Promis
 /** Every account, newest first. */
 export async function listAuthUsers(queryable: Queryable): Promise<AuthUser[]> {
   const result = await queryable.query<AuthUserRow & Record<string, unknown>>(
-    `SELECT id, email, name, role, active, created_at, updated_at, last_login_at
+    `SELECT id, email, name, role, active, created_at, updated_at, last_login_at, api_key_exempt
        FROM auth_users
       ORDER BY created_at ASC`,
   );
@@ -249,6 +263,8 @@ export interface UpdateAuthUserInput {
   readonly name?: string;
   readonly role?: AuthRole;
   readonly active?: boolean;
+  /** Exempt from (or reinstated into) the bring-your-own-key gate. */
+  readonly apiKeyExempt?: boolean;
 }
 
 /** Change an account; returns the updated row, or null when the id is unknown. */
@@ -266,6 +282,7 @@ export async function updateAuthUser(
   if (patch.name !== undefined) add('name', patch.name.trim());
   if (patch.role !== undefined) add('role', patch.role);
   if (patch.active !== undefined) add('active', patch.active);
+  if (patch.apiKeyExempt !== undefined) add('api_key_exempt', patch.apiKeyExempt);
   if (assignments.length === 0) return findAuthUserById(queryable, id);
   assignments.push('updated_at = now()');
   values.push(id);
@@ -273,7 +290,7 @@ export async function updateAuthUser(
     `UPDATE auth_users
         SET ${assignments.join(', ')}
       WHERE id = $${values.length}
-      RETURNING id, email, name, role, active, created_at, updated_at, last_login_at`,
+      RETURNING id, email, name, role, active, created_at, updated_at, last_login_at, api_key_exempt`,
     values,
   );
   const row = result.rows[0];
@@ -342,7 +359,7 @@ export async function findAuthSessionUser(
   idHash: string,
 ): Promise<AuthUser | null> {
   const result = await queryable.query<AuthUserRow & Record<string, unknown>>(
-    `SELECT u.id, u.email, u.name, u.role, u.active, u.created_at, u.updated_at, u.last_login_at
+    `SELECT u.id, u.email, u.name, u.role, u.active, u.created_at, u.updated_at, u.last_login_at, u.api_key_exempt
        FROM auth_sessions s
        JOIN auth_users u ON u.id = s.user_id
       WHERE s.id_hash = $1

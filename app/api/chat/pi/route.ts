@@ -35,6 +35,7 @@ import {
   attachOwnerCookies,
   invalidOwnerCredentialResponse,
 } from '@/lib/server/identity/with-owner';
+import { apiKeyGateResponse } from '@/lib/server/auth/api-key-gate';
 import type { OwnerPrincipal } from '@/lib/server/identity/types';
 import { guardedServerRuntimeStore } from '@/lib/persistence/runtime-tombstone-guard';
 import { getServerPersistenceProvider } from '@/lib/persistence/server-provider';
@@ -73,6 +74,12 @@ export async function POST(req: NextRequest) {
   const owner = await resolveRequestOwner(req);
   if (!owner.ok) {
     return invalidOwnerCredentialResponse();
+  }
+  // The bring-your-own-key gate: without a verified chat key the Pi runtime
+  // answers 403 instead of burning the deployment's quota.
+  const gated = await apiKeyGateResponse(req.url, owner.principal);
+  if (gated) {
+    return attachOwnerCookies(gated, owner.setCookies);
   }
   // Every answer carries the resolution's cookies (the anonymous owner's
   // renewal), errors included; the stream gets them on its headers before

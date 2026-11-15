@@ -29,6 +29,7 @@ import { PBL_PROJECT_MIGRATIONS } from './pbl-projects';
 import { PBL_MIGRATIONS } from './pbl-studies';
 import { SESSION_MATERIAL_LINK_MIGRATIONS } from './session-material-links';
 import { STAGE_META_MIGRATIONS } from './stage-meta';
+import { USER_API_KEY_STATUS_MIGRATIONS } from './user-api-keys';
 import { WORKSPACE_MODEL_CONFIG_MIGRATIONS } from './workspace-model-config';
 
 export const APP_SCHEMA_STORES: readonly SchemaMigrationSet[] = [
@@ -42,6 +43,7 @@ export const APP_SCHEMA_STORES: readonly SchemaMigrationSet[] = [
   LEGACY_CLASSROOM_IMPORT_MIGRATIONS,
   WORKSPACE_MODEL_CONFIG_MIGRATIONS,
   AUTH_MIGRATIONS,
+  USER_API_KEY_STATUS_MIGRATIONS,
   OWNER_AGENT_MIGRATIONS,
   AGENT_SESSION_PG_MIGRATIONS,
   AGENT_SESSION_MATERIAL_PG_MIGRATIONS,

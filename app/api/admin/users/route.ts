@@ -18,6 +18,7 @@ import {
 } from '@/lib/persistence/auth-accounts';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { authDatabase } from '@/lib/server/auth/session';
+import { apiKeySummaries } from '@/lib/server/auth/user-api-keys';
 import { validEmail, validName } from '@/lib/server/auth/validation';
 import { isAuthRole, type AuthRole } from '@/lib/server/auth/config';
 import { principalHasRole, OWNER_ROLES } from '@/lib/server/identity';
@@ -33,8 +34,18 @@ export async function GET(request: NextRequest) {
       if (!principalHasRole(principal, OWNER_ROLES.admin)) {
         return apiError('FORBIDDEN', 403, 'Admin access required');
       }
-      const users = sortAuthUsers(await listAuthUsers(await authDatabase()));
-      const response = apiSuccess({ users });
+      const queryable = await authDatabase();
+      const users = sortAuthUsers(await listAuthUsers(queryable));
+      const keySummaries = await apiKeySummaries(queryable, users);
+      const withKeys = users.map((user) => ({
+        ...user,
+        apiKey: keySummaries.get(user.id) ?? {
+          exempt: user.apiKeyExempt,
+          status: 'none',
+          keys: [],
+        },
+      }));
+      const response = apiSuccess({ users: withKeys });
       response.headers.set('cache-control', 'no-store');
       return response;
     },
