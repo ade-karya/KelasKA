@@ -1446,22 +1446,24 @@ function HomePage() {
                               router.push(run ? courseRunHref(run) : `/classroom/${classroom.id}`);
                             }}
                             overlay={
-                              <>
-                                <MoveToFolderMenu
-                                  variant={mobile ? 'items' : 'icon'}
-                                  folders={folders}
-                                  currentFolderId={classroom.folderId}
-                                  onMove={(folderId) => handleMoveCourse(classroom.id, folderId)}
-                                  onCreateAndMove={handleCreateAndMove(classroom.id)}
-                                />
-                                {/* Search view: show the owning folder as a badge. */}
-                                {!mobile && isSearching && classroom.folderId && (
-                                  <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-violet-500/80 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm pointer-events-none">
-                                    <Folder className="size-2.5" />
-                                    {folderNameById.get(classroom.folderId) ?? ''}
-                                  </span>
-                                )}
-                              </>
+                              classroom.isOwner === false ? undefined : (
+                                <>
+                                  <MoveToFolderMenu
+                                    variant={mobile ? 'items' : 'icon'}
+                                    folders={folders}
+                                    currentFolderId={classroom.folderId}
+                                    onMove={(folderId) => handleMoveCourse(classroom.id, folderId)}
+                                    onCreateAndMove={handleCreateAndMove(classroom.id)}
+                                  />
+                                  {/* Search view: show the owning folder as a badge. */}
+                                  {!mobile && isSearching && classroom.folderId && (
+                                    <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-md bg-violet-500/80 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm pointer-events-none">
+                                      <Folder className="size-2.5" />
+                                      {folderNameById.get(classroom.folderId) ?? ''}
+                                    </span>
+                                  )}
+                                </>
+                              )
                             }
                           />
                         </motion.div>
@@ -1956,6 +1958,9 @@ function ClassroomCard({
   onClick: () => void;
 }) {
   const { t } = useI18n();
+  // A widened library (an admin's course library) lists other owners' courses;
+  // they open read-only, so the card offers no rename/delete/move for them.
+  const owned = classroom.isOwner !== false;
   const thumbRef = useRef<HTMLDivElement>(null);
   const [thumbWidth, setThumbWidth] = useState(0);
   const [editing, setEditing] = useState(false);
@@ -2087,7 +2092,7 @@ function ClassroomCard({
 
         {/* Delete — top-right, only on hover */}
         <AnimatePresence>
-          {!mobile && !confirmingDelete && (
+          {owned && !mobile && !confirmingDelete && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -2241,7 +2246,7 @@ function ClassroomCard({
           </div>
         </div>
       )}
-      {mobile && !confirmingDelete && (
+      {owned && mobile && !confirmingDelete && (
         <div className="home-mobile-card-actions" onClick={(event) => event.stopPropagation()}>
           <DropdownMenu
             onOpenChange={(open) => {

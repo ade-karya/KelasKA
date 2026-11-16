@@ -634,15 +634,19 @@ export function WorkspaceCoursesPage({
       );
     }
     const course = entry.course;
+    // A widened library (an admin's) lists other owners' courses; they open
+    // read-only, so their card carries no ⋯ menu, filing or drag.
+    const owned = course.isOwner !== false;
     return (
       <CourseCard
         key={entry.id}
         course={course}
+        owned={owned}
         run={courseRuns.get(course.id)}
         slide={thumbnails[course.id]}
         requestThumbnail={requestThumbnail}
         onOpen={() => onOpenCourse(course.id)}
-        folders={foldersAvailable ? courses.folders : null}
+        folders={owned && foldersAvailable ? courses.folders : null}
         onMove={(target) => void courses.moveCourse(course.id, target)}
         onCreateAndMove={() => startNewFolder(course.id)}
         nameField={
@@ -661,7 +665,7 @@ export function WorkspaceCoursesPage({
         onDelete={() => onDeleteCourse(course.id)}
         pinned={pinned.has(entry.id)}
         onTogglePin={() => togglePin(entry.id)}
-        dragProps={cardDragProps(entry.id)}
+        dragProps={owned ? cardDragProps(entry.id) : undefined}
         dragging={drag.dragId === entry.id}
         dropEdge={cardDropEdge(entry.id)}
       />
@@ -1076,6 +1080,7 @@ function FolderTile({
 
 function CourseCard({
   course,
+  owned = true,
   run,
   slide,
   requestThumbnail,
@@ -1094,6 +1099,8 @@ function CourseCard({
   dropEdge = null,
 }: {
   readonly course: Course;
+  /** `false` = another owner's course from a widened library: read-only card. */
+  readonly owned?: boolean;
   readonly run: RunSnapshot | undefined;
   /** The first slide; null when the course has none, undefined until loaded. */
   readonly slide: Slide | null | undefined;
@@ -1147,7 +1154,7 @@ function CourseCard({
 
   return (
     <div
-      {...(status || nameField ? {} : (dragProps as ComponentProps<'div'> | undefined))}
+      {...(status || nameField || !owned ? {} : (dragProps as ComponentProps<'div'> | undefined))}
       className={cn(
         'ws-card-wrap group relative min-w-0',
         dragging && 'ws-card-dragging',
@@ -1200,7 +1207,7 @@ function CourseCard({
         )}
       </button>
       {nameField ? <div className="mt-2.5 flex">{nameField}</div> : null}
-      {status || busyWithEdit ? null : (
+      {status || busyWithEdit || !owned ? null : (
         <div data-ws-no-drag="true" className="ws-card-more">
           <WorkspaceRowMenu
             testId={`workspace-courses-more-${course.id}`}

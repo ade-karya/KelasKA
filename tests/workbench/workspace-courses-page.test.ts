@@ -274,6 +274,29 @@ describe('a course card’s ⋯', () => {
   });
 });
 
+describe('another owner’s course', () => {
+  const foreign = {
+    id: 'c-x',
+    name: 'Borrowed',
+    sceneCount: 2,
+    createdAt: 1,
+    updatedAt: 3,
+    isOwner: false,
+  };
+
+  it('opens read-only: no ⋯, no filing and no drag', async () => {
+    await renderPage([foreign]);
+    const card = byTestId('workspace-courses-card-c-x');
+    expect(card).not.toBeNull();
+    expect(byTestId('workspace-courses-more-c-x')).toBeNull();
+    // The own card keeps its menu, so the absence is the flag's doing.
+    expect(byTestId('workspace-courses-more-c1')).not.toBeNull();
+    // And its wrapper carries no drag/drop hooks, unlike an own card's.
+    expect(card!.closest('[data-ws-drop-id]')).toBeNull();
+    expect(byTestId('workspace-courses-card-c1')!.closest('[data-ws-drop-id]')).not.toBeNull();
+  });
+});
+
 describe('a folder card’s ⋯', () => {
   it('renames in place', async () => {
     await renderPage();

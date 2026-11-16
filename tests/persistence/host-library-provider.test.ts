@@ -155,12 +155,16 @@ describe('library provider', () => {
         createdAt: NOW,
         updatedAt: NOW,
         sceneCount: 0,
+        // A widened listing marks another owner's course, so the workspace
+        // opens its card read-only.
+        isOwner: false,
       },
       expect.objectContaining({ id: 'stage-alice-a', folderId: 'folder-alice' }),
       expect.objectContaining({ id: 'stage-alice-b' }),
     ]);
     // Another owner's folder is not reported; the listed course is readable.
     expect(body.stages[0]).not.toHaveProperty('folderId');
+    expect(body.stages[2]).not.toHaveProperty('isOwner');
     expect(await readAsAlice('stage-bob-live')).toBe(200);
   });
 

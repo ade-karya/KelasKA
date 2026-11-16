@@ -33,18 +33,33 @@ interface LibraryRow extends Record<string, unknown> {
   created_at: number | string;
   updated_at: number | string;
   folder_id: string | null;
+  owner_id: string;
   scene_count: string;
 }
 
 /**
+ * A list item, with the ownership flag a widened listing needs.
+ *
+ * `isOwner: false` is present only when the course belongs to another owner
+ * (a host provider's widened listing, such as the fork's admin course
+ * library); it is absent for the caller's own courses, which is what the
+ * clients have always assumed. The workspace branches on exactly this flag to
+ * open a foreign course read-only.
+ */
+export interface LibraryStageSummary extends DocumentSummary {
+  readonly isOwner?: false;
+}
+
+/**
  * Summaries of the listable courses among `stageIds`, in the given order with
- * duplicates dropped. `folderId` is kept only for `ownerId`'s own courses.
+ * duplicates dropped. `folderId` is kept only for `ownerId`'s own courses, and
+ * another owner's course is marked `isOwner: false`.
  */
 export async function summarizeLibraryStages(
   queryable: Queryable,
   ownerId: string,
   stageIds: readonly string[],
-): Promise<DocumentSummary[]> {
+): Promise<LibraryStageSummary[]> {
   // An id the read path cannot address (empty, `.`, `..`, NUL, a lone
   // surrogate) is refused there, so it is not listed here either -- and never
   // reaches the query, where some of them would be a database error.
@@ -59,6 +74,7 @@ export async function summarizeLibraryStages(
             stages.created_at,
             stages.updated_at,
             CASE WHEN meta.owner_id = $2 THEN stages.folder_id END AS folder_id,
+            meta.owner_id,
             (SELECT COUNT(*) FROM document_scenes AS scenes
               WHERE scenes.stage_id = stages.id)::text AS scene_count
        FROM document_stages AS stages
@@ -68,7 +84,7 @@ export async function summarizeLibraryStages(
     [ordered, ownerId],
   );
   const byId = new Map(result.rows.map((row) => [row.id, row]));
-  const summaries: DocumentSummary[] = [];
+  const summaries: LibraryStageSummary[] = [];
   for (const id of ordered) {
     const row = byId.get(id);
     if (!row) continue;
@@ -82,6 +98,7 @@ export async function summarizeLibraryStages(
       updatedAt: Number(row.updated_at),
       sceneCount: Number(row.scene_count),
       ...(row.folder_id === null ? {} : { folderId: row.folder_id }),
+      ...(row.owner_id === ownerId ? {} : { isOwner: false as const }),
     });
   }
   return summaries;
@@ -93,7 +110,7 @@ export async function listLibraryStages(options: {
   principal: OwnerPrincipal;
   queryable: Queryable;
   ownedStageIds: () => Promise<string[]>;
-}): Promise<DocumentSummary[]> {
+}): Promise<LibraryStageSummary[]> {
   const { provider, principal, queryable } = options;
   const ids: unknown = await provider.list({
     principal,

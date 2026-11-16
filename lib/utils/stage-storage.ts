@@ -121,6 +121,11 @@ export interface StageListItem {
   taskEngineMode?: boolean;
   /** Folder this course belongs to; undefined = unfiled. Device-local only. */
   folderId?: string;
+  /**
+   * `false` = another owner's course, listed by a widened library (an admin's
+   * course library). Absent/`true` = the caller's own.
+   */
+  isOwner?: boolean;
 }
 
 function stampStage(stageId: string, stage: Stage, now: number): Stage {
@@ -996,7 +1001,7 @@ export async function listStages(): Promise<StageListItem[]> {
     if (!body || !Array.isArray(body.stages)) {
       throw new Error('Malformed /api/stages response: expected { stages: [...] }');
     }
-    return (body.stages as DocumentSummary[])
+    return (body.stages as (DocumentSummary & { isOwner?: unknown })[])
       .map((item) => {
         const base: StageListItem = {
           id: item.id,
@@ -1007,6 +1012,7 @@ export async function listStages(): Promise<StageListItem[]> {
           ...(item.description !== undefined ? { description: item.description } : {}),
           ...(item.interactiveMode !== undefined ? { interactiveMode: item.interactiveMode } : {}),
           ...(item.taskEngineMode !== undefined ? { taskEngineMode: item.taskEngineMode } : {}),
+          ...(item.isOwner === false ? { isOwner: false } : {}),
         };
         return item.folderId ? { ...base, folderId: item.folderId } : base;
       })
