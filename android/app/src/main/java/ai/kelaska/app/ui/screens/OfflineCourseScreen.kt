@@ -94,13 +94,28 @@ fun OfflineCourseScreen(
             TextButton(onClick = onBack) { Text("Kembali") }
         }
 
-        else -> OfflineCourseContent(
-            course = state.course!!,
-            quizzes = quizzes,
-            viewModel = viewModel,
-            onBack = onBack,
-            modifier = modifier,
-        )
+        else -> {
+            var showList by remember(state.course!!.meta.id) { mutableStateOf(false) }
+            if (!showList) {
+                // Default: putar kelas persis seperti versi web (bundle pemutar
+                // dan HTML yang sama dipakai ekspor standalone kelaska.riau.ai).
+                ClassPlayerScreen(
+                    course = state.course!!,
+                    onBack = onBack,
+                    onOpenList = { showList = true },
+                    modifier = modifier,
+                )
+            } else {
+                OfflineCourseContent(
+                    course = state.course!!,
+                    quizzes = quizzes,
+                    viewModel = viewModel,
+                    onBack = onBack,
+                    onPlay = { showList = false },
+                    modifier = modifier,
+                )
+            }
+        }
     }
 }
 
@@ -110,6 +125,7 @@ private fun OfflineCourseContent(
     quizzes: Map<String, SceneQuizState>,
     viewModel: OfflineCourseViewModel,
     onBack: () -> Unit,
+    onPlay: () -> Unit,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
@@ -135,7 +151,12 @@ private fun OfflineCourseContent(
                 Text(
                     "Kursus Offline",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.weight(1f),
                 )
+                FilledTonalButton(onClick = onPlay) {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Text(" Putar Kelas")
+                }
             }
         }
 

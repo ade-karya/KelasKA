@@ -212,15 +212,24 @@ endpoint `/api/auth/native/session` dipakai oleh aplikasi untuk menukar token
 menjadi sesi `kelaska_session` (perlakuan sama dengan callback browser, termasuk
 logika *pending account*).
 
-## Batasan yang disengaja (v1.2.0)
+## Batasan yang disengaja (v1.3.0)
 
+- Memutar kelas dari paket `.maic.zip` sekarang memakai **bundle pemutar web
+  yang persis sama** (`lib/standalone-player`, dibangun oleh
+  `scripts/build-standalone-player.mjs` dan disalin ke
+  `app/src/main/assets/player/`). `StandalonePlayerHtml` merakit dokumen yang
+  sama dengan `lib/export/standalone-html/assemble.ts`: slide, efek spotlight/
+  laser, narasi, subtitle, video, kuis, dan diskusi tampil persis seperti di
+  kelaska.riau.ai. Jalur "Daftar materi" yang lama tetap tersedia sebagai
+  bacaan ringkas.
+- Bundle pemutar perlu dibangun ulang (`bun run build:standalone-player`) dan
+  disalin ke `app/src/main/assets/player/` setiap kali `@openmaic/renderer`
+  atau `lib/standalone-player` berubah di web.
 - Di jalur **daring** (Detail Kursus), gambar slide hanya dimuat bila `src`
   berupa URL langsung; referensi asset-pool (`ast_…`) belum diselesaikan klien
   native. Jalur **offline** menyelesaikannya lewat `manifest.mediaIndex`.
-- Storyboard/whiteboard, animasi papan tulis, dan widget generatif tidak
-  dirender ulang; hanya teks/gambar/audio/video/kuis/konten interaktif.
-- Scene PBL tidak dijalankan offline (butuh sandbox server); yang tampil hanya
-  kartu penjelasan.
+- PBL tetap berupa kartu penjelasan + tautan ke kelas online (butuh sandbox
+  server); interaksi agen langsung tidak dijalankan di dalam aplikasi.
 - Pembuatan kursus interaktif AI tetap dilakukan di situs; kursus baru dari
   aplikasi hanya membuat dokumen kosong.
 - Impor memakai pemilih berkas sistem (SAF). Berkas `.maic.zip` besar butuh
