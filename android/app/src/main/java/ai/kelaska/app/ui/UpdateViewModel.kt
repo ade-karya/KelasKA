@@ -19,7 +19,7 @@ import java.io.File
 sealed interface UpdateState {
     data object Idle : UpdateState
 
-    data object Checking : UpdateState
+    data class Checking(val manual: Boolean = false) : UpdateState
 
     data class Available(val release: AppRelease) : UpdateState
 
@@ -40,9 +40,10 @@ sealed interface UpdateState {
  * Alur cek → tawaran → unduh → verifikasi → pasang.
  *
  * Cek otomatis dibatasi sekali per 24 jam ([UpdatePreferences]); cek manual
- * dari layar Akun selalu boleh. Kegagalan cek otomatis sengaja tidak
- * memunculkan dialog (aplikasi tetap bisa dipakai offline); kegagalan cek
- * manual dan seluruh kegagalan unduhan tampil sebagai [UpdateState.Error].
+ * dari layar Akun selalu boleh. Cek otomatis berjalan senyap (tanpa dialog)
+ * supaya aplikasi yang dibuka tanpa internet tidak tertahan; kegagalannya juga
+ * tidak memunculkan dialog. Kegagalan cek manual dan seluruh kegagalan
+ * unduhan tampil sebagai [UpdateState.Error].
  */
 class UpdateViewModel(
     private val repository: UpdateRepository,
@@ -132,7 +133,7 @@ class UpdateViewModel(
     private fun check(manual: Boolean) {
         if (checkJob?.isActive == true) return
         if (_state.value is UpdateState.Downloading) return
-        _state.value = UpdateState.Checking
+        _state.value = UpdateState.Checking(manual)
         checkJob = viewModelScope.launch {
             try {
                 val release = repository.fetchLatestRelease()

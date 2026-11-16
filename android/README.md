@@ -53,10 +53,12 @@ APK dipasang langsung dari **GitHub Releases** repo publik, tanpa Google Play.
   `major.minor.patch` (jadi `v1.10.0` > `v1.9.9`; sufiks `-rc.1` diabaikan).
   Tag yang tidak bisa dibaca tidak pernah ditawarkan.
 - **Frekuensi**: cek otomatis saat aplikasi dibuka, maksimal sekali per 24 jam
-  (timestamp di `SharedPreferences` `kelas_ka_update`). Tombol **Cek pembaruan**
+  (timestamp di `SharedPreferences` `kelas_ka_update`). Cek otomatis berjalan
+  senyap tanpa dialog, jadi membuka aplikasi saat offline tidak tertahan; dialog
+  "Memeriksa pembaruan" hanya muncul untuk cek manual. Tombol **Cek pembaruan**
   di layar Akun selalu boleh dan menampilkan "sudah terbaru" bila tidak ada rilis
-  baru; kegagalan cek otomatis dibiarkan senyap agar aplikasi tetap bisa dipakai
-  offline.
+  baru; kegagalan cek otomatis juga dibiarkan senyap agar aplikasi tetap bisa
+  dipakai offline.
 - **Unduhan**: `DownloadManager` ke
   `getExternalFilesDir(DIRECTORY_DOWNLOADS)/update.apk`, progres persen di dialog,
   tombol Batal, dan pesan untuk ruang penyimpanan habis / unduhan terputus.
@@ -138,7 +140,8 @@ export ANDROID_HOME=/root/android-sdk  # atau SDK Anda
 Hasil:
 
 - `app/build/outputs/apk/debug/app-debug.apk` (otomatis debug-signed)
-- `app/build/outputs/apk/release/app-release.apk` (ditandatangani keystore release bila ada)
+- `app/build/outputs/apk/release/app-release.apk` (ditandatangani keystore release
+  bila ada; tanpa keystore artefaknya bernama `app-release-unsigned.apk`)
 
 Untuk Play Store, buat juga `./gradlew :app:bundleRelease` (AAB).
 
@@ -185,6 +188,14 @@ Workflow `.github/workflows/release.yml` membangun rilis saat tag `v*` didorong:
    | `ANDROID_KEYSTORE_PASSWORD` | `storePassword` |
    | `ANDROID_KEY_ALIAS` | `kelas-ka` |
    | `ANDROID_KEY_PASSWORD` | `keyPassword` |
+
+   Opsional tetapi disarankan, tambahkan **repository variable**
+   `ANDROID_CERT_SHA256` (Settings → Secrets and variables → Actions →
+   Variables) berisi SHA-256 sertifikat kunci yang menandatangani rilis
+   terpasang. Untuk `android-v1.0.0` nilainya
+   `3560bffe0853b47b2bc23128a73275d28357176c5010aacd05ad80e3a0a066d1`.
+   Workflow membandingkan sertifikat APK baru dengan nilai itu dan gagal bila
+   keystore-nya berbeda, karena Android akan menolak update di tempat.
 
 3. Dorong tag: `git tag v1.2.0 && git push origin v1.2.0`.
 

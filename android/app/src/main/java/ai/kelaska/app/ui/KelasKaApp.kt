@@ -259,7 +259,7 @@ private fun SignedInApp(
                     profile = profile,
                     onSignOut = { mainViewModel.signOut() },
                     onCheckUpdate = updateViewModel::checkManually,
-                    checkingUpdate = updateState == UpdateState.Checking,
+                    checkingUpdate = updateState is UpdateState.Checking,
                 )
             }
             composable("admin") {

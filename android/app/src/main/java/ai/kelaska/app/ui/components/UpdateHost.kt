@@ -106,20 +106,26 @@ fun UpdateHost(
         when (val current = state) {
             is UpdateState.Idle -> Unit
 
-            is UpdateState.Checking -> AlertDialog(
-                onDismissRequest = {},
-                title = { Text("Memeriksa pembaruan") },
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-                        Text(
-                            "Menghubungi GitHub Releases…",
-                            modifier = Modifier.padding(start = 14.dp),
-                        )
-                    }
-                },
-                confirmButton = {},
-            )
+            // Cek otomatis sengaja tidak menampilkan dialog: pengguna yang
+            // membuka aplikasi tanpa internet harus bisa langsung masuk atau
+            // membuka perpustakaan offline. Dialog progres hanya untuk cek
+            // manual dari layar Akun.
+            is UpdateState.Checking -> if (current.manual) {
+                AlertDialog(
+                    onDismissRequest = {},
+                    title = { Text("Memeriksa pembaruan") },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                            Text(
+                                "Menghubungi GitHub Releases…",
+                                modifier = Modifier.padding(start = 14.dp),
+                            )
+                        }
+                    },
+                    confirmButton = {},
+                )
+            }
 
             is UpdateState.Available -> AlertDialog(
                 onDismissRequest = viewModel::dismiss,
