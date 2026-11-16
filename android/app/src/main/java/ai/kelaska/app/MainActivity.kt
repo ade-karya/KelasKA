@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import ai.kelaska.app.ui.KelasKaApp
 import ai.kelaska.app.ui.KelasKaTheme
 import ai.kelaska.app.ui.MainViewModel
+import ai.kelaska.app.ui.UpdateViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -29,13 +30,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private val updateViewModel: UpdateViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                UpdateViewModel(
+                    repository = applicationGraph.updateRepository,
+                    downloader = applicationGraph.updateDownloader,
+                    preferences = applicationGraph.updatePreferences,
+                    installedVersionName = BuildConfig.VERSION_NAME,
+                )
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handleAuthDeepLink(intent)
         setContent {
             KelasKaTheme {
-                KelasKaApp(viewModel)
+                KelasKaApp(viewModel, updateViewModel)
             }
         }
     }

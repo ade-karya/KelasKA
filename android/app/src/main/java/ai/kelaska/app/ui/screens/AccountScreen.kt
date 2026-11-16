@@ -26,9 +26,11 @@ import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +61,8 @@ import ai.kelaska.app.ui.GovernmentLogos
 fun AccountScreen(
     profile: CachedProfile,
     onSignOut: () -> Unit,
+    onCheckUpdate: () -> Unit,
+    checkingUpdate: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -122,6 +126,23 @@ fun AccountScreen(
                     title = "Buka kelaska.riau.ai",
                     subtitle = "Situs web Kelas KA di browser",
                     onClick = { openCustomTab(context, BuildConfig.BASE_URL) },
+                )
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
+                AccountAction(
+                    icon = {
+                        if (checkingUpdate) {
+                            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Filled.Refresh, null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                    },
+                    title = "Cek pembaruan",
+                    subtitle = if (checkingUpdate) {
+                        "Menghubungi GitHub Releases…"
+                    } else {
+                        "Versi ${BuildConfig.VERSION_NAME} · unduh APK terbaru"
+                    },
+                    onClick = { if (!checkingUpdate) onCheckUpdate() },
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
                 AccountAction(

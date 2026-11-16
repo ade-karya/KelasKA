@@ -36,8 +36,20 @@ android {
         applicationId = "ai.kelaska.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        // Naikkan keduanya di setiap rilis: versionCode harus selalu bertambah
+        // (Android menolak memasang versi dengan versionCode lebih kecil) dan
+        // versionName harus sama dengan tag rilis `vX.Y.Z` di GitHub.
+        versionCode = 3
+        versionName = "1.2.0"
+
+        // Repo publik sumber rilis in-app update (GitHub Releases).
+        // Bisa ditimpa lewat -PkelasKaGithubRepo=owner/repo saat build.
+        val githubRepo = (findProperty("kelasKaGithubRepo") as String?)?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: "ade-karya/KelasKA"
+        require(Regex("^[^/\\s]+/[^/\\s]+$").matches(githubRepo)) {
+            "kelasKaGithubRepo harus berbentuk owner/repo, bukan '$githubRepo'"
+        }
 
         // Nilai publik (sudah dikirim ke browser sebagai NEXT_PUBLIC_*);
         // aman disimpan di sini. Supabase memakai publishable key, bukan
@@ -54,6 +66,9 @@ android {
         // Deep link untuk kembali dari consent Google → Supabase → aplikasi.
         // Harus terdaftar di Supabase dashboard → Authentication → URL Configuration.
         buildConfigField("String", "AUTH_DEEP_LINK", "\"kelaskaapp://auth/callback\"")
+        // Sumber in-app update. Tidak ada token GitHub di APK: hanya API publik
+        // tanpa autentikasi (batas 60 permintaan/jam per alamat IP).
+        buildConfigField("String", "GITHUB_REPO", "\"$githubRepo\"")
     }
 
     signingConfigs {

@@ -23,6 +23,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import ai.kelaska.app.KelasKaApplication
+import ai.kelaska.app.ui.components.UpdateHost
 import ai.kelaska.app.ui.screens.AccountScreen
 import ai.kelaska.app.ui.screens.AdminScreen
 import ai.kelaska.app.ui.screens.CourseDetailScreen
@@ -32,9 +33,25 @@ import ai.kelaska.app.ui.screens.LoginScreen
 import ai.kelaska.app.ui.screens.OfflineCourseScreen
 import ai.kelaska.app.ui.screens.OfflineLibraryScreen
 
-/** Root aplikasi: gerbang autentikasi → shell responsif + NavHost. */
+/**
+ * Root aplikasi: dialog pembaruan di atas gerbang autentikasi + shell/NavHost.
+ *
+ * Cek otomatis dijalankan di sini supaya pengguna yang belum masuk (atau hanya
+ * membuka perpustakaan offline) juga bisa memperbarui aplikasi. ViewModel yang
+ * membatasi frekuensi menjadi sekali per 24 jam.
+ */
 @Composable
-fun KelasKaApp(mainViewModel: MainViewModel) {
+fun KelasKaApp(mainViewModel: MainViewModel, updateViewModel: UpdateViewModel) {
+    LaunchedEffect(updateViewModel) {
+        updateViewModel.checkAutomatically()
+    }
+    UpdateHost(viewModel = updateViewModel) {
+        KelasKaContent(mainViewModel, updateViewModel)
+    }
+}
+
+@Composable
+private fun KelasKaContent(mainViewModel: MainViewModel, updateViewModel: UpdateViewModel) {
     val context = LocalContext.current
     val application = context.applicationContext as KelasKaApplication
 
@@ -51,6 +68,7 @@ fun KelasKaApp(mainViewModel: MainViewModel) {
     if (authState is AuthState.SignedIn) {
         SignedInApp(
             mainViewModel = mainViewModel,
+            updateViewModel = updateViewModel,
             application = application,
             profile = (authState as AuthState.SignedIn).profile,
         )
@@ -155,10 +173,12 @@ private fun OfflineOnlyApp(
 @Composable
 private fun SignedInApp(
     mainViewModel: MainViewModel,
+    updateViewModel: UpdateViewModel,
     application: KelasKaApplication,
     profile: ai.kelaska.app.data.CachedProfile,
 ) {
     val navController = rememberNavController()
+    val updateState by updateViewModel.state.collectAsState()
 
     // Satu CoursesViewModel dipakai oleh Beranda (statistik) dan Kursus Saya.
     val coursesViewModel: CoursesViewModel = viewModel(
@@ -238,6 +258,8 @@ private fun SignedInApp(
                 AccountScreen(
                     profile = profile,
                     onSignOut = { mainViewModel.signOut() },
+                    onCheckUpdate = updateViewModel::checkManually,
+                    checkingUpdate = updateState == UpdateState.Checking,
                 )
             }
             composable("admin") {

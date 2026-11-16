@@ -4,6 +4,8 @@
     <!-- Aplikasi memuat data dari kelaska.riau.ai. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- In-app update memasang APK dari GitHub Releases (bukan Google Play). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:name=".KelasKaApplication"
@@ -32,5 +34,17 @@
                 <data android:scheme="kelaskaapp" android:host="auth" android:path="/callback" />
             </intent-filter>
         </activity>
+
+        <!-- In-app update: satu-satunya berkas yang dibagikan adalah APK
+             unduhan di external files dir (Download/update.apk). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

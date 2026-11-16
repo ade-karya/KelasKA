@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Path yang boleh dibagikan lewat FileProvider (in-app update).
+     DownloadManager menulis update.apk ke
+     getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) = .../files/Download,
+     jadi akar external-files-path cukup diarahkan ke subfolder Download/. -->
+<paths>
+    <external-files-path name="updates" path="Download/" />
+</paths>

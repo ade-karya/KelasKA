@@ -3,7 +3,7 @@
 Aplikasi Android **native** (Kotlin + Jetpack Compose, Material 3) untuk Kelas
 Kecerdasan Artifisial — [kelaska.riau.ai](https://kelaska.riau.ai).
 
-## Fitur v1.1.0
+## Fitur v1.2.0
 
 | Layar | Isi |
 |-------|-----|
@@ -11,7 +11,7 @@ Kecerdasan Artifisial — [kelaska.riau.ai](https://kelaska.riau.ai).
 | **Kursus Saya** | Daftar kursus dari `GET /api/stages`: cari, buat, ubah nama, hapus |
 | **Detail Kursus** | Membaca materi: slide dirender sebagai teks (HTML → teks), kuis interaktif (pilihan ganda/tunggal) dengan penilaian otomatis + pembahasan, konten interaktif/PBL dibuka di situs web |
 | **Offline** | Perpustakaan `.maic.zip` di perangkat: impor, putar, hapus — bekerja tanpa internet dan tanpa masuk |
-| **Akun** | Profil (nama/e-mail/peran), buka situs, tentang aplikasi, keluar |
+| **Akun** | Profil (nama/e-mail/peran), buka situs, **cek pembaruan**, tentang aplikasi, keluar |
 | **Admin** (role `admin`) | Daftar akun, setujui akun baru, ubah peran (siswa/pengajar/admin), nonaktifkan akun |
 
 ## Mode offline (`.maic.zip`)
@@ -39,6 +39,43 @@ validasi selesai; entri dengan path tidak aman (zip-slip) ditolak; batas 10.000
 entri, `manifest.json` 64 MiB, total 2 GiB; hanya `manifest.json`, `audio/`, dan
 `media/` yang disalin. Format `formatVersion` 1–2 diterima, termasuk paket PBL
 (kapabilitas `pbl-v3-*`).
+
+## Pembaruan aplikasi (in-app update)
+
+APK dipasang langsung dari **GitHub Releases** repo publik, tanpa Google Play.
+
+- **Sumber**: `GET https://api.github.com/repos/<GITHUB_REPO>/releases/latest`
+  dengan header `Accept: application/vnd.github+json`. Tidak ada token GitHub
+  di dalam APK — batas anonim GitHub 60 permintaan/jam per alamat IP ditangani
+  sebagai pesan "coba lagi nanti" (HTTP 403/429).
+- **Pembanding**: tag rilis (`v` dibuang; prefiks seperti `android-v1.0.0`
+  juga diterima) vs `versionName` aplikasi, secara semantik
+  `major.minor.patch` (jadi `v1.10.0` > `v1.9.9`; sufiks `-rc.1` diabaikan).
+  Tag yang tidak bisa dibaca tidak pernah ditawarkan.
+- **Frekuensi**: cek otomatis saat aplikasi dibuka, maksimal sekali per 24 jam
+  (timestamp di `SharedPreferences` `kelas_ka_update`). Tombol **Cek pembaruan**
+  di layar Akun selalu boleh dan menampilkan "sudah terbaru" bila tidak ada rilis
+  baru; kegagalan cek otomatis dibiarkan senyap agar aplikasi tetap bisa dipakai
+  offline.
+- **Unduhan**: `DownloadManager` ke
+  `getExternalFilesDir(DIRECTORY_DOWNLOADS)/update.apk`, progres persen di dialog,
+  tombol Batal, dan pesan untuk ruang penyimpanan habis / unduhan terputus.
+- **Verifikasi**: aplikasi mengambil aset `<nama-apk>.sha256` dari rilis yang
+  sama dan membandingkan SHA-256 berkas. Hash tidak cocok → berkas dihapus dan
+  pembaruan dibatalkan. Aset checksum tidak ada (rilis lama) → tombol Update
+  menolak mengunduh; pemeriksaan versi tetap berjalan.
+- **Pemasangan**: `FileProvider` (`${applicationId}.fileprovider`,
+  `res/xml/file_paths.xml`) + `ACTION_VIEW` MIME
+  `application/vnd.android.package-archive`. Bila
+  `canRequestPackageInstalls()` masih `false`, aplikasi membuka
+  `Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES` untuk paket ini dan melanjutkan
+  pemasangan setelah pengguna kembali (hasil Activity diperiksa ulang).
+
+Kelas terkait: `data/update/UpdateRepository.kt` (API + parsing),
+`UpdateDownloader.kt` (DownloadManager + SHA-256), `UpdateInstaller.kt`
+(FileProvider + intent), `ui/UpdateViewModel.kt` (state `Idle`, `Checking`,
+`Available`, `Downloading(progress)`, `ReadyToInstall`, `UpToDate`, `Error`),
+dan `ui/components/UpdateHost.kt` (dialog di atas seluruh layar).
 
 ## Tampilan responsif (sidebar)
 
@@ -72,6 +109,9 @@ menggulir normal di kedua mode.
   `OfflineModels` adalah bentuk manifest. Pemutarnya ada di
   `ui/screens/OfflineLibraryScreen.kt` dan `ui/screens/OfflineCourseScreen.kt`
   (komponen slide/kuis dibagi dengan jalur daring di `ui/components/`).
+- `data/update/` — pemeriksa rilis GitHub, pengunduh DownloadManager, verifikasi
+  SHA-256, dan pemasang FileProvider. Parsing JSON serta perbandingan versi
+  murni JVM sehingga diuji di `app/src/test/…/data/update/`.
 
 ## Prasyarat
 
@@ -84,7 +124,8 @@ menggulir normal di kedua mode.
 ```bash
 export ANDROID_HOME=/root/android-sdk  # atau SDK Anda
 
-# Unit test (24 tes: HtmlText, QuizGrading, SceneContent, OfflinePackageStore)
+# Unit test (HtmlText, QuizGrading, SceneContent, OfflinePackageStore,
+# AppVersion, GithubReleaseParser, UpdatePreferences)
 ./gradlew :app:testDebugUnitTest
 
 # APK debug
@@ -127,6 +168,34 @@ keytool -genkeypair -v -keystore kelas-ka-release.keystore -alias kelas-ka \
 Android membandingkan signature antar-versi; **keystore yang hilang = tidak bisa
 update aplikasi yang sudah terpasang**. Simpan backup-nya di lokasi aman.
 
+## Merilis versi baru (GitHub Releases)
+
+Workflow `.github/workflows/release.yml` membangun rilis saat tag `v*` didorong:
+
+1. Naikkan **`versionCode`** (wajib selalu bertambah — Android menolak memasang
+   APK dengan `versionCode` lebih kecil) dan **`versionName`** di
+   `app/build.gradle.kts`. Workflow menolak tag yang tidak sama dengan
+   `versionName` dan menolak `versionCode` yang tidak naik dari commit
+   sebelumnya.
+2. Isi secret repo (Settings → Secrets and variables → Actions):
+
+   | Secret | Isi |
+   |--------|-----|
+   | `ANDROID_KEYSTORE_BASE64` | keystore release, `base64 -w0 kelas-ka-release.keystore` |
+   | `ANDROID_KEYSTORE_PASSWORD` | `storePassword` |
+   | `ANDROID_KEY_ALIAS` | `kelas-ka` |
+   | `ANDROID_KEY_PASSWORD` | `keyPassword` |
+
+3. Dorong tag: `git tag v1.2.0 && git push origin v1.2.0`.
+
+Workflow menjalankan unit test, membangun `assembleRelease`, menandatangani
+dengan keystore yang sama, lalu mengunggah `KelasKA-v1.2.0.apk` dan
+`KelasKA-v1.2.0.apk.sha256` ke GitHub Release. Aplikasi hanya membaca
+`/releases/latest` (rilis stabil), jadi draf/prarilis tidak pernah ditawarkan.
+
+**Keystore harus sama di setiap rilis.** Signature berbeda = Android menolak
+update di tempat; pengguna harus menghapus aplikasi lebih dulu.
+
 ## Langkah operator (wajib, satu kali)
 
 Aplikasi melakukan consent Google melalui Supabase PKCE dan kembali lewat deep
@@ -143,7 +212,7 @@ endpoint `/api/auth/native/session` dipakai oleh aplikasi untuk menukar token
 menjadi sesi `kelaska_session` (perlakuan sama dengan callback browser, termasuk
 logika *pending account*).
 
-## Batasan yang disengaja (v1.1.0)
+## Batasan yang disengaja (v1.2.0)
 
 - Di jalur **daring** (Detail Kursus), gambar slide hanya dimuat bila `src`
   berupa URL langsung; referensi asset-pool (`ast_…`) belum diselesaikan klien
@@ -156,6 +225,14 @@ logika *pending account*).
   aplikasi hanya membuat dokumen kosong.
 - Impor memakai pemilih berkas sistem (SAF). Berkas `.maic.zip` besar butuh
   ruang kosong sekitar dua kali ukuran paket saat impor.
+- In-app update hanya jalan untuk APK yang ditandatangani dengan keystore
+  rilis yang sama. Build `debug` tidak bisa menimpa instalasi rilis (signature
+  berbeda); memasang pertama kali dari GitHub tetap memerlukan izin "pasang
+  aplikasi tak dikenal" dari pengguna.
+- Cek pembaruan memakai API GitHub anonim (60 permintaan/jam per IP). Jaringan
+  sekolah dengan banyak perangkat di balik satu IP bisa mencapai batas itu;
+  aplikasi menampilkan pesan untuk mencoba lagi nanti dan tidak memblokir
+  pemakaian.
 
 ## Konfigurasi build
 
@@ -165,5 +242,7 @@ publik — dikirim ke setiap browser sebagai `NEXT_PUBLIC_*`):
 - `BASE_URL` (`https://kelaska.riau.ai`, bisa ditimpa `-PkelasKaBaseUrl=…`)
 - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`
 - `AUTH_DEEP_LINK` (`kelaskaapp://auth/callback`)
+- `GITHUB_REPO` (`ade-karya/KelasKA`, bisa ditimpa
+  `-PkelasKaGithubRepo=owner/repo` untuk fork)
 
 Tidak ada rahasia di dalam APK; sesi tersimpan di `EncryptedSharedPreferences`.

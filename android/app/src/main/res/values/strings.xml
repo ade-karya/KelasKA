@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Kelas KA</string>
     <string name="app_tagline">Kelas Kecerdasan Artifisial</string>
-    <string name="app_version">1.0.0</string>
+    <string name="app_version">1.2.0</string>
 
     <!-- Navigasi -->
     <string name="nav_home">Beranda</string>
