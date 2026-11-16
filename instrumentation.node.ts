@@ -371,6 +371,14 @@ async function validateBootConfiguration(): Promise<void> {
     const { registerHostSessionAuthentication } =
       await import('@/lib/server/identity/host/session-cookie');
     registerHostSessionAuthentication();
+
+    // The course library: an admin account lists every live course in the
+    // deployment, while every write stays owner-scoped (see the module). With
+    // accounts off nothing grants the `admin` role, so the provider is not
+    // registered and the default owner-only listing is untouched.
+    const { registerAdminCourseLibrary } =
+      await import('@/lib/server/persistence-hooks/admin-course-library');
+    registerAdminCourseLibrary();
   }
 
   // Owner identity, for the same reason and at the same moment. A malformed
