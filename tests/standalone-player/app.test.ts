@@ -264,3 +264,45 @@ describe('standalone player captions', () => {
     expect(host.querySelector('[data-testid=scene]')!.contains(bar)).toBe(false);
   });
 });
+
+describe('standalone player native host', () => {
+  type HostWindow = Window & {
+    KelasKaHost?: { setFullscreen?: (enabled: boolean) => void };
+  };
+  const fullscreenButton = () => {
+    const buttons = host.querySelectorAll('header button');
+    return buttons[buttons.length - 1] as HTMLButtonElement;
+  };
+
+  afterEach(() => {
+    delete (window as HostWindow).KelasKaHost;
+  });
+
+  it('drives the host fullscreen mode instead of the HTML API', () => {
+    const setFullscreen = vi.fn();
+    (window as HostWindow).KelasKaHost = { setFullscreen };
+    render();
+    expect(fullscreenButton().getAttribute('title')).toBe('[fullscreen]');
+
+    act(() => fullscreenButton().click());
+    expect(setFullscreen).toHaveBeenCalledWith(true);
+    expect(fullscreenButton().getAttribute('title')).toBe('[exitFullscreen]');
+
+    act(() => fullscreenButton().click());
+    expect(setFullscreen).toHaveBeenLastCalledWith(false);
+    expect(fullscreenButton().getAttribute('title')).toBe('[fullscreen]');
+  });
+
+  it('follows a fullscreen change the host reports, such as the Back button', () => {
+    (window as HostWindow).KelasKaHost = { setFullscreen: vi.fn() };
+    render();
+    act(() => {
+      window.dispatchEvent(new CustomEvent('kelaska:fullscreen', { detail: true }));
+    });
+    expect(fullscreenButton().getAttribute('title')).toBe('[exitFullscreen]');
+    act(() => {
+      window.dispatchEvent(new CustomEvent('kelaska:fullscreen', { detail: false }));
+    });
+    expect(fullscreenButton().getAttribute('title')).toBe('[fullscreen]');
+  });
+});

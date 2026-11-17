@@ -1,5 +1,6 @@
 package ai.kelaska.app.ui.screens
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -23,8 +24,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -38,11 +39,12 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,6 +54,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import ai.kelaska.app.data.offline.OfflineCourse
 import ai.kelaska.app.data.offline.StandalonePlayerHtml
+import ai.kelaska.app.ui.player.PlayerHostBridge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -64,11 +67,11 @@ import java.io.File
  * permintaan jaringan: semua gambar dan media sudah berupa `data:` URI/blok
  * base64 di dalam dokumen, dan WebView memblokir semua muatan jaringan.
  *
- * Tombol "Layar penuh" milik pemutar memanggil `requestFullscreen()` di
- * halaman. WebView hanya mengizinkannya bila [WebChromeClient] menyediakan
- * `onShowCustomView`/`onHideCustomView`; implementasinya ada di
- * [PlayerChromeClient] dan menaruh tampilan penuh di atas `decorView` sambil
- * menyembunyikan bilah sistem.
+ * Tombol "Layar penuh" milik pemutar memakai jembatan `window.KelasKaHost`
+ * (lihat [PlayerHostBridge]): mode layar penuh dipegang Compose, sehingga
+ * berputar dari portrait ke landscape tidak melepasnya seperti custom view
+ * WebView. [PlayerChromeClient] tetap menjadi cadangan untuk fullscreen HTML
+ * lain (mis. konten interaktif).
  */
 @Composable
 fun ClassPlayerScreen(
@@ -78,9 +81,14 @@ fun ClassPlayerScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
+    val configuration = LocalConfiguration.current
     var loadError by remember(course.meta.id) { mutableStateOf<String?>(null) }
+    // Layar penuh milik aplikasi: bilah atas dan bilah sistem disembunyikan.
+    var fullscreen by remember(course.meta.id) { mutableStateOf(false) }
 
-    val htmlFile by produceState<File?>(initialValue = null, course.meta.id) {
+    var htmlFile by remember(course.meta.id) { mutableStateOf<File?>(null) }
+    LaunchedEffect(course.meta.id) {
         val result = withContext(Dispatchers.IO) {
             runCatching {
                 val assets = StandalonePlayerHtml.PlayerAssets(
@@ -96,10 +104,38 @@ fun ClassPlayerScreen(
                 file
             }
         }
-        value = result.onFailure { error ->
+        result.onFailure { error ->
             loadError = error.message ?: "HTML pemutar gagal disusun"
-        }.getOrNull()
+        }
+        htmlFile = result.getOrNull()
     }
+    // Bilah sistem disembunyikan selama layar penuh. Efeknya diulang saat
+    // konfigurasi berubah: controller insets dapat kembali menampilkan bilah
+    // setelah rotasi, dan itulah yang dulu membuat layar penuh "keluar".
+    LaunchedEffect(fullscreen, configuration, activity) {
+        val window = activity?.window ?: return@LaunchedEffect
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        if (fullscreen) {
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    // Meninggalkan halaman saat layar penuh tidak boleh menyisakan bilah
+    // sistem yang tetap tersembunyi.
+    DisposableEffect(activity) {
+        onDispose {
+            val window = activity?.window ?: return@onDispose
+            WindowInsetsControllerCompat(window, window.decorView)
+                .show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    // Kembali dari layar penuh dulu, baru keluar dari halaman.
+    BackHandler(enabled = fullscreen) { fullscreen = false }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Di landscape (dan layar sangat pendek) bilah aplikasi dipadatkan
@@ -107,12 +143,14 @@ fun ClassPlayerScreen(
         // memuat ulang WebView karena MainActivity menangani configChanges.
         val compactBar = maxWidth > maxHeight || maxHeight < 420.dp
         Column(Modifier.fillMaxSize()) {
-            PlayerTopBar(
-                title = course.manifest.stage.name.ifBlank { "Kelas" },
-                compact = compactBar,
-                onBack = onBack,
-                onOpenList = onOpenList,
-            )
+            if (!fullscreen) {
+                PlayerTopBar(
+                    title = course.manifest.stage.name.ifBlank { "Kelas" },
+                    compact = compactBar,
+                    onBack = onBack,
+                    onOpenList = onOpenList,
+                )
+            }
 
             Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 when {
@@ -140,7 +178,11 @@ fun ClassPlayerScreen(
                         CircularProgressIndicator()
                     }
 
-                    else -> WebPlayer(file = htmlFile!!)
+                    else -> WebPlayer(
+                        file = htmlFile!!,
+                        fullscreen = fullscreen,
+                        onFullscreenChanged = { fullscreen = it },
+                    )
                 }
             }
         }
@@ -186,11 +228,11 @@ private fun PlayerTopBar(
                 )
                 if (compact) {
                     IconButton(onClick = onOpenList, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Filled.List, contentDescription = "Daftar materi")
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Daftar materi")
                     }
                 } else {
                     FilledTonalButton(onClick = onOpenList) {
-                        Icon(Icons.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(18.dp))
                         Text(" Daftar materi")
                     }
                 }
@@ -200,11 +242,25 @@ private fun PlayerTopBar(
     }
 }
 
+/**
+ * Dokumen pemutar dijalankan dengan JavaScript aktif, tetapi seluruh media dan
+ * skripnya sudah ditanam di dalam berkas lokal: `blockNetworkLoads` aktif
+ * sehingga dokumen tidak dapat memuat jaringan, dan navigasi dibatasi ke
+ * `file`/`about`/`data`/`blob`. Karena itu risiko XSS yang diperingatkan lint
+ * di sini sudah disengaja dan dibatasi.
+ */
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
-private fun WebPlayer(file: File, modifier: Modifier = Modifier) {
+private fun WebPlayer(
+    file: File,
+    fullscreen: Boolean,
+    onFullscreenChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
-    var fullscreen by remember { mutableStateOf(false) }
+    val latestOnFullscreenChanged = rememberUpdatedState(onFullscreenChanged)
+    var webFullscreen by remember { mutableStateOf(false) }
 
     val webView = remember {
         WebView(context).apply {
@@ -212,9 +268,10 @@ private fun WebPlayer(file: File, modifier: Modifier = Modifier) {
                 javaScriptEnabled = true
                 domStorageEnabled = true
                 // Dokumen dan seluruh medianya berada di dalam file yang sama.
+                // allowFileAccessFromFileURLs/allowUniversalAccessFromFileURLs
+                // sudah default false sejak minSdk 26: dokumen tidak boleh
+                // membaca berkas lain atau jaringan dari konteks file://.
                 allowFileAccess = true
-                allowFileAccessFromFileURLs = false
-                allowUniversalAccessFromFileURLs = false
                 blockNetworkLoads = true
                 // Narasi diputar tanpa gestur tambahan setelah tombol Putar.
                 mediaPlaybackRequiresUserGesture = false
@@ -242,24 +299,43 @@ private fun WebPlayer(file: File, modifier: Modifier = Modifier) {
         }
     }
 
+    // Jembatan harus terpasang sebelum dokumen dimuat, supaya tombol layar
+    // penuh dan narasi TTS dari halaman langsung menemukannya.
+    val bridge = remember(webView) {
+        PlayerHostBridge(context, webView) { latestOnFullscreenChanged.value(it) }
+            .also { webView.addJavascriptInterface(it, PlayerHostBridge.JS_NAME) }
+    }
+
     val chrome = remember(webView, activity) {
         PlayerChromeClient(activity).also { client ->
-            client.onFullscreenChanged = { fullscreen = it }
+            client.onFullscreenChanged = { webFullscreen = it }
             webView.webChromeClient = client
         }
     }
 
-    DisposableEffect(webView, chrome) {
+    DisposableEffect(webView, bridge, chrome) {
         onDispose {
             chrome.exitFullscreen()
+            webView.removeJavascriptInterface(PlayerHostBridge.JS_NAME)
+            bridge.release()
             webView.stopLoading()
             webView.loadUrl("about:blank")
             webView.destroy()
         }
     }
 
-    // Kembali dari layar penuh sebelum keluar dari halaman.
-    BackHandler(enabled = fullscreen) { chrome.exitFullscreen() }
+    // Aplikasi juga bisa keluar dari layar penuh sendiri (tombol kembali);
+    // beri tahu halaman supaya ikon tombolnya ikut berubah.
+    LaunchedEffect(fullscreen) {
+        webView.evaluateJavascript(
+            "window.dispatchEvent(new CustomEvent('kelaska:fullscreen',{detail:$fullscreen}))",
+            null,
+        )
+    }
+
+    // Cadangan fullscreen HTML (mis. konten interaktif): kembali darinya
+    // sebelum keluar dari halaman.
+    BackHandler(enabled = webFullscreen) { chrome.exitFullscreen() }
 
     LaunchedEffect(file.absolutePath) {
         webView.loadUrl("file://${file.absolutePath}")
@@ -272,10 +348,14 @@ private fun WebPlayer(file: File, modifier: Modifier = Modifier) {
 }
 
 /**
- * Jembatan fullscreen WebView: `requestFullscreen()` di halaman hanya berjalan
- * bila klien ini menyediakan `onShowCustomView`. Tampilan penuh dipasang di
- * atas `decorView` dan bilah sistem disembunyikan; keluar lewat tombol
- * fullscreen di halaman, gestur kembali, atau saat layar ditinggalkan.
+ * Cadangan fullscreen HTML: konten interaktif (atau video) yang memanggil
+ * `requestFullscreen()` tetap butuh `onShowCustomView`. Tampilan penuh
+ * dipasang di atas `decorView` dan bilah sistem disembunyikan; keluar lewat
+ * halaman, gestur kembali, atau saat layar ditinggalkan.
+ *
+ * Tombol "Layar penuh" milik pemutar sendiri tidak lewat sini lagi — ia memakai
+ * jembatan `window.KelasKaHost` (lihat [PlayerHostBridge]) agar bertahan saat
+ * perangkat diputar.
  */
 private class PlayerChromeClient(private val activity: Activity?) : WebChromeClient() {
 

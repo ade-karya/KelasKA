@@ -1,35 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Kelas KA</string>
-    <string name="app_tagline">Kelas Kecerdasan Artifisial</string>
-    <string name="app_version">1.2.0</string>
-
-    <!-- Navigasi -->
-    <string name="nav_home">Beranda</string>
-    <string name="nav_courses">Kursus Saya</string>
-    <string name="nav_account">Akun</string>
-    <string name="nav_admin">Admin</string>
-    <string name="nav_back">Kembali</string>
-    <string name="nav_menu">Buka menu</string>
-    <string name="nav_sign_out">Keluar</string>
-
-    <!-- Umum -->
-    <string name="action_retry">Coba lagi</string>
-    <string name="action_refresh">Muat ulang</string>
-    <string name="action_close">Tutup</string>
-    <string name="action_cancel">Batal</string>
-    <string name="action_save">Simpan</string>
-    <string name="action_rename">Ubah nama</string>
-    <string name="action_delete">Hapus</string>
-    <string name="action_create">Buat</string>
-    <string name="action_approve">Setujui</string>
-    <string name="action_open_web">Buka di kelaska.riau.ai</string>
-
-    <!-- Login -->
-    <string name="login_title">Kelas Kecerdasan Artifisial</string>
-    <string name="login_subtitle">Orkestrasi AI cerdas untuk ruang kelas yang menyenangkan.</string>
-    <string name="login_button">Masuk dengan Google</string>
-    <string name="login_pending_title">Akun menunggu persetujuan</string>
-    <string name="login_pending_body">Akun Anda sudah terdaftar dan sedang menunggu persetujuan admin. Anda akan bisa masuk setelah disetujui.</string>
-    <string name="login_failed">Gagal masuk. Silakan coba lagi.</string>
 </resources>

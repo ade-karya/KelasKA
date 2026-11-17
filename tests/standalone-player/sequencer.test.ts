@@ -160,6 +160,92 @@ describe('SceneSequencer', () => {
     expect(result).toBe('completed');
   });
 
+  describe('host speech engine', () => {
+    /** Ports with a speech engine whose lines finish when the test says so. */
+    function speechPorts() {
+      const fake = fakePorts();
+      const spoken: string[] = [];
+      const lines: Array<Deferred<boolean> & { control: StepControl }> = [];
+      return {
+        ...fake,
+        spoken,
+        lines,
+        // The spread above snapshots `fake.view`; keep it live.
+        get view(): SequencerView {
+          return fake.view;
+        },
+        ports: {
+          ...fake.ports,
+          speakText: (text: string, control: StepControl) => {
+            spoken.push(text);
+            const line = deferred<boolean>();
+            lines.push({ ...line, control });
+            control.signal.addEventListener('abort', () => line.resolve(false));
+            return line.promise;
+          },
+        },
+      };
+    }
+
+    it('speaks a line without audio and waits for the engine, not the estimate', async () => {
+      const fake = speechPorts();
+      const sequencer = new SceneSequencer(fake.ports);
+      const text = 'Hujan turun dari awan ke permukaan bumi.';
+      let result: string | undefined;
+      void sequencer.play(actions([{ id: '1', type: 'speech', text }])).then((r) => (result = r));
+      await flush();
+      expect(fake.spoken).toEqual([text]);
+      expect(fake.view.caption).toBe(text);
+      await vi.advanceTimersByTimeAsync(estimateSpeechDurationMs(text) * 2);
+      expect(result).toBeUndefined();
+      fake.lines[0].resolve(true);
+      await flush();
+      expect(result).toBe('completed');
+    });
+
+    it('speaks a line whose narration clip cannot start', async () => {
+      const fake = speechPorts();
+      const sequencer = new SceneSequencer(fake.ports);
+      const done = sequencer.play(
+        actions([{ id: '1', type: 'speech', text: 'Ganti suara.', audioRef: 'missing' }]),
+      );
+      await flush();
+      expect(fake.spoken).toEqual([]);
+      fake.audio.get('missing')!.resolve(false);
+      await flush();
+      expect(fake.spoken).toEqual(['Ganti suara.']);
+      fake.lines[0].resolve(true);
+      await expect(done).resolves.toBe('completed');
+    });
+
+    it('leaves a line alone when its clip plays', async () => {
+      const fake = speechPorts();
+      const sequencer = new SceneSequencer(fake.ports);
+      const done = sequencer.play(
+        actions([{ id: '1', type: 'speech', text: 'Ada audio.', audioRef: 'a' }]),
+      );
+      await flush();
+      fake.audio.get('a')!.resolve(true);
+      await expect(done).resolves.toBe('completed');
+      expect(fake.spoken).toEqual([]);
+    });
+
+    it('keeps the reading timer when the engine declines the line', async () => {
+      const fake = fakePorts();
+      const sequencer = new SceneSequencer({
+        ...fake.ports,
+        speakText: () => Promise.resolve(false),
+      });
+      let result: string | undefined;
+      const text = 'Halo semua.';
+      void sequencer.play(actions([{ id: '1', type: 'speech', text }])).then((r) => (result = r));
+      await vi.advanceTimersByTimeAsync(estimateSpeechDurationMs(text) - 1);
+      expect(result).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(result).toBe('completed');
+    });
+  });
+
   it('pausing freezes the reading timer and resuming continues it', async () => {
     const fake = fakePorts();
     const sequencer = new SceneSequencer(fake.ports);

@@ -3,6 +3,7 @@ package ai.kelaska.app.data
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.serialization.json.put
 
 /** Pengecualian API dengan kode HTTP dan pesan yang aman ditampilkan. */
@@ -52,14 +53,9 @@ class KelasKaApi(
                 ?: throw AuthExpiredException()
         }
         if (body != null) {
+            val mediaType = "application/json; charset=utf-8".toMediaType()
             builder.header("content-type", "application/json; charset=utf-8")
-            builder.method(
-                method,
-                okhttp3.RequestBody.create(
-                    "application/json; charset=utf-8".toMediaType(),
-                    body.toString(),
-                ),
-            )
+            builder.method(method, body.toString().toRequestBody(mediaType))
         } else {
             builder.method(method, null)
         }

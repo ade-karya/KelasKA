@@ -7,9 +7,20 @@
     <!-- In-app update memasang APK dari GitHub Releases (bukan Google Play). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- Android 11+ menyembunyikan aplikasi mesin TTS dari TextToSpeech
+         kecuali layanan TTS_SERVICE dideklarasikan di sini. Tanpa ini narasi
+         tanpa berkas audio tidak bisa dibacakan (pemutar jatuh ke timer baca). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:name=".KelasKaApplication"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

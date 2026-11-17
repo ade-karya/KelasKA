@@ -143,8 +143,8 @@ private fun SlideVideo(path: String, modifier: Modifier = Modifier) {
 @Composable
 fun AudioPlayButton(
     path: String,
-    label: String = "Putar audio",
     modifier: Modifier = Modifier,
+    label: String = "Putar audio",
 ) {
     val context = LocalContext.current
     var playing by remember(path) { mutableStateOf(false) }

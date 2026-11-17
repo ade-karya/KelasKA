@@ -3,7 +3,7 @@
 Aplikasi Android **native** (Kotlin + Jetpack Compose, Material 3) untuk Kelas
 Kecerdasan Artifisial — [kelaska.riau.ai](https://kelaska.riau.ai).
 
-## Fitur v1.4.0
+## Fitur v1.4.1
 
 | Layar | Isi |
 |-------|-----|
@@ -31,7 +31,11 @@ Yang dirender:
 - Slide: teks (HTML → teks), gambar, audio elemen, dan video dari berkas paket.
 - Narasi: klip `speech` diputar lewat elemen audio pemutar; klip dikirim
   sebagai `data:` URI (bukan `blob:` URL — audio blob tidak berbunyi di WebView
-  Android). Jalur bacaan ringkas memakai `MediaPlayer` berurutan.
+  Android). Bila klip tidak punya berkas audio, teksnya dibacakan **mesin TTS
+  perangkat** lewat jembatan `window.KelasKaHost.speak` — kalimat per kalimat,
+  sama seperti jalur browser-native TTS versi web; hanya bila mesin TTS tidak
+  tersedia pemutar memakai timer baca. Jalur bacaan ringkas memakai
+  `MediaPlayer` berurutan dengan fallback TTS yang sama.
 - Kuis: pilihan tunggal/ganda dinilai otomatis beserta pembahasan; soal esai
   ditandai tidak dinilai otomatis.
 - Scene interaktif: `content.html` yang sudah di-inline eksportir dijalankan di
@@ -87,9 +91,10 @@ dan `ui/components/UpdateHost.kt` (dialog di atas seluruh layar).
 
 Shell aplikasi beradaptasi otomatis terhadap lebar layar:
 
-| Lebar | Navigasi |
+| Layar | Navigasi |
 |-------|----------|
-| < 840 dp (ponsel) | `ModalNavigationDrawer` — sidebar geser dari kiri (tombol hamburger di top bar) |
+| Ponsel landscape, tinggi < 480 dp | Sidebar ringkas yang selalu terlihat dan bisa digulir |
+| < 840 dp (ponsel portrait) | `ModalNavigationDrawer` — sidebar geser dari kiri (tombol hamburger di top bar) |
 | ≥ 840 dp (tablet/landscape) | `NavigationRail` di sisi kiri (ikon + label) |
 | ≥ 1200 dp (tablet besar/lipat) | `PermanentNavigationDrawer` — sidebar permanen |
 
@@ -103,9 +108,12 @@ Perilaku orientasi:
   label tombol Sebelumnya/Berikutnya di layar sempit supaya footer tidak meluber.
 - Halaman daftar/detail dibatasi `CONTENT_MAX_WIDTH` (840 dp) dan ditengahkan
   (`CenteredContent`), jadi di tablet/landscape baris teks tidak melar penuh.
-- **Layar penuh**: tombol "Layar penuh" pemutar memanggil `requestFullscreen()`;
-  `PlayerChromeClient` menaruh tampilan penuh di atas `decorView`, menyembunyikan
-  bilah sistem, dan tombol kembali keluar dari layar penuh.
+- **Layar penuh**: tombol "Layar penuh" pemutar memakai jembatan
+  `window.KelasKaHost.setFullscreen` (lihat `ui/player/PlayerHostBridge.kt`),
+  sehingga mode layar penuh dipegang Compose dan **bertahan saat perangkat
+  diputar** dari portrait ke landscape. `PlayerChromeClient` tetap menjadi
+  cadangan untuk fullscreen HTML lain (mis. konten interaktif); tombol kembali
+  keluar dari layar penuh lebih dulu.
 
 ## Arsitektur singkat
 
@@ -241,6 +249,28 @@ endpoint `/api/auth/native/session` dipakai oleh aplikasi untuk menukar token
 menjadi sesi `kelaska_session` (perlakuan sama dengan callback browser, termasuk
 logika *pending account*).
 
+## Perbaikan v1.4.1
+
+- **Layar penuh bertahan saat rotasi.** Tombol layar penuh pemutar tidak lagi
+  memakai fullscreen HTML WebView (custom view yang dilepas saat perangkat
+  diputar). Halaman memanggil `window.KelasKaHost.setFullscreen`, Compose
+  memegang statusnya, dan bilah sistem disembunyikan ulang setiap konfigurasi
+  berubah. Tombol kembali keluar dari layar penuh sebelum meninggalkan halaman.
+- **Narasi tanpa berkas audio dibacakan TTS perangkat.** Pemutar web memanggil
+  `window.KelasKaHost.speak`; aplikasi menyintesis kalimat ke berkas WAV lalu
+  memutarnya lewat `MediaPlayer` supaya jeda/lanjutkan pemutaran ikut bekerja.
+  Perilakunya mengikuti browser-native TTS versi web: kalimat dipotong per
+  kalimat, kalimat yang gagal dilewati, dan timer baca hanya dipakai bila tidak
+  ada yang bisa dibacakan. Daftar materi offline memakai mesin yang sama.
+- **Landscape memakai sidebar.** Ponsel landscape (tinggi < 480 dp) kini
+  menampilkan sidebar ringkas yang selalu terlihat dan bisa digulir, bukan
+  tombol menu; bilah pemutar dipadatkan agar adegan tetap tinggi.
+- **Build bersih.** Peringatan Kotlin (ikon deprecated, `RequestBody.create`,
+  API WebView deprecated) dan seluruh temuan Android Lint dihapus; resource
+  string yang tidak terpakai dibuang, aturan ekstraksi data Android 12+
+  ditambahkan, dan `GradleDependency` tidak lagi diperiksa karena versi
+  dependensi dipin ke toolchain AGP 8.7.3/compileSdk 35.
+
 ## Perbaikan v1.4.0
 
 - **Narasi berbunyi.** Klip `speech` kini masuk media table pemutar sebagai
@@ -257,7 +287,7 @@ logika *pending account*).
   (`configChanges`), bilah pemutar dipadatkan di layar pendek/sempit, dan
   konten daftar/detail dibatasi 840 dp serta ditengahkan.
 
-## Batasan yang disengaja (v1.4.0)
+## Batasan yang disengaja (v1.4.1)
 
 - Memutar kelas dari paket `.maic.zip` sekarang memakai **bundle pemutar web
   yang persis sama** (`lib/standalone-player`, dibangun oleh

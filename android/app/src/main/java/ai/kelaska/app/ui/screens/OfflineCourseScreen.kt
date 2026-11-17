@@ -1,6 +1,9 @@
 package ai.kelaska.app.ui.screens
 
+import android.content.Context
 import android.media.MediaPlayer
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.PlayArrow
@@ -53,6 +56,7 @@ import ai.kelaska.app.ui.SceneQuizState
 import ai.kelaska.app.ui.components.InteractiveContentDialog
 import ai.kelaska.app.ui.components.QuizSceneCard
 import ai.kelaska.app.ui.components.SlideSceneCard
+import ai.kelaska.app.ui.player.NarrationTts
 import ai.kelaska.app.util.IndonesianDate
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -130,7 +134,7 @@ private fun OfflineCourseContent(
     modifier: Modifier,
 ) {
     val context = LocalContext.current
-    val narrationPlayer = remember(course.meta.id) { NarrationPlayer() }
+    val narrationPlayer = remember(course.meta.id) { NarrationPlayer(context) }
     DisposableEffect(narrationPlayer) {
         onDispose { narrationPlayer.release() }
     }
@@ -148,7 +152,7 @@ private fun OfflineCourseContent(
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Filled.ArrowBack, contentDescription = "Kembali")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
                 }
                 Text(
                     "Kursus Offline",
@@ -317,58 +321,94 @@ private fun MetaChip(text: String) {
 }
 
 /**
- * Pemutar narasi berurutan. MediaPlayer lokal siap diputar; satu klip habis
- * otomatis lanjut ke klip berikutnya supaya alur bercerita tetap utuh.
+ * Pemutar narasi berurutan, mengikuti versi web: klip dengan berkas audio
+ * diputar lewat MediaPlayer, sedangkan klip tanpa berkas ("audio tidak ada
+ * source") dibacakan mesin TTS perangkat lewat [NarrationTts]. Satu klip
+ * selesai otomatis lanjut ke klip berikutnya supaya alur bercerita tetap utuh.
  */
-private class NarrationPlayer {
+private class NarrationPlayer(context: Context) {
+    private val tts = NarrationTts(context)
+    private val main = Handler(Looper.getMainLooper())
     private var player: MediaPlayer? = null
-    private var files: List<String> = emptyList()
+    private var clips: List<OfflineNarrationClip> = emptyList()
     var currentIndex by mutableStateOf<Int?>(null)
         private set
 
-    fun play(files: List<String>, startIndex: Int) {
+    fun play(clips: List<OfflineNarrationClip>, startIndex: Int) {
         stop()
-        this.files = files
-        playAt(startIndex.coerceIn(0, files.lastIndex.coerceAtLeast(0)))
+        this.clips = clips
+        if (clips.isEmpty()) return
+        playAt(startIndex.coerceIn(0, clips.lastIndex))
     }
 
     fun stop() {
         currentIndex = null
-        player?.let { active ->
-            runCatching { active.stop() }
-            runCatching { active.release() }
-        }
-        player = null
+        releaseAudio()
+        tts.stop()
     }
 
     fun release() {
         stop()
-        files = emptyList()
+        tts.release()
+        clips = emptyList()
     }
 
     private fun playAt(index: Int) {
-        val path = files.getOrNull(index) ?: run {
+        val clip = clips.getOrNull(index) ?: run {
             stop()
             return
         }
         stop()
         currentIndex = index
+        val path = clip.audioPath
+        if (path != null) {
+            playFile(path, index)
+            return
+        }
+        // Tidak ada berkas audio: bacakan teksnya, sama seperti pemutar web
+        // memakai browser-native TTS untuk baris tanpa audio.
+        if (clip.text.isNotBlank()) {
+            val accepted = tts.speak(
+                text = clip.text,
+                onEnd = { advanceFrom(index) },
+                onFailure = { advanceFrom(index) },
+            )
+            if (accepted) return
+        }
+        advanceFrom(index)
+    }
+
+    private fun playFile(path: String, index: Int) {
         val next = MediaPlayer()
         player = next
         try {
             next.setDataSource(path)
             next.setOnPreparedListener { it.start() }
-            next.setOnCompletionListener {
-                if (index + 1 < files.size) playAt(index + 1) else stop()
-            }
+            next.setOnCompletionListener { main.post { advanceFrom(index) } }
             next.setOnErrorListener { _, _, _ ->
-                stop()
+                // Berkas rusak: lewati klip ini, jangan hentikan seluruh narasi.
+                main.post { advanceFrom(index) }
                 true
             }
             next.prepareAsync()
         } catch (_: Exception) {
-            stop()
+            advanceFrom(index)
         }
+    }
+
+    /** Lanjut hanya bila klip ini masih aktif, supaya callback lama tidak menimpa. */
+    private fun advanceFrom(index: Int) {
+        if (currentIndex != index) return
+        val next = index + 1
+        if (next <= clips.lastIndex) playAt(next) else stop()
+    }
+
+    private fun releaseAudio() {
+        player?.let { active ->
+            runCatching { active.reset() }
+            runCatching { active.release() }
+        }
+        player = null
     }
 }
 
@@ -378,7 +418,8 @@ private fun NarrationCard(
     player: NarrationPlayer,
     modifier: Modifier = Modifier,
 ) {
-    val playable = clips.withIndex().filter { it.value.audioPath != null }
+    // Klip tanpa berkas audio tetap bisa diputar: teksnya dibacakan TTS.
+    val playable = clips.withIndex().filter { it.value.audioPath != null || it.value.text.isNotBlank() }
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
@@ -404,10 +445,7 @@ private fun NarrationCard(
                             if (player.currentIndex != null) {
                                 player.stop()
                             } else {
-                                player.play(
-                                    clips.mapNotNull { it.audioPath },
-                                    0,
-                                )
+                                player.play(clips, 0)
                             }
                         },
                         modifier = Modifier.padding(start = 6.dp),
@@ -426,20 +464,19 @@ private fun NarrationCard(
                     verticalAlignment = Alignment.Top,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 ) {
-                    if (clip.audioPath != null) {
-                        val playableIndex = clips.take(index).count { it.audioPath != null }
+                    if (clip.audioPath != null || clip.text.isNotBlank()) {
                         IconButton(
                             onClick = {
-                                if (player.currentIndex == playableIndex) {
+                                if (player.currentIndex == index) {
                                     player.stop()
                                 } else {
-                                    player.play(clips.mapNotNull { it.audioPath }, playableIndex)
+                                    player.play(clips, index)
                                 }
                             },
                             modifier = Modifier.size(32.dp),
                         ) {
                             Icon(
-                                if (player.currentIndex == playableIndex) Icons.Filled.Stop else Icons.Filled.PlayArrow,
+                                if (player.currentIndex == index) Icons.Filled.Stop else Icons.Filled.PlayArrow,
                                 contentDescription = "Putar klip ${index + 1}",
                                 tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             )

@@ -33,6 +33,7 @@ import { UnavailableScene } from './scenes/UnavailableScene';
 import { SceneErrorBoundary } from './SceneErrorBoundary';
 import { usePlayback, type Playback } from './playback/use-playback';
 import { CaptionBar, DiscussionCard, StartOverlay } from './PlaybackOverlays';
+import { HOST_FULLSCREEN_EVENT, nativePlayerHost } from './host';
 
 function SceneIcon({ type, className }: { type: ManifestScene['type']; className?: string }) {
   switch (type) {
@@ -108,17 +109,46 @@ function keyFields(event: KeyboardEvent) {
   };
 }
 
+/**
+ * Fullscreen for both hosts: a browser uses the HTML Fullscreen API, while the
+ * Android app drives its own fullscreen mode through the host bridge. WebView
+ * implements the HTML API as a custom view over the activity, and that custom
+ * view is dropped when the device rotates; the native mode survives it. The
+ * host reports its own changes (the Back button leaves fullscreen) through
+ * {@link HOST_FULLSCREEN_EVENT}.
+ */
 function useFullscreen() {
   const [fullscreen, setFullscreen] = useState(false);
+  const fullscreenRef = useRef(false);
+  const apply = useCallback((value: boolean) => {
+    fullscreenRef.current = value;
+    setFullscreen(value);
+  }, []);
+
   useEffect(() => {
-    const sync = () => setFullscreen(document.fullscreenElement != null);
+    if (nativePlayerHost()?.setFullscreen) {
+      const sync = (event: Event) => {
+        apply((event as CustomEvent<boolean>).detail === true);
+      };
+      window.addEventListener(HOST_FULLSCREEN_EVENT, sync);
+      return () => window.removeEventListener(HOST_FULLSCREEN_EVENT, sync);
+    }
+    const sync = () => apply(document.fullscreenElement != null);
     document.addEventListener('fullscreenchange', sync);
     return () => document.removeEventListener('fullscreenchange', sync);
-  }, []);
+  }, [apply]);
+
   const toggle = useCallback(() => {
+    const host = nativePlayerHost();
+    if (host?.setFullscreen) {
+      const next = !fullscreenRef.current;
+      apply(next);
+      host.setFullscreen(next);
+      return;
+    }
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
     else void document.documentElement.requestFullscreen?.().catch(() => {});
-  }, []);
+  }, [apply]);
   return { fullscreen, toggle };
 }
 

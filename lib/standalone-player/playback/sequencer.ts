@@ -3,9 +3,10 @@
  * way the classroom's playback engine does (`lib/playback/engine.ts`), without
  * its stores, IndexedDB audio player or AI features.
  *
- * - speech waits for its narration to end, or, without audio, for the same
- *   reading-time estimate the classroom uses; its text is the caption while
- *   it plays;
+ * - speech waits for its narration to end, or, without a playable clip, for the
+ *   host's own speech engine (the Android app's TextToSpeech) and then for the
+ *   same reading-time estimate the classroom uses; its text is the caption
+ *   while it plays;
  * - spotlight / laser fire and continue at once, so they overlap the speech
  *   that follows; any effect clears 5 s after the most recent one fired, and
  *   all effects clear when the scene changes;
@@ -58,6 +59,13 @@ export interface SequencerPorts {
    * which case the reading timer paces the speech instead.
    */
   playAudio(ref: string, control: StepControl): Promise<boolean>;
+  /**
+   * Speak narration with the host's own engine when the action has no audio
+   * (or the clip could not start). Resolves `true` once it was spoken,
+   * `false` when the host cannot speak it, in which case the reading timer
+   * paces the speech instead. Optional: a browser leaves it out.
+   */
+  speakText?(text: string, control: StepControl): Promise<boolean>;
   /** Play a slide video in place; resolves when it ends, fails, or hits its cap. */
   playVideo(elementId: string, control: StepControl): Promise<void>;
   /** Post a widget message to the interactive scene's iframe. */
@@ -142,10 +150,15 @@ export class SceneSequencer {
       case 'speech': {
         const text = typeof action.text === 'string' ? action.text : '';
         this.setView({ ...this.view, caption: text.trim() ? text : null });
-        const played = action.audioRef
+        let spoken = action.audioRef
           ? await this.ports.playAudio(action.audioRef, control).catch(() => false)
           : false;
-        if (!played && !control.signal.aborted) {
+        // No clip (an export without narration) or one that cannot start: the
+        // host app can read the line itself instead of leaving silence.
+        if (!spoken && !control.signal.aborted && this.ports.speakText) {
+          spoken = await this.ports.speakText(text, control).catch(() => false);
+        }
+        if (!spoken && !control.signal.aborted) {
           await pausableDelay(estimateSpeechDurationMs(text), control);
         }
         // The line is over: its caption must not linger over what follows

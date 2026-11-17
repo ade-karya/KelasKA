@@ -51,8 +51,8 @@ fun LoginScreen(
     error: String?,
     pendingApproval: Boolean,
     onSignIn: () -> String,
-    onOpenOffline: () -> Unit = {},
     modifier: Modifier = Modifier,
+    onOpenOffline: () -> Unit = {},
 ) {
     val context = LocalContext.current
     Box(

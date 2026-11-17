@@ -17,8 +17,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -117,7 +117,7 @@ private fun DetailContent(
         ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Kembali") }
+                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali") }
                 Text(
                     "Detail Kursus",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
@@ -193,7 +193,7 @@ private fun DetailContent(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(999.dp),
             ) {
-                Icon(Icons.Filled.OpenInNew, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text("Pengalaman penuh di kelaska.riau.ai")
             }
         }
@@ -247,7 +247,7 @@ private fun OpenWebSceneCard(scene: SceneDto, onOpenWeb: () -> Unit) {
                 modifier = Modifier.padding(top = 12.dp),
                 shape = RoundedCornerShape(999.dp),
             ) {
-                Icon(Icons.Filled.OpenInNew, null, modifier = Modifier.padding(end = 8.dp))
+                Icon(Icons.AutoMirrored.Filled.OpenInNew, null, modifier = Modifier.padding(end = 8.dp))
                 Text("Buka di Web")
             }
         }

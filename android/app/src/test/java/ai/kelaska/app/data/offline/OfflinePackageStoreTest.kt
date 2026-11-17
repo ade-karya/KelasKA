@@ -19,6 +19,8 @@ class OfflinePackageStoreTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 
+    private val tolerantJson = Json { ignoreUnknownKeys = true; explicitNulls = false }
+
     private fun zip(entries: Map<String, ByteArray>): File {
         val file = temporaryFolder.newFile("course-${System.nanoTime()}.maic.zip")
         ZipOutputStream(file.outputStream()).use { output ->
@@ -239,10 +241,9 @@ class OfflinePackageStoreTest {
 
     @Test
     fun `manifest tolerant of unknown fields and null description`() {
-        val parsed = Json { ignoreUnknownKeys = true; explicitNulls = false }
-            .decodeFromString(
-                OfflineManifest.serializer(),
-                """
+        val parsed = tolerantJson.decodeFromString(
+            OfflineManifest.serializer(),
+            """
                 {
                   "formatVersion": 1,
                   "futureField": {"x": 1},
@@ -250,8 +251,8 @@ class OfflinePackageStoreTest {
                   "scenes": [{"type":"slide","title":"Satu","order":0,"content":{"type":"slide","canvas":{"elements":[]}},"future":1}],
                   "mediaIndex": {}
                 }
-                """.trimIndent(),
-            )
+            """.trimIndent(),
+        )
         assertEquals("Baru", parsed.stage.name)
         assertEquals(null, parsed.stage.description)
         assertEquals(1, parsed.scenes.size)

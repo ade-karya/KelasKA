@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Aplikasi menyimpan sesi login, preferensi update, dan paket kursus offline di
+  penyimpanan internal. Semuanya tidak boleh ikut cloud backup maupun transfer
+  perangkat (Android 12+): salinan sesi di perangkat lain tidak sah, dan paket
+  `.maic.zip` berukuran besar. Semua domain dikecualikan secara eksplisit.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

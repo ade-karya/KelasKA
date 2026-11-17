@@ -3,6 +3,7 @@ import type { ManifestScene } from '@/lib/export/classroom-zip-types';
 import { PlaybackController, type PlaybackState } from './controller';
 import { createMediaLibrary, firstLinkedImage, type MediaLibrary } from './media-library';
 import { NarrationPlayer, VideoRegistry, WidgetChannel } from './media-ports';
+import { speakTextWithHost } from './host-tts';
 
 export interface Playback {
   state: PlaybackState;
@@ -46,6 +47,7 @@ export function usePlayback(
           return narration.play(ref, control);
         },
         playVideo: (elementId, control) => videos.play(elementId, control),
+        speakText: (text, control) => speakTextWithHost(text, control),
         sendWidgetMessage: (type, payload) => widgets.send(type, payload),
       },
     });

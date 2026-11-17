@@ -13,18 +13,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -50,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -63,7 +65,7 @@ internal data class NavDest(val route: String, val label: String, val icon: Imag
 
 internal fun navDestinations(isAdmin: Boolean): List<NavDest> = buildList {
     add(NavDest("home", "Beranda", Icons.Filled.Home))
-    add(NavDest("courses", "Kursus Saya", Icons.Filled.MenuBook))
+    add(NavDest("courses", "Kursus Saya", Icons.AutoMirrored.Filled.MenuBook))
     add(NavDest("offline", "Offline", Icons.Filled.CloudOff))
     if (isAdmin) add(NavDest("admin", "Admin", Icons.Filled.Shield))
     add(NavDest("account", "Akun", Icons.Filled.Person))
@@ -71,9 +73,11 @@ internal fun navDestinations(isAdmin: Boolean): List<NavDest> = buildList {
 
 /**
  * Shell responsif:
- * - layar ringkas (<840dp): ModalNavigationDrawer — sidebar geser dari kiri;
+ * - ponsel landscape / jendela pendek: sidebar ringkas yang selalu terlihat
+ *   dan bisa digulir — navigasi tidak lagi tersembunyi di balik tombol menu;
+ * - layar ringkas portrait (<840dp): ModalNavigationDrawer;
  * - layar medium (≥840dp): NavigationRail di kiri;
- * - layar lapang (≥1200dp): PermanentNavigationDrawer — sidebar permanen.
+ * - layar lapang (≥1200dp): PermanentNavigationDrawer.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -92,7 +96,22 @@ fun AppShell(
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
+        val landscape = maxWidth > maxHeight
+        // Di bawah 480dp tinggi, NavigationRail penuh (logo + lima tujuan +
+        // keluar) tidak muat di ponsel landscape; sidebar ringkas yang bisa
+        // digulir dipakai supaya semua tujuan tetap terjangkau.
+        val compactRail = landscape && maxHeight < 480.dp
         when {
+            compactRail -> Row(Modifier.fillMaxSize().safeDrawingPadding()) {
+                CompactSidebar(
+                    destinations = destinations,
+                    currentRoute = currentRoute,
+                    onNavigate = goTo,
+                    onSignOut = onSignOut,
+                )
+                Box(Modifier.weight(1f)) { content(PaddingValues(0.dp)) }
+            }
+
             maxWidth >= 1200.dp ->
                 PermanentNavigationDrawer(
                     drawerContent = {
@@ -134,7 +153,7 @@ fun AppShell(
                         Spacer(Modifier)
                         IconButton(onClick = onSignOut, modifier = Modifier.padding(bottom = 16.dp)) {
                             Icon(
-                                Icons.Filled.Logout,
+                                Icons.AutoMirrored.Filled.Logout,
                                 contentDescription = "Keluar",
                                 tint = MaterialTheme.colorScheme.error,
                             )
@@ -142,6 +161,16 @@ fun AppShell(
                     }
                     Box(Modifier.weight(1f)) { content(PaddingValues(0.dp)) }
                 }
+
+            landscape -> Row(Modifier.fillMaxSize().safeDrawingPadding()) {
+                CompactSidebar(
+                    destinations = destinations,
+                    currentRoute = currentRoute,
+                    onNavigate = goTo,
+                    onSignOut = onSignOut,
+                )
+                Box(Modifier.weight(1f)) { content(PaddingValues(0.dp)) }
+            }
 
             else -> {
                 val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -262,7 +291,7 @@ private fun SidebarContent(
                 .clickable(onClick = onSignOut)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
-            Icon(Icons.Filled.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = MaterialTheme.colorScheme.error)
             Text(
                 "Keluar",
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
@@ -276,5 +305,95 @@ private fun SidebarContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
+    }
+}
+
+/**
+ * Sidebar ringkas untuk landscape sempit: ikon dan label satu baris dalam
+ * kolom yang bisa digulir, selalu terlihat tanpa tombol menu. Tinggi ponsel
+ * landscape (sekitar 360–420dp) tidak cukup untuk rail penuh, jadi isinya
+ * digulir, bukan dipotong.
+ */
+@Composable
+private fun CompactSidebar(
+    destinations: List<NavDest>,
+    currentRoute: String?,
+    onNavigate: (String) -> Unit,
+    onSignOut: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier.fillMaxHeight().width(92.dp),
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 6.dp, vertical = 8.dp),
+        ) {
+            androidx.compose.foundation.Image(
+                painterResource(R.drawable.logo_kemendikdasmen),
+                contentDescription = "Kemendikdasmen",
+                modifier = Modifier.height(28.dp).padding(top = 4.dp),
+            )
+            Spacer(Modifier.height(10.dp))
+            destinations.forEach { dest ->
+                val selected = currentRoute == dest.route
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .then(
+                            if (selected) {
+                                Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .clickable { onNavigate(dest.route) }
+                        .padding(vertical = 8.dp),
+                ) {
+                    Icon(
+                        dest.icon,
+                        contentDescription = null,
+                        tint = if (selected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                    Text(
+                        dest.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp, start = 2.dp, end = 2.dp),
+                    )
+                }
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            IconButton(onClick = onSignOut) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Logout,
+                    contentDescription = "Keluar",
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            }
+            Text(
+                "v${BuildConfig.VERSION_NAME}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+            )
+        }
     }
 }

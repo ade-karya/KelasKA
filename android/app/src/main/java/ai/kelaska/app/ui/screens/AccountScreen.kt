@@ -22,10 +22,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -122,7 +122,7 @@ fun AccountScreen(
         ) {
             Column(Modifier.padding(6.dp)) {
                 AccountAction(
-                    icon = { Icon(Icons.Filled.OpenInNew, null) },
+                    icon = { Icon(Icons.AutoMirrored.Filled.OpenInNew, null) },
                     title = "Buka kelaska.riau.ai",
                     subtitle = "Situs web Kelas KA di browser",
                     onClick = { openCustomTab(context, BuildConfig.BASE_URL) },
@@ -153,7 +153,7 @@ fun AccountScreen(
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 12.dp))
                 AccountAction(
-                    icon = { Icon(Icons.Filled.Logout, null, tint = MaterialTheme.colorScheme.error) },
+                    icon = { Icon(Icons.AutoMirrored.Filled.Logout, null, tint = MaterialTheme.colorScheme.error) },
                     title = "Keluar",
                     titleColor = MaterialTheme.colorScheme.error,
                     subtitle = "Akhiri sesi di perangkat ini",

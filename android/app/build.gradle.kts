@@ -39,8 +39,8 @@ android {
         // Naikkan keduanya di setiap rilis: versionCode harus selalu bertambah
         // (Android menolak memasang versi dengan versionCode lebih kecil) dan
         // versionName harus sama dengan tag rilis `vX.Y.Z` di GitHub.
-        versionCode = 5
-        versionName = "1.4.0"
+        versionCode = 6
+        versionName = "1.4.1"
 
         // Repo publik sumber rilis in-app update (GitHub Releases).
         // Bisa ditimpa lewat -PkelasKaGithubRepo=owner/repo saat build.
@@ -114,6 +114,12 @@ android {
         // crash di AGP 8.7.3 dengan Kotlin 2.0.21 — temuan Google/AOSP yang
         // sudah diketahui; nonaktifkan detektornya, bukan lint-nya.
         disable += setOf("NullSafeMutableLiveData")
+        // Peringatan "versi dependensi lebih baru" bukan cacat kode: versi di
+        // bawah sengaja dipin ke toolchain AGP 8.7.3/Kotlin 2.0.21 dan
+        // compileSdk 35 yang terpasang di host rilis. Naikkan dependensi
+        // bersama toolchain-nya dalam perubahan tersendiri, bukan lewat saran
+        // otomatis lint.
+        disable += setOf("GradleDependency")
     }
 
     testOptions {
