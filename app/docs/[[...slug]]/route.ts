@@ -2,6 +2,9 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { NextResponse } from 'next/server';
 
+import { authEnabled } from '@/lib/server/auth/config';
+import { sessionUserFromHeaders } from '@/lib/server/auth/session';
+
 /**
  * Serve the statically exported Fumadocs site (`packages/docs`) at `/docs`.
  *
@@ -15,6 +18,12 @@ import { NextResponse } from 'next/server';
  * The files are read from `<cwd>/public/docs-site`, which works both for
  * `next start` and for the standalone PM2 deployment (install.sh copies
  * `public/` into `.next/standalone/public`).
+ *
+ * Docs are an admin-only surface when accounts are enabled. The edge proxy's
+ * matcher deliberately excludes `/docs`, so this handler is the gate: it reads
+ * the role from the database on every request and answers 404 for everyone
+ * else (including signed-out browsers). Without accounts there is no role to
+ * check — the deployment's single anonymous owner keeps access.
  */
 const SITE_ROOT = path.join(process.cwd(), 'public', 'docs-site');
 
@@ -70,14 +79,15 @@ async function readSiteFile(file: string): Promise<Buffer | null> {
 function responseFor(
   file: string,
   body: Buffer,
-  { status = 200 }: { status?: number } = {},
+  { status = 200, cacheControl }: { status?: number; cacheControl?: string } = {},
 ): NextResponse {
   const immutable = file.startsWith('_next/static/');
   const headers = new Headers({
     'Content-Type': contentTypeFor(file),
-    'Cache-Control': immutable
-      ? 'public, max-age=31536000, immutable'
-      : 'public, max-age=0, must-revalidate',
+    // Admin-only bytes must never be stored by a shared cache.
+    'Cache-Control':
+      cacheControl ??
+      (immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=0, must-revalidate'),
     'X-Content-Type-Options': 'nosniff',
   });
   // The exported pages are self-contained; nothing here needs a session.
@@ -109,9 +119,32 @@ function docsNotBuilt(): NextResponse {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ slug?: string[] }> },
 ): Promise<NextResponse> {
+  const adminOnly = authEnabled();
+  if (adminOnly) {
+    // The proxy's matcher excludes /docs, so this is the only auth gate.
+    // The role comes from the database, not the cookie, so a demotion applies
+    // on the next request even with an otherwise valid session.
+    const user = await sessionUserFromHeaders(request.headers);
+    if (user?.role !== 'admin') {
+      return new NextResponse('Not found', {
+        status: 404,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      });
+    }
+  }
+  const serve = (file: string, body: Buffer, status?: number) =>
+    responseFor(file, body, {
+      ...(status ? { status } : {}),
+      cacheControl: adminOnly ? 'private, no-store' : undefined,
+    });
+
   const { slug } = await params;
   const segments = slug ?? [];
 
@@ -132,7 +165,7 @@ export async function GET(
   const rootIndex = await readSiteFile('index.html');
   if (!rootIndex) return docsNotBuilt();
 
-  if (segments.length === 0) return responseFor('index.html', rootIndex);
+  if (segments.length === 0) return serve('index.html', rootIndex);
 
   const rel = segments.join('/');
   const candidates: string[] = [];
@@ -141,11 +174,11 @@ export async function GET(
 
   for (const candidate of candidates) {
     const body = await readSiteFile(candidate);
-    if (body) return responseFor(candidate, body);
+    if (body) return serve(candidate, body);
   }
 
   // Unknown docs path: show the export's own 404 page when it has one.
   const notFound = await readSiteFile('404.html');
-  if (notFound) return responseFor('404.html', notFound, { status: 404 });
+  if (notFound) return serve('404.html', notFound, 404);
   return NextResponse.json({ error: 'Not found' }, { status: 404 });
 }

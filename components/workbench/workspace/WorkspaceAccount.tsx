@@ -46,6 +46,7 @@ import {
   type WorkbenchShellMenuItem,
 } from '@/lib/workbench/shell-extensions';
 import { docsHref } from '@/lib/docs-link';
+import { useAuthSession } from '@/components/auth/auth-session-provider';
 import { cn } from '@/lib/utils/cn';
 import {
   DropdownMenu,
@@ -256,6 +257,13 @@ function AccountMenu({
   const { theme, setTheme } = useTheme();
   const extensions = useWorkbenchShellExtensions();
   const account = useAccountIdentity();
+  const { status: authStatus, user: authUser } = useAuthSession();
+  // Docs are an admin-only surface once accounts are on. A deployment without
+  // accounts has no roles — its single local owner is the admin equivalent —
+  // so the link stays. This is presentation only: /docs enforces the same rule
+  // on every request (the edge proxy deliberately excludes that route).
+  const docsAllowed =
+    authStatus !== 'signed-out' && (authStatus !== 'signed-in' || authUser?.role === 'admin');
   const hostItems = extensions.accountMenuItems ?? [];
   const onSignOut = account.signedIn ? extensions.identity?.onSignOut : undefined;
   const currentLocale = supportedLocales.find((l) => l.code === locale);
@@ -526,18 +534,20 @@ function AccountMenu({
             <Info className="size-4" aria-hidden="true" />
             <span className="flex-1">{t('workspace.account.about')}</span>
           </DropdownMenuItem>
-          <DropdownMenuItem {...HOLD_FOCUS} asChild className="ws-menu-item">
-            <a
-              href={docsHref(locale)}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid="workspace-account-docs"
-            >
-              <BookText className="size-4" aria-hidden="true" />
-              <span className="flex-1">{t('workspace.account.docs')}</span>
-              <SquareArrowOutUpRight className="size-3 opacity-50" aria-hidden="true" />
-            </a>
-          </DropdownMenuItem>
+          {docsAllowed ? (
+            <DropdownMenuItem {...HOLD_FOCUS} asChild className="ws-menu-item">
+              <a
+                href={docsHref(locale)}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="workspace-account-docs"
+              >
+                <BookText className="size-4" aria-hidden="true" />
+                <span className="flex-1">{t('workspace.account.docs')}</span>
+                <SquareArrowOutUpRight className="size-3 opacity-50" aria-hidden="true" />
+              </a>
+            </DropdownMenuItem>
+          ) : null}
 
           {onSignOut ? (
             <>

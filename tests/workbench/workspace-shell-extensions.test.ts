@@ -21,6 +21,15 @@ import {
 import { AVATAR_OPTIONS, useUserProfileStore } from '@/lib/store/user-profile';
 import { PROFILE_BIO_SAVE_DELAY_MS } from '@/components/user-profile';
 
+const { authSession } = vi.hoisted(() => ({
+  authSession: {
+    status: 'loading' as 'loading' | 'disabled' | 'signed-out' | 'signed-in',
+    user: null as { role: 'admin' | 'teacher' | 'student' } | null,
+  },
+}));
+vi.mock('@/components/auth/auth-session-provider', () => ({
+  useAuthSession: () => authSession,
+}));
 vi.mock('@/lib/hooks/use-i18n', () => ({
   useI18n: () => ({ t: (key: string) => key, locale: 'en-US', setLocale: vi.fn() }),
 }));
@@ -58,6 +67,8 @@ afterEach(() => {
   for (const root of roots.splice(0)) act(() => root.unmount());
   document.body.replaceChildren();
   window.localStorage.clear();
+  authSession.status = 'loading';
+  authSession.user = null;
 });
 
 const byTestId = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
@@ -250,6 +261,31 @@ describe('the host extension slots', () => {
     ]) {
       expect(menu.querySelector(`[data-testid="${id}"]`), id).not.toBeNull();
     }
+  });
+
+  it('shows the docs link only to admins when accounts are on', async () => {
+    for (const role of ['student', 'teacher'] as const) {
+      authSession.status = 'signed-in';
+      authSession.user = { role };
+      await renderRail();
+      const menu = await openAccountMenu();
+      expect(menu.querySelector('[data-testid="workspace-account-docs"]'), role).toBeNull();
+      for (const root of roots.splice(0)) act(() => root.unmount());
+      document.body.replaceChildren();
+    }
+    authSession.status = 'signed-in';
+    authSession.user = { role: 'admin' };
+    await renderRail();
+    expect(
+      (await openAccountMenu()).querySelector('[data-testid="workspace-account-docs"]'),
+    ).not.toBeNull();
+  });
+
+  it('hides the docs link from signed-out browsers', async () => {
+    authSession.status = 'signed-out';
+    await renderRail();
+    const menu = await openAccountMenu();
+    expect(menu.querySelector('[data-testid="workspace-account-docs"]')).toBeNull();
   });
 
   const setInput = async (field: HTMLInputElement | HTMLTextAreaElement, value: string) => {
