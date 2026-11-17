@@ -187,14 +187,29 @@ update aplikasi yang sudah terpasang**. Simpan backup-nya di lokasi aman.
 
 ## Merilis versi baru (GitHub Releases)
 
-Workflow `.github/workflows/release.yml` membangun rilis saat tag `v*` didorong:
+Rilis berupa APK bertanda tangan + checksum yang diunggah sebagai aset GitHub
+Release stabil (aplikasi hanya membaca `/releases/latest`, jadi draf/prarilis
+tidak pernah ditawarkan).
 
 1. Naikkan **`versionCode`** (wajib selalu bertambah — Android menolak memasang
    APK dengan `versionCode` lebih kecil) dan **`versionName`** di
-   `app/build.gradle.kts`. Workflow menolak tag yang tidak sama dengan
-   `versionName` dan menolak `versionCode` yang tidak naik dari commit
-   sebelumnya.
-2. Isi secret repo (Settings → Secrets and variables → Actions):
+   `app/build.gradle.kts`.
+2. Bangun APK release (bagian sebelumnya) dan verifikasi signature-nya:
+   `apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk`.
+3. Terbitkan rilis dari APK itu:
+
+   ```bash
+   cp app/build/outputs/apk/release/app-release.apk /tmp/KelasKA-vX.Y.Z.apk
+   (cd /tmp && sha256sum KelasKA-vX.Y.Z.apk > KelasKA-vX.Y.Z.apk.sha256)
+   gh release create vX.Y.Z /tmp/KelasKA-vX.Y.Z.apk /tmp/KelasKA-vX.Y.Z.apk.sha256 \
+     --title "Kelas KA Android vX.Y.Z"
+   git tag vX.Y.Z && git push origin vX.Y.Z
+   ```
+
+Otomatisasi rilis ada di template `android/release-workflow.yml`; berkas itu
+**belum dipasang** di `.github/workflows/` karena menambahkan workflow
+memerlukan token GitHub dengan scope `workflow`. Bila token seperti itu
+tersedia, salin template ke `.github/workflows/release.yml` dan isi secret:
 
    | Secret | Isi |
    |--------|-----|
@@ -203,12 +218,9 @@ Workflow `.github/workflows/release.yml` membangun rilis saat tag `v*` didorong:
    | `ANDROID_KEY_ALIAS` | `kelas-ka` |
    | `ANDROID_KEY_PASSWORD` | `keyPassword` |
 
-3. Dorong tag: `git tag v1.4.0 && git push origin v1.4.0`.
-
-Workflow menjalankan unit test, membangun `assembleRelease`, menandatangani
-dengan keystore yang sama, lalu mengunggah `KelasKA-v1.4.0.apk` dan
-`KelasKA-v1.4.0.apk.sha256` ke GitHub Release. Aplikasi hanya membaca
-`/releases/latest` (rilis stabil), jadi draf/prarilis tidak pernah ditawarkan.
+Workflow tersebut menjalankan unit test, membangun `assembleRelease`, menolak
+tag yang tidak sama dengan `versionName`/`versionCode` yang tidak naik, lalu
+mengunggah `KelasKA-vX.Y.Z.apk` beserta `.sha256`.
 
 **Keystore harus sama di setiap rilis.** Signature berbeda = Android menolak
 update di tempat; pengguna harus menghapus aplikasi lebih dulu.
