@@ -3,7 +3,7 @@
 Aplikasi Android **native** (Kotlin + Jetpack Compose, Material 3) untuk Kelas
 Kecerdasan Artifisial — [kelaska.riau.ai](https://kelaska.riau.ai).
 
-## Fitur v1.4.2
+## Fitur v1.4.3
 
 | Layar | Isi |
 |-------|-----|
@@ -259,6 +259,22 @@ endpoint `/api/auth/native/session` dipakai oleh aplikasi untuk menukar token
 menjadi sesi `kelaska_session` (perlakuan sama dengan callback browser, termasuk
 logika *pending account*).
 
+## Perbaikan v1.4.3
+
+- **Layar penuh melepas seluruh chrome aplikasi.** v1.4.2 menyembunyikan
+  header/footer pemutar dan bilah atas aplikasi, tetapi sidebar ringkas/rail/
+  drawer milik `AppShell` masih tampil — di ponsel landscape slide hanya
+  memakai kolom di sebelah kanan sidebar 92 dp. Status presentasi kini
+  dibagikan lewat `ui/PresentationState.kt`, sehingga `AppShell` melepas
+  sidebar/rail/drawer, bilah atas, dan inset sistem selama presentasi.
+- **Slide memakai area kamera depan.** Jendela diizinkan masuk ke *display
+  cutout* (`layoutInDisplayCutoutMode` `ALWAYS` di Android 11+, `SHORT_EDGES`
+  di Android 9–10) selama layar penuh dan dikembalikan ke `DEFAULT` saat
+  keluar, jadi tidak ada lagi pita hitam di sekitar punch-hole.
+- **Pemutaran tidak terputus.** Slot konten shell tidak berpindah posisi
+  komposisi saat chrome dilepas, jadi WebView pemutar tidak dibuat ulang ketika
+  masuk/keluar layar penuh.
+
 ## Perbaikan v1.4.2
 
 - **Layar penuh = presentasi.** Header/footer pemutar web dan bilah atas
@@ -308,7 +324,7 @@ logika *pending account*).
   (`configChanges`), bilah pemutar dipadatkan di layar pendek/sempit, dan
   konten daftar/detail dibatasi 840 dp serta ditengahkan.
 
-## Batasan yang disengaja (v1.4.2)
+## Batasan yang disengaja (v1.4.3)
 
 - Memutar kelas dari paket `.maic.zip` sekarang memakai **bundle pemutar web
   yang persis sama** (`lib/standalone-player`, dibangun oleh
