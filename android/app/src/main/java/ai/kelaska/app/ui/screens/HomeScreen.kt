@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Quiz
 import androidx.compose.material.icons.filled.School
@@ -31,6 +32,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,6 +55,7 @@ import ai.kelaska.app.ui.GovernmentLogos
 fun HomeScreen(
     courses: CoursesUiState,
     onOpenCourses: () -> Unit,
+    onOpenApiKeySettings: () -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -141,7 +144,42 @@ fun HomeScreen(
                 onRetry = onRetry,
             )
         }
-        if (courses.error != null) {
+        if (courses.apiKeyRequired) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                ),
+            ) {
+                Column(Modifier.padding(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Filled.Key,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            "API key diperlukan",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(start = 10.dp),
+                        )
+                    }
+                    Text(
+                        "Hubungkan API key akun ini agar daftar kursus dan kelas bisa dibuka di aplikasi.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    Button(
+                        onClick = onOpenApiKeySettings,
+                        modifier = Modifier.padding(top = 12.dp),
+                    ) {
+                        Text("Hubungkan API key")
+                    }
+                }
+            }
+        } else if (courses.error != null) {
             Text(
                 text = "Sebagian data gagal dimuat. Periksa koneksi Anda.",
                 style = MaterialTheme.typography.labelSmall,

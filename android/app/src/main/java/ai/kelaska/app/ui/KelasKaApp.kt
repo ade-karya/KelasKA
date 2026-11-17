@@ -28,6 +28,7 @@ import ai.kelaska.app.KelasKaApplication
 import ai.kelaska.app.ui.components.UpdateHost
 import ai.kelaska.app.ui.screens.AccountScreen
 import ai.kelaska.app.ui.screens.AdminScreen
+import ai.kelaska.app.ui.screens.ApiKeyOnboardingScreen
 import ai.kelaska.app.ui.screens.ClassWebViewScreen
 import ai.kelaska.app.ui.screens.CourseDetailScreen
 import ai.kelaska.app.ui.screens.CoursesScreen
@@ -212,6 +213,7 @@ private fun SignedInApp(
                 HomeScreen(
                     courses = coursesState,
                     onOpenCourses = { navController.navigate("courses") { launchSingleTop = true } },
+                    onOpenApiKeySettings = { navController.navigate("api-key") { launchSingleTop = true } },
                     onRetry = coursesViewModel::refresh,
                 )
             }
@@ -221,6 +223,17 @@ private fun SignedInApp(
                     // Membuka kelas langsung menampilkan versi web (mobile) di
                     // WebView, supaya semua fitur situs tersedia di aplikasi.
                     onOpenCourse = { stageId -> navController.navigate("class-web/$stageId") },
+                    onOpenApiKeySettings = { navController.navigate("api-key") { launchSingleTop = true } },
+                )
+            }
+            composable("api-key") {
+                ApiKeyOnboardingScreen(
+                    onBack = {
+                        navController.popBackStack()
+                        // Setelah key dihubungkan di halaman web, muat ulang daftar:
+                        // gate API key di server membaca status verifikasi terbaru.
+                        coursesViewModel.refresh()
+                    },
                 )
             }
             composable(
@@ -232,6 +245,9 @@ private fun SignedInApp(
                     stageId = stageId,
                     onBack = { navController.popBackStack() },
                     onOpenDetail = { navController.navigate("course/$stageId") },
+                    onConnectApiKey = {
+                        navController.navigate("api-key") { launchSingleTop = true }
+                    },
                 )
             }
             composable(

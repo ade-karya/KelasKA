@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -54,6 +55,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ai.kelaska.app.data.StageSummary
@@ -66,6 +68,7 @@ import ai.kelaska.app.util.IndonesianDate
 fun CoursesScreen(
     viewModel: CoursesViewModel,
     onOpenCourse: (String) -> Unit,
+    onOpenApiKeySettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
@@ -124,7 +127,12 @@ fun CoursesScreen(
                     }
 
                 state.error != null && state.stages.isEmpty() ->
-                    ErrorState(message = state.error!!, onRetry = viewModel::refresh)
+                    ErrorState(
+                        message = state.error!!,
+                        apiKeyRequired = state.apiKeyRequired,
+                        onOpenApiKeySettings = onOpenApiKeySettings,
+                        onRetry = viewModel::refresh,
+                    )
 
                 filtered.isEmpty() ->
                     EmptyState(hasQuery = query.isNotBlank(), onCreate = { showCreate = true })
@@ -309,23 +317,44 @@ private fun EmptyState(hasQuery: Boolean, onCreate: () -> Unit) {
 }
 
 @Composable
-private fun ErrorState(message: String, onRetry: () -> Unit) {
+private fun ErrorState(
+    message: String,
+    apiKeyRequired: Boolean,
+    onOpenApiKeySettings: () -> Unit,
+    onRetry: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
+        Icon(
+            Icons.Filled.Key,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(56.dp),
+        )
         Text(
-            "Gagal memuat kursus",
+            if (apiKeyRequired) "API key diperlukan" else "Gagal memuat kursus",
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(top = 12.dp),
         )
         Text(
             message,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
+            color = if (apiKeyRequired) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
         )
-        FilledTonalButton(onClick = onRetry) { Text("Coba lagi") }
+        if (apiKeyRequired) {
+            FilledTonalButton(onClick = onOpenApiKeySettings) {
+                Icon(Icons.Filled.Key, null, modifier = Modifier.padding(end = 8.dp).size(18.dp))
+                Text("Hubungkan API key")
+            }
+            TextButton(onClick = onRetry, modifier = Modifier.padding(top = 4.dp)) { Text("Coba lagi") }
+        } else {
+            FilledTonalButton(onClick = onRetry) { Text("Coba lagi") }
+        }
     }
 }
 

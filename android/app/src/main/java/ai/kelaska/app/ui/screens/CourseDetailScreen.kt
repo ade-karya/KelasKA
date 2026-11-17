@@ -1,8 +1,5 @@
 package ai.kelaska.app.ui.screens
 
-import android.content.Context
-import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +49,7 @@ import ai.kelaska.app.ui.SceneQuizState
 import ai.kelaska.app.ui.components.QuizSceneCard
 import ai.kelaska.app.ui.components.SlideSceneCard
 import ai.kelaska.app.util.IndonesianDate
+import ai.kelaska.app.util.openInCustomTab
 
 @Composable
 fun CourseDetailScreen(
@@ -268,8 +266,4 @@ private fun OpenWebSceneCard(scene: SceneDto, onOpenWeb: () -> Unit) {
             }
         }
     }
-}
-
-private fun openInCustomTab(context: Context, url: String) {
-    CustomTabsIntent.Builder().setShowTitle(true).build().launchUrl(context, Uri.parse(url))
 }

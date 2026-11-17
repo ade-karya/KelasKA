@@ -6,8 +6,12 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.serialization.json.put
 
-/** Pengecualian API dengan kode HTTP dan pesan yang aman ditampilkan. */
-class ApiException(val statusCode: Int, message: String) : Exception(message)
+/** Pengecualian API dengan kode HTTP, kode error server, dan pesan yang aman ditampilkan. */
+class ApiException(
+    val statusCode: Int,
+    message: String,
+    val errorCode: String? = null,
+) : Exception(message)
 
 /** 401: sesi tidak berlaku lagi; aplikasi meminta pengguna masuk kembali. */
 class AuthExpiredException(message: String = "Sesi berakhir") : Exception(message)
@@ -77,10 +81,8 @@ class KelasKaApi(
                 throw AuthExpiredException()
             }
             if (!res.isSuccessful) {
-                val message = runCatching {
-                    json.decodeFromString(ApiErrorBody.serializer(), payload).error
-                }.getOrNull() ?: payload.take(200)
-                throw ApiException(res.code, message.ifBlank { "Permintaan gagal (${res.code})" })
+                val parsed = ApiErrorParser.parse(res.code, payload)
+                throw ApiException(res.code, parsed.message, parsed.errorCode)
             }
             if (payload.isBlank()) {
                 throw ApiException(res.code, "Respons kosong dari server")

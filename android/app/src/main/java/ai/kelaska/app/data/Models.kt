@@ -96,15 +96,6 @@ data class NativeSessionUser(
     val role: String = "student",
 )
 
-/** Shape amplop error API Kelas KA. */
-@Serializable
-data class ApiErrorBody(
-    val success: Boolean = false,
-    val errorCode: String? = null,
-    val error: String? = null,
-    val details: String? = null,
-)
-
 /** Respons buatan kursus kosong (POST /api/stages → 201). */
 @Serializable
 data class CreateStageResponse(

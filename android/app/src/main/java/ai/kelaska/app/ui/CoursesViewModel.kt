@@ -15,6 +15,8 @@ data class CoursesUiState(
     val loading: Boolean = true,
     val stages: List<StageSummary> = emptyList(),
     val error: String? = null,
+    /** Akun tertahan gate API key: daftar kursus tidak bisa dimuat sampai key dihubungkan. */
+    val apiKeyRequired: Boolean = false,
 )
 
 class CoursesViewModel(private val api: KelasKaApi) : ViewModel() {
@@ -32,7 +34,7 @@ class CoursesViewModel(private val api: KelasKaApi) : ViewModel() {
 
     fun refresh() {
         viewModelScope.launch {
-            _state.value = _state.value.copy(loading = true, error = null)
+            _state.value = _state.value.copy(loading = true, error = null, apiKeyRequired = false)
             try {
                 val stages = api.listStages()
                 _state.value = CoursesUiState(loading = false, stages = stages)
@@ -40,6 +42,17 @@ class CoursesViewModel(private val api: KelasKaApi) : ViewModel() {
                 _state.value = _state.value.copy(
                     loading = false,
                     error = "Sesi berakhir. Keluar lalu masuk kembali.",
+                )
+            } catch (error: ai.kelaska.app.data.ApiException) {
+                val needsKey = error.errorCode == ai.kelaska.app.data.ApiErrorParser.API_KEY_REQUIRED
+                _state.value = _state.value.copy(
+                    loading = false,
+                    apiKeyRequired = needsKey,
+                    error = if (needsKey) {
+                        "Akun ini perlu menghubungkan API key sebelum kursus bisa dimuat."
+                    } else {
+                        error.message ?: "Gagal memuat daftar kursus"
+                    },
                 )
             } catch (error: Exception) {
                 _state.value = _state.value.copy(
