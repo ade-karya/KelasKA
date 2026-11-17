@@ -45,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Performance
 
 - `install.sh` now skips `bun run build` when a build fingerprint (git HEAD + tracked/untracked changes + baked `NEXT_PUBLIC_*` + workspace-package stamp + Bun version + fast mode) still matches `.next`, so a rerun that changes nothing but env/config only refreshes the standalone assets and restarts PM2. `--rebuild` forces a build. The static docs site gets the same fingerprint treatment in `scripts/build-docs.sh` (`--force` to override) and starts alongside `bun install` instead of waiting for it.
-- Production builds on hosts with ≥16 GB RAM run the TypeScript pass **in parallel** with the Turbopack compile (`OPENMAIC_SKIP_TYPECHECK=1` for Next plus a background `tsc -p tsconfig.build.json`, then one incremental pass after `.next/types` is regenerated). The installer also stops PM2 `kelaska` for the duration of a rebuild so requests are not served from a half-written `.next`.
+- The installer stops PM2 `kelaska` for the duration of a rebuild so requests are not served from a half-written `.next`. Running TypeScript in parallel with the Turbopack compile was benchmarked and rejected: the background `tsc` collided with Next's generated `.next/types` and oversubscribed a 4 vCPU host, so the serial typecheck stays.
 - Workspace package builds (`scripts/build-packages.mjs`) use up to four parallel jobs on 4+ vCPU / 12+ GB hosts instead of three.
 
 ## [1.5.0-rc.2] - 2026-11-12

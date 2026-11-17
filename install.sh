@@ -287,9 +287,6 @@ on_exit() {
   if [[ -n "${DOCS_BUILD_PID:-}" ]]; then
     kill "$DOCS_BUILD_PID" 2>/dev/null || true
   fi
-  if [[ -n "${TS_PID:-}" ]]; then
-    kill "$TS_PID" 2>/dev/null || true
-  fi
   [[ "$rc" -eq 0 || "$rc" -eq 141 ]] && return 0
   if [[ "$FAILED_BY_FAIL" -eq 0 ]]; then
     echo -e "${MERAH}[install] GAGAL:${RESET} berhenti di langkah '${LANGKAH}' (exit ${rc})." >&2
@@ -358,16 +355,11 @@ FAST_BUILD="auto"
 # --rebuild memaksa `next build` walau sidik jari sumber + NEXT_PUBLIC sama
 # dengan build terakhir (default: build yang tidak berubah dilewati).
 FORCE_BUILD=0
-# Typecheck TypeScript berjalan paralel dengan kompilasi Turbopack. "auto" =
-# hanya pada build produksi (bukan --fast) di host >= 16 GB RAM.
-TYPE_PARALLEL="${OPENMAIC_TYPE_PARALLEL:-auto}"
 SYNC_MODEL_PARALLEL=0
 SYNC_MODEL_DONE=0
 MODEL_SYNC_PID=""
 MODEL_SYNC_LOG=""
 MODEL_SYNC_RC_FILE=""
-# Typecheck paralel + status PM2 sebelum build (lihat jalankan_build).
-TS_PID=""
 # Layanan GPU dan bootstrap skema database berjalan di latar agar tumpang
 # tindih dengan `bun install`/build (host dengan beberapa vCPU + RAM besar).
 GPU_SYNC_PID=""
@@ -3096,7 +3088,6 @@ BUILD_DONE=0
 # installer yang tidak mengubah input build cukup menyegarkan aset + PM2.
 BUILD_STAMP_DIR="$ROOT_DIR/node_modules/.cache/kelaska"
 BUILD_STAMP_FILE="$BUILD_STAMP_DIR/build.sha256"
-TSBUILDINFO_FILE="$BUILD_STAMP_DIR/tsconfig-build.tsbuildinfo"
 
 build_fingerprint() {
   local head status pkg mode="normal"
@@ -3182,64 +3173,9 @@ jalankan_build() {
 
   pm2_hentikan_untuk_build
 
-  # Typecheck paralel: Next memeriksa TypeScript SETELAH Turbopack selesai
-  # (~15 s hangat, ~80 s dingin) padahal kompilasi memakai semua core. Jalankan
-  # tsc di latar bersamaan dengan kompilasi (lewati typecheck internal Next),
-  # lalu ulangi sekali setelah build agar tipe rute `.next/types` yang baru
-  # ikut diperiksa. Butuh RAM >= 16 GB: tsc proyek ini memuncak ~4-6 GB di
-  # samping heap build 8 GB, jadi host 12 GB (Colab) tetap memakai typecheck
-  # serial bawaan Next.
-  local ts_pid="" ts_log="" ts_rc=0
-  if [[ "$TYPE_PARALLEL" == "auto" ]]; then
-    TYPE_PARALLEL=0
-    if [[ "$FAST_BUILD" -eq 0 && -f "$ROOT_DIR/node_modules/typescript/bin/tsc" ]]; then
-      _ram_mb="$(awk '/^MemTotal:/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || true)"
-      if [[ "$_ram_mb" =~ ^[0-9]+$ && "$_ram_mb" -ge 16384 ]]; then TYPE_PARALLEL=1; fi
-      unset _ram_mb
-    fi
-  fi
-  if [[ "$TYPE_PARALLEL" == "1" && "$FAST_BUILD" -eq 0 ]]; then
-    BUILD_ENV+=(OPENMAIC_SKIP_TYPECHECK=1)
-    mkdir -p "$BUILD_STAMP_DIR"
-    ts_log="$(mktemp)"
-    info "Typecheck TypeScript berjalan paralel dengan kompilasi Turbopack..."
-    (
-      # Tunggu Next membersihkan `.next` supaya tsc tidak membaca tipe rute basi.
-      sleep 3
-      as_owner env NODE_OPTIONS="--max-old-space-size=4096" NEXT_TELEMETRY_DISABLED=1 \
-        "$BUN_BIN" "$ROOT_DIR/node_modules/typescript/bin/tsc" \
-        -p "$ROOT_DIR/tsconfig.build.json" --noEmit --incremental --pretty false \
-        --tsBuildInfoFile "$TSBUILDINFO_FILE"
-    ) >"$ts_log" 2>&1 &
-    TS_PID=$!
-  fi
-
   info "Menjalankan build produksi Bun (bun --bun run build)..."
   as_owner env NEXT_TELEMETRY_DISABLED=1 "${BUILD_ENV[@]}" "$BUN_BIN" --bun run build
   BUILD_DONE=1
-
-  if [[ -n "$TS_PID" ]]; then
-    LANGKAH="typecheck TypeScript (paralel)"
-    wait "$TS_PID" || ts_rc=$?
-    TS_PID=""
-    if [[ "$ts_rc" -ne 0 ]]; then
-      cat "$ts_log" >&2 || true
-      rm -f "$ts_log"
-      fail "Typecheck TypeScript gagal (berjalan paralel dengan build)."
-    fi
-    # `.next/types` baru dibuat kompilasi; jalankan incremental sekali lagi
-    # supaya validasi tipe rute ikut diperiksa (biasanya hanya beberapa detik).
-    if ! as_owner env NODE_OPTIONS="--max-old-space-size=4096" NEXT_TELEMETRY_DISABLED=1 \
-        "$BUN_BIN" "$ROOT_DIR/node_modules/typescript/bin/tsc" \
-        -p "$ROOT_DIR/tsconfig.build.json" --noEmit --incremental --pretty false \
-        --tsBuildInfoFile "$TSBUILDINFO_FILE" >"$ts_log" 2>&1; then
-      cat "$ts_log" >&2 || true
-      rm -f "$ts_log"
-      fail "Typecheck TypeScript gagal setelah tipe rute baru dibuat."
-    fi
-    rm -f "$ts_log"
-    info "Typecheck TypeScript lulus (paralel + verifikasi tipe rute)."
-  fi
 
   build_stamp_write
   preset_mark "build produksi selesai"
