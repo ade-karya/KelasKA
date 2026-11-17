@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import ai.kelaska.app.BuildConfig
 import ai.kelaska.app.data.SceneContent
 import ai.kelaska.app.data.SceneDto
+import ai.kelaska.app.ui.CenteredContent
 import ai.kelaska.app.ui.CourseDetailUiState
 import ai.kelaska.app.ui.CourseDetailViewModel
 import ai.kelaska.app.ui.SceneQuizState
@@ -108,11 +109,12 @@ private fun DetailContent(
     val slides = doc.scenes.count { it.type == "slide" }
     val quizCount = doc.scenes.count { it.type == "quiz" }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
+    CenteredContent(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Kembali") }
@@ -194,6 +196,7 @@ private fun DetailContent(
                 Icon(Icons.Filled.OpenInNew, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text("Pengalaman penuh di kelaska.riau.ai")
             }
+        }
         }
     }
 }

@@ -1,5 +1,6 @@
 package ai.kelaska.app.data.offline
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -49,12 +50,13 @@ class StandalonePlayerHtmlTest {
                     "elements": [
                       {"id": "text_1", "type": "text", "content": "<script>window.pwned=1</script><p style=\\\"color:red\\\">Halo</p>", "top": 0, "left": 0, "width": 100, "height": 40},
                       {"id": "image_1", "type": "image", "src": "ast_img", "top": 10, "left": 20, "width": 100, "height": 80},
-                      {"id": "video_1", "type": "video", "mediaRef": "ast_vid", "src": "ast_vid", "top": 90, "left": 20, "width": 100, "height": 80}
+                      {"id": "video_1", "type": "video", "mediaRef": "ast_vid", "src": "ast_vid", "top": 90, "left": 20, "width": 100, "height": 80},
+                      {"id": "audio_1", "type": "audio", "src": "audio/0001.mp3", "top": 180, "left": 20, "width": 40, "height": 40}
                     ]
                   }},
                   "actions": [
                     {"id": "a1", "type": "spotlight", "elementId": "image_1"},
-                    {"id": "a2", "type": "speech", "text": "Halo anak-anak"},
+                    {"id": "a2", "type": "speech", "text": "Halo anak-anak", "audioRef": "audio/0001.mp3"},
                     {"id": "a3", "type": "discussion", "topic": "Ke mana air pergi?", "agentIndex": 2}
                   ]
                 },
@@ -63,11 +65,20 @@ class StandalonePlayerHtmlTest {
               ],
               "mediaIndex": {
                 "media/asset-1.webp": {"sourceRef": "ast_img", "mimeType": "image/webp", "size": 4},
-                "media/asset-2.mp4": {"sourceRef": "ast_vid", "mimeType": "video/mp4", "size": 4}
+                "media/asset-2.mp4": {"sourceRef": "ast_vid", "mimeType": "video/mp4", "size": 4},
+                "audio/0001.mp3": {"type": "audio", "sourceRef": "ast_voice", "mimeType": "audio/mpeg", "size": 4}
               }
             }
         """.trimIndent()
-        writeZip(zip, manifest, mapOf("media/asset-1.webp" to byteArrayOf(1, 2, 3, 4), "media/asset-2.mp4" to byteArrayOf(5, 6, 7, 8)))
+        writeZip(
+            zip,
+            manifest,
+            mapOf(
+                "media/asset-1.webp" to byteArrayOf(1, 2, 3, 4),
+                "media/asset-2.mp4" to byteArrayOf(5, 6, 7, 8),
+                "audio/0001.mp3" to byteArrayOf(9, 10, 11, 12),
+            ),
+        )
 
         val course = OfflinePackageStore(dir).importZip(zip, "contoh.maic.zip")
             .let { OfflinePackageStore(dir).load(it.id)!! }
@@ -99,6 +110,14 @@ class StandalonePlayerHtmlTest {
         assertTrue(html.contains("openmaic-media-1"))
         assertTrue(html.contains("video/mp4"))
         assertTrue(html.contains("\"embedded\":\"openmaic-media-1\""))
+
+        // Narasi TIDAK memakai blok base64 + URL.createObjectURL (tidak berbunyi
+        // di WebView Android); media table menunjuk data: URI yang diputar langsung.
+        assertTrue(html.contains("\"mimeType\":\"audio/mpeg\",\"src\":\"data:audio/mpeg;base64,"))
+        assertFalse(html.contains("\"embedded\":\"openmaic-media-2\""))
+        // Elemen audio slide juga membawa data: URI, bukan path arsip/klip senyap.
+        assertEquals(2, Regex("data:audio/mpeg;base64,").findAll(html).count())
+        assertFalse(html.contains("\"src\":\"audio/0001.mp3\""))
 
         // Scenes diurutkan berdasarkan `order` (kuis order 1 lebih dulu).
         val quizPos = html.indexOf("Kuis")

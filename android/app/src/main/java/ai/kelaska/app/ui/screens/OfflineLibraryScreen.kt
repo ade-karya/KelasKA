@@ -51,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ai.kelaska.app.data.offline.OfflinePackageMeta
+import ai.kelaska.app.ui.CenteredContent
 import ai.kelaska.app.ui.OfflineLibraryViewModel
 import ai.kelaska.app.util.IndonesianDate
 
@@ -87,11 +88,12 @@ fun OfflineLibraryScreen(
     }
 
     Box(modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
+        CenteredContent {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
             item {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (onBack != null) {
@@ -237,6 +239,7 @@ fun OfflineLibraryScreen(
             }
 
             item { Spacer(Modifier.height(72.dp)) }
+            }
         }
 
         ExtendedFloatingActionButton(

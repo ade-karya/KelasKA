@@ -3,7 +3,7 @@
 Aplikasi Android **native** (Kotlin + Jetpack Compose, Material 3) untuk Kelas
 Kecerdasan Artifisial — [kelaska.riau.ai](https://kelaska.riau.ai).
 
-## Fitur v1.2.0
+## Fitur v1.4.0
 
 | Layar | Isi |
 |-------|-----|
@@ -23,9 +23,15 @@ tetap bisa diputar tanpa jaringan sama sekali — juga sebelum masuk akun.
 
 Yang dirender:
 
+- **Pemutar default = pemutar web.** Sejak v1.3.0 paket `.maic.zip` diputar
+  oleh bundle `lib/standalone-player` yang sama dengan ekspor HTML
+  kelaska.riau.ai (`StandalonePlayerHtml`), jadi slide, spotlight/laser,
+  narasi + subtitle, video, kuis, dan diskusi tampil identik dengan situs.
+  Tombol **Daftar materi** tetap membuka tampilan bacaan ringkas lama.
 - Slide: teks (HTML → teks), gambar, audio elemen, dan video dari berkas paket.
-- Narasi: klip `speech` diputar berurutan dengan `MediaPlayer`; tiap klip juga
-  bisa diputar sendiri.
+- Narasi: klip `speech` diputar lewat elemen audio pemutar; klip dikirim
+  sebagai `data:` URI (bukan `blob:` URL — audio blob tidak berbunyi di WebView
+  Android). Jalur bacaan ringkas memakai `MediaPlayer` berurutan.
 - Kuis: pilihan tunggal/ganda dinilai otomatis beserta pembahasan; soal esai
   ditandai tidak dinilai otomatis.
 - Scene interaktif: `content.html` yang sudah di-inline eksportir dijalankan di
@@ -77,7 +83,7 @@ Kelas terkait: `data/update/UpdateRepository.kt` (API + parsing),
 `Available`, `Downloading(progress)`, `ReadyToInstall`, `UpToDate`, `Error`),
 dan `ui/components/UpdateHost.kt` (dialog di atas seluruh layar).
 
-## Tampilan responsif (sidebar)
+## Tampilan responsif (portrait & landscape)
 
 Shell aplikasi beradaptasi otomatis terhadap lebar layar:
 
@@ -87,8 +93,19 @@ Shell aplikasi beradaptasi otomatis terhadap lebar layar:
 | ≥ 840 dp (tablet/landscape) | `NavigationRail` di sisi kiri (ikon + label) |
 | ≥ 1200 dp (tablet besar/lipat) | `PermanentNavigationDrawer` — sidebar permanen |
 
-Konten mengikuti lebar secara otomatis; daftar kursus memakai `LazyColumn` sehingga
-menggulir normal di kedua mode.
+Perilaku orientasi:
+
+- `MainActivity` menangani `orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden`
+  sendiri, jadi memutar perangkat **tidak** membuat ulang Activity dan tidak
+  memuat ulang WebView pemutar — posisi adegan, narasi, dan daftar tetap.
+- Di pemutar, bilah atas aplikasi dipadatkan saat landscape (ikon daftar saja);
+  CSS host mengecilkan header/footer pemutar di layar pendek dan menyembunyikan
+  label tombol Sebelumnya/Berikutnya di layar sempit supaya footer tidak meluber.
+- Halaman daftar/detail dibatasi `CONTENT_MAX_WIDTH` (840 dp) dan ditengahkan
+  (`CenteredContent`), jadi di tablet/landscape baris teks tidak melar penuh.
+- **Layar penuh**: tombol "Layar penuh" pemutar memanggil `requestFullscreen()`;
+  `PlayerChromeClient` menaruh tampilan penuh di atas `decorView`, menyembunyikan
+  bilah sistem, dan tombol kembali keluar dari layar penuh.
 
 ## Arsitektur singkat
 
@@ -186,11 +203,11 @@ Workflow `.github/workflows/release.yml` membangun rilis saat tag `v*` didorong:
    | `ANDROID_KEY_ALIAS` | `kelas-ka` |
    | `ANDROID_KEY_PASSWORD` | `keyPassword` |
 
-3. Dorong tag: `git tag v1.2.0 && git push origin v1.2.0`.
+3. Dorong tag: `git tag v1.4.0 && git push origin v1.4.0`.
 
 Workflow menjalankan unit test, membangun `assembleRelease`, menandatangani
-dengan keystore yang sama, lalu mengunggah `KelasKA-v1.2.0.apk` dan
-`KelasKA-v1.2.0.apk.sha256` ke GitHub Release. Aplikasi hanya membaca
+dengan keystore yang sama, lalu mengunggah `KelasKA-v1.4.0.apk` dan
+`KelasKA-v1.4.0.apk.sha256` ke GitHub Release. Aplikasi hanya membaca
 `/releases/latest` (rilis stabil), jadi draf/prarilis tidak pernah ditawarkan.
 
 **Keystore harus sama di setiap rilis.** Signature berbeda = Android menolak
@@ -212,7 +229,23 @@ endpoint `/api/auth/native/session` dipakai oleh aplikasi untuk menukar token
 menjadi sesi `kelaska_session` (perlakuan sama dengan callback browser, termasuk
 logika *pending account*).
 
-## Batasan yang disengaja (v1.3.0)
+## Perbaikan v1.4.0
+
+- **Narasi berbunyi.** Klip `speech` kini masuk media table pemutar sebagai
+  `src` berisi `data:` URI, bukan blok base64 yang diubah menjadi `blob:` URL.
+  WebView Android tidak memutar audio dari `blob:` URL saat `blockNetworkLoads`
+  aktif, sehingga narasi sebelumnya senyap; elemen audio slide juga ikut
+  di-inline. Video tetap memakai blok base64 + blob seperti ekspor web.
+- **Layar penuh berfungsi.** `requestFullscreen()` dari pemutar sebelumnya
+  ditolak WebView karena tidak ada `WebChromeClient`. `PlayerChromeClient`
+  sekarang menyediakan `onShowCustomView`/`onHideCustomView`, menaruh tampilan
+  di atas `decorView`, menyembunyikan bilah sistem, dan keluar lewat tombol
+  kembali.
+- **Responsif di landscape & portrait.** Rotasi tidak lagi memuat ulang WebView
+  (`configChanges`), bilah pemutar dipadatkan di layar pendek/sempit, dan
+  konten daftar/detail dibatasi 840 dp serta ditengahkan.
+
+## Batasan yang disengaja (v1.4.0)
 
 - Memutar kelas dari paket `.maic.zip` sekarang memakai **bundle pemutar web
   yang persis sama** (`lib/standalone-player`, dibangun oleh

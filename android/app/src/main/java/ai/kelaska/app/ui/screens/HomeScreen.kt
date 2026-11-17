@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import ai.kelaska.app.BuildConfig
 import ai.kelaska.app.ui.BrandGradient
 import ai.kelaska.app.ui.CoursesUiState
+import ai.kelaska.app.ui.CenteredContent
 import ai.kelaska.app.ui.GovernmentLogos
 
 @Composable
@@ -57,11 +59,13 @@ fun HomeScreen(
     val context = LocalContext.current
     val totalScenes = courses.stages.sumOf { it.sceneCount }
 
-    Column(
-        modifier = modifier
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 20.dp),
-    ) {
+    CenteredContent(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+        ) {
         /* ---------------------------------------------- Hero gradien */
         Box(
             modifier = Modifier
@@ -177,6 +181,7 @@ fun HomeScreen(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(12.dp))
+        }
     }
 }
 

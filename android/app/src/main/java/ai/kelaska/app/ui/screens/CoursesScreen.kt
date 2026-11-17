@@ -57,6 +57,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import ai.kelaska.app.data.StageSummary
+import ai.kelaska.app.ui.CenteredContent
 import ai.kelaska.app.ui.CoursesUiState
 import ai.kelaska.app.ui.CoursesViewModel
 import ai.kelaska.app.util.IndonesianDate
@@ -90,7 +91,8 @@ fun CoursesScreen(
     }
 
     Box(modifier.fillMaxSize()) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        CenteredContent {
+            Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
             /* ------------------------------------------------ Toolbar */
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -142,6 +144,7 @@ fun CoursesScreen(
                             )
                         }
                     }
+            }
             }
         }
 

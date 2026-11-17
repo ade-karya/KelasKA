@@ -19,9 +19,15 @@ import java.util.Base64
  * spotlight, laser, video, diskusi) identik dengan kelas di kelaska.riau.ai.
  *
  * Satu-satunya yang dilakukan di sini adalah menyiapkan manifest seperti
- * `prepareStandaloneManifest`: referensi media diganti `data:` URI, byte audio
- * dan video ditaruh di blok base64, dan aksi dipangkas ke field yang dibaca
- * pemutar. Tidak ada jaringan yang dipakai saat merakit maupun memutar.
+ * `prepareStandaloneManifest`: referensi media diganti `data:` URI, byte video
+ * ditaruh di blok base64, dan aksi dipangkas ke field yang dibaca pemutar.
+ * Tidak ada jaringan yang dipakai saat merakit maupun memutar.
+ *
+ * Narasi sengaja TIDAK lewat blok base64 + `URL.createObjectURL` seperti ekspor
+ * web: WebView Android tidak memutar audio dari `blob:` URL (permintaan blob
+ * ditolak saat `blockNetworkLoads` aktif), sehingga klip narasi menjadi senyap.
+ * Semua media ber-MIME `audio/…` karena itu masuk media table sebagai `src`
+ * berisi `data:` URI, yang diputar WebView tanpa menyentuh jaringan.
  */
 object StandalonePlayerHtml {
 
@@ -74,12 +80,18 @@ object StandalonePlayerHtml {
         val builder = Builder(course, rawManifest(course))
         val manifest = builder.prepareManifest()
         val mediaTable = builder.mediaTable()
+        val embeddedMedia = builder.embeddedMedia
         val needsMath = builder.needsMath
         val needsCharts = builder.needsCharts
 
         val styles = buildString {
             append("<style>").append(assets.style).append("</style>\n")
             if (needsMath) append("<style>").append(assets.mathFonts).append("</style>\n")
+            // Penyesuaian khusus WebView aplikasi: jendela pemutar di ponsel
+            // tidak selebar jendela browser, jadi bilah atas/bawah dipadatkan
+            // di layar pendek (landscape) dan tombol navigasi menjadi ikon di
+            // layar sempit (portrait) supaya tidak meluber.
+            append("<style>").append(HOST_STYLE).append("</style>\n")
         }
         val extraScripts = if (needsCharts) {
             "<script>${assets.chartsScript}</script>\n"
@@ -109,9 +121,9 @@ object StandalonePlayerHtml {
             append("<div id=\"openmaic-player\"></div>\n")
             append(jsonBlock("openmaic-classroom", manifest))
             append(jsonBlock("openmaic-player-config", config))
-            if (builder.embeddedMedia.isNotEmpty()) {
+            if (mediaTable.isNotEmpty()) {
                 append(jsonBlock("openmaic-media", mediaTable))
-                builder.embeddedMedia.forEachIndexed { index, media ->
+                embeddedMedia.forEachIndexed { index, media ->
                     val id = "openmaic-media-${index + 1}"
                     append("<script type=\"application/octet-stream\" id=\"").append(id).append("\">")
                     append(media.base64)
@@ -133,9 +145,9 @@ object StandalonePlayerHtml {
         private var math = false
         private var charts = false
 
-        /** Byte media sudah di-base64 di sini supaya blok bisa ditulis verbatim. */
+        /** Byte media non-audio sudah di-base64 di sini supaya blok bisa ditulis verbatim. */
         val embeddedMedia: List<MediaWithBase64>
-            get() = media.map { (key, mime) ->
+            get() = media.filterValues { !it.startsWith("audio/") }.map { (key, mime) ->
                 val file = course.media(key) ?: File(course.rootDir, key)
                 MediaWithBase64(
                     key = key,
@@ -163,12 +175,12 @@ object StandalonePlayerHtml {
                 "webm" -> "video/webm"
                 "mp3" -> "audio/mpeg"
                 "wav" -> "audio/wav"
-                "ogg" -> "audio/ogg"
+                "ogg", "opus" -> "audio/ogg"
+                "m4a", "aac" -> "audio/mp4"
+                "flac" -> "audio/flac"
                 else -> "application/octet-stream"
             }
         }
-
-        private fun mimeOf(key: String): String = media[key] ?: "application/octet-stream"
 
         /** Daftarkan byte media dan kembalikan kunci media table-nya. */
         private fun register(ref: String?): String? {
@@ -329,6 +341,12 @@ object StandalonePlayerHtml {
                             if (uri != null) put("pattern", JsonPrimitive(uri))
                         }
                         key == "src" && element.text("type") == "video" -> put("src", JsonPrimitive(""))
+                        key == "src" && element.text("type") == "audio" -> {
+                            // Slide yang membawa klip audio sendiri: inline byte-nya
+                            // supaya tombol putar di renderer benar-benar berbunyi.
+                            val uri = dataUri(value.text())
+                            put("src", uri?.let { JsonPrimitive(it) } ?: JsonPrimitive(""))
+                        }
                         key == "mediaRef" && element.text("type") == "video" -> {
                             val ref = value.text() ?: element.text("src")
                             register(ref)?.let { put("mediaRef", JsonPrimitive(it)) }
@@ -405,12 +423,25 @@ object StandalonePlayerHtml {
         }
 
         fun mediaTable(): JsonObject = buildJsonObject {
-            media.keys.forEachIndexed { index, key ->
+            var embeddedIndex = 0
+            media.forEach { (key, mime) ->
                 put(key, buildJsonObject {
-                    put("mimeType", JsonPrimitive(mimeOf(key)))
-                    put("embedded", JsonPrimitive("openmaic-media-${index + 1}"))
+                    put("mimeType", JsonPrimitive(mime))
+                    if (mime.startsWith("audio/")) {
+                        // `src` berisi data: URI: pemutar memakainya apa adanya,
+                        // tanpa URL.createObjectURL yang tidak berfungsi di WebView.
+                        put("src", JsonPrimitive(archiveDataUri(key, mime)))
+                    } else {
+                        embeddedIndex += 1
+                        put("embedded", JsonPrimitive("openmaic-media-$embeddedIndex"))
+                    }
                 })
             }
+        }
+
+        private fun archiveDataUri(key: String, mime: String): String {
+            val file = course.media(key) ?: File(course.rootDir, key)
+            return "data:$mime;base64," + Base64.getEncoder().encodeToString(file.readBytes())
         }
 
     }
@@ -435,6 +466,27 @@ object StandalonePlayerHtml {
 
     private fun jsonBlock(id: String, value: JsonElement): String =
         "<script type=\"application/json\" id=\"$id\">${jsonForScript(value)}</script>\n"
+
+    /**
+     * Penyesuaian tata letak untuk jendela WebView aplikasi. Bundle pemutar
+     * memakai Tailwind dengan tinggi bilah tetap; di layar ponsel landscape
+     * (tinggi < 520 dp) bilah itu memakan hampir separuh jendela, dan di
+     * portrait sempit tombol "Sebelumnya"/"Berikutnya" berlabel teks membuat
+     * footer meluber. Hanya menyentuh elemen di dalam `#openmaic-player`, jadi
+     * dokumen ekspor web tetap sama.
+     */
+    private val HOST_STYLE = listOf(
+        "@media (max-height:520px){",
+        "#openmaic-player header{height:2.5rem}",
+        "#openmaic-player footer{height:2.75rem}",
+        "#openmaic-player .caption-bar{height:4.25rem}",
+        "}",
+        "@media (max-width:430px){",
+        "#openmaic-player footer{gap:.375rem;padding-inline:.5rem}",
+        "#openmaic-player footer button[data-testid=previous],",
+        "#openmaic-player footer button[data-testid=next]{font-size:0;gap:0;padding-inline:.5rem}",
+        "}",
+    ).joinToString("")
 
     private val FALLBACK_STYLE = listOf(
         "#openmaic-player:empty{display:none}",

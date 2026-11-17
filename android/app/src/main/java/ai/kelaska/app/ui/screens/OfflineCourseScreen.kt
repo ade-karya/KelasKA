@@ -47,6 +47,7 @@ import ai.kelaska.app.data.SceneContent
 import ai.kelaska.app.data.offline.OfflineCourse
 import ai.kelaska.app.data.offline.OfflineNarrationClip
 import ai.kelaska.app.data.offline.OfflineScene
+import ai.kelaska.app.ui.CenteredContent
 import ai.kelaska.app.ui.OfflineCourseViewModel
 import ai.kelaska.app.ui.SceneQuizState
 import ai.kelaska.app.ui.components.InteractiveContentDialog
@@ -138,11 +139,12 @@ private fun OfflineCourseContent(
     val slides = course.scenes.count { it.type == "slide" }
     val quizCount = course.scenes.count { it.type == "quiz" }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
+    CenteredContent(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
@@ -284,6 +286,7 @@ private fun OfflineCourseContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
             )
+        }
         }
     }
 
