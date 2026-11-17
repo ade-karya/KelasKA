@@ -39,8 +39,8 @@ android {
         // Naikkan keduanya di setiap rilis: versionCode harus selalu bertambah
         // (Android menolak memasang versi dengan versionCode lebih kecil) dan
         // versionName harus sama dengan tag rilis `vX.Y.Z` di GitHub.
-        versionCode = 8
-        versionName = "1.4.3"
+        versionCode = 9
+        versionName = "1.4.4"
 
         // Repo publik sumber rilis in-app update (GitHub Releases).
         // Bisa ditimpa lewat -PkelasKaGithubRepo=owner/repo saat build.

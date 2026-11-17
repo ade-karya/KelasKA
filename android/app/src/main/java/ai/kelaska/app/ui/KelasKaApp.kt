@@ -28,6 +28,7 @@ import ai.kelaska.app.KelasKaApplication
 import ai.kelaska.app.ui.components.UpdateHost
 import ai.kelaska.app.ui.screens.AccountScreen
 import ai.kelaska.app.ui.screens.AdminScreen
+import ai.kelaska.app.ui.screens.ClassWebViewScreen
 import ai.kelaska.app.ui.screens.CourseDetailScreen
 import ai.kelaska.app.ui.screens.CoursesScreen
 import ai.kelaska.app.ui.screens.HomeScreen
@@ -217,7 +218,20 @@ private fun SignedInApp(
             composable("courses") {
                 CoursesScreen(
                     viewModel = coursesViewModel,
-                    onOpenCourse = { stageId -> navController.navigate("course/$stageId") },
+                    // Membuka kelas langsung menampilkan versi web (mobile) di
+                    // WebView, supaya semua fitur situs tersedia di aplikasi.
+                    onOpenCourse = { stageId -> navController.navigate("class-web/$stageId") },
+                )
+            }
+            composable(
+                route = "class-web/{stageId}",
+                arguments = listOf(navArgument("stageId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val stageId = backStackEntry.arguments?.getString("stageId").orEmpty()
+                ClassWebViewScreen(
+                    stageId = stageId,
+                    onBack = { navController.popBackStack() },
+                    onOpenDetail = { navController.navigate("course/$stageId") },
                 )
             }
             composable(
@@ -233,6 +247,7 @@ private fun SignedInApp(
                 CourseDetailScreen(
                     viewModel = detailViewModel,
                     onBack = { navController.popBackStack() },
+                    onOpenClass = { id -> navController.navigate("class-web/$id") },
                 )
             }
             composable("offline") {

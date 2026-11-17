@@ -4,6 +4,9 @@
     <!-- Aplikasi memuat data dari kelaska.riau.ai. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Diskusi di kelas daring memakai getUserMedia untuk input mikropon. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <!-- In-app update memasang APK dari GitHub Releases (bukan Google Play). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 

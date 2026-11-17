@@ -57,6 +57,7 @@ import ai.kelaska.app.util.IndonesianDate
 fun CourseDetailScreen(
     viewModel: CourseDetailViewModel,
     onBack: () -> Unit,
+    onOpenClass: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
@@ -91,6 +92,7 @@ fun CourseDetailScreen(
             quizzes = quizzes,
             viewModel = viewModel,
             onBack = onBack,
+            onOpenClass = onOpenClass,
             modifier = modifier,
         )
     }
@@ -102,6 +104,7 @@ private fun DetailContent(
     quizzes: Map<String, SceneQuizState>,
     viewModel: CourseDetailViewModel,
     onBack: () -> Unit,
+    onOpenClass: (String) -> Unit,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
@@ -166,6 +169,19 @@ private fun DetailContent(
             }
         }
 
+        item {
+            // Kelas dibuka di WebView memakai halaman web yang sama dengan
+            // situs (tampilan mobile), bukan pemutar native yang terbatas.
+            FilledTonalButton(
+                onClick = { onOpenClass(doc.stage.id) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(999.dp),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.OpenInNew, null, modifier = Modifier.padding(end = 8.dp))
+                Text("Buka Kelas (tampilan web)")
+            }
+        }
+
         items(doc.scenes.sortedBy { it.order }, key = { it.id }) { scene ->
             when (scene.type) {
                 "slide" -> {
@@ -182,7 +198,7 @@ private fun DetailContent(
                 )
                 else -> OpenWebSceneCard(
                     scene = scene,
-                    onOpenWeb = { openInCustomTab(context, "${BuildConfig.BASE_URL}/classroom/${doc.stage.id}") },
+                    onOpenWeb = { onOpenClass(doc.stage.id) },
                 )
             }
         }
@@ -194,7 +210,7 @@ private fun DetailContent(
                 shape = RoundedCornerShape(999.dp),
             ) {
                 Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                Text("Pengalaman penuh di kelaska.riau.ai")
+                Text("Buka kelas di browser")
             }
         }
         }
