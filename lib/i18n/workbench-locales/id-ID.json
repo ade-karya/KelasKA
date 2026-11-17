@@ -37,10 +37,16 @@
     "placeholder": "Tulis jawabanmu",
     "confirm": "Konfirmasi",
     "submit": "Kirim",
-    "dismiss": "Abaikan",
+    "dismiss": "Tutup",
     "inFormBelow": "Jawab pada formulir di bawah",
     "multiAnswerSeparator": ", ",
-    "inPreview": "Jawab di pratinjau"
+    "inPreview": "Jawab di pratinjau",
+    "recommended": "Direkomendasikan",
+    "autoConfirm": "Konfirmasi otomatis",
+    "autoConfirmed": "Opsi yang direkomendasikan dipilih otomatis — Anda dapat mengubahnya kapan saja",
+    "showDetails": "Tampilkan lebih banyak",
+    "hideDetails": "Tampilkan lebih sedikit",
+    "orAnswerInChat": "Anda juga dapat menjawab di chat"
   },
   "material": {
     "maxSelected": "Kamu bisa memilih hingga {{count}} materi sekaligus",

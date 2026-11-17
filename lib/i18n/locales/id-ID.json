@@ -1513,6 +1513,8 @@
     "providerMiniMaxTTS": "MiniMax TTS",
     "providerXiaomiTTS": "Xiaomi MiMo TTS",
     "providerXiaomiASR": "Xiaomi MiMo ASR",
+    "providerDeepSeekTTS": "DeepSeek TTS",
+    "providerDeepSeekASR": "DeepSeek ASR",
     "providerGoogleTTS": "Google Gemini TTS",
     "providerLemonadeTTS": "Lemonade TTS (Lokal)",
     "providerBrowserNativeTTS": "TTS bawaan browser",
@@ -1560,6 +1562,8 @@
     "qwenCloneUploadShort": "Unggah",
     "qwenCloneRefAudioHint": "Gunakan sampel suara yang bersih berdurasi 1–60 detik, disarankan 10–20 detik; audio akan dikonversi ke PCM WAV mono 24 kHz.",
     "qwenCloneMigrationHint": "Suara tersimpan ini perlu dikloning ulang. Unggah audio referensinya di pengaturan suara.",
+    "qwenCloneNeedsReclone": "Perlu kloning ulang",
+    "qwenCloneRecloneRequired": "Tidak kompatibel dengan model kloning saat ini. Unggah lagi audio referensinya untuk mengkloning ulang.",
     "qwenCloneSaved": "Suara kloning Qwen telah didaftarkan dan disimpan",
     "qwenCloneSaveFailed": "Gagal mendaftarkan suara kloning Qwen",
     "qwenCloneUnsupported": "Browser saat ini tidak mendukung perekaman, unggah file audio sebagai gantinya.",
@@ -1927,6 +1931,8 @@
       "capVideo": "Pembuatan video",
       "capWebSearch": "Pencarian web",
       "capWebFetch": "Pengambilan halaman web",
+      "capAsr": "Pengenalan suara",
+      "capDocument": "Penguraian dokumen",
       "saved": "Pengaturan koneksi tersimpan",
       "stageInteractive": "Halaman interaktif",
       "stageSlide": "Halaman slide",
@@ -2317,6 +2323,10 @@
         "webFetch": {
           "name": "Pengambilan halaman web",
           "desc": "Memungkinkan agen membaca halaman web yang disetujui dalam sesi."
+        },
+        "materialChapters": {
+          "name": "Pengenalan bab",
+          "desc": "Mengenali bab dan bagian dalam dokumen panjang."
         }
       },
       "source": {
@@ -2332,7 +2342,9 @@
           "search": "Cari",
           "fetch": "Ambil",
           "image": "Gambar",
-          "video": "Video"
+          "video": "Video",
+          "parse": "Uraikan",
+          "chapters": "Bab"
         }
       },
       "empty": {
@@ -2433,7 +2445,9 @@
     "webFetchSettings": "Pengambilan halaman web",
     "webFetchHint": "Pilih cara halaman web dibaca. Pembaca terkelola hanya menerima URL publik yang disetujui dalam sesi. Hasilnya tetap dianggap tidak tepercaya, dan kegagalan tidak mengalihkan pembaca.",
     "webFetchApiKey": "API Key",
-    "webFetchSharedKeyHint": "Kunci ini juga digunakan untuk chat dengan penyedia ini. Mengubah atau menghapusnya akan memengaruhi chat."
+    "webFetchSharedKeyHint": "Kunci ini juga digunakan untuk chat dengan penyedia ini. Mengubah atau menghapusnya akan memengaruhi chat.",
+    "autoConfirmRecommended": "Konfirmasi otomatis jawaban yang disarankan",
+    "autoConfirmRecommendedDesc": "Saat agen workbench mengajukan pertanyaan dan menyarankan opsi, opsi itu dipilih setelah hitungan mundur singkat bila Anda tidak merespons. Interaksi apa pun menghentikan hitungan mundur."
   },
   "workspace": {
     "knowledgeBase": {
@@ -2469,6 +2483,11 @@
         "processing_interrupted": {
           "label": "Penguraian tidak selesai",
           "description": "Penguraian tidak dapat diselesaikan. Anda dapat mencoba lagi nanti."
+        },
+        "pages_failed": {
+          "label": "Halaman PDF gagal diuraikan",
+          "description": "Halaman PDF {{firstPage}}–{{lastPage}} gagal diuraikan, sehingga materi ini belum dapat dibaca. Coba uraikan lagi nanti.",
+          "descriptionWithoutCount": "Sebagian halaman PDF gagal diuraikan, sehingga materi ini belum dapat dibaca. Coba uraikan lagi nanti."
         },
         "too_many_pages": {
           "label": "Terlalu banyak halaman",
@@ -3123,6 +3142,9 @@
     "message": "Pesan Anda",
     "send": "Kirim",
     "submitQuiz": "Kirim jawaban",
+    "submitting": "Mengirim…",
+    "submitted": "Terkirim",
+    "resubmit": "Kirim perubahan",
     "quizPassed": "Kuis lulus: {{score}}/{{total}} benar. Anda dapat melanjutkan.",
     "quizRetry": "{{score}}/{{total}} benar. Tinjau jawaban Anda dan coba lagi.",
     "quizCorrect": "Kiriman terakhir: benar",
@@ -3235,6 +3257,7 @@
       "workspace-run": "Eksekusi workspace"
     },
     "overview": {
+      "startLearning": "Mulai belajar",
       "title": "Ringkasan proyek",
       "expand": "Bentangkan",
       "collapse": "Ciutkan",
@@ -3588,6 +3611,8 @@
       "waiting": "Panduan workspace tersedia saat lingkungan belajar siap.",
       "loading": "Memuat workspace Anda",
       "loadingDetail": "Menghubungkan lingkungan belajar dan menyiapkan file proyek. Mohon tunggu.",
+      "loadingSlowDetail": "Persiapan memakan waktu lebih lama. Anda dapat kembali ke pengantar proyek; persiapan yang sudah berjalan tetap berlanjut di latar belakang.",
+      "loadingReturn": "Kembali ke pengantar proyek",
       "steps": {
         "progress": {
           "title": "Periksa progres dan tugas saat ini",

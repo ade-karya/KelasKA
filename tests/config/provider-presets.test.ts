@@ -186,11 +186,18 @@ it('turns the DeepSeek plan into its own preset beside the personal DeepSeek acc
       models: ['deepseek-flash', 'deepseek-v4-pro'],
       defaultModel: 'deepseek-flash',
     },
+    tts: { registryId: 'deepseek-tts', baseUrl: 'https://api.deepseek.com/v1' },
+    asr: { registryId: 'deepseek-asr', baseUrl: 'https://api.deepseek.com/v1' },
+    document: { registryId: 'deepseek-ocr', baseUrl: 'https://api.deepseek.com/v1' },
     webSearch: { registryId: 'deepseek', baseUrl: 'https://api.deepseek.com/v1' },
     webFetch: { registryId: 'deepseek', baseUrl: 'https://api.deepseek.com/v1' },
   });
+  // The speech and OCR tools have no model parameter: provider-only assignments.
   expect(preset.recommended).toEqual({
     llm: 'deepseek-flash',
+    tts: 'deepseek-tts',
+    asr: 'deepseek-asr',
+    document: 'deepseek-ocr',
     webSearch: 'deepseek',
     webFetch: 'deepseek',
   });
@@ -201,7 +208,7 @@ it('seeds the DeepSeek plan models with the registry metadata', () => {
   const models = presetModels(getProviderPreset('deepseek-token-plan')!, 'chat');
   expect(models.map((model) => model.id)).toEqual(['deepseek-flash', 'deepseek-v4-pro']);
   const flash = models[0];
-  expect(flash.name).toBe('DeepSeek Flash');
+  expect(flash.name).toBe('DeepSeek V4.1 Flash');
   expect(flash.contextWindow).toBe(1048576);
   expect(flash.capabilities).toMatchObject({ tools: true, vision: true });
   expect(flash.capabilities?.thinking?.toggleable).toBe(true);

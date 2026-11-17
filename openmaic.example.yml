@@ -139,6 +139,14 @@ providers:
   #     accessKeyId: ${ALIDOCMIND_ACCESS_KEY_ID}
   #     accessKeySecret: ${ALIDOCMIND_ACCESS_KEY_SECRET}
 
+  # MiniCPM-OCR document parsing. The hosted API takes an API key; point
+  # baseUrl at a self-hosted MiniCPM-OCR web demo to parse on your own
+  # infrastructure (its routes live under /api).
+  # minicpm-ocr:
+  #   preset: minicpm-ocr
+  #   apiKey: ${PDF_MINICPM_OCR_API_KEY}
+  #   # baseUrl: http://127.0.0.1:8966/api
+
 slots:
   # The default chat model. Every chat slot without an assignment of its own
   # follows it.
@@ -153,7 +161,11 @@ slots:
   #   model: anthropic:claude-sonnet-4-6
   #   fallback: openai:gpt-5.4-mini
 
-  # The Pro workbench agent needs a model with tool calling. It may set
+  # Chapter recognition for long documents follows llm unless assigned here.
+  # This optional step makes one attempt; it does not use model fallbacks.
+  # material.chapters: openai:gpt-5.5
+
+  # The workbench agent needs a model with tool calling. It may set
   # thinking.mode but not thinking.effort on an HTTP transport; an effort set
   # on llm is dropped for the agent. A local transport carries the effort as a
   # prompt instruction or CLI flag, so it may set one.
@@ -176,6 +188,7 @@ slots:
   # A provider id alone means that provider's default model (search and
   # document services mostly have none to pick).
   # webSearch: tavily
+  # document: minicpm-ocr
   # image: openai-image:gpt-image-2
   # tts: minimax:speech-2.8-turbo
 
