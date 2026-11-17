@@ -1,4 +1,12 @@
-import { ExternalLink, MessagesSquare, Play, X } from 'lucide-react';
+import {
+  Captions,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  MessagesSquare,
+  Play,
+  X,
+} from 'lucide-react';
 import type { StandalonePlayerStrings } from '@/lib/export/standalone-html/contract';
 import { safeClassroomUrl } from './scenes/PblScene';
 
@@ -6,14 +14,73 @@ import { safeClassroomUrl } from './scenes/PblScene';
  * The current speech line (layout rules: `.caption-bar` in `player.css`). On
  * narrow or short screens it is a strip of fixed height below the scene, shown
  * while playback is active so the scene does not resize with every line.
+ *
+ * In the presentation (fullscreen) view the line becomes a floating bubble over
+ * the slide, and can be minimised to a small pill so the slide gets the whole
+ * screen while narration keeps playing.
  */
-export function CaptionBar({ text }: { text: string }) {
+export function CaptionBar({
+  text,
+  strings,
+  presenting = false,
+  collapsed = false,
+  onToggleCollapse,
+}: {
+  text: string;
+  strings: StandalonePlayerStrings;
+  presenting?: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
+  const barClass = presenting ? 'caption-bar caption-bar--presenting' : 'caption-bar';
+
+  if (presenting && collapsed) {
+    return (
+      <div className={barClass} data-testid="caption-bar">
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-expanded={false}
+          aria-label={strings.captions}
+          title={strings.captions}
+          data-testid="caption-pill"
+          className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-slate-900/85 px-3 py-1.5 text-xs font-medium text-white shadow-lg backdrop-blur"
+        >
+          <Captions className="h-3.5 w-3.5" aria-hidden="true" />
+          {strings.captions}
+          <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="caption-bar" data-testid="caption-bar">
-      {text && (
-        <p className="caption-text" data-testid="caption" aria-live="polite">
-          {text}
-        </p>
+    <div className={barClass} data-testid="caption-bar">
+      {presenting ? (
+        <div className="caption-bubble relative pointer-events-auto">
+          {text && (
+            <p className="caption-text" data-testid="caption" aria-live="polite">
+              {text}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-expanded={true}
+            aria-label={strings.captions}
+            title={strings.captions}
+            data-testid="caption-collapse"
+            className="absolute right-1.5 top-1.5 rounded-full p-1 text-white/70 hover:bg-white/15 hover:text-white"
+          >
+            <ChevronDown className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+      ) : (
+        text && (
+          <p className="caption-text" data-testid="caption" aria-live="polite">
+            {text}
+          </p>
+        )
       )}
     </div>
   );

@@ -182,6 +182,14 @@ export function App({ data }: { data: PlayerData }) {
   const playback = usePlayback(scenes, index, goTo);
   const { mode, started, view } = playback.state;
   const [captionsOn, setCaptionsOn] = useState(true);
+  // The narration bubble in the presentation view can be folded to a pill so
+  // the slide keeps the whole screen; it stays folded until the learner asks
+  // for it again, like the classroom's speech bubble.
+  const [captionCollapsed, setCaptionCollapsed] = useState(false);
+  // Presentation controls fade out after a few seconds of no interaction,
+  // leaving only the slide and the narration on screen.
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mainRef = useRef<HTMLElement>(null);
   const playing = mode === 'playing';
   const playLabel = playing
@@ -189,6 +197,56 @@ export function App({ data }: { data: PlayerData }) {
     : mode === 'holding'
       ? strings.playbackContinue
       : strings.play;
+
+  const revealControls = useCallback(() => {
+    setControlsVisible(true);
+    if (controlsTimerRef.current) {
+      clearTimeout(controlsTimerRef.current);
+      controlsTimerRef.current = null;
+    }
+    // A paused or held scene needs its controls; only active playback hides
+    // them, and any tap or pointer movement brings them back.
+    if (fullscreen && mode === 'playing') {
+      controlsTimerRef.current = setTimeout(() => {
+        controlsTimerRef.current = null;
+        setControlsVisible(false);
+      }, 3500);
+    }
+  }, [fullscreen, mode]);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    // Deferred so entering the view does not set state synchronously from the
+    // effect; the first render shows the controls anyway.
+    const initialReveal = setTimeout(revealControls, 0);
+    const onActivity = () => revealControls();
+    window.addEventListener('pointermove', onActivity);
+    window.addEventListener('pointerdown', onActivity);
+    window.addEventListener('touchstart', onActivity);
+    return () => {
+      clearTimeout(initialReveal);
+      window.removeEventListener('pointermove', onActivity);
+      window.removeEventListener('pointerdown', onActivity);
+      window.removeEventListener('touchstart', onActivity);
+      if (controlsTimerRef.current) {
+        clearTimeout(controlsTimerRef.current);
+        controlsTimerRef.current = null;
+      }
+    };
+  }, [fullscreen, revealControls]);
+
+  // Escape leaves the presentation even when the HTML Fullscreen API is not
+  // active (a host without one, or a browser that denied the request).
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      toggleFullscreen();
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => window.removeEventListener('keydown', onEscape);
+  }, [fullscreen, toggleFullscreen]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -265,6 +323,198 @@ export function App({ data }: { data: PlayerData }) {
 
   const scene = scenes[index];
   const courseName = manifest.stage?.name ?? '';
+  const captionText = view.caption ?? '';
+
+  const sceneContent = scene ? (
+    <SceneErrorBoundary key={index} message={strings.unsupportedScene}>
+      <SceneView scene={scene} data={data} playback={playback} />
+    </SceneErrorBoundary>
+  ) : (
+    <UnavailableScene message={strings.emptyClassroom} />
+  );
+
+  // The narration bubble is part of the presentation: it appears with playback
+  // and can be folded to a pill even between lines.
+  const showCaption = captionsOn && mode !== 'idle';
+
+  const stage = (
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+      {/* The caption overlays the scene on wide screens and takes a strip below
+          it on narrow or short ones (see `.caption-bar`). */}
+      <main
+        ref={mainRef}
+        className="relative min-h-0 min-w-0 flex-1"
+        data-testid="scene"
+        data-scene-index={index}
+        data-scene-type={scene?.type}
+      >
+        {sceneContent}
+        {view.discussion !== null && (
+          <DiscussionCard
+            topic={view.discussion}
+            classroomUrl={data.config.classroomUrl}
+            strings={strings}
+            onDismiss={playback.dismissDiscussion}
+          />
+        )}
+        {scene && !started && !overlayDismissed && (
+          <StartOverlay
+            label={strings.playbackStart}
+            onPlay={playback.play}
+            onDismiss={() => setOverlayDismissed(true)}
+          />
+        )}
+      </main>
+      {showCaption && (
+        <CaptionBar
+          text={captionText}
+          strings={strings}
+          presenting={fullscreen}
+          collapsed={captionCollapsed}
+          onToggleCollapse={() => setCaptionCollapsed((collapsed) => !collapsed)}
+        />
+      )}
+    </div>
+  );
+
+  const listPanel = listOpen ? (
+    <nav
+      className={`absolute inset-y-0 right-0 ${
+        fullscreen ? 'z-40' : 'z-10'
+      } flex w-72 max-w-full flex-col border-l border-slate-200 bg-white shadow-xl`}
+      aria-label={strings.scenes}
+    >
+      <div className="flex h-11 shrink-0 items-center border-b border-slate-100 px-4 text-sm font-semibold">
+        {strings.scenes}
+      </div>
+      <ol className="min-h-0 flex-1 overflow-y-auto p-2">
+        {scenes.map((item, itemIndex) => (
+          <li key={itemIndex}>
+            <button
+              type="button"
+              onClick={() => {
+                goTo(itemIndex);
+                setListOpen(false);
+              }}
+              aria-current={itemIndex === index ? 'step' : undefined}
+              className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm ${
+                itemIndex === index
+                  ? 'bg-violet-50 font-medium text-violet-700'
+                  : 'text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span className="w-6 shrink-0 text-right text-xs tabular-nums text-slate-400">
+                {itemIndex + 1}
+              </span>
+              <SceneIcon type={item.type} className="h-4 w-4 shrink-0 text-slate-400" />
+              <span className="truncate">{item.title}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  ) : null;
+
+  // Presentation: only the slide and the narration remain on screen. The
+  // floating controls fade out during playback and come back on any tap.
+  if (fullscreen) {
+    return (
+      <div
+        className="relative flex h-dvh flex-col bg-slate-950 text-slate-900"
+        data-presenting="true"
+      >
+        {stage}
+        {listPanel}
+        <div
+          className={`pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-3 transition-opacity duration-300 ${
+            controlsVisible ? 'opacity-100' : 'opacity-0'
+          }`}
+        >
+          <div
+            className={`flex max-w-full items-center gap-0.5 rounded-full border border-white/20 bg-slate-900/85 p-1 text-white shadow-xl backdrop-blur-md ${
+              controlsVisible ? 'pointer-events-auto' : 'pointer-events-none'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => navigate('previous')}
+              disabled={index <= 0}
+              className="rounded-full p-2.5 text-slate-200 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={strings.previous}
+              title={strings.previous}
+              data-testid="previous"
+            >
+              <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={playback.toggle}
+              disabled={!scene}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-900 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={playLabel}
+              title={playLabel}
+              data-testid="play-toggle"
+              data-mode={mode}
+            >
+              {playing ? (
+                <Pause className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Play className="h-4 w-4 translate-x-px" aria-hidden="true" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('next')}
+              disabled={index >= count - 1}
+              className="rounded-full p-2.5 text-slate-200 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={strings.next}
+              title={strings.next}
+              data-testid="next"
+            >
+              <ChevronRight className="h-5 w-5" aria-hidden="true" />
+            </button>
+            <span className="px-1 text-xs tabular-nums text-slate-300" data-testid="counter">
+              {count > 0 ? index + 1 : 0} / {count}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCaptionsOn((on) => !on)}
+              className={`rounded-full p-2.5 hover:bg-white/10 ${
+                captionsOn ? 'text-violet-300' : 'text-slate-500'
+              }`}
+              aria-label={strings.captions}
+              aria-pressed={captionsOn}
+              title={strings.captions}
+              data-testid="captions-toggle"
+            >
+              <Captions className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setListOpen((open) => !open)}
+              className="rounded-full p-2.5 text-slate-200 hover:bg-white/10"
+              aria-label={strings.scenes}
+              aria-expanded={listOpen}
+              title={strings.scenes}
+              data-testid="presentation-scenes"
+            >
+              <List className="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="rounded-full p-2.5 text-slate-200 hover:bg-white/10"
+              aria-label={strings.exitFullscreen}
+              title={strings.exitFullscreen}
+              data-testid="fullscreen-toggle"
+            >
+              <Minimize className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-dvh flex-col bg-slate-100 text-slate-900">
@@ -295,6 +545,7 @@ export function App({ data }: { data: PlayerData }) {
           className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
           aria-label={fullscreen ? strings.exitFullscreen : strings.fullscreen}
           title={fullscreen ? strings.exitFullscreen : strings.fullscreen}
+          data-testid="fullscreen-toggle"
         >
           {fullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
         </button>
@@ -312,77 +563,8 @@ export function App({ data }: { data: PlayerData }) {
       )}
 
       <div className="relative flex min-h-0 flex-1">
-        {/* The caption overlays the scene on wide screens and takes a strip below
-            it on narrow or short ones (see `.caption-bar`). */}
-        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
-          <main
-            ref={mainRef}
-            className="relative min-h-0 min-w-0 flex-1"
-            data-testid="scene"
-            data-scene-index={index}
-            data-scene-type={scene?.type}
-          >
-            {scene ? (
-              <SceneErrorBoundary key={index} message={strings.unsupportedScene}>
-                <SceneView scene={scene} data={data} playback={playback} />
-              </SceneErrorBoundary>
-            ) : (
-              <UnavailableScene message={strings.emptyClassroom} />
-            )}
-            {view.discussion !== null && (
-              <DiscussionCard
-                topic={view.discussion}
-                classroomUrl={data.config.classroomUrl}
-                strings={strings}
-                onDismiss={playback.dismissDiscussion}
-              />
-            )}
-            {scene && !started && !overlayDismissed && (
-              <StartOverlay
-                label={strings.playbackStart}
-                onPlay={playback.play}
-                onDismiss={() => setOverlayDismissed(true)}
-              />
-            )}
-          </main>
-          {captionsOn && mode !== 'idle' && <CaptionBar text={view.caption ?? ''} />}
-        </div>
-
-        {listOpen && (
-          <nav
-            className="absolute inset-y-0 right-0 z-10 flex w-72 max-w-full flex-col border-l border-slate-200 bg-white shadow-xl"
-            aria-label={strings.scenes}
-          >
-            <div className="flex h-11 shrink-0 items-center border-b border-slate-100 px-4 text-sm font-semibold">
-              {strings.scenes}
-            </div>
-            <ol className="min-h-0 flex-1 overflow-y-auto p-2">
-              {scenes.map((item, itemIndex) => (
-                <li key={itemIndex}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      goTo(itemIndex);
-                      setListOpen(false);
-                    }}
-                    aria-current={itemIndex === index ? 'step' : undefined}
-                    className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm ${
-                      itemIndex === index
-                        ? 'bg-violet-50 font-medium text-violet-700'
-                        : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="w-6 shrink-0 text-right text-xs tabular-nums text-slate-400">
-                      {itemIndex + 1}
-                    </span>
-                    <SceneIcon type={item.type} className="h-4 w-4 shrink-0 text-slate-400" />
-                    <span className="truncate">{item.title}</span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </nav>
-        )}
+        {stage}
+        {listPanel}
       </div>
 
       <footer className="flex h-14 shrink-0 items-center gap-3 border-t border-slate-200 bg-white px-4">

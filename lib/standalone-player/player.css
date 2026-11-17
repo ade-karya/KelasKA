@@ -85,3 +85,49 @@ body {
     overscroll-behavior: contain;
   }
 }
+
+/*
+ * Presentation (fullscreen) captions. The slide keeps the whole viewport, so
+ * the line floats over it even on phones where the normal caption is a strip
+ * below the scene. A collapse button turns it into a pill; the text scrolls
+ * inside the bubble instead of growing past the screen.
+ */
+.caption-bar--presenting {
+  bottom: 5.25rem;
+}
+.caption-bubble {
+  display: flex;
+  max-width: min(48rem, calc(100% - 1rem));
+  min-width: 0;
+  align-items: flex-start;
+}
+.caption-bubble .caption-text {
+  max-height: min(40vh, 14rem);
+  overflow-y: auto;
+  padding-right: 2.5rem;
+  overscroll-behavior: contain;
+  text-align: left;
+}
+@media (max-width: 639px), (max-height: 499px) {
+  .caption-bar--presenting {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 4.75rem;
+    flex: 1 1 auto;
+    align-items: flex-end;
+    height: auto;
+    padding: 0 0.75rem;
+    background: transparent;
+    pointer-events: none;
+  }
+  .caption-bar--presenting .caption-text {
+    max-height: min(35vh, 10rem);
+    overflow-y: auto;
+    border-radius: 0.5rem;
+    background: rgb(15 23 42 / 0.85);
+    padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+    font-size: 13px;
+    line-height: 1.5;
+    pointer-events: auto;
+  }
+}

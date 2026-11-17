@@ -3,7 +3,7 @@
 Aplikasi Android **native** (Kotlin + Jetpack Compose, Material 3) untuk Kelas
 Kecerdasan Artifisial — [kelaska.riau.ai](https://kelaska.riau.ai).
 
-## Fitur v1.4.1
+## Fitur v1.4.2
 
 | Layar | Isi |
 |-------|-----|
@@ -114,6 +114,13 @@ Perilaku orientasi:
   diputar** dari portrait ke landscape. `PlayerChromeClient` tetap menjadi
   cadangan untuk fullscreen HTML lain (mis. konten interaktif); tombol kembali
   keluar dari layar penuh lebih dulu.
+- **Mode presentasi.** Di layar penuh, header/footer pemutar dan bilah atas
+  aplikasi disembunyikan: yang tersisa hanya slide dan narasi. Narasi tampil
+  sebagai gelembung mengambang yang bisa dilipat menjadi pil "Subtitle"
+  (ketuk pil untuk membuka lagi). Bilah kontrol mengambang (sebelumnya,
+  putar/jeda, berikutnya, penghitung, subtitle, daftar adegan, keluar layar
+  penuh) memudar otomatis setelah 3,5 detik saat sedang diputar dan muncul lagi
+  pada sentuhan/gerakan apa pun; saat dijeda bilah tetap terlihat.
 
 ## Arsitektur singkat
 
@@ -249,6 +256,17 @@ endpoint `/api/auth/native/session` dipakai oleh aplikasi untuk menukar token
 menjadi sesi `kelaska_session` (perlakuan sama dengan callback browser, termasuk
 logika *pending account*).
 
+## Perbaikan v1.4.2
+
+- **Layar penuh = presentasi.** Header/footer pemutar web dan bilah atas
+  aplikasi tidak lagi terlihat di layar penuh, sehingga slide memakai seluruh
+  layar. Kontrol pindah ke bilah mengambang di bawah yang menyusut otomatis
+  selama pemutaran, dan `Escape` (serta tombol kembali) keluar dari mode
+  presentasi.
+- **Narasi bisa dilipat.** Gelembung narasi di mode presentasi punya tombol
+  lipat; versi terlipat berupa pil "Subtitle" kecil di atas bilah kontrol.
+  Subtitle tetap berjalan walaupun gelembung dilipat.
+
 ## Perbaikan v1.4.1
 
 - **Layar penuh bertahan saat rotasi.** Tombol layar penuh pemutar tidak lagi
@@ -287,7 +305,7 @@ logika *pending account*).
   (`configChanges`), bilah pemutar dipadatkan di layar pendek/sempit, dan
   konten daftar/detail dibatasi 840 dp serta ditengahkan.
 
-## Batasan yang disengaja (v1.4.1)
+## Batasan yang disengaja (v1.4.2)
 
 - Memutar kelas dari paket `.maic.zip` sekarang memakai **bundle pemutar web
   yang persis sama** (`lib/standalone-player`, dibangun oleh

@@ -269,10 +269,8 @@ describe('standalone player native host', () => {
   type HostWindow = Window & {
     KelasKaHost?: { setFullscreen?: (enabled: boolean) => void };
   };
-  const fullscreenButton = () => {
-    const buttons = host.querySelectorAll('header button');
-    return buttons[buttons.length - 1] as HTMLButtonElement;
-  };
+  const fullscreenButton = () =>
+    host.querySelector('[data-testid=fullscreen-toggle]') as HTMLButtonElement;
 
   afterEach(() => {
     delete (window as HostWindow).KelasKaHost;
@@ -293,16 +291,49 @@ describe('standalone player native host', () => {
     expect(fullscreenButton().getAttribute('title')).toBe('[fullscreen]');
   });
 
+  it('shows only the scene and narration while presenting', () => {
+    (window as HostWindow).KelasKaHost = { setFullscreen: vi.fn() };
+    render();
+    expect(host.querySelector('header')).not.toBeNull();
+    expect(host.querySelector('footer')).not.toBeNull();
+
+    act(() => fullscreenButton().click());
+    expect(host.querySelector('[data-presenting=true]')).not.toBeNull();
+    expect(host.querySelector('header')).toBeNull();
+    expect(host.querySelector('footer')).toBeNull();
+    expect(host.querySelector('[data-testid=scene]')).not.toBeNull();
+    expect(host.querySelector('[data-testid=fullscreen-toggle]')).not.toBeNull();
+    expect(host.querySelector('[data-testid=play-toggle]')).not.toBeNull();
+  });
+
+  it('folds the narration bubble to a pill and back', () => {
+    (window as HostWindow).KelasKaHost = { setFullscreen: vi.fn() };
+    render();
+    act(() => fullscreenButton().click());
+    act(() => (host.querySelector('[data-testid=start-playback]') as HTMLElement).click());
+    expect(host.querySelector('[data-testid=caption-bar]')).not.toBeNull();
+
+    act(() => (host.querySelector('[data-testid=caption-collapse]') as HTMLElement).click());
+    expect(host.querySelector('[data-testid=caption]')).toBeNull();
+    expect(host.querySelector('[data-testid=caption-pill]')).not.toBeNull();
+
+    act(() => (host.querySelector('[data-testid=caption-pill]') as HTMLElement).click());
+    expect(host.querySelector('[data-testid=caption-collapse]')).not.toBeNull();
+    expect(host.querySelector('[data-testid=caption-pill]')).toBeNull();
+  });
+
   it('follows a fullscreen change the host reports, such as the Back button', () => {
     (window as HostWindow).KelasKaHost = { setFullscreen: vi.fn() };
     render();
     act(() => {
       window.dispatchEvent(new CustomEvent('kelaska:fullscreen', { detail: true }));
     });
+    expect(host.querySelector('header')).toBeNull();
     expect(fullscreenButton().getAttribute('title')).toBe('[exitFullscreen]');
     act(() => {
       window.dispatchEvent(new CustomEvent('kelaska:fullscreen', { detail: false }));
     });
+    expect(host.querySelector('header')).not.toBeNull();
     expect(fullscreenButton().getAttribute('title')).toBe('[fullscreen]');
   });
 });
