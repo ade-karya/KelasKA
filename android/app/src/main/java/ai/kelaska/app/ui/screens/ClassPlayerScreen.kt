@@ -5,8 +5,11 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.graphics.Color
+import android.os.Build
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -54,6 +57,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import ai.kelaska.app.data.offline.OfflineCourse
 import ai.kelaska.app.data.offline.StandalonePlayerHtml
+import ai.kelaska.app.ui.LocalPresentationState
 import ai.kelaska.app.ui.player.PlayerHostBridge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -84,8 +88,11 @@ fun ClassPlayerScreen(
     val activity = remember(context) { context.findActivity() }
     val configuration = LocalConfiguration.current
     var loadError by remember(course.meta.id) { mutableStateOf<String?>(null) }
-    // Layar penuh milik aplikasi: bilah atas dan bilah sistem disembunyikan.
-    var fullscreen by remember(course.meta.id) { mutableStateOf(false) }
+    // Layar penuh milik aplikasi. Statusnya dibagikan ke AppShell supaya
+    // sidebar/rail dan bilah atas aplikasi ikut hilang; pemutar sendiri tidak
+    // bisa melepas chrome yang berada di luarnya.
+    val presentation = LocalPresentationState.current
+    val fullscreen = presentation.active
 
     var htmlFile by remember(course.meta.id) { mutableStateOf<File?>(null) }
     LaunchedEffect(course.meta.id) {
@@ -112,9 +119,13 @@ fun ClassPlayerScreen(
     // Bilah sistem disembunyikan selama layar penuh. Efeknya diulang saat
     // konfigurasi berubah: controller insets dapat kembali menampilkan bilah
     // setelah rotasi, dan itulah yang dulu membuat layar penuh "keluar".
+    // Mode cutout juga dilepas: dengan mode default, jendela berhenti di bawah
+    // kamera depan walau bilah sistem sudah tersembunyi, sehingga presentasi
+    // tidak pernah benar-benar penuh.
     LaunchedEffect(fullscreen, configuration, activity) {
         val window = activity?.window ?: return@LaunchedEffect
         val controller = WindowInsetsControllerCompat(window, window.decorView)
+        applyDisplayCutoutMode(window, fullscreen)
         if (fullscreen) {
             controller.systemBarsBehavior =
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -125,17 +136,20 @@ fun ClassPlayerScreen(
     }
 
     // Meninggalkan halaman saat layar penuh tidak boleh menyisakan bilah
-    // sistem yang tetap tersembunyi.
-    DisposableEffect(activity) {
+    // sistem yang tetap tersembunyi atau status presentasi yang menahan chrome
+    // shell untuk layar berikutnya.
+    DisposableEffect(activity, presentation) {
         onDispose {
+            presentation.set(false)
             val window = activity?.window ?: return@onDispose
             WindowInsetsControllerCompat(window, window.decorView)
                 .show(WindowInsetsCompat.Type.systemBars())
+            applyDisplayCutoutMode(window, false)
         }
     }
 
     // Kembali dari layar penuh dulu, baru keluar dari halaman.
-    BackHandler(enabled = fullscreen) { fullscreen = false }
+    BackHandler(enabled = fullscreen) { presentation.set(false) }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Di landscape (dan layar sangat pendek) bilah aplikasi dipadatkan
@@ -181,7 +195,7 @@ fun ClassPlayerScreen(
                     else -> WebPlayer(
                         file = htmlFile!!,
                         fullscreen = fullscreen,
-                        onFullscreenChanged = { fullscreen = it },
+                        onFullscreenChanged = { presentation.set(it) },
                     )
                 }
             }
@@ -419,4 +433,24 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
     else -> null
+}
+
+/**
+ * Izinkan jendela memakai area *display cutout* (kamera depan/punch-hole)
+ * selama presentasi. Dengan mode default, Android tetap menyisakan pita di
+ * sekitar kamera walau bilah sistem sudah disembunyikan, sehingga slide tidak
+ * pernah benar-benar penuh. `ALWAYS` (Android 11+) memakai seluruh layar tanpa
+ * peduli sisi cutout; `SHORT_EDGES` menjadi pilihan untuk Android 9–10. Mode
+ * dikembalikan saat keluar supaya layar biasa tetap menghormati area aman.
+ */
+private fun applyDisplayCutoutMode(window: Window, fullscreen: Boolean) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return
+    val mode = when {
+        !fullscreen -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ->
+            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+        else -> WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+    }
+    if (window.attributes.layoutInDisplayCutoutMode == mode) return
+    window.attributes = window.attributes.apply { layoutInDisplayCutoutMode = mode }
 }

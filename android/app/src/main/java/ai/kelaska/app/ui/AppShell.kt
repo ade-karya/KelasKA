@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +41,7 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.PermanentDrawerSheet
 import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -94,6 +96,11 @@ fun AppShell(
     val goTo: (String) -> Unit = { route ->
         navController.navigate(route) { launchSingleTop = true }
     }
+    // Presentasi layar penuh milik pemutar: seluruh chrome shell (sidebar,
+    // rail, drawer, bilah atas) dan inset sistem dilepas supaya slide memakai
+    // seluruh layar. Slot `content` tetap di posisi komposisi yang sama, jadi
+    // WebView pemutar tidak dibuat ulang saat masuk/keluar presentasi.
+    val presenting = LocalPresentationState.current.active
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val landscape = maxWidth > maxHeight
@@ -102,26 +109,36 @@ fun AppShell(
         // digulir dipakai supaya semua tujuan tetap terjangkau.
         val compactRail = landscape && maxHeight < 480.dp
         when {
-            compactRail -> Row(Modifier.fillMaxSize().safeDrawingPadding()) {
-                CompactSidebar(
-                    destinations = destinations,
-                    currentRoute = currentRoute,
-                    onNavigate = goTo,
-                    onSignOut = onSignOut,
-                )
+            compactRail -> Row(
+                Modifier.fillMaxSize().then(
+                    if (presenting) Modifier else Modifier.safeDrawingPadding(),
+                ),
+            ) {
+                if (!presenting) {
+                    CompactSidebar(
+                        destinations = destinations,
+                        currentRoute = currentRoute,
+                        onNavigate = goTo,
+                        onSignOut = onSignOut,
+                    )
+                }
                 Box(Modifier.weight(1f)) { content(PaddingValues(0.dp)) }
             }
 
             maxWidth >= 1200.dp ->
                 PermanentNavigationDrawer(
                     drawerContent = {
-                        PermanentDrawerSheet(Modifier.width(300.dp)) {
-                            SidebarContent(
-                                destinations = destinations,
-                                currentRoute = currentRoute,
-                                onNavigate = goTo,
-                                onSignOut = onSignOut,
-                            )
+                        // Drawer kosong saat presentasi: kolomnya menjadi 0 dp
+                        // dan slide memakai seluruh lebar.
+                        if (!presenting) {
+                            PermanentDrawerSheet(Modifier.width(300.dp)) {
+                                SidebarContent(
+                                    destinations = destinations,
+                                    currentRoute = currentRoute,
+                                    onNavigate = goTo,
+                                    onSignOut = onSignOut,
+                                )
+                            }
                         }
                     },
                 ) {
@@ -130,45 +147,53 @@ fun AppShell(
 
             maxWidth >= 840.dp ->
                 Row(Modifier.fillMaxSize()) {
-                    NavigationRail(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                        header = {
-                            androidx.compose.foundation.Image(
-                                painterResource(R.drawable.logo_kemendikdasmen),
-                                contentDescription = "Kemendikdasmen",
-                                modifier = Modifier.height(40.dp).padding(top = 12.dp),
-                            )
-                        },
-                    ) {
-                        Spacer(Modifier)
-                        destinations.forEach { dest ->
-                            NavigationRailItem(
-                                selected = currentRoute == dest.route,
-                                onClick = { goTo(dest.route) },
-                                icon = { Icon(dest.icon, contentDescription = null) },
-                                label = { Text(dest.label) },
-                                alwaysShowLabel = true,
-                            )
-                        }
-                        Spacer(Modifier)
-                        IconButton(onClick = onSignOut, modifier = Modifier.padding(bottom = 16.dp)) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = "Keluar",
-                                tint = MaterialTheme.colorScheme.error,
-                            )
+                    if (!presenting) {
+                        NavigationRail(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            header = {
+                                androidx.compose.foundation.Image(
+                                    painterResource(R.drawable.logo_kemendikdasmen),
+                                    contentDescription = "Kemendikdasmen",
+                                    modifier = Modifier.height(40.dp).padding(top = 12.dp),
+                                )
+                            },
+                        ) {
+                            Spacer(Modifier)
+                            destinations.forEach { dest ->
+                                NavigationRailItem(
+                                    selected = currentRoute == dest.route,
+                                    onClick = { goTo(dest.route) },
+                                    icon = { Icon(dest.icon, contentDescription = null) },
+                                    label = { Text(dest.label) },
+                                    alwaysShowLabel = true,
+                                )
+                            }
+                            Spacer(Modifier)
+                            IconButton(onClick = onSignOut, modifier = Modifier.padding(bottom = 16.dp)) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.Logout,
+                                    contentDescription = "Keluar",
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            }
                         }
                     }
                     Box(Modifier.weight(1f)) { content(PaddingValues(0.dp)) }
                 }
 
-            landscape -> Row(Modifier.fillMaxSize().safeDrawingPadding()) {
-                CompactSidebar(
-                    destinations = destinations,
-                    currentRoute = currentRoute,
-                    onNavigate = goTo,
-                    onSignOut = onSignOut,
-                )
+            landscape -> Row(
+                Modifier.fillMaxSize().then(
+                    if (presenting) Modifier else Modifier.safeDrawingPadding(),
+                ),
+            ) {
+                if (!presenting) {
+                    CompactSidebar(
+                        destinations = destinations,
+                        currentRoute = currentRoute,
+                        onNavigate = goTo,
+                        onSignOut = onSignOut,
+                    )
+                }
                 Box(Modifier.weight(1f)) { content(PaddingValues(0.dp)) }
             }
 
@@ -177,6 +202,8 @@ fun AppShell(
                 val scope = androidx.compose.runtime.rememberCoroutineScope()
                 ModalNavigationDrawer(
                     drawerState = drawerState,
+                    // Presentasi tidak boleh membuka drawer lewat geser tepi.
+                    gesturesEnabled = !presenting,
                     drawerContent = {
                         ModalDrawerSheet(Modifier.width(300.dp)) {
                             SidebarContent(
@@ -192,36 +219,45 @@ fun AppShell(
                     },
                 ) {
                     Scaffold(
+                        // Tanpa bilah atas dan tanpa inset: slide mengisi
+                        // seluruh jendela, termasuk area kamera depan.
+                        contentWindowInsets = if (presenting) {
+                            WindowInsets(0, 0, 0, 0)
+                        } else {
+                            ScaffoldDefaults.contentWindowInsets
+                        },
                         topBar = {
-                            TopAppBar(
-                                title = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        androidx.compose.foundation.Image(
-                                            painterResource(R.drawable.logo_kemendikdasmen),
-                                            contentDescription = null,
-                                            modifier = Modifier.height(26.dp),
-                                        )
-                                        Spacer(Modifier.width(6.dp))
-                                        androidx.compose.foundation.Image(
-                                            painterResource(R.drawable.logo_dprd),
-                                            contentDescription = null,
-                                            modifier = Modifier.height(26.dp),
-                                        )
-                                        Spacer(Modifier.width(10.dp))
-                                        Text(
-                                            "Kelas KA",
-                                            style = MaterialTheme.typography.titleMedium.copy(
-                                                fontWeight = FontWeight.ExtraBold,
-                                            ),
-                                        )
-                                    }
-                                },
-                                navigationIcon = {
-                                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                                        Icon(Icons.Filled.Menu, contentDescription = "Buka menu")
-                                    }
-                                },
-                            )
+                            if (!presenting) {
+                                TopAppBar(
+                                    title = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            androidx.compose.foundation.Image(
+                                                painterResource(R.drawable.logo_kemendikdasmen),
+                                                contentDescription = null,
+                                                modifier = Modifier.height(26.dp),
+                                            )
+                                            Spacer(Modifier.width(6.dp))
+                                            androidx.compose.foundation.Image(
+                                                painterResource(R.drawable.logo_dprd),
+                                                contentDescription = null,
+                                                modifier = Modifier.height(26.dp),
+                                            )
+                                            Spacer(Modifier.width(10.dp))
+                                            Text(
+                                                "Kelas KA",
+                                                style = MaterialTheme.typography.titleMedium.copy(
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                ),
+                                            )
+                                        }
+                                    },
+                                    navigationIcon = {
+                                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                            Icon(Icons.Filled.Menu, contentDescription = "Buka menu")
+                                        }
+                                    },
+                                )
+                            }
                         },
                     ) { padding ->
                         content(padding)

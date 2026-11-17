@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -45,8 +47,13 @@ fun KelasKaApp(mainViewModel: MainViewModel, updateViewModel: UpdateViewModel) {
     LaunchedEffect(updateViewModel) {
         updateViewModel.checkAutomatically()
     }
-    UpdateHost(viewModel = updateViewModel) {
-        KelasKaContent(mainViewModel, updateViewModel)
+    // Satu status presentasi untuk seluruh aplikasi: pemutar offline (tanpa
+    // AppShell) maupun pemutar di dalam AppShell memakai instance yang sama.
+    val presentation = remember { PresentationState() }
+    CompositionLocalProvider(LocalPresentationState provides presentation) {
+        UpdateHost(viewModel = updateViewModel) {
+            KelasKaContent(mainViewModel, updateViewModel)
+        }
     }
 }
 
@@ -126,6 +133,7 @@ private fun OfflineOnlyApp(
 ) {
     val navController = rememberNavController()
     val currentEntry by navController.currentBackStackEntryAsState()
+    val presentation = LocalPresentationState.current
     // Tombol kembali sistem di daftar paket mengembalikan ke layar masuk,
     // bukan menutup aplikasi.
     BackHandler(enabled = currentEntry?.destination?.route == "offline") { onExit() }
@@ -133,8 +141,11 @@ private fun OfflineOnlyApp(
         navController = navController,
         startDestination = "offline",
         // Jalur offline tidak memakai AppShell/Scaffold, jadi inset sistem
-        // (status bar & navigasi) diterapkan di sini.
-        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+        // (status bar & navigasi) diterapkan di sini. Saat presentasi, inset
+        // dilepas supaya slide memakai seluruh layar termasuk area kamera.
+        modifier = Modifier
+            .fillMaxSize()
+            .then(if (presentation.active) Modifier else Modifier.safeDrawingPadding()),
     ) {
         composable("offline") {
             val libraryViewModel: OfflineLibraryViewModel = viewModel(

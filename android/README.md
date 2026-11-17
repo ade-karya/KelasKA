@@ -114,8 +114,11 @@ Perilaku orientasi:
   diputar** dari portrait ke landscape. `PlayerChromeClient` tetap menjadi
   cadangan untuk fullscreen HTML lain (mis. konten interaktif); tombol kembali
   keluar dari layar penuh lebih dulu.
-- **Mode presentasi.** Di layar penuh, header/footer pemutar dan bilah atas
-  aplikasi disembunyikan: yang tersisa hanya slide dan narasi. Narasi tampil
+- **Mode presentasi.** Di layar penuh, seluruh chrome aplikasi — sidebar
+  ringkas/rail/drawer dan bilah atas — ikut dilepas, bukan hanya header/footer
+  pemutar: yang tersisa hanya slide dan narasi. Slide juga memakai area kamera
+  depan (display cutout, mode `always`/`shortEdges` selama presentasi) dan
+  inset sistem tidak lagi memotong tepi layar. Narasi tampil
   sebagai gelembung mengambang yang bisa dilipat menjadi pil "Subtitle"
   (ketuk pil untuk membuka lagi). Bilah kontrol mengambang (sebelumnya,
   putar/jeda, berikutnya, penghitung, subtitle, daftar adegan, keluar layar
