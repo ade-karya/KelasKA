@@ -42,6 +42,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Added `public/.well-known/security.txt` (GitHub Private Vulnerability Reporting contact and SECURITY.md policy link), `app/robots.ts` (allow all, sitemap pointer) and `app/sitemap.ts` (only the genuinely public `/` and `/docs/getting-started`). The Cloudflare-managed robots.txt no longer lacks a sitemap hint when the app serves its own; the zone may still override it at the edge.
 - The home page now carries Open Graph/Twitter card metadata (`metadataBase` kelaska.riau.ai, site name "Kelas Kecerdasan Artifisial", locale id_ID), so a shared link renders a real preview. No raster `og:image` ships in the repo yet (the share wordmark is SVG, which crawlers do not render) — a 1200×630 PNG would complete the preview.
 
+### Performance
+
+- `install.sh` now skips `bun run build` when a build fingerprint (git HEAD + tracked/untracked changes + baked `NEXT_PUBLIC_*` + workspace-package stamp + Bun version + fast mode) still matches `.next`, so a rerun that changes nothing but env/config only refreshes the standalone assets and restarts PM2. `--rebuild` forces a build. The static docs site gets the same fingerprint treatment in `scripts/build-docs.sh` (`--force` to override) and starts alongside `bun install` instead of waiting for it.
+- Production builds on hosts with ≥16 GB RAM run the TypeScript pass **in parallel** with the Turbopack compile (`OPENMAIC_SKIP_TYPECHECK=1` for Next plus a background `tsc -p tsconfig.build.json`, then one incremental pass after `.next/types` is regenerated). The installer also stops PM2 `kelaska` for the duration of a rebuild so requests are not served from a half-written `.next`.
+- Workspace package builds (`scripts/build-packages.mjs`) use up to four parallel jobs on 4+ vCPU / 12+ GB hosts instead of three.
+
 ## [1.5.0-rc.2] - 2026-11-12
 
 1.5.0-rc.2 is the second release candidate for 1.5.0. It polishes the workbench (drag to fold the rail and the classroom dock, clearer chat status, no duplicate guide course after sign-in), gives Native classroom agents fresh whiteboard state, and fixes PBL previews, assessments and history. No upgrade conditions over 1.5.0-rc.1: no new migrations, and the 1.5.0-rc.1 **Breaking Changes** still apply when upgrading from 1.4.x.

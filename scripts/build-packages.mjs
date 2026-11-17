@@ -88,10 +88,11 @@ async function buildWorkspacePackages() {
   const ramGb = totalmem() / 1024 ** 3;
   // Two bundlers fit on a 2-vCPU/8 GB Colab runtime; a larger host can run
   // three or four (each build is one esbuild/tsc process). Small runtimes stay
-  // serial so the build does not swap.
+  // serial so the build does not swap. On a 4-vCPU notebook host all four fit,
+  // which keeps the dependency-ordered scheduler from leaving a core idle.
   let concurrency = 1;
   if (cpuCount >= 2 && ramGb >= 7) concurrency = 2;
-  if (cpuCount >= 4 && ramGb >= 12) concurrency = Math.min(4, Math.floor(cpuCount / 2) + 1);
+  if (cpuCount >= 4 && ramGb >= 12) concurrency = Math.min(4, Math.max(3, cpuCount));
   // Operator/benchmark override; an invalid value keeps the adaptive default.
   const forcedConcurrency = Number.parseInt(
     process.env.OPENMAIC_BUILD_PACKAGES_CONCURRENCY || '',

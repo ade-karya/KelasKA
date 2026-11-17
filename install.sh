@@ -78,6 +78,9 @@
 #                         DEFAULT_MODEL berbentuk provider:model dan providernya
 #                         punya key/transport yang jelas).
 #   --build               Jalankan `bun --bun run build` di akhir.
+#   --rebuild             Sama seperti --build, tetapi paksa build ulang walau
+#                         sumber + NEXT_PUBLIC tidak berubah (default: build
+#                         yang tidak berubah dilewati; hanya PM2/aset disegarkan).
 #   --with-pm2            Instal PM2 (via Bun) + build + jalankan aplikasi.
 #   --no-docs             Jangan bangun situs dokumentasi /docs (packages/docs);
 #                         /docs lalu menjawab "belum dibangun". Default: bangun
@@ -284,6 +287,9 @@ on_exit() {
   if [[ -n "${DOCS_BUILD_PID:-}" ]]; then
     kill "$DOCS_BUILD_PID" 2>/dev/null || true
   fi
+  if [[ -n "${TS_PID:-}" ]]; then
+    kill "$TS_PID" 2>/dev/null || true
+  fi
   [[ "$rc" -eq 0 || "$rc" -eq 141 ]] && return 0
   if [[ "$FAILED_BY_FAIL" -eq 0 ]]; then
     echo -e "${MERAH}[install] GAGAL:${RESET} berhenti di langkah '${LANGKAH}' (exit ${rc})." >&2
@@ -349,11 +355,19 @@ AUTH_PUBLIC_URL_ARG="${AUTH_PUBLIC_URL:-}"
 WITH_DEV=0
 WITH_SERVER_START=1
 FAST_BUILD="auto"
+# --rebuild memaksa `next build` walau sidik jari sumber + NEXT_PUBLIC sama
+# dengan build terakhir (default: build yang tidak berubah dilewati).
+FORCE_BUILD=0
+# Typecheck TypeScript berjalan paralel dengan kompilasi Turbopack. "auto" =
+# hanya pada build produksi (bukan --fast) di host >= 16 GB RAM.
+TYPE_PARALLEL="${OPENMAIC_TYPE_PARALLEL:-auto}"
 SYNC_MODEL_PARALLEL=0
 SYNC_MODEL_DONE=0
 MODEL_SYNC_PID=""
 MODEL_SYNC_LOG=""
 MODEL_SYNC_RC_FILE=""
+# Typecheck paralel + status PM2 sebelum build (lihat jalankan_build).
+TS_PID=""
 # Layanan GPU dan bootstrap skema database berjalan di latar agar tumpang
 # tindih dengan `bun install`/build (host dengan beberapa vCPU + RAM besar).
 GPU_SYNC_PID=""
@@ -420,6 +434,7 @@ for arg in "$@"; do
     --google-key=*)      GOOGLE_KEY_ARG="${arg#*=}" ;;
     --github-token=*)    GITHUB_TOKEN_ARG="${arg#*=}" ;;
     --build)             WITH_BUILD=1 ;;
+    --rebuild)           WITH_BUILD=1; FORCE_BUILD=1 ;;
     --with-docs)         WITH_DOCS=1 ;;
     --no-docs)           WITH_DOCS=0 ;;
     --with-pm2)          WITH_PM2=1 ;;
@@ -1621,6 +1636,62 @@ pastikan_bootstrap_db() {
 LANGKAH="direktori data/"
 info "Menyiapkan direktori data/..."
 mkdir -p data/classrooms data/classroom-jobs
+
+# ------------------------------------------------ dokumentasi /docs (paralel)
+# packages/docs adalah aplikasi Next statis terpisah (di luar workspace Bun).
+# Build-nya berjalan di latar selama build utama, lalu public/docs-site
+# disalin ke standalone oleh langkah PM2. Non-fatal: tanpa docs, rute /docs
+# menjawab halaman "belum dibangun".
+DOCS_BUILD_PID=""
+DOCS_BUILD_LOG=""
+DOCS_BUILD_RC_FILE=""
+bangun_docs_di_latar() {
+  [[ "$WITH_DOCS" -eq 1 ]] || return 0
+  [[ "$WITH_INSTALL" -eq 1 ]] || return 0
+  [[ -f packages/docs/package.json ]] || return 0
+  [[ -f scripts/build-docs.sh ]] || return 0
+  DOCS_BUILD_LOG="$(mktemp)"
+  DOCS_BUILD_RC_FILE="${DOCS_BUILD_LOG}.rc"
+  rm -f "$DOCS_BUILD_RC_FILE"
+  (
+    _docs_rc=0
+    _docs_args=()
+    [[ "$FORCE_BUILD" -eq 1 ]] && _docs_args+=(--force)
+    as_owner env NEXT_TELEMETRY_DISABLED=1 BUN_BIN="$BUN_BIN" \
+      bash scripts/build-docs.sh "${_docs_args[@]}" || _docs_rc=$?
+    printf '%s\n' "$_docs_rc" > "$DOCS_BUILD_RC_FILE"
+  ) >"$DOCS_BUILD_LOG" 2>&1 &
+  DOCS_BUILD_PID=$!
+  info "Build dokumentasi /docs berjalan di latar (PID ${DOCS_BUILD_PID})."
+}
+
+pastikan_docs() {
+  [[ -n "$DOCS_BUILD_PID" ]] || return 0
+  LANGKAH="docs: build situs /docs"
+  wait "$DOCS_BUILD_PID" 2>/dev/null || true
+  DOCS_BUILD_PID=""
+  local _docs_rc=0
+  if [[ -f "$DOCS_BUILD_RC_FILE" ]]; then
+    _docs_rc="$(cat "$DOCS_BUILD_RC_FILE" 2>/dev/null || echo 1)"
+  fi
+  if [[ "$_docs_rc" == "0" ]]; then
+    info "Situs dokumentasi siap di public/docs-site."
+  else
+    warn "Build dokumentasi /docs gagal (exit ${_docs_rc}); halaman /docs akan menjawab 'belum dibangun'. Jalankan manual: bash scripts/build-docs.sh"
+    if [[ -n "$DOCS_BUILD_LOG" && -f "$DOCS_BUILD_LOG" ]]; then
+      tail -n 25 "$DOCS_BUILD_LOG" >&2 || true
+    fi
+  fi
+  if [[ -n "$DOCS_BUILD_LOG" ]]; then rm -f "$DOCS_BUILD_LOG"; fi
+  if [[ -n "$DOCS_BUILD_RC_FILE" ]]; then rm -f "$DOCS_BUILD_RC_FILE"; fi
+  DOCS_BUILD_LOG=""
+  DOCS_BUILD_RC_FILE=""
+  preset_mark "build dokumentasi selesai"
+}
+
+# Dokumentasi dibangun lebih dulu (paralel dengan bun install + build utama);
+# hasilnya ditunggu oleh pastikan_docs sebelum aset standalone disalin.
+bangun_docs_di_latar
 
 # ============================================================ 6. Dependensi JS
 if [[ "$WITH_INSTALL" -eq 1 ]]; then
@@ -3018,57 +3089,67 @@ fi
 # ============================================================ 8. Build
 BUILD_DONE=0
 
-# ------------------------------------------------ dokumentasi /docs (paralel)
-# packages/docs adalah aplikasi Next statis terpisah (di luar workspace Bun).
-# Build-nya berjalan di latar selama build utama, lalu public/docs-site
-# disalin ke standalone oleh langkah PM2. Non-fatal: tanpa docs, rute /docs
-# menjawab halaman "belum dibangun".
-DOCS_BUILD_PID=""
-DOCS_BUILD_LOG=""
-DOCS_BUILD_RC_FILE=""
-bangun_docs_di_latar() {
-  [[ "$WITH_DOCS" -eq 1 ]] || return 0
-  [[ "$WITH_INSTALL" -eq 1 ]] || return 0
-  [[ -f packages/docs/package.json ]] || return 0
-  [[ -f scripts/build-docs.sh ]] || return 0
-  DOCS_BUILD_LOG="$(mktemp)"
-  DOCS_BUILD_RC_FILE="${DOCS_BUILD_LOG}.rc"
-  rm -f "$DOCS_BUILD_RC_FILE"
-  (
-    _docs_rc=0
-    as_owner env NEXT_TELEMETRY_DISABLED=1 BUN_BIN="$BUN_BIN" \
-      bash scripts/build-docs.sh || _docs_rc=$?
-    printf '%s\n' "$_docs_rc" > "$DOCS_BUILD_RC_FILE"
-  ) >"$DOCS_BUILD_LOG" 2>&1 &
-  DOCS_BUILD_PID=$!
-  info "Build dokumentasi /docs berjalan di latar (PID ${DOCS_BUILD_PID})."
-}
+# ------------------------------------------------- build: sidik jari sumber
+# `bun run build` (Turbopack) memakan ~2 menit walau hanya env non-build yang
+# berubah. Sidik jari = HEAD + perubahan tracked/untracked + NEXT_PUBLIC_* yang
+# dipanggang build + stamp paket workspace + versi Bun + mode --fast. Rerun
+# installer yang tidak mengubah input build cukup menyegarkan aset + PM2.
+BUILD_STAMP_DIR="$ROOT_DIR/node_modules/.cache/kelaska"
+BUILD_STAMP_FILE="$BUILD_STAMP_DIR/build.sha256"
+TSBUILDINFO_FILE="$BUILD_STAMP_DIR/tsconfig-build.tsbuildinfo"
 
-pastikan_docs() {
-  [[ -n "$DOCS_BUILD_PID" ]] || return 0
-  LANGKAH="docs: build situs /docs"
-  wait "$DOCS_BUILD_PID" 2>/dev/null || true
-  DOCS_BUILD_PID=""
-  local _docs_rc=0
-  if [[ -f "$DOCS_BUILD_RC_FILE" ]]; then
-    _docs_rc="$(cat "$DOCS_BUILD_RC_FILE" 2>/dev/null || echo 1)"
-  fi
-  if [[ "$_docs_rc" == "0" ]]; then
-    info "Situs dokumentasi siap di public/docs-site."
-  else
-    warn "Build dokumentasi /docs gagal (exit ${_docs_rc}); halaman /docs akan menjawab 'belum dibangun'. Jalankan manual: bash scripts/build-docs.sh"
-    if [[ -n "$DOCS_BUILD_LOG" && -f "$DOCS_BUILD_LOG" ]]; then
-      tail -n 25 "$DOCS_BUILD_LOG" >&2 || true
+build_fingerprint() {
+  local head status pkg mode="normal"
+  head="$(git -C "$ROOT_DIR" rev-parse HEAD 2>/dev/null || echo tanpa-git)"
+  # node_modules/.next/public/docs-site diabaikan oleh .gitignore; jaring
+  # pengaman di bawah menjaga file hasil installer tidak memicu build ulang.
+  status="$(git -C "$ROOT_DIR" status --porcelain=v1 --untracked-files=normal 2>/dev/null \
+    | grep -vE '^.. (node_modules/|\.next/|public/docs-site/)' || true)"
+  pkg="$(cat "$ROOT_DIR/node_modules/.kelaska-build-packages.sha256" 2>/dev/null || echo -)"
+  [[ "$FAST_BUILD" == "1" ]] && mode="fast"
+  {
+    printf 'kelaska-build-v1\n'
+    printf 'head=%s\n' "$head"
+    printf 'status=%s\n' "$status"
+    printf 'packages=%s\n' "$pkg"
+    printf 'bun=%s\n' "${BUN_TERPASANG:-?}"
+    printf 'mode=%s\n' "$mode"
+    if [[ -f "$ROOT_DIR/.env.local" ]]; then
+      grep -E '^[[:space:]]*(NEXT_PUBLIC_[A-Za-z0-9_]+|NODE_ENV|INTERACTIVE_ASSET_BASE_URL)=' \
+        "$ROOT_DIR/.env.local" | sed -E 's/[[:space:]]+$//' | sort || true
     fi
-  fi
-  if [[ -n "$DOCS_BUILD_LOG" ]]; then rm -f "$DOCS_BUILD_LOG"; fi
-  if [[ -n "$DOCS_BUILD_RC_FILE" ]]; then rm -f "$DOCS_BUILD_RC_FILE"; fi
-  DOCS_BUILD_LOG=""
-  DOCS_BUILD_RC_FILE=""
-  preset_mark "build dokumentasi selesai"
+  } | sha256sum | awk '{print $1}'
 }
 
-bangun_docs_di_latar
+build_stamp_valid() {
+  [[ "$FORCE_BUILD" -eq 0 ]] || return 1
+  [[ -f "$BUILD_STAMP_FILE" ]] || return 1
+  [[ -f "$ROOT_DIR/.next/standalone/server.js" ]] || return 1
+  [[ -d "$ROOT_DIR/.next/static" ]] || return 1
+  [[ "$(cat "$BUILD_STAMP_FILE" 2>/dev/null)" == "$(build_fingerprint)" ]]
+}
+
+build_stamp_write() {
+  mkdir -p "$BUILD_STAMP_DIR"
+  build_fingerprint > "$BUILD_STAMP_FILE"
+}
+
+# PM2 menyajikan `.next/standalone`; `next build` menulis ulang `.next` di
+# tempat. Hentikan proses dulu supaya pengunjung tidak mendapat 500 di tengah
+# build (dan CPU tidak dipakai request saat kompilasi). Bagian PM2 menyalakannya
+# lagi sesudah aset disinkronkan.
+pm2_hentikan_untuk_build() {
+  [[ "$WITH_PM2" -eq 1 ]] || return 0
+  local pm2_bin
+  pm2_bin="$(command -v pm2 2>/dev/null || true)"
+  [[ -n "$pm2_bin" ]] || [[ -x /usr/local/bin/pm2 ]] || return 0
+  pm2_bin="${pm2_bin:-/usr/local/bin/pm2}"
+  if as_owner env PATH="/usr/local/bin:/usr/bin:/bin" "$pm2_bin" pid kelaska 2>/dev/null \
+      | grep -qE '^[1-9][0-9]*$'; then
+    info "Menghentikan kelaska via PM2 selama build (hindari 500 saat .next ditulis)..."
+    as_owner env PATH="/usr/local/bin:/usr/bin:/bin" "$pm2_bin" stop kelaska >/dev/null 2>&1 || true
+  fi
+}
 
 jalankan_build() {
   LANGKAH="bun: build produksi"
@@ -3089,9 +3170,78 @@ jalankan_build() {
   if [[ "$SYNC_MODEL_PARALLEL" -eq 1 && "$SYNC_MODEL_DONE" -eq 0 && -z "$MODEL_SYNC_PID" ]]; then
     sinkron_model_di_latar
   fi
+
+  if build_stamp_valid; then
+    BUILD_DONE=1
+    info "Build produksi dilewati: sumber + NEXT_PUBLIC tidak berubah sejak build terakhir."
+    info "  Sidik jari: ${BUILD_STAMP_FILE} (paksa build ulang: --rebuild)"
+    preset_mark "build produksi dilewati (sumber tidak berubah)"
+    if [[ "$SYNC_MODEL_PARALLEL" -eq 1 ]]; then pastikan_sinkron_model; fi
+    return 0
+  fi
+
+  pm2_hentikan_untuk_build
+
+  # Typecheck paralel: Next memeriksa TypeScript SETELAH Turbopack selesai
+  # (~15 s hangat, ~80 s dingin) padahal kompilasi memakai semua core. Jalankan
+  # tsc di latar bersamaan dengan kompilasi (lewati typecheck internal Next),
+  # lalu ulangi sekali setelah build agar tipe rute `.next/types` yang baru
+  # ikut diperiksa. Butuh RAM >= 16 GB: tsc proyek ini memuncak ~4-6 GB di
+  # samping heap build 8 GB, jadi host 12 GB (Colab) tetap memakai typecheck
+  # serial bawaan Next.
+  local ts_pid="" ts_log="" ts_rc=0
+  if [[ "$TYPE_PARALLEL" == "auto" ]]; then
+    TYPE_PARALLEL=0
+    if [[ "$FAST_BUILD" -eq 0 && -f "$ROOT_DIR/node_modules/typescript/bin/tsc" ]]; then
+      _ram_mb="$(awk '/^MemTotal:/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || true)"
+      if [[ "$_ram_mb" =~ ^[0-9]+$ && "$_ram_mb" -ge 16384 ]]; then TYPE_PARALLEL=1; fi
+      unset _ram_mb
+    fi
+  fi
+  if [[ "$TYPE_PARALLEL" == "1" && "$FAST_BUILD" -eq 0 ]]; then
+    BUILD_ENV+=(OPENMAIC_SKIP_TYPECHECK=1)
+    mkdir -p "$BUILD_STAMP_DIR"
+    ts_log="$(mktemp)"
+    info "Typecheck TypeScript berjalan paralel dengan kompilasi Turbopack..."
+    (
+      # Tunggu Next membersihkan `.next` supaya tsc tidak membaca tipe rute basi.
+      sleep 3
+      as_owner env NODE_OPTIONS="--max-old-space-size=4096" NEXT_TELEMETRY_DISABLED=1 \
+        "$BUN_BIN" "$ROOT_DIR/node_modules/typescript/bin/tsc" \
+        -p "$ROOT_DIR/tsconfig.build.json" --noEmit --incremental --pretty false \
+        --tsBuildInfoFile "$TSBUILDINFO_FILE"
+    ) >"$ts_log" 2>&1 &
+    TS_PID=$!
+  fi
+
   info "Menjalankan build produksi Bun (bun --bun run build)..."
   as_owner env NEXT_TELEMETRY_DISABLED=1 "${BUILD_ENV[@]}" "$BUN_BIN" --bun run build
   BUILD_DONE=1
+
+  if [[ -n "$TS_PID" ]]; then
+    LANGKAH="typecheck TypeScript (paralel)"
+    wait "$TS_PID" || ts_rc=$?
+    TS_PID=""
+    if [[ "$ts_rc" -ne 0 ]]; then
+      cat "$ts_log" >&2 || true
+      rm -f "$ts_log"
+      fail "Typecheck TypeScript gagal (berjalan paralel dengan build)."
+    fi
+    # `.next/types` baru dibuat kompilasi; jalankan incremental sekali lagi
+    # supaya validasi tipe rute ikut diperiksa (biasanya hanya beberapa detik).
+    if ! as_owner env NODE_OPTIONS="--max-old-space-size=4096" NEXT_TELEMETRY_DISABLED=1 \
+        "$BUN_BIN" "$ROOT_DIR/node_modules/typescript/bin/tsc" \
+        -p "$ROOT_DIR/tsconfig.build.json" --noEmit --incremental --pretty false \
+        --tsBuildInfoFile "$TSBUILDINFO_FILE" >"$ts_log" 2>&1; then
+      cat "$ts_log" >&2 || true
+      rm -f "$ts_log"
+      fail "Typecheck TypeScript gagal setelah tipe rute baru dibuat."
+    fi
+    rm -f "$ts_log"
+    info "Typecheck TypeScript lulus (paralel + verifikasi tipe rute)."
+  fi
+
+  build_stamp_write
   preset_mark "build produksi selesai"
   # PM2 menyalin openmaic.yml setelah build; pastikan discovery sudah selesai.
   if [[ "$SYNC_MODEL_PARALLEL" -eq 1 ]]; then pastikan_sinkron_model; fi
