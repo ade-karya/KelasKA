@@ -83,6 +83,8 @@ fun ClassPlayerScreen(
     onBack: () -> Unit,
     onOpenList: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Alamat kelas daring untuk tautan diskusi/PBL; `null` = beranda. */
+    classroomUrl: String? = null,
 ) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
@@ -104,7 +106,7 @@ fun ClassPlayerScreen(
                     mathFonts = context.assets.open("player/katex-fonts.min.css").bufferedReader().use { it.readText() },
                     chartsScript = context.assets.open("player/player-charts.min.js").bufferedReader().use { it.readText() },
                 )
-                val html = StandalonePlayerHtml.build(course, assets)
+                val html = StandalonePlayerHtml.build(course, assets, classroomUrl)
                 val dir = File(context.filesDir, "player").apply { mkdirs() }
                 val file = File(dir, "${course.meta.id}.html")
                 file.writeText(html)
@@ -148,8 +150,11 @@ fun ClassPlayerScreen(
         }
     }
 
-    // Kembali dari layar penuh dulu, baru keluar dari halaman.
+    // Kembali dari layar penuh dulu, baru keluar dari halaman. Pemutar juga
+    // dipakai di dalam layar detail kursus (bukan tujuan navigasi tersendiri),
+    // jadi tombol kembali sistem harus menutup pemutar lewat [onBack].
     BackHandler(enabled = fullscreen) { presentation.set(false) }
+    BackHandler(enabled = !fullscreen) { onBack() }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Di landscape (dan layar sangat pendek) bilah aplikasi dipadatkan

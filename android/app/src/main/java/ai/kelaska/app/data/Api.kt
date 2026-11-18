@@ -2,12 +2,20 @@ package ai.kelaska.app.data
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import kotlinx.serialization.json.put
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.util.concurrent.TimeUnit
 
 /** Pengecualian API dengan kode HTTP dan pesan yang aman ditampilkan. */
 class ApiException(val statusCode: Int, message: String) : Exception(message)
+
+/** Byte satu aset media dari server (gambar, audio, video, poster). */
+data class MediaPayload(val bytes: ByteArray, val mimeType: String?)
 
 /** 401: sesi tidak berlaku lagi; aplikasi meminta pengguna masuk kembali. */
 class AuthExpiredException(message: String = "Sesi berakhir") : Exception(message)
@@ -35,6 +43,18 @@ class KelasKaApi(
         ignoreUnknownKeys = true
         explicitNulls = false
     }
+
+    /**
+     * Klien khusus unduhan media: satu kelas bisa membawa video puluhan MB,
+     * sedangkan klien API biasa berbatas 30 detik untuk panggilan JSON.
+     */
+    private val mediaClient = client.newBuilder()
+        .callTimeout(180, TimeUnit.SECONDS)
+        .readTimeout(90, TimeUnit.SECONDS)
+        // Redirect ditangani sendiri: cookie sesi hanya boleh ikut ke host
+        // aplikasi, tidak ke host byte store tempat aset dialihkan.
+        .followRedirects(false)
+        .build()
 
     private fun cookieHeader(): String? =
         sessionStore.sessionToken?.let { "kelaska_session=$it" }
@@ -126,6 +146,124 @@ class KelasKaApi(
     suspend fun getStageDocument(id: String): StageDocument =
         execute(StageDocument.serializer(), "GET", "/api/stages/$id")
 
+    /**
+     * Unduh byte satu referensi media dokumen kursus.
+     *
+     * Referensi yang didukung:
+     * - `ast_…` → `GET /api/persistence/assets/{id}/content` (kumpulan aset),
+     * - `/api/classroom-media/…` dan path statis seperti `/guide-course/…`,
+     * - `http(s)://…` → URL langsung (tanpa cookie bila beda host).
+     *
+     * `null` berarti aset tidak tersedia/terlalu besar; IO biasa tidak
+     * dilempar supaya satu gambar rusak tidak menggagalkan seluruh kelas.
+     * Sesi kedaluwarsa tetap dilempar agar aplikasi meminta masuk kembali.
+     */
+    suspend fun fetchMedia(ref: String): MediaPayload? = kotlinx.coroutines.withContext(
+        kotlinx.coroutines.Dispatchers.IO,
+    ) {
+        val url = mediaUrl(ref) ?: return@withContext null
+        try {
+            downloadMedia(url)
+        } catch (error: AuthExpiredException) {
+            throw error
+        } catch (error: IOException) {
+            null
+        }
+    }
+
+    /**
+     * Unduh satu URL media, mengikuti pengalihan secara manual.
+     *
+     * Cookie sesi hanya dipasang untuk request ke origin aplikasi; aset yang
+     * dialihkan ke byte store/CDN diunduh tanpa cookie. Respons login/JSON
+     * (mis. sesi habis lalu dialihkan ke `/login`) tidak dianggap media.
+     */
+    private fun downloadMedia(startUrl: String): MediaPayload? {
+        var current = startUrl
+        var redirects = 0
+        while (true) {
+            val target = current.toHttpUrlOrNull() ?: return null
+            val sameOrigin = sameOriginAsBase(target)
+            val builder = okhttp3.Request.Builder()
+                .url(target)
+                .header("accept", "*/*")
+            if (sameOrigin) {
+                cookieHeader()?.let { builder.header("cookie", it) }
+                    ?: throw AuthExpiredException()
+            }
+            val response = mediaClient.newCall(builder.build()).execute()
+            val location = response.header("location")
+            if (response.code in 300..399 && location != null && redirects < MAX_REDIRECTS) {
+                response.close()
+                val next = target.resolve(location) ?: return null
+                // Sesi habis: proxy mengalihkan media ke /login, bukan 401.
+                if (sameOriginAsBase(next) && next.encodedPath.startsWith("/login")) {
+                    sessionStore.clearSession()
+                    throw AuthExpiredException()
+                }
+                current = next.toString()
+                redirects += 1
+                continue
+            }
+            return response.use {
+                if (sameOrigin && (it.code == 401 || it.code == 403)) {
+                    sessionStore.clearSession()
+                    throw AuthExpiredException()
+                }
+                if (sameOrigin && it.request.url.encodedPath.startsWith("/login")) {
+                    // 200 halaman login yang menggantikan media juga berarti sesi habis.
+                    sessionStore.clearSession()
+                    throw AuthExpiredException()
+                }
+                if (!it.isSuccessful) return@use null
+                val body = it.body ?: return@use null
+                if (body.contentLength() > MAX_MEDIA_BYTES) return@use null
+                val mime = body.contentType()?.toString()?.substringBefore(';')?.trim()
+                if (mime != null && (mime.startsWith("text/html") || mime == "application/json")) {
+                    return@use null
+                }
+                val bytes = body.byteStream().use { readLimited(it, MAX_MEDIA_BYTES) }
+                    ?: return@use null
+                if (bytes.isEmpty()) return@use null
+                MediaPayload(bytes = bytes, mimeType = mime)
+            }
+        }
+    }
+
+    /** Path HTTP untuk satu referensi media; `null` bila bentuknya tidak dikenal. */
+    private fun mediaUrl(ref: String): String? {
+        val base = baseUrl.trimEnd('/')
+        return when {
+            ref.startsWith("ast_") -> "$base/api/persistence/assets/$ref/content"
+            // Path statis di origin aplikasi (`/guide-course/…`, `/api/…`).
+            ref.startsWith("/") && !ref.startsWith("//") -> "$base$ref"
+            ref.startsWith("//") -> "https:$ref"
+            ref.startsWith("https://") || ref.startsWith("http://") -> ref
+            else -> null
+        }
+    }
+
+    private fun sameOriginAsBase(url: okhttp3.HttpUrl): Boolean {
+        val base = baseUrl.toHttpUrlOrNull() ?: return false
+        return url.scheme == base.scheme &&
+            url.host == base.host &&
+            url.port == base.port
+    }
+
+    private fun readLimited(input: InputStream, maxBytes: Long): ByteArray? {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(64 * 1024)
+        var total = 0L
+        while (true) {
+            val read = input.read(buffer)
+            if (read < 0) break
+            total += read
+            if (total > maxBytes) return null
+            output.write(buffer, 0, read)
+        }
+        return output.toByteArray()
+    }
+
     suspend fun createStage(name: String, description: String?): StageSummary? {
         val response = execute(
             CreateStageResponse.serializer(),
@@ -180,5 +318,15 @@ class KelasKaApi(
         val userJson = response["user"]
             ?: throw ApiException(500, "Respons admin tidak valid")
         return json.decodeFromJsonElement(AuthUserDto.serializer(), userJson)
+    }
+
+    private companion object {
+        /**
+         * Batas satu aset. Pemutar menanam seluruh media ke satu dokumen HTML
+         * di memori, jadi aset raksasa harus dilewati, bukan dipaksakan.
+         */
+        const val MAX_MEDIA_BYTES = 64L * 1024 * 1024
+        /** Rantai pengalihan aset (byte store atau CDN) yang masih wajar. */
+        const val MAX_REDIRECTS = 4
     }
 }

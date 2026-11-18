@@ -3,16 +3,46 @@
 Aplikasi Android **native** (Kotlin + Jetpack Compose, Material 3) untuk Kelas
 Kecerdasan Artifisial — [kelaska.riau.ai](https://kelaska.riau.ai).
 
-## Fitur v1.4.3
+## Fitur v1.5.0
 
 | Layar | Isi |
 |-------|-----|
 | **Beranda** | Hero bermerek (logo Kemendikdasmen & DPRD), statistik kursus milik Anda, sorotan fitur |
 | **Kursus Saya** | Daftar kursus dari `GET /api/stages`: cari, buat, ubah nama, hapus |
-| **Detail Kursus** | Membaca materi: slide dirender sebagai teks (HTML → teks), kuis interaktif (pilihan ganda/tunggal) dengan penilaian otomatis + pembahasan, konten interaktif/PBL dibuka di situs web |
+| **Detail Kursus** | **Putar Kelas** (pemutar web yang sama dengan ekspor offline: slide, narasi, spotlight, video, kuis, diskusi), bacaan materi (HTML → teks), kuis interaktif dengan penilaian otomatis + pembahasan, konten interaktif/PBL dibuka di situs web |
 | **Offline** | Perpustakaan `.maic.zip` di perangkat: impor, putar, hapus — bekerja tanpa internet dan tanpa masuk |
 | **Akun** | Profil (nama/e-mail/peran), buka situs, **cek pembaruan**, tentang aplikasi, keluar |
 | **Admin** (role `admin`) | Daftar akun, setujui akun baru, ubah peran (siswa/pengajar/admin), nonaktifkan akun |
+
+## Memutar kelas daring (Kursus Saya)
+
+Kursus yang tersimpan di akun tidak perlu diekspor dulu. Di layar **Detail
+Kursus**, tombol **Putar Kelas** menyiapkan kelas lalu membukanya di pemutar
+yang sama dengan paket `.maic.zip`.
+
+- **Sumber**: `GET /api/stages/{id}` (dokumen stage + scenes). Referensi media
+  yang dikenali: id aset `ast_…` (`/api/persistence/assets/{id}/content`), path
+  lama `/api/classroom-media/…`, path statis di situs (mis.
+  `/guide-course/en/audio/s1_1.mp3`), serta URL `http(s)`/`//host`. Narasi
+  kursus lama yang hanya punya `audioUrl` disalin menjadi `audioRef`.
+- **Unduhan**: byte media diambil dengan cookie sesi `kelaska_session`, empat
+  unduhan paralel, satu aset maksimal 64 MB dan total 128 MB (pemutar menanam
+  media sebagai base64 di satu dokumen, jadi aset raksasa dilewati). Pengalihan
+  HTTP diikuti secara manual supaya cookie tidak ikut ke byte store/CDN;
+  respons HTML/JSON (mis. halaman login) tidak pernah disimpan sebagai media.
+- **Cache**: `cacheDir/online-classes/<stageId>`, dipakai ulang selama sidik
+  dokumen (SHA-256 isi dokumen + versi aplikasi + versi builder) tidak berubah.
+  Dokumen berubah, aplikasi diperbarui, atau cache dibersihkan Android → kelas
+  disiapkan ulang. Empat kursus terbaru disimpan, sisanya dibuang otomatis.
+- **Media hilang tidak menggagalkan kelas**: aset yang 404/dilewati tetap
+  kosong; narasi tanpa berkas dibacakan TTS perangkat dan slide tetap tampil.
+- **Batasannya sama dengan ekspor offline**: scene interaktif berjalan dari
+  `content.html` yang sudah ada di dokumen, tetapi aset CDN (Tailwind/KaTeX)
+  tidak disertakan dan diblokir CSP; scene PBL tampil sebagai kartu penjelasan;
+  tombol diskusi/PBL membuka **kelas daring** di peramban
+  (`<BASE_URL>/classroom/<stageId>`).
+- **Pemutaran ulang cepat**: setelah siap, membuka kelas lagi tidak mengunduh
+  apa pun sampai dokumen kursus berubah.
 
 ## Mode offline (`.maic.zip`)
 

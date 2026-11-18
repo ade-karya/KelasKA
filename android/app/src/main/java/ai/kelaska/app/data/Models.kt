@@ -2,6 +2,7 @@ package ai.kelaska.app.data
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 
 /** Ringkasan kursus untuk daftar (GET /api/stages). */
@@ -27,6 +28,8 @@ data class StageMeta(
     val id: String,
     val name: String,
     val description: String? = null,
+    val languageDirective: String? = null,
+    val style: String? = null,
     val createdAt: Long = 0,
     val updatedAt: Long = 0,
 )
@@ -40,6 +43,10 @@ data class SceneDto(
     val order: Int = 0,
     val type: String = "slide",
     val content: JsonObject = JsonObject(emptyMap()),
+    /** Aksi pemutaran (narasi, spotlight, diskusi, …) — dipakai pemutar kelas. */
+    val actions: JsonArray? = null,
+    val whiteboards: JsonArray? = null,
+    val multiAgent: JsonObject? = null,
     val createdAt: Long? = null,
     val updatedAt: Long? = null,
 )

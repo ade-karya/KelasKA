@@ -227,7 +227,14 @@ private fun SignedInApp(
                 val stageId = backStackEntry.arguments?.getString("stageId").orEmpty()
                 val detailViewModel: CourseDetailViewModel = viewModel(
                     factory = viewModelFactory {
-                        initializer { CourseDetailViewModel(application.api, stageId) }
+                        initializer {
+                            CourseDetailViewModel(
+                                api = application.api,
+                                stageId = stageId,
+                                cacheDir = application.cacheDir,
+                                appVersion = ai.kelaska.app.BuildConfig.VERSION_NAME,
+                            )
+                        }
                     },
                 )
                 CourseDetailScreen(

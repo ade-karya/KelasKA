@@ -19,7 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,10 +30,12 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,6 +53,7 @@ import ai.kelaska.app.data.SceneDto
 import ai.kelaska.app.ui.CenteredContent
 import ai.kelaska.app.ui.CourseDetailUiState
 import ai.kelaska.app.ui.CourseDetailViewModel
+import ai.kelaska.app.ui.CoursePlaybackState
 import ai.kelaska.app.ui.SceneQuizState
 import ai.kelaska.app.ui.components.QuizSceneCard
 import ai.kelaska.app.ui.components.SlideSceneCard
@@ -61,6 +67,22 @@ fun CourseDetailScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val quizzes by viewModel.quizzes.collectAsState()
+    val playback by viewModel.playback.collectAsState()
+
+    // Pemutar memakai layar penuh aplikasi: layar detail digantikan dokumen
+    // pemutar, yang sama dengan yang dipakai paket .maic.zip offline.
+    val ready = playback as? CoursePlaybackState.Ready
+    if (ready != null) {
+        ClassPlayerScreen(
+            course = ready.course,
+            onBack = viewModel::stopPlayback,
+            onOpenList = viewModel::stopPlayback,
+            modifier = modifier,
+            classroomUrl = state.document?.stage?.id
+                ?.let { "${BuildConfig.BASE_URL}/classroom/$it" },
+        )
+        return
+    }
 
     when {
         state.loading ->
@@ -91,9 +113,71 @@ fun CourseDetailScreen(
             quizzes = quizzes,
             viewModel = viewModel,
             onBack = onBack,
+            onPlay = viewModel::preparePlayback,
             modifier = modifier,
         )
     }
+
+    when (val preparing = playback) {
+        is CoursePlaybackState.Preparing -> PreparingPlaybackDialog(
+            completed = preparing.completed,
+            total = preparing.total,
+            onCancel = viewModel::cancelPlayback,
+        )
+
+        is CoursePlaybackState.Failed -> AlertDialog(
+            onDismissRequest = viewModel::dismissPlaybackError,
+            title = { Text("Kelas tidak bisa diputar") },
+            text = { Text(preparing.message) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.dismissPlaybackError()
+                    if (state.document != null) viewModel.preparePlayback()
+                }) { Text("Coba lagi") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissPlaybackError) { Text("Tutup") }
+            },
+        )
+
+        else -> Unit
+    }
+}
+
+@Composable
+private fun PreparingPlaybackDialog(
+    completed: Int,
+    total: Int,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Menyiapkan kelas") },
+        text = {
+            Column {
+                Text(
+                    if (total > 0) {
+                        "Mengunduh media $completed dari $total…"
+                    } else {
+                        "Membaca materi kursus…"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                )
+                Text(
+                    "Media disimpan di perangkat, jadi pembukaan berikutnya lebih cepat.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 10.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onCancel) { Text("Batal") }
+        },
+    )
 }
 
 @Composable
@@ -102,6 +186,7 @@ private fun DetailContent(
     quizzes: Map<String, SceneQuizState>,
     viewModel: CourseDetailViewModel,
     onBack: () -> Unit,
+    onPlay: () -> Unit,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
@@ -163,6 +248,29 @@ private fun DetailContent(
                         MetaChip("Diubah ${IndonesianDate.format(doc.stage.updatedAt)}")
                     }
                 }
+            }
+        }
+
+        item {
+            Column {
+                Button(
+                    onClick = onPlay,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(999.dp),
+                ) {
+                    Icon(
+                        Icons.Filled.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text("Putar Kelas")
+                }
+                Text(
+                    "Slide, narasi, spotlight, dan kuis diputar seperti di kelaska.riau.ai. Media diunduh sekali lalu disimpan di perangkat.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
         }
 

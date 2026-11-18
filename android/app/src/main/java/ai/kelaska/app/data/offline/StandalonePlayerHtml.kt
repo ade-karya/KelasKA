@@ -75,8 +75,17 @@ object StandalonePlayerHtml {
             .getOrNull() ?: JsonObject(emptyMap())
     }
 
-    /** Susun dokumen lengkap. Dipanggil dari background thread. */
-    fun build(course: OfflineCourse, assets: PlayerAssets): String {
+    /**
+     * Susun dokumen lengkap. Dipanggil dari background thread.
+     *
+     * [classroomUrl] adalah alamat kelas daring yang dirujuk tombol diskusi /
+     * PBL "lanjutkan online"; paket offline memakai beranda aplikasi.
+     */
+    fun build(
+        course: OfflineCourse,
+        assets: PlayerAssets,
+        classroomUrl: String? = null,
+    ): String {
         val builder = Builder(course, rawManifest(course))
         val manifest = builder.prepareManifest()
         val mediaTable = builder.mediaTable()
@@ -102,8 +111,11 @@ object StandalonePlayerHtml {
         val strings = buildJsonObject { PLAYER_STRINGS.forEach { (key, value) -> put(key, JsonPrimitive(value)) } }
         val config = buildJsonObject {
             put("strings", strings)
-            // Diskusi/PBL di offline hanya menautkan balik ke kelas online.
-            put("classroomUrl", JsonPrimitive("https://kelaska.riau.ai"))
+            // Diskusi/PBL hanya menautkan balik ke kelas online.
+            put(
+                "classroomUrl",
+                JsonPrimitive(classroomUrl?.takeIf { it.isNotBlank() } ?: "https://kelaska.riau.ai"),
+            )
         }
 
         return buildString {
