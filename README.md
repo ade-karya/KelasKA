@@ -521,14 +521,24 @@ faster). The installer writes `openmaic.yml` when the
 default provider is unambiguous; otherwise configure providers in Settings or
 copy `openmaic.example.yml`.
 
+### Split deployments (Vercel, Cloudflare, Kaggle, Colab)
+
+The repository keeps one Next.js app and ships a [`deploy/`](deploy/README.md)
+tree with a profile per platform. Vercel and Cloudflare Containers run the UI,
+course library, auth and database APIs in **limited mode**; a separate
+long-running [worker](deploy/worker/README.md) sharing the same `DATABASE_URL`
+executes generation runs. Kaggle and Colab run the full app (and can be that
+worker) through `install.sh --kaggle` / `--colab`. The platform is selected by
+`OPENMAIC_DEPLOY_TARGET` or inferred from the host environment; see
+[`deploy/README.md`](deploy/README.md) for the capability matrix, env templates
+and step-by-step guides.
+
 ### Vercel Deployment (up to 1.1.x)
 
-Serverless deployment is supported up to OpenMAIC 1.1.x. From 1.2.0, course
-generation runs on the server in a process that outlives requests, so Kelas Kecerdasan Artifisial
-needs a long-running Node.js process with PostgreSQL (the
-[Docker deployment](#docker-deployment) or `bun run start`); Vercel and other
-serverless hosts are not supported, and the repository no longer ships a
-`vercel.json`. To deploy 1.1.x on Vercel:
+The old standalone serverless deployment was supported up to OpenMAIC 1.1.x.
+From 1.2.0, course generation runs on the server in a process that outlives
+requests, so a single Vercel function cannot run the app on its own; use the
+split deployment above. To deploy the historical 1.1.x release on Vercel:
 
 1. Fork this repository on GitHub, unchecking **Copy the `main` branch only**.
 2. In the fork, set the default branch to `release/1.1.x` (**Settings → General → Default branch**).
