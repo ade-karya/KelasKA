@@ -1,10 +1,16 @@
 import type { NextConfig } from 'next';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
+import { isServerlessDeploy } from './lib/config/deploy-target';
+
 const nextConfig: NextConfig = {
   // Keep Next dev from creating or rewriting repository agent instructions.
   agentRules: false,
-  output: 'standalone',
+  // Serverless hosts (Vercel functions, OpenNext on Cloudflare Workers) build
+  // and serve from their own runtime and must not emit a standalone server.
+  // Self-hosted, Kaggle, Colab and Cloudflare Containers keep the standalone
+  // output their Dockerfile / PM2 launch expects. See deploy/README.md.
+  output: isServerlessDeploy() ? undefined : 'standalone',
   // The app used to ship `X-Powered-By: Next.js`, which only helps fingerprint
   // the stack. There is no consumer of the header.
   poweredByHeader: false,
