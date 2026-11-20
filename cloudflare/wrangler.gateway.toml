@@ -4,8 +4,8 @@ compatibility_date = "2026-11-20"
 route = { pattern = "api-kelas.riau.ai/*", zone_name = "riau.ai" }
 
 [vars]
-ORIGIN_VERCEL = "https://kelas-ka.riau.ai"
-ALLOWED_ORIGIN = "https://kelas-ka.riau.ai"
+ORIGIN_VERCEL = "https://kelaska.riau.ai"
+ALLOWED_ORIGIN = "https://kelaska.riau.ai"
 
 # Sama namespace dengan kelaska-cron (dibuat 2026-11-20).
 [[kv_namespaces]]

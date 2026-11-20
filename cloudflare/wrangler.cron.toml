@@ -6,7 +6,7 @@ compatibility_date = "2026-11-20"
 crons = ["*/5 * * * *"]
 
 [vars]
-MAINTENANCE_URL = "https://api-kelas.riau.ai/api/internal/maintenance"
+MAINTENANCE_URL = "https://kelaska.riau.ai/api/internal/maintenance"
 KEEPALIVE_URL = "https://ztbonirwcrtqsfgyqrto.supabase.co/auth/v1/settings"
 
 # Sama namespace dengan kelaska-gateway (dibuat 2026-11-20).
