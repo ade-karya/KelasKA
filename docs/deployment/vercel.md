@@ -1,9 +1,16 @@
-# Deploy web tier ke Vercel (`deploy/vercel`)
+# Deploy web tier ke Vercel (`deploy/hybrid`)
 
-Branch ini adalah **web tier** untuk arsitektur produksi on-demand di
-`docs/prd/PRD-produksi-kelaska-2026.md`. Vercel hanya menjalankan UI, auth
-callback, REST API, dan SSE/polling. Generation runner dan media worker
-berjalan di Colab/Kaggle saat operator menyalakan notebook.
+Dokumen ini menjelaskan tier Vercel dari arsitektur produksi on-demand di
+`docs/prd/PRD-produksi-kelaska-2026.md`. Jalankan dari branch gabungan
+`deploy/hybrid` — satu checkout yang juga berisi Worker Cloudflare dan jalur
+Kaggle/Colab. Vercel hanya menjalankan UI, auth callback, REST API, dan
+SSE/polling. Generation runner dan media worker berjalan di Colab/Kaggle saat
+operator menyalakan notebook.
+
+> **Fallback:** bila paket masih Hobby (batas 12 function), lewati tier ini
+> dan pakai Cloudflare + host Node di `kelaska.riau.ai`. Lihat
+> `docs/deployment/fallback.md` untuk urutan lengkap Vercel → Cloudflare →
+> Kaggle/Colab.
 
 > **Status 2026-11-20:** alias `kelas-ka.riau.ai` masih melayani deployment
 > produksi `0.1.0` dari 2026-10-04 (1 function). Setiap deploy dari branch ini
@@ -37,7 +44,7 @@ Salin `.env.vercel.example` ke Environment Variables. Yang paling kritikal:
 ## Deploy
 
 ```bash
-git switch deploy/vercel
+git switch deploy/hybrid
 
 # sekali
 vercel link

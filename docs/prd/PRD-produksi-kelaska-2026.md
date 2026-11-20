@@ -337,10 +337,23 @@ Cron Worker → cek job macet + keep-alive + notifikasi operator
 | Branch | Isi | Dipakai untuk |
 |---|---|---|
 | `docs/prd-produksi-hybrid` | PRD + diagram arsitektur | Keputusan & review |
-| `deploy/vercel` | `vercel.json`, `.env.vercel.example`, flag `OPENMAIC_GENERATION_RUNNER_ENABLED`, endpoint maintenance, runbook | Deploy web tier ke Vercel |
-| `deploy/cloudflare` | Worker gateway/media/cron, `wrangler*.toml`, panduan Tunnel/Access | Deploy edge ke Cloudflare |
+| `deploy/vercel` | `vercel.json`, `.env.vercel.example`, flag `OPENMAIC_GENERATION_RUNNER_ENABLED`, endpoint maintenance, runbook | Deploy web tier ke Vercel (referensi single-platform) |
+| `deploy/cloudflare` | Worker gateway/media/cron, `wrangler*.toml`, panduan Tunnel/Access | Deploy edge ke Cloudflare (referensi single-platform) |
+| **`deploy/hybrid`** | **Gabungan keduanya + runbook fallback** | **Branch deploy utama: satu tree untuk Vercel, Cloudflare, maupun Kaggle/Colab** |
 
-Ketiga branch berbasis commit yang sama; gabungkan keduanya saat cutover penuh. Lihat §19.2.
+`deploy/hybrid` menggabungkan `deploy/vercel` dan `deploy/cloudflare` (merge-base `2838728`) sehingga satu checkout bisa dipakai untuk semua tier. Pilih tier dengan urutan **Vercel → Cloudflare → Kaggle/Colab** seperti §4.5; detail operasional ada di `docs/deployment/fallback.md`. Branch single-platform tetap dipertahankan sebagai referensi. Lihat §19.2.
+
+### 4.5 Rantai fallback (produksi harus jalan)
+
+Nilai defaultnya adalah **Opsi A** (§4.1): aplikasi penuh berjalan di host Node panjang di `kelaska.riau.ai` dan sudah live. Bila hendak bermigrasi ke Opsi B, ikuti urutan ini dan turun ke tier berikutnya begitu ada batasan:
+
+| Tier | Kapan dipakai | Batasan yang memicu fallback | Target |
+|---|---|---|---|
+| 1 · Vercel | Akun **Pro**; web tier UI/auth/REST/SSE | Hobby: maks. 12 Serverless Functions vs ~144 route → deploy `Error`. Workers Free tidak bisa SSR. | `kelas-ka.riau.ai` |
+| 2 · Cloudflare | DNS/TLS/WAF/media/cron di depan origin apa pun | Workers Free 10 ms CPU/128 MB — tidak bisa menjalankan Next.js SSR; hanya edge. | `api-kelas.riau.ai`, `media-kelas.riau.ai` |
+| 3 · Kaggle / Colab | Jika tier 1 & 2 tidak bisa menampung aplikasi penuh | On-demand, butuh operator menyalakan notebook; bukan 24/7. | `kelaska.riau.ai` via Tunnel (live sekarang) |
+
+Aturan: selalu ada **satu origin aplikasi penuh** (tier 3 atau Vercel Pro); Cloudflare adalah lapisan edge, bukan pengganti SSR. Jangan pernah membiarkan slot media menunjuk ke backend yang gagal health check — matikan slotnya (skip) daripada hard-fail. Prosedur lengkap + perintah ada di `docs/deployment/fallback.md`.
 
 ---
 
@@ -1097,16 +1110,19 @@ FUNASR_BASE_URL=http://127.0.0.1:8000
 # review / dokumentasi
 git switch docs/prd-produksi-hybrid
 
-# web tier
-git switch -c deploy/vercel docs/prd-produksi-hybrid
+# deploy utama (satu tree untuk semua tier) — disarankan
+git switch deploy/hybrid
 # berisi: vercel.json, .env.vercel.example, feature-flag + maintenance route,
-#         docs/deployment/vercel.md
+#         docs/deployment/{vercel,cloudflare,fallback}.md,
+#         cloudflare/workers/{gateway,media,cron}/src/index.ts,
+#         cloudflare/wrangler.*.toml
 
-# edge
-git switch -c deploy/cloudflare docs/prd-produksi-hybrid
-# berisi: cloudflare/workers/{gateway,media,cron}/src/index.ts,
-#         wrangler.*.toml, docs/deployment/cloudflare.md
+# referensi single-platform (opsional)
+git switch deploy/vercel     # hanya web tier
+git switch deploy/cloudflare # hanya edge
 ```
+
+Satu checkout `deploy/hybrid` cukup: jalankan `vercel deploy --prod`, `wrangler deploy -c …`, atau `bash install.sh --colab`/`--kaggle` sesuai tier yang dipilih di §4.5. Tidak perlu lagi checkout branch berbeda untuk berpindah platform.
 
 Keduanya branch turunan langsung dari PRD; deploy Vercel dari `deploy/vercel`, deploy Cloudflare dari `deploy/cloudflare`. Gabungkan keduanya jika ingin satu branch produksi tunggal. **Jangan jalankan `install.sh` dari worktree** — atau akan membuat cluster Postgres baru dan `.env.local` baru. Jalankan dari `/kaggle/temp/KelasKA`.
 
