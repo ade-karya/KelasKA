@@ -336,11 +336,18 @@ Cron Worker → cek job macet + keep-alive + notifikasi operator
 
 | Branch | Isi | Dipakai untuk |
 |---|---|---|
-| `docs/prd-produksi-hybrid` | PRD + diagram arsitektur | Keputusan & review |
-| `deploy/vercel` | `vercel.json`, `.env.vercel.example`, flag `OPENMAIC_GENERATION_RUNNER_ENABLED`, endpoint maintenance, runbook | Deploy web tier ke Vercel |
-| `deploy/cloudflare` | Worker gateway/media/cron, `wrangler*.toml`, panduan Tunnel/Access | Deploy edge ke Cloudflare |
+| `docs/prd-produksi-hybrid` | PRD + diagram arsitektur (sumber kebenaran dokumen) | Keputusan & review |
+| `deploy/vercel` | Fondasi bersama + `deploy/vercel/` (`vercel.json`, README) | Web tier di Vercel, mode terbatas |
+| `deploy/cloudflare` | Fondasi bersama + `deploy/cloudflare/` (Worker proxy + Containers) | Edge/Container di Cloudflare, mode terbatas |
+| `deploy/kaggle` | Fondasi bersama + `deploy/kaggle/` (README, `run.sh`) | Host penuh + GPU multimedia di Kaggle |
+| `deploy/colab` | Fondasi bersama + `deploy/colab/` (README, `run.sh`) | Host penuh + orkestrasi di Colab |
 
-Ketiga branch berbasis commit yang sama; gabungkan keduanya saat cutover penuh. Lihat §19.2.
+Keempat branch deploy dibuat dari commit dasar yang sama (`a2015cdc`) dan
+memuat fondasi bersama yang identik: `lib/config/deploy-target.ts` beserta
+tesnya, penyesuaian `next.config.ts` / `instrumentation.node.ts`,
+`deploy/README.md`, dan templat env di `deploy/shared/`. PRD ini disalin ke
+kelima branch agar review tidak bercabang. Lihat §19.2 untuk perintah dan
+rincian isi.
 
 ---
 
@@ -848,9 +855,9 @@ Kepatuhan: inventaris data, dasar pemrosesan, retensi, hak subjek, DPA vendor. R
 ### 13.1 Deploy web (branch `deploy/vercel`)
 
 ```bash
-vercel link
+# dari root repo; konfigurasinya ada di deploy/vercel/vercel.json
 vercel env pull .env.vercel.local
-vercel deploy --prod
+vercel deploy --local-config deploy/vercel/vercel.json --prod
 ```
 
 Verifikasi: `/api/health` 200; login; buka kursus contoh; `vercel logs` tanpa 500.
@@ -858,17 +865,16 @@ Verifikasi: `/api/health` 200; login; buka kursus contoh; `vercel logs` tanpa 50
 ### 13.2 Deploy edge (branch `deploy/cloudflare`)
 
 ```bash
-cd cloudflare
-wrangler deploy -c wrangler.gateway.toml
-wrangler deploy -c wrangler.media.toml
-wrangler deploy -c wrangler.cron.toml
-wrangler secret put MEDIA_TOKEN_SECRET -c wrangler.media.toml
-wrangler secret put S3_SECRET_ACCESS_KEY -c wrangler.media.toml
-wrangler secret put CRON_SECRET -c wrangler.cron.toml
-wrangler secret put OPERATOR_WEBHOOK -c wrangler.cron.toml
+cd deploy/cloudflare/containers
+wrangler secret put DATABASE_URL
+wrangler secret put OPENMAIC_SECRET_KEY
+# isi secret lain sesuai deploy/shared/env.serverless.example, lalu:
+./deploy.sh
 ```
 
-Verifikasi: `curl https://api-kelas.riau.ai/` → 200 dari Vercel; `media-kelas.riau.ai` menolak token invalid 401; cron trigger manual di dashboard.
+Verifikasi: `curl https://<domain>/api/health` → 200; halaman utama dan login
+Google berfungsi; tidak ada permintaan ke endpoint GPU lokal; generation run
+yang dibuat UI muncul sebagai `queued` di worker eksternal.
 
 ### 13.3 Menyalakan Colab
 
@@ -1093,22 +1099,37 @@ FUNASR_BASE_URL=http://127.0.0.1:8000
 
 ### 19.2 Branch deploy
 
+Keempat profil dipecah menjadi branch turunan langsung dari commit dasar
+`a2015cdc` (`Colab`), bukan dari branch PRD:
+
 ```bash
-# review / dokumentasi
+# review / dokumentasi (sumber PRD)
 git switch docs/prd-produksi-hybrid
 
-# web tier
-git switch -c deploy/vercel docs/prd-produksi-hybrid
-# berisi: vercel.json, .env.vercel.example, feature-flag + maintenance route,
-#         docs/deployment/vercel.md
-
-# edge
-git switch -c deploy/cloudflare docs/prd-produksi-hybrid
-# berisi: cloudflare/workers/{gateway,media,cron}/src/index.ts,
-#         wrangler.*.toml, docs/deployment/cloudflare.md
+# empat profil deploy, masing-masing dari commit dasar yang sama
+git switch -c deploy/vercel    a2015cdc
+git switch -c deploy/cloudflare a2015cdc
+git switch -c deploy/kaggle    a2015cdc
+git switch -c deploy/colab     a2015cdc
 ```
 
-Keduanya branch turunan langsung dari PRD; deploy Vercel dari `deploy/vercel`, deploy Cloudflare dari `deploy/cloudflare`. Gabungkan keduanya jika ingin satu branch produksi tunggal. **Jangan jalankan `install.sh` dari worktree** — atau akan membuat cluster Postgres baru dan `.env.local` baru. Jalankan dari `/kaggle/temp/KelasKA`.
+Isi tiap branch (semuanya memuat fondasi bersama yang sama):
+
+| Branch | Folder khusus platform | Fondasi bersama (semua branch) |
+|---|---|---|
+| `deploy/vercel` | `deploy/vercel/{vercel.json,README.md}` | `lib/config/deploy-target.ts`, `tests/config/deploy-target.test.ts`, `next.config.ts`, `instrumentation.node.ts`, `.env.example`, `AGENTS.md`, `README.md`, `eslint.config.mjs`, `tsconfig*.json`, `.dockerignore`, `packages/docs/content/docs/deployment.*.mdx`, `deploy/{README.md,shared/,worker/}`, `docs/prd/` |
+| `deploy/cloudflare` | `deploy/cloudflare/{README.md,containers/}` | sama |
+| `deploy/kaggle` | `deploy/kaggle/{README.md,run.sh}` | sama |
+| `deploy/colab` | `deploy/colab/{README.md,run.sh}` | sama |
+
+`OPENMAIC_DEPLOY_TARGET` memilih profil (`self-hosted|vercel|cloudflare|kaggle|colab`),
+di-deteksi otomatis dari `VERCEL` / `CF_PAGES` / penanda Kaggle / Colab bila
+kosong. Vercel dan Cloudflare berjalan sebagai **kontainer/serverless terbatas**
+(UI + pustaka + API DB) dan mengantre run ke `generation_runs`; Kaggle dan
+Colab menjalankan aplikasi penuh serta dapat menjadi worker eksternal tersebut.
+PRD ini dan aset diagramnya disalin ke kelima branch supaya review tidak
+bercabang. **Jangan jalankan `install.sh` dari worktree** — atau akan membuat
+cluster Postgres baru dan `.env.local` baru. Jalankan dari `/kaggle/temp/KelasKA`.
 
 ### 19.3 Verifikasi cepat
 
