@@ -52,6 +52,30 @@ export async function registerNode(): Promise<void> {
     await import('@/lib/server/workbench-flag-deprecation');
   warnIfDeprecatedWorkbenchFlagIsUsed();
 
+  // Warn-first boot-time validation of model routing config (MODEL_ROUTES,
+  // DEFAULT_MODEL, <PREFIX>_MODELS). Cheap and non-throwing: broken config
+  // surfaces here as [config] warnings instead of failing at request time.
+  // Imported dynamically so the Edge bundle never pulls in the fs/js-yaml
+  // backed provider config it reads.
+  const { validateServerConfig } = await import('@/lib/server/config-validation');
+  validateServerConfig();
+
+  // A serverless deployment (Vercel functions, Cloudflare Workers) ends with
+  // its request: a background timer never lives long enough to claim a
+  // generation run, extract a material or drain a schedule. Everything below
+  // this line starts a timer or a long-lived connection, so those profiles
+  // stop here. They still serve the UI, the course library and every
+  // DB-backed API; a separate long-running worker host sharing DATABASE_URL
+  // executes the runs they enqueue (see deploy/README.md).
+  const { runsBackgroundWorkers } = await import('@/lib/config/deploy-target');
+  if (!runsBackgroundWorkers()) {
+    console.info(
+      '[instrumentation] Serverless deployment: background workers disabled; ' +
+        'generation runs are executed by the external worker host.',
+    );
+    return;
+  }
+
   // Every store's recorded schema versions, read in the background: a database
   // this release must not run against (upgraded by a newer release) stops the
   // process here rather than failing every request that touches the store
@@ -88,14 +112,6 @@ export async function registerNode(): Promise<void> {
   const learningLifecycle = startLearningLifecycle();
   const { startTeachingExecutionWatchdog } = await import('@/lib/server/pbl-v3/execution-watchdog');
   const teachingWatchdog = startTeachingExecutionWatchdog();
-
-  // Warn-first boot-time validation of model routing config (MODEL_ROUTES,
-  // DEFAULT_MODEL, <PREFIX>_MODELS). Cheap and non-throwing: broken config
-  // surfaces here as [config] warnings instead of failing at request time.
-  // Imported dynamically so the Edge bundle never pulls in the fs/js-yaml
-  // backed provider config it reads.
-  const { validateServerConfig } = await import('@/lib/server/config-validation');
-  validateServerConfig();
 
   let runner: import('@/lib/server/agent-runtime/runner').AgentRunnerHandle | undefined;
   let extractionRunner:
