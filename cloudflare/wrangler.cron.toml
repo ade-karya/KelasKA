@@ -1,0 +1,19 @@
+name = "kelaska-cron"
+main = "workers/cron/src/index.ts"
+compatibility_date = "2026-11-20"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+MAINTENANCE_URL = "https://api-kelas.riau.ai/api/internal/maintenance"
+KEEPALIVE_URL = "https://REPLACE_SUPABASE_REF.supabase.co/auth/v1/settings"
+
+# Namespace yang sama dipakai kelaska-gateway.
+[[kv_namespaces]]
+binding = "WORKER_STATE"
+id = "REPLACE_WITH_KV_ID"
+preview_id = "REPLACE_WITH_PREVIEW_KV_ID"
+
+# Rahasia di-set dengan `wrangler secret put`:
+#   CRON_SECRET, OPERATOR_WEBHOOK, KEEPALIVE_ANON_KEY (opsional)

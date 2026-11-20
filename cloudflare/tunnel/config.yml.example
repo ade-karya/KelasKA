@@ -1,0 +1,13 @@
+# Salin ke ~/.cloudflared/config.yml di host operator.
+# Jalankan cloudflared HANYA bersamaan dengan notebook Colab/Kaggle yang aktif.
+tunnel: REPLACE_WITH_TUNNEL_ID
+credentials-file: /root/.cloudflared/REPLACE_WITH_TUNNEL_ID.json
+
+ingress:
+  - hostname: colab.riau.ai
+    # Port API LangGraph di notebook Colab; sesuaikan dengan sel worker.
+    service: http://127.0.0.1:8000
+  - hostname: gpu.riau.ai
+    # ComfyUI; VoxCPM (:8001) dan FunASR (:8000) diakses lewat router/UI ComfyUI.
+    service: http://127.0.0.1:8188
+  - service: http_status:404
