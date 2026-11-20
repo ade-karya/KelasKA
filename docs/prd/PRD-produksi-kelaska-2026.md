@@ -385,7 +385,7 @@ sequenceDiagram
     K->>K: SDXL / VoxCPM / FunASR
     K->>H: upload assets (content hash)
     K->>D: update stage doc + asset rows
-    K->>D: complete job; run = succeeded
+    K->>D: complete job, run = succeeded
     T->>V: GET /api/generation-runs/:id/events
     V-->>T: SSE/polling status
 ```
@@ -758,6 +758,31 @@ pending/<owner>/<uuid>           # TTL 7 hari
 - Jangan menjalankan migrasi dari cold start Vercel; lakukan di CI.
 - Backup sebelum migrasi: `pg_dump` ke HF S3.
 - Rollback Vercel: instant rollback ke deployment sebelumnya; rollback DB hanya jika migrasi aditif.
+
+---
+
+### 6.11 Peta perubahan kode (untuk implementasi Opsi B)
+
+| File | Perubahan | Risiko jika dilewat |
+|---|---|---|
+| `lib/config/feature-flags.ts` | Tambah `isGenerationRunnerEnabled()` (default true, Vercel false) dan gate PBL v3 | Runner tetap hidup di fungsi Vercel dan mati di 300 s |
+| `instrumentation.node.ts` | Bungkus `startGenerationRunner()` dengan flag; jangan start agent runtime di Vercel | Setiap cold start mengklaim run lalu terbunuh |
+| `lib/server/generation/run/runner.ts` | Ekstrak loop agar bisa dipanggil dari entrypoint worker mandiri | Worker tidak bisa memakai mesin yang sama |
+| `lib/server/generation/run/engine.ts` | Mode `deferred media`: lewati langkah gambar/TTS, tandai `waiting_media` | Run menggantung menunggu media yang tidak pernah dibuat |
+| `lib/server/generation/run/store.ts` | Enqueue `worker_jobs(course.media)` saat run mencapai fase media | Kaggle tidak pernah tahu ada pekerjaan |
+| `packages/@openmaic/storage/src/**` | Migrasi baru `worker_jobs`, `worker_heartbeats`, RPC claim/complete/reap | Jangan edit baseline; database lama harus kompatibel |
+| `scripts/worker-course.ts` (baru) | Entrypoint `bun run worker:course` | Colab tidak punya perintah yang bisa dijalankan |
+| `scripts/worker-media.ts` (baru) | Entrypoint `bun run worker:media`; health check GPU | Kaggle tidak punya loop klaim/upload |
+| `app/api/generation-runs/[id]/events/route.ts` | `maxDuration = 300`; pastikan fallback polling tetap ada | SSE mati tanpa reconnect |
+| `app/api/agent/owner-events/route.ts`, `app/api/agent/sessions/[id]/events/route.ts` | Gate off di Vercel fase 1 | Route menggantung karena LISTEN tidak tersedia |
+| `app/api/pbl/v3/**` | Gate server + UI; arahkan ke E2B atau 404 yang jelas | Sandbox lokal gagal dengan error membingungkan |
+| `app/docs/[[...slug]]/route.ts` | Redirect ke `NEXT_PUBLIC_DOCS_URL` atau hapus dari build Vercel | Route membaca `public/docs-site` yang tidak ada |
+| `app/api/classroom-media/[classroomId]/[...path]/route.ts` | 404/redirect setelah migrasi media lama ke HF S3 | 500 karena `fs` read-only |
+| `next.config.ts` | `output` kondisional; tracing prompt/skills; `serverExternalPackages` untuk sharp/canvas | Build Vercel gagal atau runtime ENOENT |
+| `scripts/bootstrap-db-schema.mts` | Daftarkan migrasi baru; jalankan dari CI, bukan cold start | Skema tidak siap saat request pertama |
+| `README.md` / `packages/docs/content/docs/deployment.mdx` | Dokumentasikan Opsi A/B, env Vercel, worker | Operator baru mengulang kesalahan yang sama |
+
+**Urutan implementasi yang disarankan:** flag + worker entrypoint → migrasi queue → `deferred media` → UI status → gate fitur → deploy Vercel. Jangan memulai dari Vercel; mulai dari worker karena itu satu-satunya bagian yang belum ada.
 
 ---
 
@@ -1187,6 +1212,27 @@ Verifikasi: login staging, buka kursus, cek media. Jangan restore ke produksi ta
 | M2 — Worker extraction | 2–3 minggu | `worker:course`, `worker:media`, `worker_jobs`, RPC, UI status | Job teks + media selesai di staging |
 | M3 — Cutover Vercel | 2–3 minggu | Web tier Vercel, runner off, SSE/polling, docs Pages, feature gates | Uji beban + E2E lulus; rollback diuji |
 | M4 — Hardening | 1–2 minggu | DR drill, security review, runbook, handover | Kriteria terima §15.2 terpenuhi |
+
+### 16.1 Checklist spike M0 (harus lulus sebelum coding besar)
+
+- [ ] `vercel build` berhasil dengan Node 24 + Bun, `NODE_OPTIONS=--max-old-space-size=6144`.
+- [ ] Ukuran fungsi terbesar < 250 MB (unzipped) dan cold start < 3 s.
+- [ ] Halaman utama dan satu halaman kelas dapat dirender dari Vercel preview.
+- [ ] Supabase session pooler 5432 menerima koneksi dari Vercel dan `LISTEN/NOTIFY` bekerja (uji dengan dua proses).
+- [ ] Transaction pooler 6543 menerima koneksi worker dan RPC `claim_worker_job` bekerja.
+- [ ] HF S3 presigned GET berhasil dari browser dengan CORS `https://kelaska.riau.ai`.
+- [ ] Kaggle dapat menulis ke Supabase pooler dan HF S3 (outbound), lalu job terlihat di UI.
+- [ ] SSE `/api/generation-runs/:id/events` bertahan 300 s dan reconnect dengan `Last-Event-ID`.
+- [ ] Ukur CPU per page render; proyeksikan 4 CPU-jam/bulan.
+- [ ] Ukur satu siklus kursus: jumlah panggilan Gemini, menit GPU, MB media.
+- [ ] `pg_dump` + restore ke staging berhasil.
+- [ ] Tidak ada secret di bundle klien (grep + DevTools Network).
+
+Jika salah satu dari item berikut gagal, hentikan Opsi B dan jalankan Opsi A:
+- Supabase session pooler tidak mendukung `LISTEN/NOTIFY` dari Vercel.
+- Build Vercel tidak muat dalam memori/waktu.
+- HF S3 presign/CORS tidak bisa dipakai dari browser.
+- Kuota Gemini tidak cukup untuk satu kursus per hari.
 
 **Total:** 7–10 minggu dengan 1–2 engineer + 1 operator notebook.
 
