@@ -5,13 +5,21 @@ Branch ini adalah **web tier** untuk arsitektur produksi on-demand di
 callback, REST API, dan SSE/polling. Generation runner dan media worker
 berjalan di Colab/Kaggle saat operator menyalakan notebook.
 
+> **Status 2026-11-20:** alias `kelas-ka.riau.ai` masih melayani deployment
+> produksi `0.1.0` dari 2026-10-04 (1 function). Setiap deploy dari branch ini
+> berujung `Error` karena project `adekarya-projects` masih memakai paket
+> **Hobby** (batas 12 Serverless Functions, sementara kode ini memancarkan
+> ~144 route). Upgrade ke **Pro** adalah prasyarat sebelum `vercel deploy
+> --prod`; env vars arsitektur on-demand sudah terpasang untuk Production
+> maupun Preview.
+
 ## Prasyarat
 
 - Project Vercel dengan framework Next.js dan region `sin1`.
 - Node 24 (dari `engines.node`), Bun 1.3+.
 - Supabase dengan session pooler (port **5432**) dan worker role terpisah.
 - HF S3 bucket privat + token dengan akses `s3:ListBucket`.
-- Cloudflare zone `riau.ai` sudah mengarahkan `kelas.riau.ai` ke Vercel.
+- Cloudflare zone `riau.ai` sudah mengarahkan `kelas-ka.riau.ai` ke Vercel.
 
 ## Variabel penting
 
@@ -21,7 +29,7 @@ Salin `.env.vercel.example` ke Environment Variables. Yang paling kritikal:
 |---|---|---|
 | `OPENMAIC_GENERATION_RUNNER_ENABLED` | `false` | Runner proses tidak boleh hidup di function 300 s |
 | `DATABASE_URL` | session pooler 5432 | `LISTEN/NOTIFY` tidak jalan di transaction 6543 |
-| `AUTH_PUBLIC_URL` | `https://kelas.riau.ai` | Redirect balik tidak boleh pakai origin internal |
+| `AUTH_PUBLIC_URL` | `https://kelas-ka.riau.ai` | Redirect balik tidak boleh pakai origin internal |
 | `ASSET_BYTE_EGRESS` | `redirect` | Media dilayani Worker media dari HF S3 |
 | `CRON_SECRET` | sama dengan Worker cron | Otentikasi `/api/internal/maintenance` |
 | `MEDIA_TOKEN_SECRET` | sama dengan Worker media | Tanda tangan token media |
@@ -57,12 +65,12 @@ bun scripts/bootstrap-db-schema.mts
 ## Verifikasi
 
 ```bash
-curl -s https://kelas.riau.ai/api/health
+curl -s https://kelas-ka.riau.ai/api/health
 # {"success":true,"status":"ok"}
 
 curl -s -o /dev/null -w '%{redirect_url}\n' \
-  https://kelas.riau.ai/api/auth/supabase/callback
-# harus https://kelas.riau.ai/login?error=google_failed
+  https://kelas-ka.riau.ai/api/auth/supabase/callback
+# harus https://kelas-ka.riau.ai/login?error=google_failed
 
 curl -s -X POST https://api-kelas.riau.ai/api/internal/maintenance \
   -H "x-kelaska-cron-secret: <secret>"
@@ -87,4 +95,4 @@ rollback penuh, aktifkan lagi jalur Opsi A (PM2) dan DNS ke host lama.
 - `proxy.ts`: `/api/internal/maintenance` dibebaskan dari auth gate pengguna.
 - `app/api/internal/maintenance/route.ts`: endpoint untuk cron Cloudflare.
 - `next.config.ts`: `output: 'standalone'` hanya bila bukan Vercel; menambah
-  `kelas.riau.ai` ke `allowedDevOrigins`.
+  `kelas-ka.riau.ai` ke `allowedDevOrigins`.

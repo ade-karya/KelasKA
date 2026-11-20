@@ -4,7 +4,7 @@
 **Dokumen:** Product Requirements Document untuk deployment produksi
 **Versi:** 2.0 — diselaraskan dengan diagram arsitektur lampiran
 **Tanggal:** 20 November 2026
-**Domain:** `*.riau.ai` (`kelas.riau.ai` sebagai entry point)
+**Domain:** `*.riau.ai` (`kelas-ka.riau.ai` sebagai entry point)
 **Status:** Menunggu keputusan operasional (D1–D6 di §0.4)
 
 ![Arsitektur produksi KelasKA (mode on-demand)](assets/arsitektur-produksi.png)
@@ -19,7 +19,7 @@
 
 Produksi KelasKA memakai kombinasi:
 
-- **Vercel Hobby** untuk UI Next.js 16 di `kelas.riau.ai`.
+- **Vercel Hobby** untuk UI Next.js 16 di `kelas-ka.riau.ai`.
 - **Cloudflare Free** untuk DNS, SSL, Tunnel, Access, WAF, Worker gerbang (`api-kelas.riau.ai`), Worker media (`media-kelas.riau.ai`), dan Cron Worker.
 - **Supabase Free** untuk Auth, antrean job, dan ringkasan.
 - **HF S3 Free** untuk media dan backup `pg_dump`.
@@ -66,7 +66,7 @@ README menyatakan serverless didukung hanya sampai 1.1.x dan `vercel.json` sudah
 
 ### 0.5 Definisi selesai
 
-- Login Google berfungsi di `kelas.riau.ai`; akun hanya melihat kursus miliknya.
+- Login Google berfungsi di `kelas-ka.riau.ai`; akun hanya melihat kursus miliknya.
 - Guru membuat/mengedit kelas → job masuk antrean Supabase → operator menyalakan Colab/Kaggle → hasil muncul di UI tanpa refresh manual.
 - Jika worker tidak aktif, UI menampilkan "Menunggu operator/worker" dan tidak ada data hilang.
 - Media dan backup `pg_dump` tersimpan di HF S3; tidak ada byte media di Vercel.
@@ -96,7 +96,7 @@ Diagram yang dilampirkan memetakan:
 ```
 Pengguna (sekolah)
    └─ Cloudflare (*.riau.ai): DNS, SSL, Tunnel, Access
-        ├─ DNS/SSL/WAF/Access → Vercel Next.js 16 (UI) · kelas.riau.ai
+        ├─ DNS/SSL/WAF/Access → Vercel Next.js 16 (UI) · kelas-ka.riau.ai
         ├─ Worker gerbang · api-kelas.riau.ai → Colab orkestrator
         └─ Worker media · media-kelas.riau.ai → HF S3
    ├─ Colab orkestrator · colab.riau.ai
@@ -148,7 +148,7 @@ Biaya GPU gratis paling berharga jika dipakai saat ada hasil yang diinginkan, bu
 
 | ID | Tujuan |
 |---|---|
-| G1 | Situs produksi `kelas.riau.ai` bisa dipakai siswa/guru/admin dengan login Google. |
+| G1 | Situs produksi `kelas-ka.riau.ai` bisa dipakai siswa/guru/admin dengan login Google. |
 | G2 | Pekerjaan berat dipindah ke worker on-demand yang mengklaim job dari Supabase. |
 | G3 | Supabase menjadi sumber kebenaran data; HF S3 menjadi sumber kebenaran byte; Postgres lokal hanya log/cache. |
 | G4 | Cloudflare menyediakan DNS/TLS/WAF/Tunnel/Access/Worker/Cron tanpa menjadi host aplikasi. |
@@ -268,19 +268,19 @@ Satu kursus 40–100 panggilan → 5–12 kursus/hari per key. Ini bottleneck ut
 
 | Nama | Tipe | Target | Keterangan |
 |---|---|---|---|
-| `kelas.riau.ai` | CNAME | Vercel | UI, proxy Cloudflare |
+| `kelas-ka.riau.ai` | CNAME | Vercel | UI, proxy Cloudflare |
 | `api-kelas.riau.ai` | Worker route | `kelaska-gateway` | Gerbang ke Colab/Vercel |
 | `media-kelas.riau.ai` | Worker route | `kelaska-media` | Presign/proxy HF S3 |
 | `colab.riau.ai` | Tunnel | `cloudflared` di host operator | Access + hanya saat sesi |
 | `gpu.riau.ai` | Tunnel | `cloudflared` di Kaggle | Access + hanya saat sesi |
 | `docs.kelas.riau.ai` | Pages | `public/docs-site` | Dokumentasi statis |
 | `status.kelas.riau.ai` | Pages/Worker | Status manual | Insiden |
-| `kelaska.riau.ai` | CNAME/redirect | `kelas.riau.ai` | Alias durante cutover |
+| `kelaska.riau.ai` | CNAME/redirect | `kelas-ka.riau.ai` | Alias durante cutover |
 
 - TLS Full (strict), Always Use HTTPS, HSTS, minimum TLS 1.2.
 - Cloudflare Access: Google OTP untuk operator/admin; service token untuk mesin. Siswa tetap login Supabase Google di UI.
-- Supabase redirect URL persis: `https://kelas.riau.ai/api/auth/supabase/callback`.
-- `AUTH_PUBLIC_URL=https://kelas.riau.ai` wajib di balik proxy.
+- Supabase redirect URL persis: `https://kelas-ka.riau.ai/api/auth/supabase/callback`.
+- `AUTH_PUBLIC_URL=https://kelas-ka.riau.ai` wajib di balik proxy.
 
 ---
 
@@ -395,7 +395,7 @@ sequenceDiagram
     participant V as Vercel
     participant S as Supabase Auth
     participant D as Supabase DB
-    B->>C: GET /login (kelas.riau.ai)
+    B->>C: GET /login (kelas-ka.riau.ai)
     C->>V: proxy
     V-->>B: halaman login
     B->>S: signInWithOAuth(Google)
@@ -410,7 +410,7 @@ sequenceDiagram
     end
 ```
 
-`AUTH_PUBLIC_URL=https://kelas.riau.ai` wajib. Role dibaca dari database setiap request, bukan dari cookie.
+`AUTH_PUBLIC_URL=https://kelas-ka.riau.ai` wajib. Role dibaca dari database setiap request, bukan dari cookie.
 
 ### 5.4 Alur buat/edit kelas
 
@@ -517,7 +517,7 @@ File: `cloudflare/workers/media/src/index.ts`, route `media-kelas.riau.ai/*`.
 
 - Verifikasi token HMAC `exp|path` dengan `MEDIA_TOKEN_SECRET` (Web Crypto). Token dibuat di Vercel; adaptor untuk menggantikan signer native `/api/persistence` masuk M3.
 - SigV4 GET ke HF S3 (`S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`), TTL 600 detik.
-- CORS: `https://kelas.riau.ai`, method GET/HEAD, expose `Content-Type`, `Content-Length`, `ETag`, `Accept-Ranges`.
+- CORS: `https://kelas-ka.riau.ai`, method GET/HEAD, expose `Content-Type`, `Content-Length`, `ETag`, `Accept-Ranges`.
 - Dukung `Range` untuk audio/video.
 - Tolak path di luar prefix `assets/`, `materials/`, `exports/`.
 - Jangan log URL bertanda tangan.
@@ -570,7 +570,7 @@ Role `kelaska_worker` hanya boleh eksekusi RPC di atas + `worker_heartbeats`; ti
 Prefix: `assets/<sha256>.<ext>`, `materials/<owner>/<sha256>`, `exports/<stage>/<sha256>.zip`, `backups/<yyyy-mm-dd>/dump.sql.gz`, `pending/<owner>/<uuid>`.
 
 - Bucket privat; presigned GET ≤10 menit.
-- CORS untuk `https://kelas.riau.ai` dan `https://media-kelas.riau.ai`.
+- CORS untuk `https://kelas-ka.riau.ai` dan `https://media-kelas.riau.ai`.
 - `ASSET_BYTE_EGRESS=redirect`; butuh `s3:ListBucket` agar objek hilang → 404.
 - Lifecycle: `pending` 7 hari, `exports` 90 hari, `backups` 30 hari.
 - Backup `pg_dump` dienkripsi (age/GPG) sebelum unggah.
@@ -578,7 +578,7 @@ Prefix: `assets/<sha256>.<ext>`, `materials/<owner>/<sha256>`, `exports/<stage>/
 ### 6.10 Auth dan BYOK
 
 - `AUTH_ENABLED=true`, Google provider aktif di Supabase.
-- Redirect URL persis `https://kelas.riau.ai/api/auth/supabase/callback`.
+- Redirect URL persis `https://kelas-ka.riau.ai/api/auth/supabase/callback`.
 - `AUTH_ADMIN_EMAILS` minimal satu admin; akun baru `pending`.
 - Role dari database, bukan cookie.
 - BYOK: akun tanpa key terverifikasi → `/onboarding/api-key` atau `403 API_KEY_REQUIRED`. Untuk sekolah pilih: `api_key_exempt=true` + key operator, atau key bersama terverifikasi. Jangan paksa siswa bawa key pribadi.
@@ -992,7 +992,7 @@ Unit (queue RPC, lease, idempotency, owner scoping), integrasi (pooler, presign,
 - [ ] Cold start <3 s; fungsi terbesar <250 MB unzipped.
 - [ ] Supabase session 5432 + `LISTEN/NOTIFY` dari Vercel; transaction 6543 untuk worker.
 - [ ] RPC `claim_worker_job` bekerja dari Kaggle.
-- [ ] Worker media: HMAC + SigV4 + Range + CORS dari `kelas.riau.ai`.
+- [ ] Worker media: HMAC + SigV4 + Range + CORS dari `kelas-ka.riau.ai`.
 - [ ] Cron trigger memanggil `/api/internal/maintenance` dengan secret.
 - [ ] SSE 300 s + reconnect `Last-Event-ID`.
 - [ ] Tunnel + Access: operator masuk, siswa ditolak.
@@ -1050,7 +1050,7 @@ Risiko yang harus diputuskan sebelum coding: R1, R2, R8, R9.
 ```dotenv
 DATABASE_URL=postgres://postgres.<ref>:<pw>@<region>.pooler.supabase.com:5432/postgres?sslmode=require
 AUTH_ENABLED=true
-AUTH_PUBLIC_URL=https://kelas.riau.ai
+AUTH_PUBLIC_URL=https://kelas-ka.riau.ai
 AUTH_ADMIN_EMAILS=admin@dinas.belajar.id
 OPENMAIC_SECRET_KEY=<32+ chars>
 GOOGLE_API_KEY=<gemini>
@@ -1113,8 +1113,8 @@ Keduanya branch turunan langsung dari PRD; deploy Vercel dari `deploy/vercel`, d
 ### 19.3 Verifikasi cepat
 
 ```bash
-curl -s https://kelas.riau.ai/api/health
-curl -s -o /dev/null -w '%{redirect_url}\n' https://kelas.riau.ai/api/auth/supabase/callback
+curl -s https://kelas-ka.riau.ai/api/health
+curl -s -o /dev/null -w '%{redirect_url}\n' https://kelas-ka.riau.ai/api/auth/supabase/callback
 curl -s -H 'x-kelaska-cron-secret: <secret>' -X POST https://api-kelas.riau.ai/api/internal/maintenance
 psql "$MIGRATION_DATABASE_URL" -c "select status,count(*) from worker_jobs group by 1 order by 1;"
 psql "$MIGRATION_DATABASE_URL" -c "select worker_id,kind,last_seen_at from worker_heartbeats order by 2 desc;"

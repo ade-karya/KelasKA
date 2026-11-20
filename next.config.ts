@@ -84,7 +84,7 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: '200mb',
   },
-  allowedDevOrigins: ['kelaska.riau.ai', 'kelas.riau.ai'],
+  allowedDevOrigins: ['kelaska.riau.ai', 'kelas-ka.riau.ai'],
   async headers() {
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
     const frameAncestors = extraAncestors ? `'self' ${extraAncestors}` : "'self'";

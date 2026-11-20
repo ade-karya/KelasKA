@@ -13,7 +13,7 @@
 <text x="84" y="205" font-family="Liberation Sans, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748B" text-anchor="start">Siswa · Guru · Admin</text>
 <text x="84" y="230" font-family="Liberation Sans, Arial, sans-serif" font-size="12.6" font-weight="400" fill="#334155" text-anchor="start">Login Google via Supabase</text>
 <text x="84" y="250" font-family="Liberation Sans, Arial, sans-serif" font-size="12.6" font-weight="400" fill="#334155" text-anchor="start">Browser + Android</text>
-<text x="84" y="270" font-family="Liberation Sans, Arial, sans-serif" font-size="12.6" font-weight="400" fill="#334155" text-anchor="start">kelas.riau.ai</text>
+<text x="84" y="270" font-family="Liberation Sans, Arial, sans-serif" font-size="12.6" font-weight="400" fill="#334155" text-anchor="start">kelas-ka.riau.ai</text>
 </g>
 <rect x="370" y="150" width="1200" height="210" rx="18" fill="#F97316" stroke="#F97316" stroke-width="1.2" opacity="0.06"/>
 <rect x="370" y="150" width="1200" height="4" rx="2" fill="#F97316" stroke="none" stroke-width="1" opacity="0.8"/>
@@ -22,7 +22,7 @@
 <rect x="394" y="228" width="300" height="104" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" opacity="1.0"/>
 <rect x="394" y="238" width="4" height="84" rx="2" fill="#F97316" stroke="none" stroke-width="1" opacity="1.0"/>
 <text x="410" y="255" font-family="Liberation Sans, Arial, sans-serif" font-size="14.5" font-weight="700" fill="#0F172A" text-anchor="start">DNS, SSL, WAF, Access</text>
-<text x="410" y="276" font-family="Liberation Sans, Arial, sans-serif" font-size="11.6" font-weight="500" fill="#64748B" text-anchor="start">kelas.riau.ai → Vercel</text>
+<text x="410" y="276" font-family="Liberation Sans, Arial, sans-serif" font-size="11.6" font-weight="500" fill="#64748B" text-anchor="start">kelas-ka.riau.ai → Vercel</text>
 <rect x="706" y="228" width="380" height="104" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" opacity="1.0"/>
 <rect x="706" y="238" width="4" height="84" rx="2" fill="#F97316" stroke="none" stroke-width="1" opacity="1.0"/>
 <text x="722" y="255" font-family="Liberation Sans, Arial, sans-serif" font-size="14.5" font-weight="700" fill="#0F172A" text-anchor="start">Worker gerbang</text>
@@ -35,7 +35,7 @@
 <rect x="60" y="420" width="360" height="250" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
 <rect x="60" y="434" width="6" height="222" rx="3" fill="#111827" stroke="none" stroke-width="1" opacity="1.0"/>
 <text x="84" y="453" font-family="Liberation Sans, Arial, sans-serif" font-size="18" font-weight="700" fill="#0F172A" text-anchor="start">Vercel Hobby — Web Tier</text>
-<text x="84" y="475" font-family="Liberation Sans, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748B" text-anchor="start">Next.js 16 (UI) · kelas.riau.ai</text>
+<text x="84" y="475" font-family="Liberation Sans, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748B" text-anchor="start">Next.js 16 (UI) · kelas-ka.riau.ai</text>
 <text x="84" y="500" font-family="Liberation Sans, Arial, sans-serif" font-size="12.6" font-weight="400" fill="#334155" text-anchor="start">UI, auth callback, REST API</text>
 <text x="84" y="520" font-family="Liberation Sans, Arial, sans-serif" font-size="12.6" font-weight="400" fill="#334155" text-anchor="start">Tidak menjalankan generation runner</text>
 <text x="84" y="540" font-family="Liberation Sans, Arial, sans-serif" font-size="12.6" font-weight="400" fill="#334155" text-anchor="start">Baca/tulis Supabase, presign HF S3</text>
