@@ -1,0 +1,238 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1250" viewBox="0 0 2000 1250">
+<defs>
+<filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0F172A" flood-opacity="0.07"/></filter>
+<marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#64748B"/></marker>
+<linearGradient id="topbar" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#0EA5E9"/><stop offset="35%" stop-color="#10B981"/><stop offset="70%" stop-color="#8B5CF6"/><stop offset="100%" stop-color="#F97316"/></linearGradient>
+</defs>
+<rect x="0" y="0" width="2000" height="1250" rx="0" fill="#F6F8FB" stroke="none" stroke-width="1" opacity="1.0"/>
+<rect x="0" y="0" width="2000" height="8" rx="0" fill="url(#topbar)" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="60" y="66" font-family="Liberation Sans, Arial, sans-serif" font-size="38" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">KelasKA — Arsitektur Produksi Hybrid</text>
+<text x="60" y="98" font-family="Liberation Sans, Arial, sans-serif" font-size="16.5" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">Vercel Hobby · Cloudflare Free · Supabase Free · HF S3 Free · Colab · Kaggle · kelaska.riau.ai</text>
+<rect x="1480" y="44" width="119.69999999999999" height="28" rx="14" fill="#F97316" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="1539.85" y="62.5" font-family="Liberation Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#F97316" text-anchor="middle" opacity="1.0">PRD v1.0 · DRAF</text>
+<rect x="1648" y="44" width="94.17999999999999" height="28" rx="14" fill="#64748B" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="1695.09" y="62.5" font-family="Liberation Sans, Arial, sans-serif" font-size="11" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">20 Nov 2026</text>
+<g>
+<rect x="60" y="150" width="270" height="150" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="60" y="164" width="6" height="122" rx="3" fill="#0EA5E9" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="84" y="183" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Pengguna</text>
+<text x="84" y="205" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">Browser + Android</text>
+<text x="84" y="230" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Siswa · Guru · Admin</text>
+<text x="84" y="250" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Google Sign-In</text>
+<text x="84" y="270" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">kelaska.riau.ai</text>
+</g>
+<g>
+<rect x="390" y="150" width="290" height="150" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="390" y="164" width="6" height="122" rx="3" fill="#F97316" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="414" y="183" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Cloudflare Free</text>
+<text x="414" y="205" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">Edge &amp; DNS</text>
+<text x="414" y="230" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">DNS kelaska.riau.ai</text>
+<text x="414" y="250" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">TLS · WAF · cache</text>
+<text x="414" y="270" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Cron 5 mnt: reaper + ping</text>
+</g>
+<g>
+<rect x="740" y="150" width="430" height="210" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="740" y="164" width="6" height="182" rx="3" fill="#111827" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="764" y="183" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Vercel Hobby — Web Tier</text>
+<text x="764" y="205" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">Next.js 16 · tanpa generation runner</text>
+<text x="764" y="230" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">UI, auth callback, REST API</text>
+<text x="764" y="250" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">SSE/polling progres (≤300 s)</text>
+<text x="764" y="270" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Admin · library · playback</text>
+<text x="764" y="290" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Tidak menulis ke disk lokal</text>
+<rect x="764" y="317" width="46" height="24" rx="12" fill="#111827" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="787.0" y="333.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#111827" text-anchor="middle" opacity="1.0">sin1</text>
+<rect x="818" y="317" width="102.0" height="24" rx="12" fill="#111827" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="869.0" y="333.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#111827" text-anchor="middle" opacity="1.0">300 s/fungsi</text>
+<rect x="928.0" y="317" width="109.0" height="24" rx="12" fill="#111827" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="982.5" y="333.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#111827" text-anchor="middle" opacity="1.0">1 jt invokasi</text>
+</g>
+<g>
+<rect x="1230" y="150" width="420" height="250" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="1230" y="164" width="6" height="222" rx="3" fill="#10B981" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1254" y="183" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Supabase Free</text>
+<text x="1254" y="205" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">Auth + Postgres + Realtime</text>
+<text x="1254" y="230" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Google OAuth (PKCE)</text>
+<text x="1254" y="250" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Kursus, user, run, job, lease</text>
+<text x="1254" y="270" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Realtime 200 koneksi</text>
+<text x="1254" y="290" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Backup harian → HF S3</text>
+<rect x="1254" y="357" width="60.0" height="24" rx="12" fill="#10B981" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="1284.0" y="373.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#10B981" text-anchor="middle" opacity="1.0">500 MB</text>
+<rect x="1322.0" y="357" width="95.0" height="24" rx="12" fill="#10B981" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="1369.5" y="373.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#10B981" text-anchor="middle" opacity="1.0">5 GB egress</text>
+<rect x="1425.0" y="357" width="102.0" height="24" rx="12" fill="#10B981" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="1476.0" y="373.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#10B981" text-anchor="middle" opacity="1.0">pause 7 hari</text>
+</g>
+<g>
+<rect x="1230" y="450" width="420" height="140" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="1230" y="464" width="6" height="112" rx="3" fill="#EAB308" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1254" y="483" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Hugging Face S3</text>
+<text x="1254" y="505" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">Byte store media</text>
+<text x="1254" y="530" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Bucket privat · 100 GB</text>
+<text x="1254" y="550" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Gambar, audio, video, ekspor</text>
+<text x="1254" y="570" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Presigned GET ≤10 mnt · assets/&lt;sha256&gt;</text>
+</g>
+<g>
+<rect x="60" y="650" width="270" height="150" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="60" y="664" width="6" height="122" rx="3" fill="#3B82F6" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="84" y="683" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Gemini API</text>
+<text x="84" y="705" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">LLM pembuatan kelas</text>
+<text x="84" y="730" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">gemini-3.5-flash-lite</text>
+<text x="84" y="750" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Kuota gratis 500 RPD</text>
+<text x="84" y="770" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Batch + backoff</text>
+</g>
+<g>
+<rect x="390" y="620" width="400" height="230" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="390" y="634" width="6" height="202" rx="3" fill="#6366F1" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="414" y="653" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Colab — Course Worker</text>
+<text x="414" y="675" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">CPU · dijalankan operator</text>
+<text x="414" y="700" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Klaim job course.generate</text>
+<text x="414" y="720" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Outline → scene → teks</text>
+<text x="414" y="740" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Tulis stage doc + placeholder media</text>
+<text x="414" y="760" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Enqueue job course.media</text>
+<rect x="414" y="807" width="60.0" height="24" rx="12" fill="#6366F1" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="444.0" y="823.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#6366F1" text-anchor="middle" opacity="1.0">12 jam</text>
+<rect x="482.0" y="807" width="109.0" height="24" rx="12" fill="#6366F1" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="536.5" y="823.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#6366F1" text-anchor="middle" opacity="1.0">tanpa inbound</text>
+<rect x="599.0" y="807" width="74.0" height="24" rx="12" fill="#6366F1" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="636.0" y="823.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#6366F1" text-anchor="middle" opacity="1.0">operator</text>
+</g>
+<g>
+<rect x="840" y="640" width="440" height="250" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="840" y="654" width="6" height="222" rx="3" fill="#8B5CF6" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="864" y="673" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Kaggle — GPU Media Worker</text>
+<text x="864" y="695" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">T4 ×2 · dijalankan operator</text>
+<text x="864" y="720" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">ComfyUI SDXL · VoxCPM TTS · FunASR</text>
+<text x="864" y="740" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Klaim job course.media</text>
+<text x="864" y="760" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Render → upload ke HF S3</text>
+<text x="864" y="780" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Update stage doc dengan ast_ id</text>
+<rect x="864" y="847" width="95.0" height="24" rx="12" fill="#8B5CF6" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="911.5" y="863.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#8B5CF6" text-anchor="middle" opacity="1.0">±30 jam/mgg</text>
+<rect x="967.0" y="847" width="95.0" height="24" rx="12" fill="#8B5CF6" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="1014.5" y="863.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#8B5CF6" text-anchor="middle" opacity="1.0">12 jam/sesi</text>
+<rect x="1070.0" y="847" width="109.0" height="24" rx="12" fill="#8B5CF6" stroke="none" stroke-width="1" opacity="0.12"/>
+<text x="1124.5" y="863.5" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#8B5CF6" text-anchor="middle" opacity="1.0">tanpa inbound</text>
+</g>
+<g>
+<rect x="390" y="930" width="890" height="130" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="390" y="944" width="6" height="102" rx="3" fill="#64748B" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="414" y="963" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Job Queue di Postgres</text>
+<text x="414" y="985" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">Satu sumber kebenaran untuk pekerjaan asinkron</text>
+<text x="414" y="1010" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">worker_jobs · FOR UPDATE SKIP LOCKED · lease 120 s · heartbeat 30 s · retry 3×</text>
+<text x="414" y="1030" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">idempotency_key unik · dead-letter + requeue · worker_heartbeats untuk status online</text>
+</g>
+<g>
+<rect x="1320" y="930" width="300" height="150" rx="14" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<rect x="1320" y="944" width="6" height="122" rx="3" fill="#14B8A6" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1344" y="963" font-family="Liberation Sans, Arial, sans-serif" font-size="19" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Observability &amp; DR</text>
+<text x="1344" y="985" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">Minimum yang wajib ada</text>
+<text x="1344" y="1010" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Queue depth · worker online</text>
+<text x="1344" y="1030" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Uptime 5 mnt · alert 80% kuota</text>
+<text x="1344" y="1050" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">pg_dump harian → HF S3</text>
+<text x="1344" y="1070" font-family="Liberation Sans, Arial, sans-serif" font-size="12.8" font-weight="400" fill="#334155" text-anchor="start" opacity="1.0">Restore drill bulanan</text>
+</g>
+<rect x="1690" y="150" width="270" height="900" rx="16" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2" opacity="1.0"/>
+<text x="1708" y="180" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="700" fill="#0F172A" text-anchor="start" opacity="1.0">Batas gratis</text>
+<text x="1708" y="200" font-family="Liberation Sans, Arial, sans-serif" font-size="12" font-weight="500" fill="#64748B" text-anchor="start" opacity="1.0">→ pemicu upgrade</text>
+<rect x="1704" y="220" width="242" height="108" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8" opacity="1.0"/>
+<rect x="1704" y="220" width="4" height="108" rx="2" fill="#111827" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1718" y="242" font-family="Liberation Sans, Arial, sans-serif" font-size="13.5" font-weight="700" fill="#111827" text-anchor="start" opacity="1.0">Vercel Hobby</text>
+<text x="1718" y="262" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">300 s/fungsi · 1 jt invokasi</text>
+<text x="1718" y="279" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">4 CPU-jam · 100 GB transfer</text>
+<text x="1718" y="296" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Pemicu: &gt;4 CPU-jam/bln</text>
+<rect x="1704" y="336" width="242" height="108" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8" opacity="1.0"/>
+<rect x="1704" y="336" width="4" height="108" rx="2" fill="#F97316" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1718" y="358" font-family="Liberation Sans, Arial, sans-serif" font-size="13.5" font-weight="700" fill="#F97316" text-anchor="start" opacity="1.0">Cloudflare Free</text>
+<text x="1718" y="378" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">100 rb req/hari Worker</text>
+<text x="1718" y="395" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">10 ms CPU · 128 MB</text>
+<text x="1718" y="412" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Hanya edge; bukan app</text>
+<rect x="1704" y="452" width="242" height="108" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8" opacity="1.0"/>
+<rect x="1704" y="452" width="4" height="108" rx="2" fill="#10B981" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1718" y="474" font-family="Liberation Sans, Arial, sans-serif" font-size="13.5" font-weight="700" fill="#10B981" text-anchor="start" opacity="1.0">Supabase Free</text>
+<text x="1718" y="494" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">500 MB DB · 5 GB egress</text>
+<text x="1718" y="511" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">200 realtime · 2 jt pesan</text>
+<text x="1718" y="528" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Pause 7 hari idle → Pro</text>
+<rect x="1704" y="568" width="242" height="108" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8" opacity="1.0"/>
+<rect x="1704" y="568" width="4" height="108" rx="2" fill="#CA8A04" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1718" y="590" font-family="Liberation Sans, Arial, sans-serif" font-size="13.5" font-weight="700" fill="#CA8A04" text-anchor="start" opacity="1.0">HF S3 Free</text>
+<text x="1718" y="610" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">100 GB privat · best-effort</text>
+<text x="1718" y="627" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Tanpa SLA / CDN komersial</text>
+<text x="1718" y="644" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Pemicu: &gt;80 GB → PRO</text>
+<rect x="1704" y="684" width="242" height="108" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8" opacity="1.0"/>
+<rect x="1704" y="684" width="4" height="108" rx="2" fill="#6366F1" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1718" y="706" font-family="Liberation Sans, Arial, sans-serif" font-size="13.5" font-weight="700" fill="#6366F1" text-anchor="start" opacity="1.0">Colab Free</text>
+<text x="1718" y="726" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Maks 12 jam · GPU tidak dijamin</text>
+<text x="1718" y="743" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Dilarang web service / bypass UI</text>
+<text x="1718" y="760" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Operator harus aktif</text>
+<rect x="1704" y="800" width="242" height="108" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8" opacity="1.0"/>
+<rect x="1704" y="800" width="4" height="108" rx="2" fill="#8B5CF6" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1718" y="822" font-family="Liberation Sans, Arial, sans-serif" font-size="13.5" font-weight="700" fill="#8B5CF6" text-anchor="start" opacity="1.0">Kaggle Free</text>
+<text x="1718" y="842" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">±30 jam GPU/minggu</text>
+<text x="1718" y="859" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">12 jam/sesi · 20 GB output</text>
+<text x="1718" y="876" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Tanpa inbound; worker pull</text>
+<rect x="1704" y="916" width="242" height="108" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8" opacity="1.0"/>
+<rect x="1704" y="916" width="4" height="108" rx="2" fill="#3B82F6" stroke="none" stroke-width="1" opacity="1.0"/>
+<text x="1718" y="938" font-family="Liberation Sans, Arial, sans-serif" font-size="13.5" font-weight="700" fill="#3B82F6" text-anchor="start" opacity="1.0">Gemini Free</text>
+<text x="1718" y="958" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">500 RPD flash-lite</text>
+<text x="1718" y="975" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">20 RPD 3.6/3.8</text>
+<text x="1718" y="992" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Pemicu: kuota habis → paid</text>
+<path d="M 330 225 L 390 225" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+<rect x="336.25" y="195" width="47.5" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="360" y="211" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">HTTPS</text>
+<circle cx="360" cy="243" r="11" fill="#64748B"/>
+<text x="360" y="246.8" font-family="Liberation Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" opacity="1.0">1</text>
+<path d="M 680 225 L 740 225" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+<rect x="686.25" y="195" width="47.5" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="710" y="211" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">proxy</text>
+<circle cx="710" cy="243" r="11" fill="#64748B"/>
+<text x="710" y="246.8" font-family="Liberation Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" opacity="1.0">2</text>
+<path d="M 1170 225 L 1230 225" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+<rect x="1160.5" y="195" width="79.0" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="1200" y="211" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">SQL · Auth</text>
+<circle cx="1200" cy="243" r="11" fill="#64748B"/>
+<text x="1200" y="246.8" font-family="Liberation Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" opacity="1.0">3</text>
+<path d="M 1100 360 L 1230 520" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 7" marker-end="url(#arrowhead)"/>
+<rect x="1101.05" y="508" width="97.89999999999999" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="1150" y="524" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">presign / GET</text>
+<circle cx="1080" cy="440" r="11" fill="#64748B"/>
+<text x="1080" y="443.8" font-family="Liberation Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" opacity="1.0">4</text>
+<path d="M 1440 400 L 1440 450" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+<rect x="1483.65" y="416" width="72.69999999999999" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="1520" y="432" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">key objek</text>
+<path d="M 790 620 L 1280 400" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 7" marker-end="url(#arrowhead)"/>
+<rect x="991.6" y="483" width="116.8" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="1050" y="499" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">claim / complete</text>
+<circle cx="930" cy="525" r="11" fill="#64748B"/>
+<text x="930" y="528.8" font-family="Liberation Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" opacity="1.0">5</text>
+<path d="M 1280 700 L 1665 700 L 1665 400 L 1650 400" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 7" marker-end="url(#arrowhead)"/>
+<rect x="1576.25" y="618" width="47.5" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="1600" y="634" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">claim</text>
+<circle cx="1698" cy="560" r="11" fill="#64748B"/>
+<text x="1698" y="563.8" font-family="Liberation Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" opacity="1.0">6</text>
+<path d="M 1280 660 L 1400 590" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 7" marker-end="url(#arrowhead)"/>
+<rect x="1343.1" y="628" width="53.8" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="1370" y="644" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">upload</text>
+<circle cx="1330" cy="640" r="11" fill="#64748B"/>
+<text x="1330" y="643.8" font-family="Liberation Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" opacity="1.0">7</text>
+<path d="M 400 300 L 350 300 L 350 990 L 390 990" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 7" marker-end="url(#arrowhead)"/>
+<rect x="257.35" y="628" width="85.3" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="300" y="644" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">cron reaper</text>
+<circle cx="350" cy="600" r="11" fill="#64748B"/>
+<text x="350" y="603.8" font-family="Liberation Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" opacity="1.0">8</text>
+<path d="M 390 720 L 330 720" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowhead)"/>
+<rect x="342.55" y="690" width="34.9" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="360" y="706" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">LLM</text>
+<circle cx="360" cy="738" r="11" fill="#64748B"/>
+<text x="360" y="741.8" font-family="Liberation Sans, Arial, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" opacity="1.0">9</text>
+<path d="M 590 850 L 590 930" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 7" marker-end="url(#arrowhead)"/>
+<rect x="606.25" y="878" width="47.5" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="630" y="894" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">lease</text>
+<path d="M 1060 890 L 1060 930" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 7" marker-end="url(#arrowhead)"/>
+<rect x="1076.25" y="898" width="47.5" height="22" rx="11" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8" opacity="0.97"/>
+<text x="1100" y="914" font-family="Liberation Sans, Arial, sans-serif" font-size="10.8" font-weight="700" fill="#64748B" text-anchor="middle" opacity="1.0">lease</text>
+<path d="M 1280 995 L 1320 995" fill="none" stroke="#64748B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 7" marker-end="url(#arrowhead)"/>
+<text x="60" y="1096" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Cara baca: garis putus-putus = asinkron/antrean. Worker adalah notebook yang dijalankan operator, bukan server 24/7; jika worker offline, job tetap queued dan UI menampilkan statusnya.</text>
+<text x="60" y="1118" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Vercel tidak menjalankan generation runner; runner dipindah ke Colab/Kaggle. Cloudflare Workers Free tidak memuat SSR Next.js (10 ms CPU).</text>
+<text x="60" y="1140" font-family="Liberation Sans, Arial, sans-serif" font-size="12.2" font-weight="400" fill="#475569" text-anchor="start" opacity="1.0">Batas platform diverifikasi 20 Nov 2026 dari dokumentasi resmi; angka dapat berubah. Lihat PRD §3 untuk sumber, implikasi, dan mitigasi.</text>
+<text x="60" y="1196" font-family="Liberation Sans, Arial, sans-serif" font-size="11.5" font-weight="600" fill="#94A3B8" text-anchor="start" opacity="1.0">Kelas Kecerdasan Artifisial · PRD Produksi Hybrid 2026 · dokumen internal untuk keputusan arsitektur</text>
+<text x="1940" y="1196" font-family="Liberation Sans, Arial, sans-serif" font-size="11.5" font-weight="500" fill="#94A3B8" text-anchor="end" opacity="1.0">docs/prd/assets/arsitektur-produksi.svg</text>
+</svg>
