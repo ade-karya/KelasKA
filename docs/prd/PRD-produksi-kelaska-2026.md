@@ -19,7 +19,7 @@
 
 Produksi KelasKA memakai kombinasi:
 
-- **Vercel Hobby** untuk UI Next.js 16 di `kelas-ka.riau.ai`.
+- **Vercel Pro** untuk UI Next.js 16 di `kelas-ka.riau.ai` (paket **Hobby tidak cukup**: batas 12 Serverless Functions, sementara kode saat ini memancarkan ~144 route; alias produksi yang ada saat ini masih deployment `0.1.0` dari 2026-10-04).
 - **Cloudflare Free** untuk DNS, SSL, Tunnel, Access, WAF, Worker gerbang (`api-kelas.riau.ai`), Worker media (`media-kelas.riau.ai`), dan Cron Worker.
 - **Supabase Free** untuk Auth, antrean job, dan ringkasan.
 - **HF S3 Free** untuk media dan backup `pg_dump`.
