@@ -441,13 +441,11 @@ sequenceDiagram
 
 ### 5.5 Alur media
 
-1. Browser meminta `/api/assets/:id` ke Vercel.
-2. Vercel cek owner, lalu arahkan ke `https://media-kelas.riau.ai/assets/<hash>?exp=...&sig=...`.
-3. Worker media verifikasi HMAC, lalu minta objek ke HF S3 dengan SigV4 (TTL presign ≤600 detik).
-4. Header `Cache-Control: public, max-age=31536000, immutable` untuk kunci content-hash.
+1. **Jalur yang sudah ada hari ini:** aset dibaca lewat `/api/persistence/...` dengan `ASSET_BYTE_EGRESS=redirect`; handler storage sudah menandatangani URL HF S3 sendiri (TTL default 60 detik, maksimal 900 detik). Vercel tidak pernah menyajikan byte media.
+2. **Jalur edge sesuai diagram:** `media-kelas.riau.ai` menerima token HMAC `exp|sig` yang dibuat Vercel, memverifikasinya, lalu menandatangani permintaan HF S3 dengan SigV4 (TTL ≤600 detik). Ini dipakai untuk media statis/legacy, ekspor, dan konten baru setelah adaptor token dipasang.
+3. Kedua jalur boleh hidup berdampingan. Mengganti signer native dengan token Worker media adalah pekerjaan milestone M3, bukan prasyarat M1/M2.
+4. Header `Cache-Control: public, max-age=31536000, immutable` hanya untuk kunci content-hash; media lama cache maksimal 1 jam dan tetap revalidasi owner.
 5. Android WebView memakai URL yang sama; tidak ada jalur media kedua.
-
-Jika kunci bukan content-hash (media lama), cache maksimal 1 jam dan wajib revalidasi owner.
 
 ### 5.6 State machine job
 
@@ -517,7 +515,7 @@ File: `cloudflare/workers/gateway/src/index.ts`, route `api-kelas.riau.ai/*`.
 
 File: `cloudflare/workers/media/src/index.ts`, route `media-kelas.riau.ai/*`.
 
-- Verifikasi token HMAC `exp|path` dengan `MEDIA_TOKEN_SECRET` (Web Crypto).
+- Verifikasi token HMAC `exp|path` dengan `MEDIA_TOKEN_SECRET` (Web Crypto). Token dibuat di Vercel; adaptor untuk menggantikan signer native `/api/persistence` masuk M3.
 - SigV4 GET ke HF S3 (`S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`), TTL 600 detik.
 - CORS: `https://kelas.riau.ai`, method GET/HEAD, expose `Content-Type`, `Content-Length`, `ETag`, `Accept-Ranges`.
 - Dukung `Range` untuk audio/video.
