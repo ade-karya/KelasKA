@@ -4,11 +4,11 @@ compatibility_date = "2026-11-20"
 route = { pattern = "api-kelas.riau.ai/*", zone_name = "riau.ai" }
 
 [vars]
-ORIGIN_VERCEL = "https://kelas.riau.ai"
-ALLOWED_ORIGIN = "https://kelas.riau.ai"
+ORIGIN_VERCEL = "https://kelas-ka.riau.ai"
+ALLOWED_ORIGIN = "https://kelas-ka.riau.ai"
 
-# Namespace yang sama dipakai kelaska-cron. Ganti ID setelah `wrangler kv namespace create`.
+# Sama namespace dengan kelaska-cron (dibuat 2026-11-20).
 [[kv_namespaces]]
 binding = "WORKER_STATE"
-id = "REPLACE_WITH_KV_ID"
-preview_id = "REPLACE_WITH_PREVIEW_KV_ID"
+id = "7da58c97fdd140bbab29fb35d14bb001"
+preview_id = "6a82b52b272645aaac2f216206ed8980"
