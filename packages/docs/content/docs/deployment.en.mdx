@@ -8,7 +8,13 @@ Kelas Kecerdasan Artifisial is a Next.js application that needs a long-running N
 - **Docker Compose** (recommended): the app and PostgreSQL in two containers.
 - **The Docker image or `bun run start`** with a PostgreSQL database you run yourself.
 
-Serverless hosts such as Vercel are not supported from 1.2.0: a function that ends with its request cannot run a generation. See [Vercel (up to 1.1.x)](#vercel-up-to-11x).
+A standalone serverless deployment (a single Vercel function running the whole app) is not supported from 1.2.0: a function that ends with its request cannot run a generation. See [Vercel (up to 1.1.x)](#vercel-up-to-11x). Current releases instead use a [split deployment](https://github.com/ade-karya/KelasKA/tree/main/deploy):
+
+- **Vercel / Cloudflare Containers** run the UI, course library, auth and database APIs in limited mode. They enqueue generation runs but start no background workers.
+- **A long-running worker** (Kaggle, Colab or a VPS) shares the same `DATABASE_URL` and claims those runs. Progress reaches the browser over the same database-backed event log.
+- **Kaggle / Colab** can also run the full app on their own with `install.sh --kaggle` / `--colab`, including local GPU services when available.
+
+The profile is selected with `OPENMAIC_DEPLOY_TARGET` or inferred from the platform. The [deploy tree](https://github.com/ade-karya/KelasKA/tree/main/deploy) holds the per-platform configs, env templates, scripts and setup guides.
 
 ## Updating instances that share a database
 
