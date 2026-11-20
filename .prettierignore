@@ -14,9 +14,6 @@ packages/@openmaic/importer/src1/
 # Docs site (separate Fumadocs app with its own toolchain)
 packages/docs/
 
-# Hand-authored design artifact with intentionally compact CSS
-docs/wireframes/index.html
-
 # Build output
 .next/
 out/
