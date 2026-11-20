@@ -10,6 +10,8 @@ Branch ini berisi tiga Worker untuk arsitektur produksi on-demand:
 
 Rancangan lengkap ada di `docs/prd/PRD-produksi-kelaska-2026.md`. Worker **tidak** menjalankan SSR Next.js (Workers Free 10 ms CPU/128 MB).
 
+> **Catatan egress media.** Aset yang dibuat aplikasi hari ini sudah di-redirect ke HF S3 langsung dari `/api/persistence` oleh `ASSET_BYTE_EGRESS=redirect` (TTL 60 detik, maksimal 900 detik). Worker media di branch ini dipakai untuk media statis/legacy dan ekspor yang melalui `media-kelas.riau.ai`; mengganti signer native dengan token HMAC Worker adalah pekerjaan M3. Deploy Worker tetap bisa dilakukan sekarang — jalur lama tidak berubah.
+
 ## Prasyarat
 
 - Zone `riau.ai` di akun Cloudflare, dengan `kelas.riau.ai` mengarah ke Vercel.
