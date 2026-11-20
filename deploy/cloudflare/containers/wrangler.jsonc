@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "kelaska",
+  "main": "worker.ts",
+  "compatibility_date": "2026-11-20",
+  "upload_source_maps": true,
+  // Cloudflare Containers runs the repository's existing Dockerfile, i.e. the
+  // same standalone image used by Docker Compose and PM2. Paths are relative
+  // to this config file: three levels up is the repository root.
+  //
+  // The `default` scheduling policy is used on purpose: the Container helper
+  // starts the image configured here automatically. It is deprecated in favour
+  // of `durable_object`, but migrating needs per-instance start() calls; do it
+  // only if the account requires it.
+  "containers": [
+    {
+      "class_name": "KelasKaContainer",
+      "image": "../../../Dockerfile",
+      "image_build_context": "../../../",
+      "instance_type": "standard-2",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "KELASKA_CONTAINER",
+        "class_name": "KelasKaContainer"
+      }
+    ]
+  },
+  "exports": {
+    "KelasKaContainer": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  }
+}
