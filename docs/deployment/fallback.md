@@ -4,14 +4,15 @@ Satu checkout `deploy/hybrid` dipakai untuk semua tier. Tujuannya sederhana:
 **produksi harus jalan**, boleh di platform mana pun yang tidak sedang dibatasi.
 Jangan menunggu upgrade paket atau DNS selesai untuk menyalakan layanan.
 
-> **Ringkasan hari ini (2026-11-20):** produksi yang benar-benar live dan sehat
-> ada di tier 3 — aplikasi penuh di host Node `kelaska.riau.ai` (HTTP 200).
-> Tier 1 (Vercel) masih **Hobby** dan tidak bisa menerima kode saat ini
-> (batas 12 Serverless Functions vs ~144 route); alias `kelas-ka.riau.ai`
-> melayani deployment lama `0.1.0` dari 2026-10-04. Tier 2 (Cloudflare)
-> siap dipakai sebagai edge, tetapi Workers Free **tidak bisa** menjalankan
-> Next.js SSR, jadi selalu butuh satu origin aplikasi penuh (tier 3 atau
-> Vercel Pro).
+> **Ringkasan hari ini (2026-11-20):** tier 2 dan 3 sudah **live** —
+> aplikasi penuh di host Node `kelaska.riau.ai` (HTTP 200) dan Worker
+> Cloudflare di `api-kelas.riau.ai` (`/worker/status` = 200 JSON,
+> `media-kelas.riau.ai` = 401 untuk token salah). Tier 1 (Vercel) masih
+> **Hobby** dan tidak bisa menerima kode saat ini (batas 12 Serverless
+> Functions vs ~144 route); alias `kelas-ka.riau.ai` melayani deployment
+> lama `0.1.0` dari 2026-10-04. Workers Free **tidak bisa** menjalankan
+> Next.js SSR, jadi selalu butuh satu origin aplikasi penuh — tier 3 sudah
+> menyediakannya sekarang.
 
 ---
 
@@ -128,9 +129,11 @@ curl -s -o /dev/null -w '%{http_code}\n' \
   "https://media-kelas.riau.ai/assets/contoh.png?exp=1&sig=00"   # 401
 ```
 
-> Route `api-kelas.riau.ai` / `media-kelas.riau.ai` perlu DNS record di
-> dashboard Cloudflare. Wrangler OAuth memberi izin Workers/KV/Routes,
-> **bukan** `Zone.DNS:Edit` — jadi DNS harus ditambahkan operator.
+> Route `api-kelas.riau.ai` / `media-kelas.riau.ai` sudah live (diverifikasi
+> 2026-11-20: `/worker/status` 200 JSON dengan `server: cloudflare`,
+> `media-kelas` 401 untuk token salah). Untuk hostname baru, DNS tetap perlu
+> ditambahkan di dashboard Cloudflare: Wrangler OAuth memberi izin
+> Workers/KV/Routes, **bukan** `Zone.DNS:Edit`.
 
 ---
 
