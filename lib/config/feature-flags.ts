@@ -25,6 +25,21 @@ export function isAgentRuntimeConfigured(): boolean {
 }
 
 /**
+ * Server-only gate for the in-process generation runner.
+ *
+ * Default ON keeps self-hosted / Colab / Kaggle deployments unchanged: they
+ * need the lease-based runner that lives in the Node process. Vercel must set
+ * this to `false` — a Hobby function is killed at 300 s, while a generation
+ * run holds a database lease that can outlive that. On Vercel the work is
+ * claimed by the on-demand Colab/Kaggle workers instead.
+ */
+export function isGenerationRunnerEnabled(): boolean {
+  const value = process.env.OPENMAIC_GENERATION_RUNNER_ENABLED;
+  if (value !== undefined && value !== '') return readBoolean(value);
+  return true;
+}
+
+/**
  * Server-side persistence is available: documents, runtime rows and assets are
  * durable and owner-scoped. This is the same condition the persistence route
  * itself keys on, and it is strictly weaker than

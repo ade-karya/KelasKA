@@ -214,12 +214,16 @@ export async function registerNode(): Promise<void> {
   };
 
   try {
-    // Course generation runs on the server in every deployment (classic
-    // generation is the default product), so its worker does not depend on
-    // the agent runtime being enabled. It only installs a timer; its tables
-    // are provisioned by the first scan.
-    const { startGenerationRunner } = await import('@/lib/server/generation/run/runner');
-    generationRunner = startGenerationRunner();
+    // Course generation runs on the server in self-hosted deployments (classic
+    // generation is the default product), so its worker does not depend on the
+    // agent runtime being enabled. Vercel opts out: a Hobby function is killed
+    // at 300 s while a generation run holds a database lease that can outlive
+    // it. There, the on-demand Colab/Kaggle workers claim the work instead.
+    const { isGenerationRunnerEnabled } = await import('@/lib/config/feature-flags');
+    if (isGenerationRunnerEnabled()) {
+      const { startGenerationRunner } = await import('@/lib/server/generation/run/runner');
+      generationRunner = startGenerationRunner();
+    }
   } catch (error) {
     console.error('[instrumentation] Generation runner startup failed', error);
   }

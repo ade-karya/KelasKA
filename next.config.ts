@@ -4,7 +4,9 @@ import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 const nextConfig: NextConfig = {
   // Keep Next dev from creating or rewriting repository agent instructions.
   agentRules: false,
-  output: 'standalone',
+  // Vercel builds with its own Next.js builder and does not serve the
+  // standalone server; keep the standalone output for the self-hosted/PM2 path.
+  output: process.env.VERCEL ? undefined : 'standalone',
   // The app used to ship `X-Powered-By: Next.js`, which only helps fingerprint
   // the stack. There is no consumer of the header.
   poweredByHeader: false,
@@ -82,7 +84,7 @@ const nextConfig: NextConfig = {
   experimental: {
     proxyClientMaxBodySize: '200mb',
   },
-  allowedDevOrigins: ['kelaska.riau.ai'],
+  allowedDevOrigins: ['kelaska.riau.ai', 'kelas.riau.ai'],
   async headers() {
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
     const frameAncestors = extraAncestors ? `'self' ${extraAncestors}` : "'self'";

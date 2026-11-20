@@ -30,6 +30,9 @@ import { authenticateRequestOwner } from '@/lib/server/identity/with-owner';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// Vercel Hobby cuts a function at 300 s. The stream heartbeats and the client
+// reconnects with Last-Event-ID; this only promises the maximum we can keep.
+export const maxDuration = 300;
 
 /** The fallback poll: NOTIFY wakes the stream within ~100 ms; this catches a lost one. */
 export const RUN_EVENTS_POLL_INTERVAL_MS = 5_000;

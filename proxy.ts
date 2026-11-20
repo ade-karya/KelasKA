@@ -30,6 +30,10 @@ function isAuthPublicPath(pathname: string): boolean {
   return (
     pathname === '/login' ||
     pathname === '/api/health' ||
+    // The Cloudflare Cron Worker calls this with a shared secret, not a user
+    // session. The route verifies `x-kelaska-cron-secret` itself; it never
+    // reads a gateway identity header.
+    pathname === '/api/internal/maintenance' ||
     pathname.startsWith('/api/auth/') ||
     pathname.startsWith('/api/access-code/')
   );
