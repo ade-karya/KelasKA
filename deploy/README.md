@@ -25,6 +25,30 @@ The browser only ever talks to `kelaska.riau.ai`. The Worker keeps the
 `kelaska_session` cookie flow unchanged because the cookie is host-only and
 `SameSite=Lax`; there is no CORS or cross-site auth work.
 
+## 0. The two Google (Gmail) identities
+
+Colab and Kaggle are each signed in with a Gmail account. They are separate
+identities and their credentials are **not** interchangeable:
+
+- **Colab**: the Gmail account that opens the notebook owns its Colab Secrets.
+  The operator must be signed into that same account, or `KELASKA_ENV_B64`,
+  `KELASKA_COLAB_TUNNEL_TOKEN` and the Access token will be missing. Sharing a
+  notebook link does not share secrets.
+- **Kaggle**: "Continue with Google" only creates the Kaggle account. The
+  Worker authenticates to Kaggle with a **Kaggle API token**, not the Gmail
+  password: generate one in Kaggle → Settings → API → Create New Token. Use the
+  Kaggle **username** (not the Gmail address) in `KAGGLE_USERNAME`, and the
+  `key` field of the downloaded `kaggle.json` as `KAGGLE_KEY`. The kernel and
+  dataset must belong to that same Kaggle account, and Kaggle Secrets are read
+  from it as well.
+- The weekly 2× T4 quota belongs to that Kaggle account. Check it before
+  promising capacity. Cloudflare Access uses service tokens only — no Gmail
+  address needs to be added to an Access policy.
+
+Never commit `kaggle.json`, a Colab `.env.local` snapshot, or an `.ipynb` with
+secrets; all of them stay in the two platforms' secret stores and Worker
+secrets.
+
 ## 1. DNS and hostnames
 
 | Hostname | Target | Owner |

@@ -5,6 +5,15 @@ Colab runs the **full Next.js app** and publishes it at
 GPU service — those live on Kaggle and are reached through the loopback proxy
 with Cloudflare Access headers.
 
+## The Gmail account
+
+Colab Secrets are stored **per Google account**. Start the notebook while
+signed into the Gmail account that owns them; another account opening the same
+link sees an empty secret list and the startup script stops with a clear
+message. If two operators need to start the app, either share that one Google
+account deliberately or provision the same secrets in each operator's account.
+The Colab runtime can stay on CPU — the GPU belongs to Kaggle.
+
 ## One-time setup
 
 1. In Colab → Secrets (key icon), add:

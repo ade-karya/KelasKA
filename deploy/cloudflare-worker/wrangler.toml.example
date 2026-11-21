@@ -56,7 +56,9 @@ crons = ["*/2 * * * *"]
 # Secrets (set with `wrangler secret put <NAME>`):
 #   CF_ACCESS_CLIENT_ID       Cloudflare Access service token for api./gpu.
 #   CF_ACCESS_CLIENT_SECRET
-#   KAGGLE_USERNAME           Kaggle account username.
-#   KAGGLE_KEY                Kaggle API key (kaggle.json "key").
+#   KAGGLE_USERNAME           Kaggle username from kaggle.json, NOT the Gmail address
+#                             used to sign in to Kaggle.
+#   KAGGLE_KEY                Kaggle API key (kaggle.json "key"); create it in
+#                             Kaggle -> Settings -> API -> Create New Token.
 #   EDGE_ADMIN_TOKEN          Bearer token for /__kelaska/admin/*.
 #   GPU_LEASE_KEY             Shared with the Kaggle kernel; guards the lease.

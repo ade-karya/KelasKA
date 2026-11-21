@@ -5,6 +5,25 @@ TTS, FunASR ASR, Ollama). It is started **only by the Cloudflare Worker**, via
 the Kaggle API, when a generation asks for a GPU. There is no always-on Kaggle
 server.
 
+## The Gmail sign-in and the API token
+
+Kaggle may be signed in with Gmail ("Continue with Google"), but the Worker
+cannot use that session: it calls the Kaggle API with a **Kaggle API key**.
+Generate it once in Kaggle → Settings → API → Create New Token. The downloaded
+`kaggle.json` has two fields:
+
+- `username` → the Worker secret `KAGGLE_USERNAME` (this is the Kaggle username,
+  **not** the Gmail address);
+- `key` → the Worker secret `KAGGLE_KEY`.
+
+Everything below must use the same Kaggle account: the kernel slug
+`KAGGLE_KERNEL_REF=<username>/kelaska-gpu`, the dataset
+`KAGGLE_DATASET=<username>/kelaska-gpu-models`, the Kaggle Secrets
+(`KELASKA_GPU_TUNNEL_TOKEN`, `KELASKA_GPU_LEASE_KEY`) and the weekly GPU quota.
+If the weights dataset was created by a different Gmail/Kaggle account, share
+it with this account or move it before going live. Delete `kaggle.json` after
+copying its key into Worker secrets; do not commit it.
+
 ## One-time setup
 
 1. Create a private Kaggle dataset named `kelaska-gpu-models` with the layout in
