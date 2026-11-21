@@ -97,8 +97,14 @@ if [[ "$code" == "200" ]] && grep -q '"success":true' "$WORK/colab.json"; then
 else
   bad "Colab app health answered $code"
   if grep -qi 'handshake failure' "$WORK/curl.err"; then
-    warn "TLS handshake failed: the api. tunnel has no live connection or its public hostname is missing"
-    warn "  check the cloudflared log on the app node and the tunnel ingress (api. -> http://127.0.0.1:3000)"
+    warn "TLS handshake failed on api. — check the connector and the edge certificate:"
+    warn "  cloudflared log: grep 'Updated to new configuration' /tmp/kelaska-api-tunnel.log (api. -> 127.0.0.1:3000)"
+    http_code="$(request "$WORK/colab-http.json" "http://${API#https://}/api/health" ${access_args[@]+"${access_args[@]}"})"
+    if [[ "$http_code" == "200" ]]; then
+      warn "  plain HTTP works: Cloudflare has not issued an edge cert for api. yet (Worker still cannot reach it over HTTPS)"
+    else
+      warn "  plain HTTP answered $http_code: no live connector owns api. — start the api tunnel"
+    fi
   fi
   warn "  check: tail -f /tmp/kelaska-cloudflared.log; pm2 logs kelaska"
 fi
