@@ -6,11 +6,11 @@
                        │ (routes + queue +     │  KV + Durable Object
                        │  Kaggle lifecycle)    │  cron every 2 min
                        └───┬───────────┬───────┘
-                           │ light     │ heavy
+                           │ fallback  │ all pages + APIs
                    ┌───────▼───┐   ┌───▼────────────────┐
                    │  Vercel   │   │ Cloudflare Tunnel  │  api.kelaska.riau.ai
-                   │ UI + light│   │ → Colab Next.js app│  (manual start)
-                   │ APIs      │   └───┬────────────────┘
+                   │ static    │   │ → Colab Next.js app│  (manual start)
+                   │ status page│  └───┬────────────────┘
                    └───────────┘       │ 127.0.0.1:8787 loopback proxy
                                        │ (adds Access service token)
                                    ┌───▼────────────────┐
@@ -128,10 +128,15 @@ The Kaggle account's API key lives only in Worker secrets. `machineShape` is
 `NvidiaTeslaT4` (Kaggle's 2× T4 shape). Weekly GPU quota is limited, so the
 kernel exits itself on an idle lease or after 11h40m.
 
-## 6. Vercel
+## 6. Vercel (Hobby)
 
-See [vercel/README.md](./vercel/README.md). The Worker's `VERCEL_ORIGIN` must
-be the Vercel deployment hostname, never the public hostname.
+Vercel hosts only the static offline/status page
+(`deploy/vercel-status/index.html`) because the Hobby plan's 12-function cap
+cannot fit this app's ~126 API routes. All pages and APIs go to Colab; when
+Colab is down, document requests fall back to the Vercel status page and
+generation starts are queued. See [vercel/README.md](./vercel/README.md). The
+Worker's `VERCEL_ORIGIN` must be `https://kelaska.vercel.app`, never the public
+hostname.
 
 ## Operational runbook
 

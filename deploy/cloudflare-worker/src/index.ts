@@ -3,7 +3,7 @@ import { checkAll } from './health';
 import { bearerToken, errorMessage, intEnv, json, secretEquals } from './http';
 import { backendOffline, proxyRequest } from './proxy';
 import { enqueueGenerationStart, pollQueuedJob, queueCount } from './queue';
-import { isQueueableStart, needsGpu, upstreamFor } from './routing';
+import { isDocumentRequest, isQueueableStart, needsGpu, upstreamFor } from './routing';
 import type { CoordinatorState, Env } from './types';
 
 export { Coordinator };
@@ -90,18 +90,18 @@ export default {
     }
 
     const colabStatus = await env.STATE.get('colab:status');
-    if (colabStatus === 'offline') return backendOffline('colab');
+    if (colabStatus === 'offline') return offlineResponse(request, env);
 
     try {
       const response = await proxyRequest(request, env, 'colab');
       if (response.status === 502 || response.status === 503 || response.status === 504) {
         await env.STATE.put('colab:status', 'offline');
-        return backendOffline('colab', `upstream ${response.status}`);
+        return offlineResponse(request, env, `upstream ${response.status}`);
       }
       return response;
     } catch (error) {
       await env.STATE.put('colab:status', 'offline');
-      return backendOffline('colab', errorMessage(error));
+      return offlineResponse(request, env, errorMessage(error));
     }
   },
 
@@ -109,6 +109,26 @@ export default {
     ctx.waitUntil(checkAll(env));
   },
 } satisfies ExportedHandler<Env>;
+
+/**
+ * Colab is down. Browser page requests get Vercel's static status page (which
+ * reads `/__kelaska/status` and shows the queue); API calls get a small JSON
+ * refusal that existing fetch error handling already understands.
+ */
+async function offlineResponse(request: Request, env: Env, detail?: string): Promise<Response> {
+  if (isDocumentRequest(request)) {
+    try {
+      const fallback = new Request(new URL('/', request.url), {
+        method: 'GET',
+        headers: request.headers,
+      });
+      return await proxyRequest(fallback, env, 'vercel');
+    } catch {
+      // Fall through to the JSON answer if even the static page is unreachable.
+    }
+  }
+  return backendOffline('colab', detail);
+}
 
 /** Public, non-secret status for the app's cold-start banner. */
 async function status(env: Env): Promise<Response> {

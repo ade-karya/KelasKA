@@ -24,45 +24,24 @@ jq --version                # used to parse Cloudflare/Kaggle CLI JSON
 
 ---
 
-## 1. Vercel CLI
+## 1. Vercel CLI (Hobby — static fallback only)
+
+The full Next.js app cannot be deployed on Hobby: ~126 API routes exceed the
+12-function cap. Vercel hosts only the static status page.
 
 ```bash
 cd /kaggle/temp/KelasKA
-npx vercel login                 # browser: sign in with your Google/Gmail account
-npx vercel link                  # link this directory (creates .vercel/, git-ignored)
+npx vercel login                 # browser/device login
+npx vercel link --yes --project kelaska
+vercel project update kelaska --root-directory deploy/vercel-status \
+  --auto-detect build-command --auto-detect install-command \
+  --framework other -y
+vercel deploy --prod --yes
 ```
 
-Import the production environment from the existing `.env.local` (the helper
-pipes values on stdin so no secret is echoed or stored in history):
-
-```bash
-bash deploy/scripts/vercel-env-import.sh .env.local
-# If a name already exists: npx vercel env rm NAME production -y, then re-run.
-```
-
-`AUTH_PUBLIC_URL` must be `https://kelaska.riau.ai`. Verify with
-`npx vercel env ls`.
-
-Optional sanitized model config (the app can otherwise run on the legacy
-`GOOGLE_API_KEY` / `GOOGLE_MODELS` provider):
-
-```bash
-# Edit deploy/colab/openmaic.colab.yml first: drop localhost GPU URLs for Vercel.
-base64 -w0 deploy/colab/openmaic.colab.yml | vercel env add OPENMAIC_YML_B64 production
-```
-
-`vercel.json` uses Vercel's native Node/npm engine — Bun is deliberately not
-used on Vercel (the CLI-provided Bun version does not understand this repo's
-`bun.lock`). It still runs the build helper that materialises the config.
-Deploy:
-
-```bash
-npx vercel deploy --prod
-npx vercel ls                    # note the deployment hostname
-```
-
-Set that hostname (not `kelaska.riau.ai`) as `VERCEL_ORIGIN` in
-`deploy/cloudflare-worker/wrangler.toml` before step 2.
+The result is `https://kelaska.vercel.app` with zero functions. Do **not** add
+a root `vercel.json` build command; it would try to build the full app again.
+Set `VERCEL_ORIGIN = "https://kelaska.vercel.app"` in the Worker config.
 
 ## 2. Cloudflare CLI (wrangler + cloudflared + REST for Access)
 

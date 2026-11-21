@@ -1,34 +1,15 @@
 /**
  * The route split.
  *
- * Vercel keeps the UI and the APIs that are cheap, short-lived, and needed
- * before any heavy backend exists: auth, accounts, folders, library listings,
- * model settings, health. Everything that can run for minutes, stream, touch a
- * GPU, or hold a large body goes to the Colab app behind `api.`.
+ * Vercel is on the Hobby plan, which allows only 12 Serverless Functions while
+ * this app has ~126 API routes. So Vercel serves one static status page only;
+ * every page and every API route is proxied to the full Next.js app on Colab
+ * behind `api.`. The Worker's own `/__kelaska/*` endpoints stay on the edge.
  *
- * Defaulting unknown `/api/*` routes to Vercel is deliberate: a new light route
- * keeps working when Colab is asleep, and a new heavy route is one prefix away
- * from being moved. The list below is the complete current split.
+ * When Colab is offline, document requests fall back to the static Vercel
+ * status page (it shows the queue and asks the operator to start Colab), and
+ * generation starts are parked in the KV queue for automatic replay.
  */
-
-const HEAVY_EXACT = new Set<string>([
-  '/api/agent',
-  '/api/parse-pdf',
-  '/api/transcription',
-  '/api/proxy-media',
-  '/api/quiz-grade',
-]);
-
-const HEAVY_PREFIXES = [
-  '/api/generate/',
-  '/api/chat/',
-  '/api/agent/',
-  '/api/pbl/',
-  '/api/sandbox/',
-  '/api/export-video/render',
-  '/api/classroom-media/',
-  '/api/persistence/',
-];
 
 /** Paths whose request body is small enough to park in KV while Colab wakes. */
 const QUEUEABLE_PATHS = new Set<string>(['/api/generation-runs']);
@@ -48,35 +29,14 @@ export function isWorkerPath(pathname: string): boolean {
   return pathname === '/__kelaska' || pathname.startsWith('/__kelaska/');
 }
 
-export function isHeavyApi(pathname: string, method: string): boolean {
-  // Snapshot reads of runs live in Postgres, so Vercel can answer them while
-  // Colab is asleep. Events are SSE from the in-process run engine and every
-  // command (confirm/retry/…) has to wake that engine, so those stay on Colab.
-  if (pathname.startsWith('/api/generation-runs')) {
-    if (method === 'GET' || method === 'HEAD') {
-      return pathname === '/api/generation-runs/events' || pathname.endsWith('/events');
-    }
-    return true;
-  }
-  // The model picker and the key-verification gate run before any generation
-  // and must work when the heavy backend is offline.
-  if (pathname === '/api/agent/models') return false;
-
-  // Capabilities is a cheap policy read; the rest of the generation route is
-  // the long-running job surface.
-  if (pathname === '/api/generate-classroom/capabilities') return false;
-  if (pathname.startsWith('/api/generate-classroom')) return true;
-
-  // Uploading/extraction is heavy; listing, reading and moving are DB/S3 work.
-  if (pathname === '/api/materials' && method === 'POST') return true;
-  if (pathname.startsWith('/api/materials/') && pathname.endsWith('/extraction')) return true;
-
-  if (HEAVY_EXACT.has(pathname)) return true;
-  return HEAVY_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+/** Everything that is not a Worker endpoint goes to the Colab app. */
+export function upstreamFor(_pathname: string, _method: string): 'vercel' | 'colab' {
+  return 'colab';
 }
 
-export function upstreamFor(pathname: string, method: string): 'vercel' | 'colab' {
-  return isHeavyApi(pathname, method) ? 'colab' : 'vercel';
+export function isDocumentRequest(request: Request): boolean {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return false;
+  return (request.headers.get('accept') ?? '').includes('text/html');
 }
 
 export function isQueueableStart(pathname: string, method: string): boolean {
