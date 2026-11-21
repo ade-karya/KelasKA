@@ -1344,7 +1344,8 @@
     "runLoadFailed": "Không thể tải lần tạo này",
     "runLoadRetrying": "Đang thử lại…",
     "mediaGenerationFailed": "Tạo nội dung đa phương tiện thất bại",
-    "mediaGenerationDisabled": "Đã tắt chức năng tạo"
+    "mediaGenerationDisabled": "Đã tắt chức năng tạo",
+    "backendQueued": "The class backend is starting. Your request is queued at #{{position}} and will run automatically."
   },
   "settings": {
     "title": "Cài đặt",
@@ -3795,5 +3796,10 @@
     "errorVerify": "The key could not be verified.",
     "reload": "Reload",
     "greeting": "Chào {{name}}, chỉ còn một bước nữa thôi."
+  },
+  "backendStatus": {
+    "offline": "The class backend is offline. New requests will be queued.",
+    "queued": "{{count}} request(s) waiting for the class backend.",
+    "gpuStarting": "The GPU machine is starting; this can take a few minutes."
   }
 }

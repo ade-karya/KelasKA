@@ -1,0 +1,62 @@
+# KelasKA edge Worker — Cloudflare Workers + KV + Durable Object.
+#
+# Copy this file to wrangler.toml, then fill the KV namespace id and the
+# deployment-specific origins. `wrangler.toml` is git-ignored because it
+# carries account ids; the secrets are set with `wrangler secret put`.
+name = "kelaska-edge"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+# The Worker must run in front of the app hostname. Keep the DNS record
+# proxied (orange cloud); the Worker route takes precedence over its origin.
+routes = [
+  { pattern = "kelaska.riau.ai/*", zone_name = "riau.ai" }
+]
+
+workers_dev = false
+
+[vars]
+ENVIRONMENT = "production"
+# The Vercel deployment that serves the UI and the light APIs.
+VERCEL_ORIGIN = "https://kelaska.vercel.app"
+# Cloudflare Tunnel hostnames. Both are protected by Cloudflare Access and
+# are only called by this Worker (and by the Colab GPU proxy).
+COLAB_ORIGIN = "https://api.kelaska.riau.ai"
+GPU_ORIGIN = "https://gpu.kelaska.riau.ai"
+# Kaggle kernel that runs the GPU services. The Worker pushes the script from
+# KERNEL_SOURCE_URL as a new version, so the kernel stays versioned in git.
+KAGGLE_KERNEL_REF = "ade-karya/kelaska-gpu"
+KAGGLE_KERNEL_TITLE = "KelasKA GPU"
+KAGGLE_DATASET = "ade-karya/kelaska-gpu-models"
+KAGGLE_MACHINE_SHAPE = "NvidiaTeslaT4"
+KAGGLE_SESSION_TIMEOUT_SECONDS = "43200"
+KAGGLE_COOLDOWN_SECONDS = "900"
+KERNEL_SOURCE_URL = "https://raw.githubusercontent.com/ade-karya/KelasKA/Colab/deploy/kaggle/kelaska-gpu.py"
+# Stop an idle Kaggle session after 30 minutes without a GPU request. The
+# kernel polls the lease endpoint and exits itself; the Kaggle session then
+# ends and stops consuming the weekly GPU quota.
+GPU_IDLE_STOP_SECONDS = "1800"
+
+[[kv_namespaces]]
+binding = "STATE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[[durable_objects.bindings]]
+name = "COORDINATOR"
+class_name = "Coordinator"
+
+# Workers Free requires SQLite-backed Durable Objects.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Coordinator"]
+
+[triggers]
+crons = ["*/2 * * * *"]
+
+# Secrets (set with `wrangler secret put <NAME>`):
+#   CF_ACCESS_CLIENT_ID       Cloudflare Access service token for api./gpu.
+#   CF_ACCESS_CLIENT_SECRET
+#   KAGGLE_USERNAME           Kaggle account username.
+#   KAGGLE_KEY                Kaggle API key (kaggle.json "key").
+#   EDGE_ADMIN_TOKEN          Bearer token for /__kelaska/admin/*.
+#   GPU_LEASE_KEY             Shared with the Kaggle kernel; guards the lease.

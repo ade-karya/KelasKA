@@ -1344,7 +1344,8 @@
     "runLoadFailed": "この生成を読み込めませんでした",
     "runLoadRetrying": "再試行しています…",
     "mediaGenerationFailed": "メディアの生成に失敗しました",
-    "mediaGenerationDisabled": "生成は無効です"
+    "mediaGenerationDisabled": "生成は無効です",
+    "backendQueued": "The class backend is starting. Your request is queued at #{{position}} and will run automatically."
   },
   "settings": {
     "title": "設定",
@@ -3795,5 +3796,10 @@
     "errorVerify": "The key could not be verified.",
     "reload": "Reload",
     "greeting": "{{name}} さん、始める前にあと一つだけ。"
+  },
+  "backendStatus": {
+    "offline": "The class backend is offline. New requests will be queued.",
+    "queued": "{{count}} request(s) waiting for the class backend.",
+    "gpuStarting": "The GPU machine is starting; this can take a few minutes."
   }
 }

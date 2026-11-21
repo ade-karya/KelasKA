@@ -1,0 +1,126 @@
+# KelasKA split deployment
+
+```
+                       ┌───────────────────────┐
+     browser ─────────▶│ Cloudflare Worker     │  kelaska.riau.ai/*
+                       │ (routes + queue +     │  KV + Durable Object
+                       │  Kaggle lifecycle)    │  cron every 2 min
+                       └───┬───────────┬───────┘
+                           │ light     │ heavy
+                   ┌───────▼───┐   ┌───▼────────────────┐
+                   │  Vercel   │   │ Cloudflare Tunnel  │  api.kelaska.riau.ai
+                   │ UI + light│   │ → Colab Next.js app│  (manual start)
+                   │ APIs      │   └───┬────────────────┘
+                   └───────────┘       │ 127.0.0.1:8787 loopback proxy
+                                       │ (adds Access service token)
+                                   ┌───▼────────────────┐
+                                   │ Cloudflare Tunnel  │  gpu.kelaska.riau.ai
+                                   │ → Kaggle proxy     │  (2× T4, API-started)
+                                   │   /comfyui /tts    │
+                                   │   /asr /ollama     │
+                                   └────────────────────┘
+```
+
+The browser only ever talks to `kelaska.riau.ai`. The Worker keeps the
+`kelaska_session` cookie flow unchanged because the cookie is host-only and
+`SameSite=Lax`; there is no CORS or cross-site auth work.
+
+## 1. DNS and hostnames
+
+| Hostname | Target | Owner |
+| --- | --- | --- |
+| `kelaska.riau.ai` | proxied (orange cloud), Worker route `kelaska.riau.ai/*` | this repo's Worker |
+| `api.kelaska.riau.ai` | CNAME `<tunnel-id>.cfargotunnel.com`, proxied | Colab named tunnel |
+| `gpu.kelaska.riau.ai` | CNAME `<tunnel-id>.cfargotunnel.com`, proxied | Kaggle named tunnel |
+
+Create two **named tunnels** in Cloudflare → Zero Trust → Networks → Tunnels.
+Configure their public hostnames in the dashboard (token-based tunnels take
+ingress rules from the dashboard, not from a local config file):
+
+- `api.kelaska.riau.ai` → HTTP `localhost:3000`
+- `gpu.kelaska.riau.ai` → HTTP `localhost:8790`
+
+Copy each tunnel token. They are the only credentials the two compute nodes
+need to publish themselves; no dynamic URL registration is involved.
+
+## 2. Cloudflare Access
+
+Create an Access application covering `api.kelaska.riau.ai` and
+`gpu.kelaska.riau.ai` with a single policy: **Service Auth**, allow the one
+service token. Set the token's client id/secret as Worker secrets
+`CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET`, and give the same pair to
+the Colab GPU proxy (`deploy/colab/gpu-proxy.mjs` reads them from the
+environment). The browser never receives these headers.
+
+## 3. Cloudflare KV + Durable Object
+
+```bash
+cd deploy/cloudflare-worker
+cp wrangler.toml.example wrangler.toml
+# replace REPLACE_WITH_KV_NAMESPACE_ID with:
+npx wrangler kv namespace create STATE
+
+# secrets
+npx wrangler secret put CF_ACCESS_CLIENT_ID
+npx wrangler secret put CF_ACCESS_CLIENT_SECRET
+npx wrangler secret put KAGGLE_USERNAME
+npx wrangler secret put KAGGLE_KEY
+npx wrangler secret put EDGE_ADMIN_TOKEN
+npx wrangler secret put GPU_LEASE_KEY
+
+npx wrangler deploy
+```
+
+`wrangler.toml` is git-ignored because it holds account-specific ids. The Durable
+Object `Coordinator` serializes Kaggle starts (two simultaneous generation
+requests can never push two kernels) and owns the alarm that polls the session
+and GPU health.
+
+Useful endpoints:
+
+- `GET /__kelaska/health` — the Worker itself.
+- `GET /__kelaska/status` — public, non-secret health/queue for the UI banner.
+- `GET /__kelaska/gpu/lease` — Kaggle keep-alive (needs `x-kelaska-gpu-key`).
+- `GET /__kelaska/jobs/:id` — queued start replay (needs `x-kelaska-job-secret`).
+- `POST /__kelaska/admin/{warmup,stop,clear-stop,check,state}` — bearer
+  `EDGE_ADMIN_TOKEN`.
+
+## 4. Colab (manual)
+
+See [colab/README.md](./colab/README.md). Operator starts the cell-paste
+notebook; it runs `install.sh --colab --no-gpu`, the loopback GPU proxy and the
+tunnel, then keeps the tab open. The Worker marks Colab online at the next
+2-minute cron (or within 15 s via a queued job's stale probe).
+
+## 5. Kaggle (automatic)
+
+See [kaggle/README.md](./kaggle/README.md) and
+[prepare-dataset.md](./kaggle/prepare-dataset.md). The Worker pushes
+`deploy/kaggle/kelaska-gpu.py` to the prepared kernel with `SaveKernel` and
+`kernelExecutionType: 1` (save and run). Kaggle Secrets hold the tunnel token
+and the lease key; the model weights come from the private dataset.
+
+The Kaggle account's API key lives only in Worker secrets. `machineShape` is
+`NvidiaTeslaT4` (Kaggle's 2× T4 shape). Weekly GPU quota is limited, so the
+kernel exits itself on an idle lease or after 11h40m.
+
+## 6. Vercel
+
+See [vercel/README.md](./vercel/README.md). The Worker's `VERCEL_ORIGIN` must
+be the Vercel deployment hostname, never the public hostname.
+
+## Operational runbook
+
+| Symptom | Check | Action |
+| --- | --- | --- |
+| Banner "backend offline" | `/__kelaska/status` → `colab.status` | Start the Colab notebook; check `tail /tmp/kelaska-cloudflared.log` |
+| Generations queued but never start | `/__kelaska/status` → `queue`, `colab.status` | Colab did not come up: start it, then jobs replay automatically |
+| GPU never comes online | `kaggle.status`, `kaggle.lastError` | Verify `KAGGLE_*` secrets, kernel id, dataset id and weekly quota |
+| GPU online but images/TTS fail | `curl .../health` on `gpu.` → `services` | Check `logs/gpu-services.log` and `logs/{comfyui,voxcpm}.log` in the kernel |
+| GPU burns quota while idle | `gpu.lastRequest`, `kaggle.desired` | `POST /__kelaska/admin/stop`, then check the kernel exited |
+| Stuck stop flag on next start | `kaggle.status` = offline, desired false | `POST /__kelaska/admin/clear-stop` (bearer token) |
+
+Both compute nodes are deliberately outside CI: Colab is operator-started and
+Kaggle is API-started, so neither can be reached from a local dry run. Verify
+the Worker with `npm run dry-run` and the shell scripts with `bash -n` before
+deploying.

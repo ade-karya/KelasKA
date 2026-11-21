@@ -1,0 +1,47 @@
+# openmaic.yml for the Colab app.
+#
+# The GPU services run on Kaggle, not on this Colab runtime. The app reaches
+# them through the loopback proxy in deploy/colab/gpu-proxy.mjs, which adds the
+# Cloudflare Access service token and forwards to gpu.kelaska.riau.ai.
+#
+# Secrets are referenced with ${VAR}; keep them in .env.local / Colab Secrets.
+providers:
+  google:
+    preset: google
+    apiKey: ${GOOGLE_API_KEY}
+    models:
+      - gemini-3.5-flash-lite
+      - gemini-3.1-flash-lite
+
+  comfyui:
+    preset: comfyui-image
+    baseUrl: http://127.0.0.1:8787/comfyui
+
+  funasr:
+    preset: funasr-asr
+    baseUrl: http://127.0.0.1:8787/asr/v1
+
+  voxcpm:
+    preset: voxcpm-tts
+    baseUrl: http://127.0.0.1:8787/tts
+    options:
+      backend: python-api
+
+  ollama:
+    preset: ollama
+    baseUrl: http://127.0.0.1:8787/ollama/v1
+    models:
+      - llama3.2:3b
+
+slots:
+  llm:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  agent:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  agent.title: ollama:llama3.2:3b
+  asr: funasr
+  tts: voxcpm
+  image: comfyui
+  classroom: google:gemini-3.5-flash-lite

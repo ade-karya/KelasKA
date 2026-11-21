@@ -74,12 +74,139 @@ async function postJson<T>(url: string, body: unknown, fallbackKey: string): Pro
 /** The run input the browser sends: what `POST /api/generation-runs` reads. */
 export type StartRunInput = GenerationRunInput;
 
-export async function startGenerationRun(input: StartRunInput): Promise<RunSnapshot> {
-  const body = await postJson<{ run: RunSnapshot }>(
-    '/api/generation-runs',
-    input,
-    'upload.generateFailed',
-  );
+/** The Worker queued the start because the Colab app is still waking up. */
+export interface QueuedRunStatus {
+  position: number;
+  etaSeconds: number;
+}
+
+export interface StartRunOptions {
+  signal?: AbortSignal;
+  /** Called once when the start is parked in the edge queue. */
+  onQueued?: (status: QueuedRunStatus) => void;
+}
+
+const QUEUE_POLL_INTERVAL_MS = 5_000;
+const QUEUE_POLL_MAX_MS = 30 * 60 * 1000;
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, ms);
+    const abort = () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+  });
+}
+
+/**
+ * Replay the queued start once Colab answers. The Worker stores only the small
+ * JSON body; the browser's own session cookie travels with each poll, so the
+ * replay lands in the same owner's session.
+ */
+async function waitForQueuedRun(
+  job: { jobId: string; secret: string },
+  { signal }: StartRunOptions,
+): Promise<RunSnapshot> {
+  const deadline = Date.now() + QUEUE_POLL_MAX_MS;
+
+  while (Date.now() < deadline) {
+    await sleep(QUEUE_POLL_INTERVAL_MS, signal);
+    let response: Response;
+    try {
+      response = await fetch(`/__kelaska/jobs/${encodeURIComponent(job.jobId)}`, {
+        headers: { 'x-kelaska-job-secret': job.secret },
+        cache: 'no-store',
+        ...(signal ? { signal } : {}),
+      });
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      // A Worker restart must not lose the job in the browser either.
+      continue;
+    }
+
+    if (response.status === 202) {
+      // Still queued; the caller already knows from `onQueued` at submit time.
+      continue;
+    }
+
+    if (response.status === 410 || response.status === 403) {
+      throw new RunApiError(
+        response.status,
+        response.status === 410 ? 'QUEUE_EXPIRED' : 'QUEUE_FORBIDDEN',
+        undefined,
+        'upload.generateFailed',
+      );
+    }
+    if (!response.ok) continue;
+
+    const result = (await response.json().catch(() => null)) as {
+      status?: string;
+      run?: RunSnapshot;
+      statusCode?: number;
+      body?: string;
+    } | null;
+    if (result?.status === 'started' && result.run) {
+      announceRunsChanged();
+      return result.run;
+    }
+    if (result?.status === 'failed') {
+      let serverMessage: string | undefined;
+      try {
+        const upstream = JSON.parse(result.body ?? '') as { error?: unknown };
+        if (typeof upstream.error === 'string') serverMessage = upstream.error;
+      } catch {
+        serverMessage = result.body?.slice(0, 300) || undefined;
+      }
+      throw new RunApiError(
+        result.statusCode ?? 502,
+        'BACKEND_REPLAY_FAILED',
+        serverMessage,
+        'upload.generateFailed',
+      );
+    }
+    // Unknown answer: keep polling until the job expires on the edge.
+  }
+
+  throw new RunApiError(504, 'QUEUE_TIMEOUT', undefined, 'upload.generateFailed');
+}
+
+export async function startGenerationRun(
+  input: StartRunInput,
+  options: StartRunOptions = {},
+): Promise<RunSnapshot> {
+  const response = await fetch('/api/generation-runs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
+  if (response.status === 202) {
+    const queued = (await response.json().catch(() => null)) as {
+      queued?: boolean;
+      jobId?: string;
+      secret?: string;
+      position?: number;
+      etaSeconds?: number;
+    } | null;
+    if (queued?.jobId && queued.secret) {
+      options.onQueued?.({
+        position: queued.position ?? 1,
+        etaSeconds: queued.etaSeconds ?? 300,
+      });
+      return waitForQueuedRun({ jobId: queued.jobId, secret: queued.secret }, options);
+    }
+  }
+  if (!response.ok) throw await failure(response, 'upload.generateFailed');
+  const body = (await response.json()) as { run: RunSnapshot };
   announceRunsChanged();
   return body.run;
 }

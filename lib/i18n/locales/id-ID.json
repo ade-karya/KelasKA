@@ -1344,7 +1344,8 @@
     "runLoadFailed": "Gagal memuat pembuatan ini",
     "runLoadRetrying": "Mencoba lagi…",
     "mediaGenerationFailed": "Gagal membuat media",
-    "mediaGenerationDisabled": "Pembuatan dinonaktifkan"
+    "mediaGenerationDisabled": "Pembuatan dinonaktifkan",
+    "backendQueued": "The class backend is starting. Your request is queued at #{{position}} and will run automatically."
   },
   "settings": {
     "title": "Pengaturan",
@@ -3795,5 +3796,10 @@
     "errorVerify": "Key tidak dapat diverifikasi.",
     "reload": "Muat ulang",
     "greeting": "Halo {{name}} — sebelum mulai, satu langkah lagi."
+  },
+  "backendStatus": {
+    "offline": "The class backend is offline. New requests will be queued.",
+    "queued": "{{count}} request(s) waiting for the class backend.",
+    "gpuStarting": "The GPU machine is starting; this can take a few minutes."
   }
 }

@@ -37,6 +37,7 @@
     "packages/docs",
     "openclaw",
     "e2e",
-    "render-service"
+    "render-service",
+    "deploy/cloudflare-worker"
   ]
 }

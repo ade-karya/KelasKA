@@ -1344,7 +1344,8 @@
     "runLoadFailed": "Couldn't load this generation",
     "runLoadRetrying": "Trying again…",
     "mediaGenerationFailed": "Media generation failed",
-    "mediaGenerationDisabled": "Generation disabled"
+    "mediaGenerationDisabled": "Generation disabled",
+    "backendQueued": "The class backend is starting. Your request is queued at #{{position}} and will run automatically."
   },
   "settings": {
     "title": "Settings",
@@ -3795,5 +3796,10 @@
     "errorVerify": "The key could not be verified.",
     "reload": "Reload",
     "greeting": "Hi {{name}} — one step before you start."
+  },
+  "backendStatus": {
+    "offline": "The class backend is offline. New requests will be queued.",
+    "queued": "{{count}} request(s) waiting for the class backend.",
+    "gpuStarting": "The GPU machine is starting; this can take a few minutes."
   }
 }

@@ -14,6 +14,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { AgentRegistryInit } from '@/components/agent-registry-init';
 import { ModelSettingsInit } from '@/components/model-settings-init';
 import { StorageHealthNotice } from '@/components/storage-health-notice';
+import { BackendStatusBanner } from '@/components/backend-status-banner';
 import { AccessCodeGuard } from '@/components/access-code-guard';
 import { AuthSessionProvider } from '@/components/auth/auth-session-provider';
 import { loadLocaleResource } from '@/lib/i18n/load-resource';
@@ -124,6 +125,7 @@ export default async function RootLayout({
                 persistence is already broken, and a toast raised before its
                 host exists has nowhere to go. */}
               <StorageHealthNotice />
+              <BackendStatusBanner />
             </I18nProvider>
           </ThemeProvider>
         </AdaptiveProvider>

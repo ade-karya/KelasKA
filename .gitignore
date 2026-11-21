@@ -8,6 +8,11 @@ CLAUDE.local.md
 /node_modules
 /openclaw/node_modules
 /openclaw/package-lock.json
+/deploy/cloudflare-worker/node_modules
+/deploy/cloudflare-worker/dist/
+
+# Cloudflare edge Worker: account-specific config + generated output.
+/deploy/cloudflare-worker/wrangler.toml
 
 # Python bridge (Google Antigravity SDK)
 /.venv-antigravity/

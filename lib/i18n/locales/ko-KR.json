@@ -1344,7 +1344,8 @@
     "runLoadFailed": "이 생성을 불러올 수 없습니다",
     "runLoadRetrying": "다시 시도하는 중…",
     "mediaGenerationFailed": "미디어 생성에 실패했습니다",
-    "mediaGenerationDisabled": "생성이 비활성화되었습니다"
+    "mediaGenerationDisabled": "생성이 비활성화되었습니다",
+    "backendQueued": "The class backend is starting. Your request is queued at #{{position}} and will run automatically."
   },
   "settings": {
     "title": "설정",
@@ -3795,5 +3796,10 @@
     "errorVerify": "The key could not be verified.",
     "reload": "Reload",
     "greeting": "{{name}}님, 시작하기 전에 한 가지만 더요."
+  },
+  "backendStatus": {
+    "offline": "The class backend is offline. New requests will be queued.",
+    "queued": "{{count}} request(s) waiting for the class backend.",
+    "gpuStarting": "The GPU machine is starting; this can take a few minutes."
   }
 }

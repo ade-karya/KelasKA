@@ -240,6 +240,9 @@ function HomePage() {
 
   const [themeOpen, setThemeOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set once when the edge parks a generation start because the Colab app is
+  // still waking up; surfaced while the run client waits for its replay.
+  const [queueNotice, setQueueNotice] = useState<string | null>(null);
   // True while the Generate click starts the run. Doubles as the guard flag
   // that freezes the course material set for the duration of the start and as
   // the switch that disables the toolbar's add/remove/Retry affordances, so
@@ -607,6 +610,7 @@ function HomePage() {
     }
 
     setError(null);
+    setQueueNotice(null);
 
     // The set is frozen while the run starts (`preparingGenerate` makes add,
     // remove and Retry inert), from the ready materials in their order.
@@ -629,10 +633,12 @@ function HomePage() {
         interactive: form.vocationalTestMode ? true : form.interactiveMode,
         taskEngine: form.vocationalTestMode,
         capabilities,
+        onQueued: ({ position }) => setQueueNotice(t('generation.backendQueued', { position })),
       });
       router.push(`/generation-preview?run=${encodeURIComponent(run.id)}`);
     } catch (err) {
       log.error('Error starting generation:', err);
+      setQueueNotice(null);
       // Only a definitive refusal says no run holds them: they stay attached.
       // A lost answer may hide a run that releases them when it is over.
       if (!(err instanceof RunApiError) || startDefinitelyRefused(err)) {
@@ -1054,6 +1060,23 @@ function HomePage() {
             </Tooltip>
           </motion.div>
         )}
+
+        {/* ── Edge queue notice (Colab cold start) ── */}
+        <AnimatePresence>
+          {queueNotice && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 w-full p-3 bg-primary/10 border border-primary/20 rounded-lg"
+            >
+              <p className="flex items-center gap-2 text-sm text-foreground">
+                <Loader2 className="size-4 shrink-0 animate-spin" />
+                {queueNotice}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Error ── */}
         <AnimatePresence>

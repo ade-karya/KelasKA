@@ -71,8 +71,18 @@ GPU_DIR="${GPU_DIR%/}"
 STATE_FILE="$GPU_DIR/gpu-services.env"
 LOG_DIR="$GPU_DIR/logs"
 PID_DIR="$GPU_DIR/pids"
-HF_HOME="$GPU_DIR/hf"
-MODELSCOPE_CACHE="$GPU_DIR/modelscope"
+# A prepared model cache (e.g. a mounted Kaggle dataset) keeps a cold start
+# from re-downloading multi-GB weights. The mount is read-only, so only files
+# that already exist there are linked; anything missing still downloads into
+# the writable GPU_DIR.
+MODEL_CACHE="${GPU_MODEL_CACHE:-}"
+MODEL_CACHE="${MODEL_CACHE%/}"
+HF_HOME="${HF_HOME:-$GPU_DIR/hf}"
+MODELSCOPE_CACHE="${MODELSCOPE_CACHE:-$GPU_DIR/modelscope}"
+if [[ -n "$MODEL_CACHE" ]]; then
+  [[ -d "$MODEL_CACHE/hf" ]] && HF_HOME="$MODEL_CACHE/hf"
+  [[ -d "$MODEL_CACHE/modelscope" ]] && MODELSCOPE_CACHE="$MODEL_CACHE/modelscope"
+fi
 export HF_HOME MODELSCOPE_CACHE
 
 LAYANAN_URUT=(ollama comfyui funasr voxcpm)
@@ -210,6 +220,10 @@ pasang_ollama() {
   fi
   export OLLAMA_MODELS="$GPU_DIR/ollama"
   export OLLAMA_HOST="127.0.0.1:${OLLAMA_PORT}"
+  if [[ -n "$MODEL_CACHE" && -d "$MODEL_CACHE/ollama" && ! -e "$OLLAMA_MODELS" ]]; then
+    ln -s "$MODEL_CACHE/ollama" "$OLLAMA_MODELS"
+    info "memakai model Ollama dari cache: $MODEL_CACHE/ollama"
+  fi
   mkdir -p "$OLLAMA_MODELS"
   if ! port_terbuka "$OLLAMA_PORT"; then
     # NUM_PARALLEL: beberapa permintaan (mis. judul percakapan) sekaligus pada
@@ -254,13 +268,19 @@ pasang_comfyui() {
     touch "$dir/.openmaic-deps"
   fi
   if [[ "$IMAGE_MODEL" != "none" && ! -f "$ckpt" ]]; then
-    info "mengunduh checkpoint ${IMAGE_MODEL} (~6.9 GB)..."
+    local cached="$MODEL_CACHE/comfyui/models/checkpoints/$IMAGE_MODEL"
     mkdir -p "$(dirname "$ckpt")"
-    curl -fL --retry 3 --connect-timeout 20 \
-      "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/${IMAGE_MODEL}" \
-      -o "$ckpt.part" >>"$LOG_DIR/comfyui-model.log" 2>&1 \
-      && mv "$ckpt.part" "$ckpt" \
-      || { rm -f "$ckpt.part"; warn "unduhan checkpoint gagal."; return 1; }
+    if [[ -n "$MODEL_CACHE" && -f "$cached" ]]; then
+      ln -sfn "$cached" "$ckpt"
+      info "memakai checkpoint dari cache: $cached"
+    else
+      info "mengunduh checkpoint ${IMAGE_MODEL} (~6.9 GB)..."
+      curl -fL --retry 3 --connect-timeout 20 \
+        "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/${IMAGE_MODEL}" \
+        -o "$ckpt.part" >>"$LOG_DIR/comfyui-model.log" 2>&1 \
+        && mv "$ckpt.part" "$ckpt" \
+        || { rm -f "$ckpt.part"; warn "unduhan checkpoint gagal."; return 1; }
+    fi
   fi
   if ! port_terbuka "$COMFYUI_PORT"; then
     start_bg comfyui "$LOG_DIR/comfyui.log" env CUDA_VISIBLE_DEVICES="$(gpu_untuk comfyui)" \

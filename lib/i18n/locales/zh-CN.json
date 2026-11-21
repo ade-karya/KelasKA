@@ -1344,7 +1344,8 @@
     "runLoadFailed": "无法加载此次生成",
     "runLoadRetrying": "正在重试…",
     "mediaGenerationFailed": "媒体生成失败",
-    "mediaGenerationDisabled": "生成已禁用"
+    "mediaGenerationDisabled": "生成已禁用",
+    "backendQueued": "The class backend is starting. Your request is queued at #{{position}} and will run automatically."
   },
   "settings": {
     "title": "设置",
@@ -3795,5 +3796,10 @@
     "errorVerify": "The key could not be verified.",
     "reload": "Reload",
     "greeting": "你好 {{name}}，开始之前还差一步。"
+  },
+  "backendStatus": {
+    "offline": "The class backend is offline. New requests will be queued.",
+    "queued": "{{count}} request(s) waiting for the class backend.",
+    "gpuStarting": "The GPU machine is starting; this can take a few minutes."
   }
 }

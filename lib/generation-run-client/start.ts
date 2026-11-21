@@ -10,7 +10,7 @@ import { useAgentRegistry, whenAgentRegistryLoaded } from '@/lib/orchestration/r
 import { useSettingsStore } from '@/lib/store/settings';
 import { useUserProfileStore } from '@/lib/store/user-profile';
 
-import { RunApiError, startGenerationRun, type StartRunInput } from './api';
+import { RunApiError, startGenerationRun, type QueuedRunStatus, type StartRunInput } from './api';
 import type { RunSnapshot } from './types';
 
 /** A start refused before anything was submitted; `reason` is the translation key that says why. */
@@ -71,6 +71,9 @@ export async function startClassicRun(input: {
   interactive: boolean;
   taskEngine: boolean;
   capabilities: ModelCapabilities;
+  /** The edge parked the start while Colab was waking up. */
+  onQueued?: (status: QueuedRunStatus) => void;
+  signal?: AbortSignal;
 }): Promise<RunSnapshot> {
   const agents = await selectedRunAgents();
   const materialIds = [...input.materialIds];
@@ -86,20 +89,23 @@ export async function startClassicRun(input: {
   const voice = selectedRunVoice(input.capabilities);
   const settings = useSettingsStore.getState();
 
-  return startGenerationRun({
-    requirement: input.requirement,
-    materialIds,
-    interactive: input.interactive,
-    taskEngine: input.taskEngine,
-    agents,
-    ...(learnerProfile ? { learnerProfile } : {}),
-    ...(voice ? { voice } : {}),
-    // The learner who asked to always review outlines confirms each one; any
-    // other run confirms its own outline on the server after a short pause
-    // (unless the learner opens the review in it), whether or not a page is
-    // open.
-    outlineReview: settings.reviewOutlineEnabled ? 'wait' : 'countdown',
-  });
+  return startGenerationRun(
+    {
+      requirement: input.requirement,
+      materialIds,
+      interactive: input.interactive,
+      taskEngine: input.taskEngine,
+      agents,
+      ...(learnerProfile ? { learnerProfile } : {}),
+      ...(voice ? { voice } : {}),
+      // The learner who asked to always review outlines confirms each one; any
+      // other run confirms its own outline on the server after a short pause
+      // (unless the learner opens the review in it), whether or not a page is
+      // open.
+      outlineReview: settings.reviewOutlineEnabled ? 'wait' : 'countdown',
+    },
+    { signal: input.signal, ...(input.onQueued ? { onQueued: input.onQueued } : {}) },
+  );
 }
 
 /** A start the server answered with a refusal (a 4xx): no run exists for it. */

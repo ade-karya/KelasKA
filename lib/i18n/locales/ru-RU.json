@@ -1344,7 +1344,8 @@
     "runLoadFailed": "Не удалось загрузить эту генерацию",
     "runLoadRetrying": "Повторная попытка…",
     "mediaGenerationFailed": "Не удалось создать медиа",
-    "mediaGenerationDisabled": "Генерация отключена"
+    "mediaGenerationDisabled": "Генерация отключена",
+    "backendQueued": "The class backend is starting. Your request is queued at #{{position}} and will run automatically."
   },
   "settings": {
     "title": "Настройки",
@@ -3795,5 +3796,10 @@
     "errorVerify": "The key could not be verified.",
     "reload": "Reload",
     "greeting": "Здравствуйте, {{name}}! Остался один шаг до начала."
+  },
+  "backendStatus": {
+    "offline": "The class backend is offline. New requests will be queued.",
+    "queued": "{{count}} request(s) waiting for the class backend.",
+    "gpuStarting": "The GPU machine is starting; this can take a few minutes."
   }
 }
