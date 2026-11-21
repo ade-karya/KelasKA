@@ -13,7 +13,14 @@ function apiBase(): string {
   return 'https://api.kaggle.com/v1/kernels.KernelsApiService';
 }
 const SOURCE_CACHE_KEY = 'kernel:source';
-const SOURCE_CACHE_SECONDS = 3600;
+// Keep this short: the kernel source is pushed on every start, and a stale
+// script would reintroduce fixes we already merged. A transient GitHub miss is
+// retried by the coordinator's alarm, so a long cache buys little.
+const SOURCE_CACHE_SECONDS = 300;
+
+export async function clearKernelSource(env: { STATE: KVNamespace }): Promise<void> {
+  await env.STATE.delete(SOURCE_CACHE_KEY);
+}
 
 export type KernelStatus = 'queued' | 'running' | 'complete' | 'error' | 'cancelled' | 'unknown';
 

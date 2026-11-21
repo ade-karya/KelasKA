@@ -1,4 +1,5 @@
 import { Coordinator } from './coordinator';
+import { clearKernelSource } from './kaggle';
 import { checkAll } from './health';
 import { bearerToken, errorMessage, intEnv, json, secretEquals } from './http';
 import { backendOffline, proxyRequest } from './proxy';
@@ -231,6 +232,11 @@ async function admin(request: Request, env: Env): Promise<Response> {
     }
     case 'check':
       return json(await checkAll(env));
+    case 'clear-source':
+      // The kernel script is cached for 5 minutes. After a git push, clear it
+      // so the next start pushes the fixed source instead of the last version.
+      await clearKernelSource(env);
+      return json({ cleared: true });
     case 'state': {
       const [kaggle, queue] = await Promise.all([coordinatorState(env), queueCount(env)]);
       return json({ kaggle, queue });

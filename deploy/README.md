@@ -147,8 +147,11 @@ A Worker code change is **not** part of `install.sh`: deploy it with
 reports `kaggle.status: "error"` with `lastError: "Invalid slug: ..."`, the
 Worker is sending the bare kernel slug; deploy the current Worker and call
 `POST /__kelaska/admin/warmup` (bearer `EDGE_ADMIN_TOKEN`) to retry at once.
-The coordinator also re-arms its alarm after a failed start, so the 2-minute
-cron retries automatically once the cooldown has passed.
+After pushing a change to `deploy/kaggle/kelaska-gpu.py` on the `Colab` branch,
+call `POST /__kelaska/admin/clear-source` first — the Worker caches the kernel
+script for 5 minutes and would otherwise push the previous version. The
+coordinator also re-arms its alarm after a failed start, so the 2-minute cron
+retries automatically once the cooldown has passed.
 
 ## 6. Vercel (Hobby)
 
