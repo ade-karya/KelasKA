@@ -9,6 +9,7 @@
     "openclaw",
     "e2e",
     "render-service",
+    "deploy/cloudflare-worker",
     "tests",
     "eval",
     "packages/@openmaic/*/test"
