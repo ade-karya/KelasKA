@@ -51,8 +51,10 @@ Optional sanitized model config (the app can otherwise run on the legacy
 base64 -w0 deploy/colab/openmaic.colab.yml | vercel env add OPENMAIC_YML_B64 production
 ```
 
-`vercel.json` already sets the build command that materialises it at build
-time. Deploy:
+`vercel.json` uses Vercel's native Node/npm engine — Bun is deliberately not
+used on Vercel (the CLI-provided Bun version does not understand this repo's
+`bun.lock`). It still runs the build helper that materialises the config.
+Deploy:
 
 ```bash
 npx vercel deploy --prod

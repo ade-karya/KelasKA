@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "bun install",
-  "buildCommand": "node scripts/write-openmaic-yml.mjs && bun run build"
+  "installCommand": "npm install --no-audit --no-fund --legacy-peer-deps",
+  "buildCommand": "node scripts/write-openmaic-yml.mjs && npm run build"
 }
