@@ -20,7 +20,7 @@ kv_get() {
   (cd "$WORKER_DIR" && npx wrangler kv key get --binding=STATE "$1" 2>/dev/null | tr -d '"' | tr -d '\n')
 }
 kv_put() {
-  (cd "$WORKER_DIR" && printf '%s' "$2" | npx wrangler kv key put --binding=STATE "$1" >/dev/null 2>&1)
+  (cd "$WORKER_DIR" && npx wrangler kv key put --binding=STATE "$1" "$2" >/dev/null 2>&1)
 }
 log() { printf '[kaggle-launcher] %s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
 
