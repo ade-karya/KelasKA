@@ -27,6 +27,7 @@ export class Coordinator implements DurableObject {
       case '/desire': {
         const state = await this.load();
         state.desired = true;
+        await this.env.STATE.put('gpu:desired', '1');
         await this.save(state);
         return json(await this.ensure());
       }
@@ -38,6 +39,7 @@ export class Coordinator implements DurableObject {
         state.stopRequested = true;
         state.status = 'stopping';
         await this.save(state);
+        await this.env.STATE.put('gpu:desired', '0');
         await this.env.STATE.put('gpu:stopRequested', '1');
         await this.schedule(15);
         return json(state);
@@ -50,6 +52,7 @@ export class Coordinator implements DurableObject {
         state.lastError = null;
         state.status = 'idle';
         await this.save(state);
+        await this.env.STATE.put('gpu:desired', '0');
         await this.env.STATE.delete('gpu:stopRequested');
         return json(state);
       }
@@ -100,6 +103,7 @@ export class Coordinator implements DurableObject {
 
     state.status = 'starting';
     state.desired = true;
+    await this.env.STATE.put('gpu:desired', '1');
     state.stopRequested = false;
     state.startedAt = now;
     state.lastError = null;
@@ -140,6 +144,7 @@ export class Coordinator implements DurableObject {
       state.status = 'offline';
       state.desired = false;
       state.stopRequested = false;
+      await this.env.STATE.put('gpu:desired', '0');
       state.cooldownUntil = now + this.cooldownMs();
       await this.save(state);
       await this.env.STATE.put('gpu:status', 'offline');
@@ -164,7 +169,9 @@ export class Coordinator implements DurableObject {
         state.lastHealthAt = now;
         if (state.failures >= 3) {
           state.status = 'offline';
+          state.desired = false;
           state.lastError = 'GPU health check failed';
+          await this.env.STATE.put('gpu:desired', '0');
           await this.env.STATE.put('gpu:status', 'offline');
         }
         await this.save(state);
@@ -191,6 +198,7 @@ export class Coordinator implements DurableObject {
         state.lastError = kernel.failureMessage || `Kaggle session ${kernel.status}`;
         state.cooldownUntil = now + this.cooldownMs();
         state.desired = false;
+        await this.env.STATE.put('gpu:desired', '0');
         await this.save(state);
         await this.env.STATE.put('gpu:status', 'offline');
         return;
