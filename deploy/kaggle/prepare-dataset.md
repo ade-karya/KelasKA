@@ -66,7 +66,7 @@ kaggle datasets version -p "$STAGE" -m 'refresh weights' --dir-mode zip
 ```
 
 The dataset slug must match the Worker's `KAGGLE_DATASET` variable
-(`ade-karya/kelaska-gpu-models`). Kaggle mounts it at
+(`akjdev/kelaska-gpu-models`). Kaggle mounts it at
 `/kaggle/input/kelaska-gpu-models/`; the kernel also auto-detects any
 `/kaggle/input/*` directory containing `comfyui/` or `ollama/`.
 

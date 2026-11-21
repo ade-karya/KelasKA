@@ -25,9 +25,9 @@ COLAB_ORIGIN = "https://api.kelaska.riau.ai"
 GPU_ORIGIN = "https://gpu.kelaska.riau.ai"
 # Kaggle kernel that runs the GPU services. The Worker pushes the script from
 # KERNEL_SOURCE_URL as a new version, so the kernel stays versioned in git.
-KAGGLE_KERNEL_REF = "ade-karya/kelaska-gpu"
+KAGGLE_KERNEL_REF = "akjdev/kelaska-gpu"
 KAGGLE_KERNEL_TITLE = "KelasKA GPU"
-KAGGLE_DATASET = "ade-karya/kelaska-gpu-models"
+KAGGLE_DATASET = "akjdev/kelaska-gpu-models"
 KAGGLE_MACHINE_SHAPE = "NvidiaTeslaT4"
 KAGGLE_SESSION_TIMEOUT_SECONDS = "43200"
 KAGGLE_COOLDOWN_SECONDS = "900"

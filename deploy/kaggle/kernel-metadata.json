@@ -1,5 +1,5 @@
 {
-  "id": "ade-karya/kelaska-gpu",
+  "id": "akjdev/kelaska-gpu",
   "title": "KelasKA GPU",
   "code_file": "kelaska-gpu.py",
   "language": "python",
@@ -7,6 +7,6 @@
   "is_private": true,
   "enable_gpu": true,
   "enable_internet": true,
-  "dataset_sources": ["ade-karya/kelaska-gpu-models"],
+  "dataset_sources": ["akjdev/kelaska-gpu-models"],
   "machine_shape": "NvidiaTeslaT4"
 }

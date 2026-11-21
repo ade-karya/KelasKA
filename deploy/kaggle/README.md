@@ -29,7 +29,7 @@ copying its key into Worker secrets; do not commit it.
 1. Create a private Kaggle dataset named `kelaska-gpu-models` with the layout in
    [prepare-dataset.md](./prepare-dataset.md). The Worker mounts it into every
    kernel run so a cold start never re-downloads ~10 GB of weights.
-2. Create a private **script** kernel `ade-karya/kelaska-gpu` (or let the
+2. Create a private **script** kernel `akjdev/kelaska-gpu` (or let the
    Worker's `SaveKernel` call create it on first start). `machine_shape` must be
    `NvidiaTeslaT4` — Kaggle's 2× T4 shape.
 3. Create a **named Cloudflare Tunnel** for `gpu.kelaska.riau.ai`. Its public
