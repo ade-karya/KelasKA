@@ -161,12 +161,18 @@ kaggle competitions list | head -3       # proves the token works
 Model dataset — build the staging directory first as described in
 `deploy/kaggle/prepare-dataset.md`:
 
+`kagglehub` is the preferred way to upload dataset versions (the bundled CLI
+is old and its `datasets version` flags differ):
+
 ```bash
-STAGE=/tmp/kelaska-gpu-models
-kaggle datasets create -p "$STAGE" --dir-mode zip --private \
-  -m 'KelasKA GPU model weights'
-# Later refreshes:
-kaggle datasets version -p "$STAGE" --dir-mode zip -m 'refresh weights'
+pip install kagglehub
+python - <<'PY'
+import kagglehub
+kagglehub.dataset_upload(
+    "akjdev/kelaska-gpu-models", "/tmp/kelaska-gpu-models",
+    version_notes="refresh weights",
+)
+PY
 ```
 
 Kernel metadata uses the default `ade-karya` owner; edit it to the actual
