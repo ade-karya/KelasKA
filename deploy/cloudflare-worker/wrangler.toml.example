@@ -17,7 +17,16 @@ workers_dev = false
 
 [vars]
 ENVIRONMENT = "production"
-# The Vercel deployment that serves the UI and the light APIs.
+# Leave "0" while the full app is still served from Colab. Set to "1" only
+# after the SPA is deployed on Vercel: pages then come from VERCEL_ORIGIN and
+# /api/* from the live session, and the Worker answers /api/session/start.
+STATIC_UI_ENABLED = "0"
+# Kaggle app session origin (tunnel to the kernel running the Next.js app).
+# Older deployments leave this unset and keep replaying to COLAB_ORIGIN.
+SESSION_APP_ORIGIN = "https://app.kelaska.riau.ai"
+SESSION_START_USER_COOLDOWN_SECONDS = "600"
+SESSION_START_GLOBAL_COOLDOWN_SECONDS = "120"
+# The Vercel deployment that serves the UI (static status page or the SPA).
 VERCEL_ORIGIN = "https://kelaska.vercel.app"
 # Cloudflare Tunnel hostnames. Both are protected by Cloudflare Access and
 # are only called by this Worker (and by the Colab GPU proxy).
@@ -65,3 +74,6 @@ crons = ["*/2 * * * *"]
 #                             Kaggle -> Settings -> API -> Create New Token.
 #   EDGE_ADMIN_TOKEN          Bearer token for /__kelaska/admin/*.
 #   GPU_LEASE_KEY             Shared with the Kaggle kernel; guards the lease.
+#   SUPABASE_URL              Supabase project URL (same as NEXT_PUBLIC_*).
+#   SUPABASE_ANON_KEY         Anon/publishable key; verifies /api/session/start
+#                             via GET /auth/v1/user while the app is asleep.

@@ -2,6 +2,7 @@ import { errorMessage, json, randomToken, secretEquals } from './http';
 import { probeColabIfStale } from './health';
 import { proxyRequest } from './proxy';
 import { needsGpu } from './routing';
+import { sessionOnline, staticUiEnabled } from './session-mode';
 import type { Env, QueuedJob } from './types';
 
 const JOB_PREFIX = 'job:';
@@ -50,7 +51,7 @@ export async function enqueueGenerationStart(request: Request, env: Env): Promis
       secret,
       position,
       etaSeconds: 300,
-      reason: 'colab_offline',
+      reason: staticUiEnabled(env) ? 'session_offline' : 'colab_offline',
     },
     202,
     { 'retry-after': '15' },
@@ -82,7 +83,12 @@ export async function pollQueuedJob(request: Request, env: Env): Promise<Respons
     return json({ status: 'expired' }, 410);
   }
 
-  if (!(await probeColabIfStale(env))) {
+  // Legacy mode probes the Colab tunnel on demand; static-UI mode uses the
+  // session status maintained by the API proxy (and skips the Colab-only probe).
+  const backendOnline = staticUiEnabled(env)
+    ? await sessionOnline(env)
+    : await probeColabIfStale(env);
+  if (!backendOnline) {
     return json(
       {
         status: 'queued',
@@ -131,7 +137,7 @@ export async function pollQueuedJob(request: Request, env: Env): Promise<Respons
 
   let response: Response;
   try {
-    response = await proxyRequest(replay, env, 'colab');
+    response = await proxyRequest(replay, env, staticUiEnabled(env) ? 'session' : 'colab');
   } catch (error) {
     return json(
       {

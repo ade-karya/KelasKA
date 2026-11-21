@@ -164,6 +164,35 @@ Worker's `VERCEL_ORIGIN` must be `https://kelaska.vercel.app`, never the public
 hostname. Do not confuse it with `kelas-ka.riau.ai`: that is a separate
 full-app deployment, not this split setup's fallback.
 
+## 7. Static-UI mode (opt-in, in progress)
+
+The Worker has a `STATIC_UI_ENABLED` flag (`0` by default, so the deployment
+described above is unchanged). With it on:
+
+- every non-API path is served from `VERCEL_ORIGIN` (the SPA, or the status page
+  until the SPA exists);
+- every `/api/*` path is proxied to `SESSION_APP_ORIGIN` (the Kaggle app kernel),
+  falling back to `COLAB_ORIGIN` when the Kaggle session is not up;
+- `POST /api/session/start` is answered by the Worker itself: it verifies a
+  Supabase Bearer via `GET /auth/v1/user`, enforces per-user and global KV
+  cooldowns, and wakes the DO coordinator with `ctx.waitUntil`;
+- `GET /api/access-code/status` is answered locally as disabled, so the SPA does
+  not need the session to decide whether to show the access modal;
+- all API traffic refreshes `gpu:lastRequest` at most once a minute, so the
+  Kaggle lease treats an active app session as busy (idle stop stays 30 min);
+- the security headers formerly set in `next.config.ts` are applied by the
+  Worker, because a static export does not run `headers()`.
+
+New Worker secrets: `SUPABASE_URL` and `SUPABASE_ANON_KEY` (the same values as
+the app's `NEXT_PUBLIC_SUPABASE_*`). New vars: `STATIC_UI_ENABLED`,
+`SESSION_APP_ORIGIN`, and the two cooldowns. Do not flip the flag until the SPA
+and the Kaggle app kernel are deployed and healthy.
+
+Caveat: the start endpoint trusts a valid Supabase identity; `auth_users.active`
+is still enforced by the app once it is up (a pending account can wake a session
+but cannot use it). Kaggle platform terms for hosting a public web backend must
+be confirmed by the operator before enabling this for many users.
+
 ## Operational runbook
 
 Run `bash deploy/scripts/verify-split-deployment.sh` first: it checks DNS,

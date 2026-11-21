@@ -7,12 +7,26 @@ export interface Env {
 
   ENVIRONMENT?: string;
 
-  /** Vercel deployment (UI + light APIs). */
+  /** Vercel deployment (static SPA once STATIC_UI_ENABLED is on). */
   VERCEL_ORIGIN: string;
   /** Cloudflare Tunnel to the manually started Colab app. */
   COLAB_ORIGIN: string;
   /** Cloudflare Tunnel to the Kaggle GPU box. */
   GPU_ORIGIN: string;
+
+  /**
+   * Set to "1" once the SPA is live on Vercel. Off keeps the current routing
+   * (every page and API to Colab), so enabling it is an explicit switch.
+   */
+  STATIC_UI_ENABLED?: string;
+  /** Origin of the Kaggle app session. Falls back to COLAB_ORIGIN if unset. */
+  SESSION_APP_ORIGIN?: string;
+  /** Supabase project URL + anon key, used to verify the start-button Bearer. */
+  SUPABASE_URL?: string;
+  SUPABASE_ANON_KEY?: string;
+  /** Per-user and global cooldown for starting a Kaggle session. */
+  SESSION_START_USER_COOLDOWN_SECONDS?: string;
+  SESSION_START_GLOBAL_COOLDOWN_SECONDS?: string;
 
   /** Cloudflare Access service token used for api./gpu. */
   CF_ACCESS_CLIENT_ID?: string;
@@ -43,7 +57,7 @@ export interface Env {
   GPU_IDLE_STOP_SECONDS?: string;
 }
 
-export type Upstream = 'vercel' | 'colab' | 'gpu';
+export type Upstream = 'vercel' | 'colab' | 'gpu' | 'session';
 
 export type KaggleStatus = 'idle' | 'starting' | 'online' | 'stopping' | 'offline' | 'error';
 

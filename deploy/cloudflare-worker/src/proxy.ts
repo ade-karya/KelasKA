@@ -1,10 +1,14 @@
 import { accessHeaders } from './access';
+import { withSecurityHeaders } from './http';
 import type { Env, Upstream } from './types';
 
 function originFor(env: Env, upstream: Upstream): string {
   switch (upstream) {
     case 'vercel':
       return env.VERCEL_ORIGIN;
+    case 'session':
+      // The Kaggle app uses its own tunnel; older deployments keep using Colab.
+      return env.SESSION_APP_ORIGIN || env.COLAB_ORIGIN;
     case 'colab':
       return env.COLAB_ORIGIN;
     case 'gpu':
@@ -67,18 +71,21 @@ function passthrough(response: Response, upstream: Upstream): Response {
     out.headers.delete('set-cookie');
     for (const cookie of cookies) out.headers.append('set-cookie', cookie);
   }
-  return out;
+  return withSecurityHeaders(out);
 }
 
 /** A response body that is safe to hand to a browser when the edge itself fails. */
-export function backendOffline(reason: 'colab' | 'gpu', detail?: string): Response {
+export function backendOffline(reason: 'colab' | 'gpu' | 'session', detail?: string): Response {
   const body = {
     success: false,
-    errorCode: reason === 'colab' ? 'BACKEND_OFFLINE' : 'GPU_OFFLINE',
+    errorCode:
+      reason === 'colab' ? 'BACKEND_OFFLINE' : reason === 'gpu' ? 'GPU_OFFLINE' : 'SESSION_OFFLINE',
     error:
       reason === 'colab'
         ? 'Backend kelas belum aktif. Operator perlu menjalankan notebook Colab; permintaan baru akan masuk antrean.'
-        : 'GPU belum aktif. Mesin Kaggle sedang disiapkan atau kuota GPU habis.',
+        : reason === 'gpu'
+          ? 'GPU belum aktif. Mesin Kaggle sedang disiapkan atau kuota GPU habis.'
+          : 'Sesi kelas belum aktif. Gunakan tombol Mulai sesi; permintaan baru akan masuk antrean.',
     retryable: true,
     ...(detail ? { detail } : {}),
   };
@@ -87,7 +94,7 @@ export function backendOffline(reason: 'colab' | 'gpu', detail?: string): Respon
     headers: {
       'content-type': 'application/json; charset=utf-8',
       'cache-control': 'no-store',
-      'retry-after': reason === 'colab' ? '30' : '60',
+      'retry-after': reason === 'session' ? '15' : reason === 'colab' ? '30' : '60',
     },
   });
 }

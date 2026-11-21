@@ -1,15 +1,21 @@
 /**
  * The route split.
  *
- * Vercel is on the Hobby plan, which allows only 12 Serverless Functions while
- * this app has ~126 API routes. So Vercel serves one static status page only;
- * every page and every API route is proxied to the full Next.js app on Colab
- * behind `api.`. The Worker's own `/__kelaska/*` endpoints stay on the edge.
+ * Legacy mode (STATIC_UI_ENABLED off): Vercel serves one static status page,
+ * every page and API route goes to the full Next.js app on Colab behind `api.`.
+ * The Worker's own `/__kelaska/*` endpoints stay on the edge.
  *
- * When Colab is offline, document requests fall back to the static Vercel
- * status page (it shows the queue and asks the operator to start Colab), and
- * generation starts are parked in the KV queue for automatic replay.
+ * Static-UI mode (STATIC_UI_ENABLED on): the SPA is served from Vercel, so
+ * every non-API path goes there and every `/api/*` path goes to the live
+ * session (Kaggle app first, Colab fallback). The start button is handled by
+ * the Worker itself, since the session is asleep when it is pressed.
+ *
+ * In both modes a generation start is parked in the KV queue while the backend
+ * is offline and replayed with the browser's own session cookie later.
  */
+
+import { staticUiEnabled } from './session-mode';
+import type { Env, Upstream } from './types';
 
 /** Paths whose request body is small enough to park in KV while Colab wakes. */
 const QUEUEABLE_PATHS = new Set<string>(['/api/generation-runs']);
@@ -29,9 +35,13 @@ export function isWorkerPath(pathname: string): boolean {
   return pathname === '/__kelaska' || pathname.startsWith('/__kelaska/');
 }
 
-/** Everything that is not a Worker endpoint goes to the Colab app. */
-export function upstreamFor(_pathname: string, _method: string): 'vercel' | 'colab' {
-  return 'colab';
+/**
+ * Legacy mode: everything goes to the Colab app. Static-UI mode: pages and
+ * assets go to Vercel, API calls go to the live app session.
+ */
+export function upstreamFor(pathname: string, _method: string, env: Env): Upstream {
+  if (!staticUiEnabled(env)) return 'colab';
+  return pathname.startsWith('/api/') ? 'session' : 'vercel';
 }
 
 export function isDocumentRequest(request: Request): boolean {

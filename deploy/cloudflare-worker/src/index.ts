@@ -5,6 +5,13 @@ import { bearerToken, errorMessage, intEnv, json, secretEquals } from './http';
 import { backendOffline, proxyRequest } from './proxy';
 import { enqueueGenerationStart, pollQueuedJob, queueCount } from './queue';
 import { isDocumentRequest, isQueueableStart, needsGpu, upstreamFor } from './routing';
+import {
+  handleSessionStart,
+  markSessionOnline,
+  noteSessionActivity,
+  sessionOnline,
+  staticUiEnabled,
+} from './session-mode';
 import type { CoordinatorState, Env } from './types';
 
 export { Coordinator };
@@ -55,7 +62,21 @@ export default {
     if (path.startsWith('/__kelaska/admin/')) return admin(request, env);
     if (path.startsWith('/__kelaska/jobs/')) return pollQueuedJob(request, env);
 
-    if (upstreamFor(path, request.method) === 'vercel') {
+    const staticUi = staticUiEnabled(env);
+
+    // The start button must work while the app is down, so the Worker answers.
+    if (staticUi && path === '/api/session/start' && request.method === 'POST') {
+      return handleSessionStart(request, env, ctx);
+    }
+    // With accounts on the access-code modal is disabled; answer it locally so
+    // the SPA does not need the session just to decide whether to show a modal.
+    if (staticUi && path === '/api/access-code/status') {
+      return json({ enabled: false, authenticated: false });
+    }
+
+    const upstream = upstreamFor(path, request.method, env);
+
+    if (upstream === 'vercel') {
       try {
         return await proxyRequest(request, env, 'vercel');
       } catch (error) {
@@ -71,11 +92,14 @@ export default {
       }
     }
 
-    // A generation start is small JSON. If Colab is asleep, park it and let the
-    // browser poll; the poll replays it with the browser's own session cookie.
+    const backendOnline = staticUi
+      ? await sessionOnline(env)
+      : (await env.STATE.get('colab:status')) === 'online';
+
+    // A generation start is small JSON. If the backend is asleep, park it and
+    // let the browser poll; the poll replays it with the browser's own cookie.
     if (isQueueableStart(path, request.method)) {
-      const colabStatus = await env.STATE.get('colab:status');
-      if (colabStatus !== 'online') {
+      if (!backendOnline) {
         const queued = await enqueueGenerationStart(request.clone(), env);
         if (queued) {
           ctx.waitUntil(env.STATE.put('gpu:lastRequest', String(Date.now())));
@@ -90,19 +114,29 @@ export default {
       ctx.waitUntil(ensureGpu(env));
     }
 
-    const colabStatus = await env.STATE.get('colab:status');
-    if (colabStatus === 'offline') return offlineResponse(request, env);
+    if (staticUi && path.startsWith('/api/')) ctx.waitUntil(noteSessionActivity(env));
+
+    if (!backendOnline)
+      return offlineResponse(request, env, undefined, staticUi ? 'session' : 'colab');
 
     try {
-      const response = await proxyRequest(request, env, 'colab');
+      const response = await proxyRequest(request, env, upstream);
       if (response.status === 502 || response.status === 503 || response.status === 504) {
-        await env.STATE.put('colab:status', 'offline');
-        return offlineResponse(request, env, `upstream ${response.status}`);
+        if (staticUi) ctx.waitUntil(markSessionOnline(env, false));
+        else await env.STATE.put('colab:status', 'offline');
+        return offlineResponse(
+          request,
+          env,
+          `upstream ${response.status}`,
+          staticUi ? 'session' : 'colab',
+        );
       }
+      if (staticUi && path.startsWith('/api/')) ctx.waitUntil(markSessionOnline(env, true));
       return response;
     } catch (error) {
-      await env.STATE.put('colab:status', 'offline');
-      return offlineResponse(request, env, errorMessage(error));
+      if (staticUi) ctx.waitUntil(markSessionOnline(env, false));
+      else await env.STATE.put('colab:status', 'offline');
+      return offlineResponse(request, env, errorMessage(error), staticUi ? 'session' : 'colab');
     }
   },
 
@@ -116,7 +150,12 @@ export default {
  * reads `/__kelaska/status` and shows the queue); API calls get a small JSON
  * refusal that existing fetch error handling already understands.
  */
-async function offlineResponse(request: Request, env: Env, detail?: string): Promise<Response> {
+async function offlineResponse(
+  request: Request,
+  env: Env,
+  detail?: string,
+  reason: 'colab' | 'session' = 'colab',
+): Promise<Response> {
   if (isDocumentRequest(request)) {
     try {
       const fallback = new Request(new URL('/', request.url), {
@@ -128,7 +167,7 @@ async function offlineResponse(request: Request, env: Env, detail?: string): Pro
       // Fall through to the JSON answer if even the static page is unreachable.
     }
   }
-  return backendOffline('colab', detail);
+  return backendOffline(reason, detail);
 }
 
 /** Public, non-secret status for the app's cold-start banner. */
@@ -143,6 +182,7 @@ async function status(env: Env): Promise<Response> {
     lastCheck,
     queue,
     kaggle,
+    sessionStatus,
   ] = await Promise.all([
     env.STATE.get('colab:status'),
     env.STATE.get('colab:lastSeen'),
@@ -153,6 +193,7 @@ async function status(env: Env): Promise<Response> {
     env.STATE.get('health:lastCheck'),
     queueCount(env),
     coordinatorState(env),
+    env.STATE.get('session:status'),
   ]);
 
   return json({
@@ -181,6 +222,7 @@ async function status(env: Env): Promise<Response> {
         }
       : null,
     queue,
+    session: sessionStatus ?? 'unknown',
     lastCheck: numberOrNull(lastCheck),
   });
 }
