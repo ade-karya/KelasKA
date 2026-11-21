@@ -127,3 +127,6 @@ eval/orchestration/results-child-failure/
 # APK dari aplikasi Android (dibangun lokal / dirilis terpisah)
 *.apk
 *.aab
+
+# Wrangler local state
+/deploy/cloudflare-worker/.wrangler/
