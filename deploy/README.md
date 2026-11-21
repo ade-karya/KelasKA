@@ -163,6 +163,12 @@ full-app deployment, not this split setup's fallback.
 
 ## Operational runbook
 
+Run `bash deploy/scripts/verify-split-deployment.sh` first: it checks DNS,
+Worker health/status, both origin hostnames and the Vercel fallback, and prints
+the operator action next to each failure. With Access enabled, export
+`CF_ACCESS_CLIENT_ID`/`CF_ACCESS_CLIENT_SECRET` so the `api.`/`gpu.` probes can
+pass. Then use the table below for the specific symptom.
+
 | Symptom | Check | Action |
 | --- | --- | --- |
 | Banner "backend offline" | `/__kelaska/status` → `colab.status` | Start the Colab notebook; check `tail /tmp/kelaska-cloudflared.log` |
