@@ -144,6 +144,16 @@ be the Vercel deployment hostname, never the public hostname.
 | GPU burns quota while idle | `gpu.lastRequest`, `kaggle.desired` | `POST /__kelaska/admin/stop`, then check the kernel exited |
 | Stuck stop flag on next start | `kaggle.status` = offline, desired false | `POST /__kelaska/admin/clear-stop` (bearer token) |
 
+## CLI-first go-live
+
+The whole go-live above has a copy-paste CLI version in
+[operator-cli.md](./operator-cli.md): `vercel login` / `vercel deploy --prod`,
+`wrangler login` / `wrangler deploy`, `cloudflared tunnel create` + Cloudflare
+REST API for remote tunnel config and Access service tokens, and `kaggle`
+CLI for the dataset/kernel. Each login opens a browser once; after that the
+CLIs are non-interactive. The Kaggle API token and the two Gmail identities
+are still needed as described in §0.
+
 Both compute nodes are deliberately outside CI: Colab is operator-started and
 Kaggle is API-started, so neither can be reached from a local dry run. Verify
 the Worker with `npm run dry-run` and the shell scripts with `bash -n` before
