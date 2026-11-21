@@ -1,0 +1,51 @@
+# openmaic.yml for APP_MODE on the Kaggle kernel.
+#
+# The standalone Next.js app and every GPU service run in the SAME kernel, so
+# the app uses loopback ports directly — no Cloudflare Access header and no
+# loopback proxy (that is only needed when the app lives on Colab, see
+# deploy/colab/openmaic.colab.yml).
+#
+# Secrets are referenced with ${VAR}; keep them in .env.local (KELASKA_ENV_B64).
+# The VoxCPM python-api adapter appends /tts/upload to its baseUrl, hence the
+# bare http://127.0.0.1:8001 here.
+
+providers:
+  google:
+    preset: google
+    apiKey: ${GOOGLE_API_KEY}
+    models:
+      - gemini-3.5-flash-lite
+      - gemini-3.1-flash-lite
+
+  comfyui:
+    preset: comfyui-image
+    baseUrl: http://127.0.0.1:8188
+
+  funasr:
+    preset: funasr-asr
+    baseUrl: http://127.0.0.1:8000/v1
+
+  voxcpm:
+    preset: voxcpm-tts
+    baseUrl: http://127.0.0.1:8001
+    options:
+      backend: python-api
+
+  ollama:
+    preset: ollama
+    baseUrl: http://127.0.0.1:11434/v1
+    models:
+      - llama3.2:3b
+
+slots:
+  llm:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  agent:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  agent.title: ollama:llama3.2:3b
+  asr: funasr
+  tts: voxcpm
+  image: comfyui
+  classroom: google:gemini-3.5-flash-lite

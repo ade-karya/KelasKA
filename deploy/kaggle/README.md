@@ -66,6 +66,42 @@ The Colab app reaches these through its own loopback proxy
 (`deploy/colab/gpu-proxy.mjs`), which adds the Cloudflare Access service-token
 headers, so `openmaic.yml` keeps plain `http://127.0.0.1:8787/...` base URLs.
 
+## App mode (SPA backend on the same kernel)
+
+Set `KELASKA_APP_MODE=1` on the kernel to also run the **standalone Next.js app**
+on `:3000` behind a second tunnel (`app.kelaska.riau.ai` → `127.0.0.1:3000`).
+That is the backend the static SPA calls through `SESSION_APP_ORIGIN`; GPU
+services remain on the same 2× T4 box and are reached over loopback
+(`deploy/kaggle/openmaic.kaggle.yml`).
+
+Extra Kaggle Secrets:
+
+- `KELASKA_APP_TUNNEL_TOKEN` — named tunnel for `app.kelaska.riau.ai`;
+- `KELASKA_ENV_B64` — `base64 -w0 .env.local` from the production checkout;
+- `KELASKA_OPENMAIC_YML_B64` — optional; without it the shipped
+  `openmaic.kaggle.yml` is used.
+
+The app is **not built in the kernel** (10–15 min on 2 vCPU). Build once with
+the PM2 app stopped, package, and upload the folder as `app/` inside the
+private model dataset:
+
+```bash
+bash install.sh --colab --no-start          # from /kaggle/temp/KelasKA
+bash deploy/scripts/package-kaggle-app.sh --out /kaggle/temp/kelaska-app-artifact
+# then upload /kaggle/temp/kelaska-app-artifact as <dataset>/app
+kaggle datasets version -p /kaggle/temp/kelaska-app-artifact -m 'app artifact v1'
+```
+
+`KELASKA_APP_ARTIFACT_DIR` can point at a different mounted location. The
+kernel copies it to `/kaggle/temp/kelaska-app`, writes `.env.local` from the
+secret (adding `AUTH_PUBLIC_URL` if absent) and starts it with the bundled
+`bun` (falls back to `node`). `logs/app.log` and `logs/cloudflared-app.log`
+hold its output. `/health` on `gpu.` stays 503 until **both** the app and every
+configured GPU service answer, so the Worker never sends the first API call to
+a half-started session.
+
+Only flip `STATIC_UI_ENABLED=1` on the Worker after this mode is verified.
+
 ## Manual smoke test
 
 With the secrets set, run the kernel once from Kaggle's editor and watch the

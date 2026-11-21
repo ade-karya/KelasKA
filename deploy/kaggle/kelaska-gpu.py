@@ -13,9 +13,17 @@ script kernel and starts it when a generation asks for a GPU. The kernel:
      it or the box has been idle, so the weekly GPU quota is not burned by a
      warm tunnel with no traffic.
 
+With KELASKA_APP_MODE=1 the kernel also runs the prebuilt standalone Next.js
+app (deployed from the model dataset) behind a second tunnel, so the browser's
+SPA has an API backend while the GPU services are on the same 2x T4 box.
+
 Required Kaggle Secrets (Secrets -> Add new secret):
   KELASKA_GPU_TUNNEL_TOKEN   token of the named Cloudflare Tunnel for gpu.
   KELASKA_GPU_LEASE_KEY      same value as the Worker's GPU_LEASE_KEY.
+  APP_MODE additionally:
+    KELASKA_APP_TUNNEL_TOKEN  named tunnel for app.kelaska.riau.ai -> :3000
+    KELASKA_ENV_B64           base64 of the production .env.local
+    KELASKA_OPENMAIC_YML_B64  optional; otherwise openmaic.kaggle.yml is used
 
 Optional Kaggle Secrets / environment:
   KELASKA_REPO_URL           default https://github.com/ade-karya/KelasKA.git
@@ -27,8 +35,10 @@ Optional Kaggle Secrets / environment:
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import os
+import shutil
 import signal
 import socket
 import subprocess
@@ -48,6 +58,11 @@ LEASE_URL = os.environ.get(
 LEASE_SECONDS = int(os.environ.get("KELASKA_GPU_LEASE_SECONDS", "60"))
 MAX_RUNTIME_SECONDS = int(os.environ.get("KELASKA_GPU_MAX_RUNTIME", "42000"))  # 11h40m
 PROXY_PORT = int(os.environ.get("KELASKA_GPU_PROXY_PORT", "8790"))
+# With APP_MODE on, the same kernel also runs the standalone Next.js app on
+# :3000 (behind its own tunnel) so the SPA's /api/* calls have a live backend.
+APP_MODE = os.environ.get("KELASKA_APP_MODE", "").strip().lower() in {"1", "true", "yes"}
+APP_PORT = 3000
+APP_DIR = Path(os.environ.get("KELASKA_APP_DIR", "/kaggle/temp/kelaska-app"))
 SERVICES = [
     name.strip()
     for name in os.environ.get("KELASKA_GPU_SERVICES", "comfyui,funasr,voxcpm,ollama").split(",")
@@ -165,6 +180,85 @@ def start_services() -> None:
         log(state.read_text(encoding="utf-8").strip())
 
 
+# ------------------------------------------------------------------ app
+def prepare_app() -> None:
+    """Install the prebuilt standalone app from the dataset into APP_DIR.
+
+    Building Next.js here would cost 10-15 minutes on a Kaggle kernel, so the
+    artifact is produced once by deploy/scripts/package-kaggle-app.sh and
+    mounted as a subfolder of the model dataset.
+    """
+    artifact = Path(os.environ.get("KELASKA_APP_ARTIFACT_DIR", "") or "")
+    if not artifact.is_dir():
+        dataset = find_dataset_dir()
+        candidate = dataset / "app" if dataset else None
+        if candidate and (candidate / "server.js").is_file():
+            artifact = candidate
+    if not (artifact / "server.js").is_file():
+        raise SystemExit(
+            "KELASKA_APP_MODE needs a prebuilt standalone app: "
+            "put server.js in <model-dataset>/app or set KELASKA_APP_ARTIFACT_DIR"
+        )
+
+    log(f"app artifact: {artifact}")
+    if APP_DIR.exists():
+        shutil.rmtree(APP_DIR)
+    shutil.copytree(artifact, APP_DIR)
+
+    env_b64 = secret("KELASKA_ENV_B64")
+    if not env_b64:
+        raise SystemExit("KELASKA_ENV_B64 must be set as a Kaggle Secret in APP_MODE")
+    env_text = base64.b64decode(env_b64).decode("utf-8")
+    # Behind the Worker, the app would otherwise mint sign-in redirects from
+    # its own 0.0.0.0:3000 origin (see AUTH_PUBLIC_URL in deploy/README.md).
+    if "AUTH_PUBLIC_URL=" not in env_text:
+        env_text += "\nAUTH_PUBLIC_URL=https://kelaska.riau.ai\n"
+    (APP_DIR / ".env.local").write_text(env_text, encoding="utf-8")
+
+    yml_b64 = secret("KELASKA_OPENMAIC_YML_B64")
+    if yml_b64:
+        (APP_DIR / "openmaic.yml").write_text(
+            base64.b64decode(yml_b64).decode("utf-8"), encoding="utf-8"
+        )
+    else:
+        shipped = SRC_DIR / "deploy/kaggle/openmaic.kaggle.yml"
+        if shipped.is_file():
+            shutil.copy(shipped, APP_DIR / "openmaic.yml")
+
+
+def start_app() -> None:
+    """Run the standalone server in the same kernel as the GPU services."""
+    bun = APP_DIR / "bun"
+    if bun.is_file():
+        bun.chmod(0o755)
+        command = [str(bun), "server.js"]
+    else:
+        node = shutil.which("node")
+        if not node:
+            raise SystemExit("no bun in the app artifact and no node on PATH")
+        command = [node, "server.js"]
+
+    log("starting standalone app on 127.0.0.1:3000")
+    logfile = (GPU_DIR / "logs" / "app.log").open("ab")
+    child = subprocess.Popen(
+        command,
+        cwd=str(APP_DIR),
+        env=os.environ.copy(),
+        stdout=logfile,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.DEVNULL,
+    )
+    CHILDREN.append(child)
+    for _ in range(120):
+        if port_open(APP_PORT):
+            log("app is listening on :3000")
+            return
+        if child.poll() is not None:
+            raise SystemExit("app exited during startup; see logs/app.log")
+        time.sleep(1)
+    raise SystemExit("app did not open :3000 in 120 s; see logs/app.log")
+
+
 # ------------------------------------------------------------------ proxy
 def make_proxy_app():
     try:
@@ -184,14 +278,19 @@ def make_proxy_app():
 
     async def health(request):
         services = {name: port_open(port) for name, port in PORTS.items() if name in SERVICES}
+        app_ready = (not APP_MODE) or port_open(APP_PORT)
+        # The Worker flips gpu:status from this response. In APP_MODE it must
+        # also prove the app is up before API traffic is sent to the session.
+        ready = READY and app_ready
         response = {
-            "ok": READY,
-            "ready": READY,
+            "ok": ready,
+            "ready": ready,
             "port": PROXY_PORT,
             "services": services,
+            "app": app_ready if APP_MODE else None,
             "time": int(time.time()),
         }
-        return web.json_response(response, status=200 if READY else 503)
+        return web.json_response(response, status=200 if ready else 503)
 
     async def forward(request):
         path = request.path
@@ -265,7 +364,7 @@ def start_proxy() -> None:
     )
 
 
-def start_tunnel(token: str) -> None:
+def start_tunnel(token: str, label: str, logname: str) -> None:
     binary = Path("/usr/local/bin/cloudflared")
     if not binary.exists():
         arch = "amd64" if os.uname().machine in {"x86_64", "amd64"} else "arm64"
@@ -274,8 +373,8 @@ def start_tunnel(token: str) -> None:
         urllib.request.urlretrieve(url, "/kaggle/temp/cloudflared")
         binary = Path("/kaggle/temp/cloudflared")
         binary.chmod(0o755)
-    log("starting cloudflared tunnel for gpu.kelaska.riau.ai")
-    logfile = (GPU_DIR / "logs" / "cloudflared.log").open("ab")
+    log(f"starting cloudflared tunnel for {label}")
+    logfile = (GPU_DIR / "logs" / logname).open("ab")
     child = subprocess.Popen(
         [str(binary), "tunnel", "--no-autoupdate", "run", "--token", token],
         stdout=logfile,
@@ -285,7 +384,7 @@ def start_tunnel(token: str) -> None:
     CHILDREN.append(child)
     time.sleep(5)
     if child.poll() is not None:
-        raise RuntimeError("cloudflared exited immediately; see logs/cloudflared.log")
+        raise RuntimeError(f"cloudflared for {label} exited immediately; see logs/{logname}")
 
 
 # ------------------------------------------------------------------ lease
@@ -343,12 +442,18 @@ def main() -> None:
         raise SystemExit(
             "KELASKA_GPU_TUNNEL_TOKEN and KELASKA_GPU_LEASE_KEY must be set as Kaggle Secrets"
         )
+    app_token = secret("KELASKA_APP_TUNNEL_TOKEN") if APP_MODE else ""
+    if APP_MODE and not app_token:
+        raise SystemExit("KELASKA_APP_TUNNEL_TOKEN must be set as a Kaggle Secret in APP_MODE")
 
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
 
     prepare_repo()
     prepare_models()
+    if APP_MODE:
+        prepare_app()
+        start_app()
     start_services()
 
     import threading
@@ -365,7 +470,9 @@ def main() -> None:
     missing = [name for name in SERVICES if not port_open(PORTS[name])]
     log(f"services ready: {READY}" + (f" (missing: {', '.join(missing)})" if missing else ""))
 
-    start_tunnel(tunnel_token)
+    start_tunnel(tunnel_token, "gpu.kelaska.riau.ai", "cloudflared.log")
+    if APP_MODE:
+        start_tunnel(app_token, "app.kelaska.riau.ai", "cloudflared-app.log")
 
     log(f"entering lease loop ({LEASE_SECONDS}s); lease endpoint {LEASE_URL}")
     while not STOP_REQUESTED:

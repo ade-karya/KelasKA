@@ -188,6 +188,12 @@ the app's `NEXT_PUBLIC_SUPABASE_*`). New vars: `STATIC_UI_ENABLED`,
 `SESSION_APP_ORIGIN`, and the two cooldowns. Do not flip the flag until the SPA
 and the Kaggle app kernel are deployed and healthy.
 
+The app half of this mode is `deploy/kaggle/kelaska-gpu.py` with
+`KELASKA_APP_MODE=1`: it installs the prebuilt standalone app from
+`<model-dataset>/app` (see `deploy/scripts/package-kaggle-app.sh`) on `:3000`,
+starts a second tunnel for `SESSION_APP_ORIGIN`, and keeps `/health` red until
+both the app and all GPU services answer.
+
 Caveat: the start endpoint trusts a valid Supabase identity; `auth_users.active`
 is still enforced by the app once it is up (a pending account can wake a session
 but cannot use it). Kaggle platform terms for hosting a public web backend must
