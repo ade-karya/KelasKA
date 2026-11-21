@@ -1,14 +1,18 @@
 /**
  * The small part of the Kaggle API the Worker needs.
  *
- * Kaggle's current SDK talks to `https://api.kaggle.com/v1/<service>/<method>`
- * with Basic auth (username + API key) and JSON bodies. The older
- * `www.kaggle.com/api/v1/kernels/push` endpoint is still accepted, but the
- * newer one is the only one that carries `machineShape`, which is how the
- * kernel asks for the 2× T4 shape.
+ * Kaggle has two API credential shapes. A classic `kaggle.json` key uses
+ * Basic auth against `api.kaggle.com`; the newer `KGAT_...` personal access
+ * token is sent as a Bearer token against `www.kaggle.com/api/v1`. Both carry
+ * the JSON request that SaveKernel needs, including `machineShape` (2× T4).
  */
 
-const API_BASE = 'https://api.kaggle.com/v1/kernels.KernelsApiService';
+function apiBase(key: string): string {
+  const origin = key.startsWith('KGAT_')
+    ? 'https://www.kaggle.com/api/v1'
+    : 'https://api.kaggle.com/v1';
+  return `${origin}/kernels.KernelsApiService`;
+}
 const SOURCE_CACHE_KEY = 'kernel:source';
 const SOURCE_CACHE_SECONDS = 3600;
 
@@ -27,9 +31,11 @@ export interface KernelSessionStatus {
 }
 
 function credentials(env: { KAGGLE_USERNAME?: string; KAGGLE_KEY?: string }): string {
-  if (!env.KAGGLE_USERNAME || !env.KAGGLE_KEY) {
+  if (!env.KAGGLE_KEY) {
     throw new Error('Kaggle credentials are not configured (KAGGLE_USERNAME/KAGGLE_KEY)');
   }
+  if (env.KAGGLE_KEY.startsWith('KGAT_')) return `Bearer ${env.KAGGLE_KEY}`;
+  if (!env.KAGGLE_USERNAME) throw new Error('KAGGLE_USERNAME is required for a classic Kaggle key');
   return `Basic ${btoa(`${env.KAGGLE_USERNAME}:${env.KAGGLE_KEY}`)}`;
 }
 
@@ -46,7 +52,7 @@ async function post<T>(
   method: string,
   body: unknown,
 ): Promise<T> {
-  const response = await fetch(`${API_BASE}/${method}`, {
+  const response = await fetch(`${apiBase(env.KAGGLE_KEY ?? '')}/${method}`, {
     method: 'POST',
     headers: {
       authorization: credentials(env),

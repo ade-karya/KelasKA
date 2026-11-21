@@ -46,7 +46,9 @@ export class Coordinator implements DurableObject {
         const state = await this.load();
         state.stopRequested = false;
         state.desired = false;
-        if (state.status === 'stopping' || state.status === 'offline') state.status = 'idle';
+        state.cooldownUntil = null;
+        state.lastError = null;
+        state.status = 'idle';
         await this.save(state);
         await this.env.STATE.delete('gpu:stopRequested');
         return json(state);
