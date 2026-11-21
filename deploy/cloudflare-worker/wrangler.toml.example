@@ -25,11 +25,14 @@ COLAB_ORIGIN = "https://api.kelaska.riau.ai"
 GPU_ORIGIN = "https://gpu.kelaska.riau.ai"
 # Kaggle kernel that runs the GPU services. The Worker pushes the script from
 # KERNEL_SOURCE_URL as a new version, so the kernel stays versioned in git.
+# SaveKernel's `slug` is the full owner/kernel-slug ref, so keep the owner here.
 KAGGLE_KERNEL_REF = "akjdev/kelaska-gpu"
 KAGGLE_KERNEL_TITLE = "KelasKA GPU"
 KAGGLE_DATASET = "akjdev/kelaska-gpu-models"
 KAGGLE_MACHINE_SHAPE = "NvidiaTeslaT4"
-KAGGLE_SESSION_TIMEOUT_SECONDS = "43200"
+# Must be lower than Kaggle's 12 h session cap; the kernel also exits itself
+# at 11 h 40 m (42000 s), so the two backstops agree.
+KAGGLE_SESSION_TIMEOUT_SECONDS = "42000"
 KAGGLE_COOLDOWN_SECONDS = "900"
 KERNEL_SOURCE_URL = "https://raw.githubusercontent.com/ade-karya/KelasKA/Colab/deploy/kaggle/kelaska-gpu.py"
 # Stop an idle Kaggle session after 30 minutes without a GPU request. The

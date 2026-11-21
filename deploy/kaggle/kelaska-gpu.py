@@ -57,6 +57,8 @@ PORTS = {"comfyui": 8188, "funasr": 8000, "voxcpm": 8001, "ollama": 11434}
 
 CHILDREN: list[subprocess.Popen] = []
 READY = False
+STOP_REQUESTED = False
+CLEANED = False
 
 
 def log(message: str) -> None:
@@ -254,7 +256,13 @@ def start_proxy() -> None:
     from aiohttp import web
 
     log(f"starting GPU reverse proxy on 127.0.0.1:{PROXY_PORT}")
-    web.run_app(make_proxy_app(), host="127.0.0.1", port=PROXY_PORT, print=None)
+    # This runs in a daemon thread, not the main thread. aiohttp's default
+    # handle_signals=True calls loop.add_signal_handler(), which raises
+    # RuntimeError ("set_wakeup_fd only works in main thread") and kills the
+    # proxy before it ever binds. SIGTERM is handled by main() instead.
+    web.run_app(
+        make_proxy_app(), host="127.0.0.1", port=PROXY_PORT, print=None, handle_signals=False
+    )
 
 
 def start_tunnel(token: str) -> None:
@@ -292,6 +300,10 @@ def lease(lease_key: str) -> dict:
 
 
 def cleanup(signum=None, frame=None) -> None:
+    global CLEANED
+    if CLEANED:
+        return
+    CLEANED = True
     log("shutting down GPU services and tunnel")
     for child in CHILDREN:
         if child.poll() is None:
@@ -311,6 +323,15 @@ def cleanup(signum=None, frame=None) -> None:
             pass
 
 
+def request_stop(signum=None, frame=None) -> None:
+    """Kaggle stops a session with SIGTERM. Record it and let the main loop
+    leave normally: a handler that only kills the children leaves the kernel
+    process (and the GPU quota clock) running until Kaggle force-kills it."""
+    global STOP_REQUESTED
+    STOP_REQUESTED = True
+    log(f"received signal {signum}; stopping after the current lease interval")
+
+
 def main() -> None:
     global READY
     started_at = time.time()
@@ -323,8 +344,8 @@ def main() -> None:
             "KELASKA_GPU_TUNNEL_TOKEN and KELASKA_GPU_LEASE_KEY must be set as Kaggle Secrets"
         )
 
-    signal.signal(signal.SIGTERM, cleanup)
-    signal.signal(signal.SIGINT, cleanup)
+    signal.signal(signal.SIGTERM, request_stop)
+    signal.signal(signal.SIGINT, request_stop)
 
     prepare_repo()
     prepare_models()
@@ -337,15 +358,17 @@ def main() -> None:
         if port_open(PROXY_PORT):
             break
         time.sleep(1)
-    READY = all(port_open(PORTS[name]) for name in SERVICES) or any(
-        port_open(PORTS[name]) for name in SERVICES
-    )
-    log(f"services ready: {READY}")
+    # The Worker's /health is what flips gpu:status to online. A single ready
+    # service must not do that: an image/TTS request would then hit a box
+    # whose ComfyUI or VoxCPM never came up.
+    READY = all(port_open(PORTS[name]) for name in SERVICES)
+    missing = [name for name in SERVICES if not port_open(PORTS[name])]
+    log(f"services ready: {READY}" + (f" (missing: {', '.join(missing)})" if missing else ""))
 
     start_tunnel(tunnel_token)
 
     log(f"entering lease loop ({LEASE_SECONDS}s); lease endpoint {LEASE_URL}")
-    while True:
+    while not STOP_REQUESTED:
         if time.time() - started_at > MAX_RUNTIME_SECONDS:
             log("maximum runtime reached; exiting to free GPU quota")
             break
@@ -361,7 +384,14 @@ def main() -> None:
             # A Worker outage must not strand a GPU box forever; the max
             # runtime above is the backstop. Keep serving while it is down.
             log(f"lease check failed (continuing): {error}")
-        time.sleep(LEASE_SECONDS)
+        # Sleep in short slices: PEP 475 restarts a single long time.sleep()
+        # after a signal handler returns, so SIGTERM could otherwise be ignored
+        # for a whole lease interval and Kaggle would SIGKILL us before
+        # cleanup() gets to release the tunnel and service PIDs.
+        for _ in range(max(1, LEASE_SECONDS)):
+            if STOP_REQUESTED:
+                break
+            time.sleep(1)
 
     cleanup()
 

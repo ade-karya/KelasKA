@@ -56,7 +56,7 @@ print("repo ready:", APP_DIR)
 
 # %%
 # Write the production environment from Colab Secrets. This file is never
-# committed; it is the same set of secrets the Vercel project uses.
+# committed; it holds the same secrets the app node needs at runtime.
 env_b64 = secret("KELASKA_ENV_B64")
 if not env_b64:
     raise SystemExit(
@@ -99,6 +99,21 @@ tunnel_token = secret("KELASKA_COLAB_TUNNEL_TOKEN")
 if not tunnel_token:
     raise SystemExit("KELASKA_COLAB_TUNNEL_TOKEN is empty. Add it to Colab Secrets.")
 os.environ["KELASKA_COLAB_TUNNEL_TOKEN"] = tunnel_token
+
+# The loopback GPU proxy (started by start.sh) must present the Cloudflare
+# Access service token on every gpu. request. start.sh reads these from the
+# environment after sourcing .env.local, so export the Colab Secrets here too;
+# otherwise the proxy runs header-less and gpu. answers 403.
+for name in ("CF_ACCESS_CLIENT_ID", "CF_ACCESS_CLIENT_SECRET", "KELASKA_GPU_ORIGIN", "KELASKA_GPU_PROXY_PORT"):
+    value = secret(name)
+    if value:
+        os.environ[name] = value
+if not os.environ.get("CF_ACCESS_CLIENT_ID") or not os.environ.get("CF_ACCESS_CLIENT_SECRET"):
+    print(
+        "WARNING: CF_ACCESS_CLIENT_ID/CF_ACCESS_CLIENT_SECRET are empty; "
+        "the GPU proxy cannot pass Cloudflare Access and gpu. will answer 403."
+    )
+
 run("bash", "deploy/colab/start.sh", cwd=APP_DIR)
 
 # %%

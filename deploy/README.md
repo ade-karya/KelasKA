@@ -64,6 +64,12 @@ ingress rules from the dashboard, not from a local config file):
 - `api.kelaska.riau.ai` → HTTP `localhost:3000`
 - `gpu.kelaska.riau.ai` → HTTP `localhost:8790`
 
+Do **not** add `kelaska.riau.ai` to either tunnel. The Worker route owns that
+hostname and takes precedence over the tunnel, so an app published there is
+shadowed by the Worker and the Worker's `COLAB_ORIGIN` (`api.`) never answers.
+A tunnel ingress of `kelaska.riau.ai -> localhost:3000` is the symptom to look
+for when `/__kelaska/status` reports `colab: offline` while the app is running.
+
 Copy each tunnel token. They are the only credentials the two compute nodes
 need to publish themselves; no dynamic URL registration is involved.
 
@@ -74,7 +80,10 @@ Create an Access application covering `api.kelaska.riau.ai` and
 service token. Set the token's client id/secret as Worker secrets
 `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET`, and give the same pair to
 the Colab GPU proxy (`deploy/colab/gpu-proxy.mjs` reads them from the
-environment). The browser never receives these headers.
+environment). `deploy/colab/kelaska-colab.py` exports them from Colab Secrets
+to `start.sh`; putting them in `.env.local` works too. Without the pair the
+proxy sends no Access headers and `gpu.` answers 403 even though the tunnel is
+connected. The browser never receives these headers.
 
 ## 3. Cloudflare KV + Durable Object
 
@@ -128,7 +137,18 @@ model weights come from the private dataset.
 
 The Kaggle account's API key lives only in Worker secrets. `machineShape` is
 `NvidiaTeslaT4` (Kaggle's 2× T4 shape). Weekly GPU quota is limited, so the
-kernel exits itself on an idle lease or after 11h40m.
+kernel exits itself on an idle lease or after 11h40m. The Worker's
+`KAGGLE_SESSION_TIMEOUT_SECONDS` is `42000` (11h40m) because the API requires a
+value below Kaggle's 12 h cap; the kernel's own `MAX_RUNTIME_SECONDS` uses the
+same number.
+
+A Worker code change is **not** part of `install.sh`: deploy it with
+`cd deploy/cloudflare-worker && npx wrangler deploy`. If `/__kelaska/status`
+reports `kaggle.status: "error"` with `lastError: "Invalid slug: ..."`, the
+Worker is sending the bare kernel slug; deploy the current Worker and call
+`POST /__kelaska/admin/warmup` (bearer `EDGE_ADMIN_TOKEN`) to retry at once.
+The coordinator also re-arms its alarm after a failed start, so the 2-minute
+cron retries automatically once the cooldown has passed.
 
 ## 6. Vercel (Hobby)
 
@@ -138,7 +158,8 @@ cannot fit this app's ~126 API routes. All pages and APIs go to Colab; when
 Colab is down, document requests fall back to the Vercel status page and
 generation starts are queued. See [vercel/README.md](./vercel/README.md). The
 Worker's `VERCEL_ORIGIN` must be `https://kelaska.vercel.app`, never the public
-hostname.
+hostname. Do not confuse it with `kelas-ka.riau.ai`: that is a separate
+full-app deployment, not this split setup's fallback.
 
 ## Operational runbook
 

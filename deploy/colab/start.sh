@@ -25,6 +25,11 @@ fi
 export KELASKA_GPU_ORIGIN="${KELASKA_GPU_ORIGIN:-https://gpu.kelaska.riau.ai}"
 export KELASKA_GPU_PROXY_PORT="${KELASKA_GPU_PROXY_PORT:-8787}"
 
+if [[ -z "${CF_ACCESS_CLIENT_ID:-}" || -z "${CF_ACCESS_CLIENT_SECRET:-}" ]]; then
+  echo "[colab] WARNING: CF_ACCESS_CLIENT_ID/CF_ACCESS_CLIENT_SECRET are empty." >&2
+  echo "[colab]          gpu.kelaska.riau.ai is Access-protected, so every GPU request will fail with 403." >&2
+fi
+
 PID_DIR="${KELASKA_PID_DIR:-/tmp}"
 PROXY_PID="$PID_DIR/kelaska-gpu-proxy.pid"
 TUNNEL_PID="$PID_DIR/kelaska-cloudflared.pid"

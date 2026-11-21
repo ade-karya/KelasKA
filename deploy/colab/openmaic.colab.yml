@@ -5,6 +5,13 @@
 # Cloudflare Access service token and forwards to gpu.kelaska.riau.ai.
 #
 # Secrets are referenced with ${VAR}; keep them in .env.local / Colab Secrets.
+#
+# The loopback prefix is part of the path on purpose: the VoxCPM python-api
+# adapter appends /tts/upload to its baseUrl, so `.../tts` becomes
+# /tts/tts/upload locally. gpu-proxy.mjs keeps that path intact; the Kaggle
+# reverse proxy strips one /tts and reaches 127.0.0.1:8001/tts/upload.
+# ComfyUI/FunASR/Ollama need only one prefix because their adapters append
+# paths like /prompt or /v1/audio/transcriptions directly.
 providers:
   google:
     preset: google

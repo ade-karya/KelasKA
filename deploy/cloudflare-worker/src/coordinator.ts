@@ -60,11 +60,16 @@ export class Coordinator implements DurableObject {
         const body = (await request.json().catch(() => ({}))) as { online?: unknown };
         const state = await this.load();
         if (body.online === true) {
-          state.status = 'online';
-          state.lastHealthAt = Date.now();
-          state.failures = 0;
-          state.lastError = null;
-          await this.env.STATE.put('gpu:status', 'online');
+          // A stop is in flight: the box still answers /health until the
+          // kernel exits, but the state machine must stay `stopping` so the
+          // stop path can clear the flags and apply the cooldown.
+          if (state.status !== 'stopping') {
+            state.status = 'online';
+            state.lastHealthAt = Date.now();
+            state.failures = 0;
+            state.lastError = null;
+            await this.env.STATE.put('gpu:status', 'online');
+          }
         } else if (body.online === false && state.status === 'online') {
           state.failures += 1;
           if (state.failures >= 3) {
@@ -74,6 +79,21 @@ export class Coordinator implements DurableObject {
           }
         }
         await this.save(state);
+        // A deploy can land while the object is already stuck in `error`
+        // (or idle/offline with `desired` true) and no alarm armed — the old
+        // code did not reschedule after a failed start. The 2-minute cron's
+        // /health nudge is the only periodic wake-up, so arm the retry here
+        // once the cooldown has passed; poll() then calls ensure().
+        const canStart =
+          state.status !== 'starting' && state.status !== 'online' && state.status !== 'stopping';
+        if (
+          body.online !== true &&
+          state.desired &&
+          canStart &&
+          (!state.cooldownUntil || Date.now() >= state.cooldownUntil)
+        ) {
+          await this.schedule(5);
+        }
         return json(state);
       }
       default:

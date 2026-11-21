@@ -1,17 +1,16 @@
 /**
  * The small part of the Kaggle API the Worker needs.
  *
- * Kaggle has two API credential shapes. A classic `kaggle.json` key uses
- * Basic auth against `api.kaggle.com`; the newer `KGAT_...` personal access
- * token is sent as a Bearer token against `www.kaggle.com/api/v1`. Both carry
- * the JSON request that SaveKernel needs, including `machineShape` (2× T4).
+ * Kaggle has two API credential shapes: a classic `kaggle.json` key (Basic
+ * auth) and a `KGAT_...` personal access token (Bearer). Both call the same
+ * gRPC-transcoded service under `https://api.kaggle.com/v1`; only the
+ * Authorization header differs. `www.kaggle.com/api/v1` is the legacy REST
+ * API and has no `kernels.KernelsApiService` route, so a KGAT token sent there
+ * fails before SaveKernel is reached.
  */
 
-function apiBase(key: string): string {
-  const origin = key.startsWith('KGAT_')
-    ? 'https://www.kaggle.com/api/v1'
-    : 'https://api.kaggle.com/v1';
-  return `${origin}/kernels.KernelsApiService`;
+function apiBase(): string {
+  return 'https://api.kaggle.com/v1/kernels.KernelsApiService';
 }
 const SOURCE_CACHE_KEY = 'kernel:source';
 const SOURCE_CACHE_SECONDS = 3600;
@@ -52,7 +51,7 @@ async function post<T>(
   method: string,
   body: unknown,
 ): Promise<T> {
-  const response = await fetch(`${apiBase(env.KAGGLE_KEY ?? '')}/${method}`, {
+  const response = await fetch(`${apiBase()}/${method}`, {
     method: 'POST',
     headers: {
       authorization: credentials(env),
