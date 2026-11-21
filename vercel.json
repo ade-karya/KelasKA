@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npx --yes bun@1.4.4 install",
-  "buildCommand": "node scripts/write-openmaic-yml.mjs && npx --yes bun@1.4.4 run build"
+  "buildCommand": "node scripts/write-openmaic-yml.mjs && NODE_OPTIONS=--max-old-space-size=5632 npx --yes bun@1.4.4 run build"
 }
