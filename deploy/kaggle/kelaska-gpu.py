@@ -67,13 +67,23 @@ def secret(name: str, default: str = "") -> str:
     value = os.environ.get(name, "")
     if value:
         return value
-    try:
-        from kaggle_secrets import UserSecretsClient  # type: ignore
+    # The secrets service can be briefly unavailable right after a new kernel
+    # starts. Retry a few times before giving up; a transient connection error
+    # must not waste the whole GPU session.
+    for attempt in range(6):
+        try:
+            from kaggle_secrets import UserSecretsClient  # type: ignore
 
-        return UserSecretsClient().get_secret(name) or default
-    except Exception as error:  # local dry run without the Kaggle runtime
-        log(f"secret {name} unavailable: {error}")
-        return default
+            value = UserSecretsClient().get_secret(name) or default
+            if value:
+                return value
+        except Exception as error:  # local dry run without the Kaggle runtime
+            if attempt == 5:
+                log(f"secret {name} unavailable: {error}")
+            else:
+                log(f"secret {name} attempt {attempt + 1} failed: {error}; retrying")
+        time.sleep(3)
+    return default
 
 
 def run(
