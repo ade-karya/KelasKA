@@ -101,7 +101,8 @@ else
     warn "  cloudflared log: grep 'Updated to new configuration' /tmp/kelaska-api-tunnel.log (api. -> 127.0.0.1:3000)"
     http_code="$(request "$WORK/colab-http.json" "http://${API#https://}/api/health" ${access_args[@]+"${access_args[@]}"})"
     if [[ "$http_code" == "200" ]]; then
-      warn "  plain HTTP works: Cloudflare has not issued an edge cert for api. yet (Worker still cannot reach it over HTTPS)"
+      warn "  plain HTTP works, so the connector is fine: Cloudflare lacks an edge cert for api. for external HTTPS clients"
+      warn "  the Worker may already be healthy if its COLAB_ORIGIN is http:// (check /__kelaska/status)"
     else
       warn "  plain HTTP answered $http_code: no live connector owns api. — start the api tunnel"
     fi
