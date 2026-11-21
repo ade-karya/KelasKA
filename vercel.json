@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "node scripts/write-openmaic-yml.mjs && pnpm build"
+  "installCommand": "corepack enable && corepack prepare bun@1.4.4 --activate && bun install",
+  "buildCommand": "node scripts/write-openmaic-yml.mjs && bun run build"
 }
