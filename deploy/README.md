@@ -120,9 +120,11 @@ tunnel, then keeps the tab open. The Worker marks Colab online at the next
 
 See [kaggle/README.md](./kaggle/README.md) and
 [prepare-dataset.md](./kaggle/prepare-dataset.md). The Worker pushes
-`deploy/kaggle/kelaska-gpu.py` to the prepared kernel with `SaveKernel` and
-`kernelExecutionType: 1` (save and run). Kaggle Secrets hold the tunnel token
-and the lease key; the model weights come from the private dataset.
+`deploy/kaggle/kelaska-gpu.py` to the prepared kernel with `SaveKernel` —
+`slug` is the full `owner/kernel-slug` ref from `KAGGLE_KERNEL_REF`, and
+`kernelExecutionType: "SAVE_AND_RUN_ALL"` (the SDK serializes enums by name,
+not by number). Kaggle Secrets hold the tunnel token and the lease key; the
+model weights come from the private dataset.
 
 The Kaggle account's API key lives only in Worker secrets. `machineShape` is
 `NvidiaTeslaT4` (Kaggle's 2× T4 shape). Weekly GPU quota is limited, so the

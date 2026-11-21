@@ -127,6 +127,10 @@ export class Coordinator implements DurableObject {
       state.cooldownUntil = now + this.cooldownMs();
       await this.save(state);
       await this.env.STATE.put('gpu:status', 'offline');
+      // Re-arm the alarm: only an alarm wakes poll(), so without this the DO
+      // never retries after cooldown and the state stays `error` with
+      // `gpu:desired=1` indefinitely (observed for 7 h in production).
+      await this.schedule(Math.max(30, Math.ceil(this.cooldownMs() / 1000) + 5));
     }
     return state;
   }

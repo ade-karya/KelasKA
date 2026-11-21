@@ -123,12 +123,14 @@ export async function saveAndRunKernel(
 ): Promise<SaveKernelResult> {
   const ref = env.KAGGLE_KERNEL_REF;
   if (!ref) throw new Error('KAGGLE_KERNEL_REF is not configured');
-  // SaveKernel's `slug` is the kernel slug only; the owner is taken from the
-  // API credentials. `userName` appears only in GetKernelSessionStatus.
-  const { slug } = splitKernelRef(ref);
+  // The Kaggle SDK documents SaveKernel's `slug` as the *full* ref
+  // `{username}/{kernel-slug}`. Sending only the bare slug is rejected with
+  // `Invalid slug: 'kelaska-gpu'`; `userName`/`kernelSlug` are separate fields
+  // used only by GetKernelSessionStatus.
+  const { owner, slug } = splitKernelRef(ref);
 
   const body: Record<string, unknown> = {
-    slug,
+    slug: `${owner}/${slug}`,
     newTitle: env.KAGGLE_KERNEL_TITLE || 'KelasKA GPU',
     text: source,
     language: 'python',
