@@ -147,7 +147,7 @@ export default function Page() {
         <a href="/classes">Buka Kursus Saya →</a>
         <p>
           <a href="/settings">Konfigurasi Model</a> ·{' '}
-          <a href="/onboarding/api-key">Atur kunci API</a>
+          <a href="/onboarding/api-key">Atur kunci API</a> · <a href="/admin">Admin</a>
         </p>
       </section>
 

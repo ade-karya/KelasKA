@@ -23,6 +23,8 @@ whole session seam end to end:
 - `/login` and `/account` — Supabase Google sign-in and the app-cookie account
   view (`GET /api/auth/me`, `POST /api/auth/logout`), with pending-account and
   Google-failure messages.
+- `/admin` — approve pending accounts, change roles, deactivate users and add
+  accounts via `GET/POST /api/admin/users` and `PATCH /api/admin/users/:id`.
 
 Porting the remaining `force-dynamic` pages and the server root layout is still
 pending.
