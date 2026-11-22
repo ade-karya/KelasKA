@@ -188,6 +188,12 @@ the app's `NEXT_PUBLIC_SUPABASE_*`). New vars: `STATIC_UI_ENABLED`,
 `SESSION_APP_ORIGIN`, and the two cooldowns. Do not flip the flag until the SPA
 and the Kaggle app kernel are deployed and healthy.
 
+The Vercel half is the client-only shell in `deploy/spa/` (`output: 'export'`,
+zero route handlers): it signs in with Supabase, calls the Worker's start
+endpoint, then exchanges its token for an HttpOnly app cookie through
+`POST /api/auth/spa/session` on the live session. It is a foundation, not the
+full UI — the 11 server-gated pages still have to be ported.
+
 The app half of this mode is `deploy/kaggle/kelaska-gpu.py` with
 `KELASKA_APP_MODE=1`: it installs the prebuilt standalone app from
 `<model-dataset>/app` (see `deploy/scripts/package-kaggle-app.sh`) on `:3000`,

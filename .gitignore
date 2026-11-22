@@ -38,6 +38,8 @@ __pycache__/
 # next.js
 /.next/
 /out/
+/deploy/spa/.next/
+/deploy/spa/out/
 
 # production
 /build

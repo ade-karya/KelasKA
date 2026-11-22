@@ -34,7 +34,9 @@ A static SPA is an alternative that stays on Hobby: build the client-only UI as
 static files under this root directory, and let the Worker's `STATIC_UI_ENABLED`
 flag route pages here and `/api/*` to the live session. In that mode the Worker
 also owns `POST /api/session/start` and the security headers, so Vercel can stay
-at zero functions. See `deploy/README.md` §7.
+at zero functions. See `deploy/README.md` §7. The client-only shell itself
+lives in `deploy/spa/` (build instructions there); switching the project's root
+directory from `deploy/vercel-status` to `deploy/spa` is the cutover step.
 
 ## CLI notes
 
