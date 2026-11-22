@@ -126,6 +126,9 @@ export default function Page() {
             Masuk dengan Google
           </button>
         )}
+        <p>
+          <a href="/login">Halaman masuk</a> · <a href="/account">Akun</a>
+        </p>
         {state !== 'online' && (
           <button onClick={() => void start()} disabled={busy || !accessToken}>
             Mulai sesi

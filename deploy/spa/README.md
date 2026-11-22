@@ -20,6 +20,9 @@ whole session seam end to end:
 - `/onboarding/api-key` — the BYOK gate: CAS provider save → verify → assign
   `llm`/`agent` slots, matching the main wizard's sequence.
 - `/settings` — read-only model settings view (providers, key masks, slots).
+- `/login` and `/account` — Supabase Google sign-in and the app-cookie account
+  view (`GET /api/auth/me`, `POST /api/auth/logout`), with pending-account and
+  Google-failure messages.
 
 Porting the remaining `force-dynamic` pages and the server root layout is still
 pending.
