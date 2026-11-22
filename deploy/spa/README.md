@@ -13,7 +13,10 @@ whole session seam end to end:
 - a probe button for `GET /api/stages` to verify `/api/*` really reaches the
   session;
 - `/classes` — the first ported feature page: course list + create form backed
-  by `GET/POST /api/stages`.
+  by `GET/POST /api/stages`;
+- `/classroom?id=<stageId>` — lightweight read-only player: scene list,
+  prev/next, slide text and quiz questions from `GET /api/stages/:id`. Full
+  narration/interactions still live in the main app.
 
 Porting the remaining `force-dynamic` pages and the server root layout is still
 pending.

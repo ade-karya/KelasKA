@@ -79,7 +79,9 @@ export default function ClassesPage() {
         <div className="course-grid">
           {courses.map((course) => (
             <article key={course.id} className="panel course-card">
-              <h3>{course.name}</h3>
+              <h3>
+                <a href={`/classroom?id=${encodeURIComponent(course.id)}`}>{course.name}</a>
+              </h3>
               {course.description && <p>{course.description}</p>}
               <p className="muted">
                 {course.sceneCount} adegan · diperbarui {formatDate(course.updatedAt)}
