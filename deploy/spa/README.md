@@ -17,6 +17,9 @@ whole session seam end to end:
 - `/classroom?id=<stageId>` — lightweight read-only player: scene list,
   prev/next, slide text and quiz questions from `GET /api/stages/:id`. Full
   narration/interactions still live in the main app.
+- `/onboarding/api-key` — the BYOK gate: CAS provider save → verify → assign
+  `llm`/`agent` slots, matching the main wizard's sequence.
+- `/settings` — read-only model settings view (providers, key masks, slots).
 
 Porting the remaining `force-dynamic` pages and the server root layout is still
 pending.

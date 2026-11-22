@@ -142,6 +142,10 @@ export default function Page() {
         <h2>Kelas</h2>
         <p className="muted">Daftar dan buat kelas setelah cookie aplikasi aktif.</p>
         <a href="/classes">Buka Kursus Saya →</a>
+        <p>
+          <a href="/settings">Konfigurasi Model</a> ·{' '}
+          <a href="/onboarding/api-key">Atur kunci API</a>
+        </p>
       </section>
 
       <section className="panel">
