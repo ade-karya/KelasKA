@@ -24,6 +24,7 @@ Required Kaggle Secrets (Secrets -> Add new secret):
     KELASKA_APP_TUNNEL_TOKEN  named tunnel for app.kelaska.riau.ai -> :3000
     KELASKA_ENV_B64           base64 of the production .env.local
     KELASKA_OPENMAIC_YML_B64  optional; otherwise openmaic.kaggle.yml is used
+    KELASKA_APP_MODE          "1" enables APP_MODE when no env var is set
 
 Optional Kaggle Secrets / environment:
   KELASKA_REPO_URL           default https://github.com/ade-karya/KelasKA.git
@@ -58,9 +59,14 @@ LEASE_URL = os.environ.get(
 LEASE_SECONDS = int(os.environ.get("KELASKA_GPU_LEASE_SECONDS", "60"))
 MAX_RUNTIME_SECONDS = int(os.environ.get("KELASKA_GPU_MAX_RUNTIME", "42000"))  # 11h40m
 PROXY_PORT = int(os.environ.get("KELASKA_GPU_PROXY_PORT", "8790"))
+def parse_flag(value: str) -> bool:
+    return value.strip().lower() in {"1", "true", "yes"}
+
+
 # With APP_MODE on, the same kernel also runs the standalone Next.js app on
 # :3000 (behind its own tunnel) so the SPA's /api/* calls have a live backend.
-APP_MODE = os.environ.get("KELASKA_APP_MODE", "").strip().lower() in {"1", "true", "yes"}
+# A Kaggle Secret can enable it too (see main()); env still takes precedence.
+APP_MODE = parse_flag(os.environ.get("KELASKA_APP_MODE", ""))
 APP_PORT = 3000
 APP_DIR = Path(os.environ.get("KELASKA_APP_DIR", "/kaggle/temp/kelaska-app"))
 SERVICES = [
@@ -80,14 +86,15 @@ def log(message: str) -> None:
     print(f"[kelaska-gpu] {time.strftime('%H:%M:%S')} {message}", flush=True)
 
 
-def secret(name: str, default: str = "") -> str:
+def secret(name: str, default: str = "", retries: int = 6) -> str:
     value = os.environ.get(name, "")
     if value:
         return value
     # The secrets service can be briefly unavailable right after a new kernel
     # starts. Retry a few times before giving up; a transient connection error
-    # must not waste the whole GPU session.
-    for attempt in range(6):
+    # must not waste the whole GPU session. Optional flags use retries=0 so an
+    # unset secret does not stall every GPU-only start for ~18 seconds.
+    for attempt in range(retries):
         try:
             from kaggle_secrets import UserSecretsClient  # type: ignore
 
@@ -95,7 +102,7 @@ def secret(name: str, default: str = "") -> str:
             if value:
                 return value
         except Exception as error:  # local dry run without the Kaggle runtime
-            if attempt == 5:
+            if attempt == retries - 1:
                 log(f"secret {name} unavailable: {error}")
             else:
                 log(f"secret {name} attempt {attempt + 1} failed: {error}; retrying")
@@ -432,7 +439,10 @@ def request_stop(signum=None, frame=None) -> None:
 
 
 def main() -> None:
-    global READY
+    global APP_MODE, READY
+    if not APP_MODE and parse_flag(secret("KELASKA_APP_MODE", retries=0)):
+        APP_MODE = True
+        log("APP_MODE enabled via Kaggle Secret")
     started_at = time.time()
     (GPU_DIR / "logs").mkdir(parents=True, exist_ok=True)
 
