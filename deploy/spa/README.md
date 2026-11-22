@@ -11,10 +11,12 @@ whole session seam end to end:
 - **Aktifkan sesi aplikasi** → `POST /api/auth/spa/session` (answered by the
   live session app, sets an HttpOnly `kelaska_session` cookie);
 - a probe button for `GET /api/stages` to verify `/api/*` really reaches the
-  session.
+  session;
+- `/classes` — the first ported feature page: course list + create form backed
+  by `GET/POST /api/stages`.
 
-Porting the 11 `force-dynamic` pages and the server root layout is still
-pending; until then this shell is the only page served from Vercel.
+Porting the remaining `force-dynamic` pages and the server root layout is still
+pending.
 
 ## Build
 

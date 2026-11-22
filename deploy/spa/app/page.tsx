@@ -139,6 +139,12 @@ export default function Page() {
       </section>
 
       <section className="panel">
+        <h2>Kelas</h2>
+        <p className="muted">Daftar dan buat kelas setelah cookie aplikasi aktif.</p>
+        <a href="/classes">Buka Kursus Saya →</a>
+      </section>
+
+      <section className="panel">
         <h2>Verifikasi backend</h2>
         <p className="muted">
           Setelah cookie aplikasi dipasang, tombol ini memastikan <code>/api/*</code> benar-benar
