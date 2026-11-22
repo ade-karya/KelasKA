@@ -107,7 +107,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
   background: transparent;
   border: 1px solid rgba(128, 128, 128, 0.4);
   border-radius: 0.4rem;

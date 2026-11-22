@@ -25,9 +25,15 @@ whole session seam end to end:
   Google-failure messages.
 - `/admin` — approve pending accounts, change roles, deactivate users and add
   accounts via `GET/POST /api/admin/users` and `PATCH /api/admin/users/:id`.
+- `/generation-preview` — start a run (`POST /api/generation-runs`) and poll
+  its snapshot until a `stageId` appears, then link to `/classroom`.
+- `/workspace`, `/workbench/new`, `/pbl-v3`, `/sandbox-lab`, `/eval/whiteboard`,
+  `/project-workspace` — thin shells/compat bridges. The full workbench,
+  sandbox and renderer-eval surfaces still run only in the main app.
 
-Porting the remaining `force-dynamic` pages and the server root layout is still
-pending.
+All 13 former page routes now export as static HTML. The remaining work is
+depth, not coverage: richer workbench/player UIs would have to be rebuilt on
+top of the same `/api/*` seam.
 
 ## Build
 
