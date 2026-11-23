@@ -316,7 +316,9 @@
       "wb_clear": "화이트보드 지우기",
       "wb_delete": "요소 삭제",
       "wb_close": "화이트보드 닫기",
-      "discussion": "토론"
+      "discussion": "토론",
+      "web_search": "Searched the web",
+      "fetch_url": "Read a web page"
     },
     "status": {
       "inputStreaming": "대기 중",
@@ -858,7 +860,11 @@
     "restore": "복원",
     "noHistory": "아직 기록이 없습니다",
     "restored": "화이트보드가 복원되었습니다",
-    "elementCount": "요소 {{count}}개"
+    "elementCount": "요소 {{count}}개",
+    "mobileEmpty": "아직 판서가 없습니다",
+    "mobileEmptyHint": "선생님이 추가한 풀이, 수식, 도표가 여기에 표시됩니다",
+    "zoomIn": "확대",
+    "zoomOut": "축소"
   },
   "quiz": {
     "title": "퀴즈",
@@ -1360,9 +1366,9 @@
       "system": "시스템"
     },
     "apiKey": "API 키",
+    "apiKeyDesc": "API 키를 설정하세요",
     "credentialStorageHint": "Encrypted on this instance's server",
     "credentialStorageHintDetail": "Saved encrypted on this instance's server and used to call the provider for you. The operator of this deployment can access it, so only enter keys on instances you trust.",
-    "apiKeyDesc": "API 키를 설정하세요",
     "apiBaseUrl": "API 엔드포인트 URL",
     "apiBaseUrlDesc": "API 엔드포인트 URL을 설정하세요",
     "apiKeyRequired": "API 키는 비워둘 수 없습니다",
@@ -1944,7 +1950,10 @@
       "enable": "Enable",
       "statusDisabled": "연결됨(사용 안 함)",
       "enableThisPlan": "이 플랜 사용",
-      "enableThisPlanHint": "끄면 이 플랜은 코스 모델 설정에 더 이상 표시되지 않습니다."
+      "enableThisPlanHint": "끄면 이 플랜은 코스 모델 설정에 더 이상 표시되지 않습니다.",
+      "region": "서비스 지역",
+      "regionHintDomestic": "중국 본토 사이트 계정용",
+      "regionHintInternational": "해외 사이트 계정용"
     },
     "skills": {
       "nav": "스킬",
@@ -2139,7 +2148,7 @@
       "international": "해외"
     },
     "providerName": "이름",
-    "providerNamePlaceholder": "예: 나의 OpenAI 프록시",
+    "providerNamePlaceholder": "예: my-relay",
     "providers": "LLM",
     "requestUrl": "요청 URL",
     "reset": "초기화",
@@ -2186,7 +2195,7 @@
       "showKey": "키 표시",
       "hideKey": "키 숨기기",
       "inUse": "사용 중",
-      "modelFromCatalogue": "모델 이름, 기능, 컨텍스트 창은 내장 카탈로그에서 가져옵니다.",
+      "modelFromCatalogue": "모델 이름과 기능은 내장 카탈로그에서 가져옵니다.",
       "modelWhenInUse": "코스 모델 설정에서 이 서비스를 선택하면 사용됩니다.",
       "planServer": "서버에서 구성됨",
       "providerIdHint": "\"{{id}}\"(으)로 저장",
@@ -2194,7 +2203,8 @@
       "notNarration": "이 서비스는 워크스페이스의 내레이션이 아닙니다.",
       "useForNarration": "내레이션에 사용",
       "fetchNotSaved": "모델을 찾았지만 저장하지 못했습니다. 다시 시도하세요.",
-      "regionalEndpointHint": "Azure Speech는 리소스 지역의 공식 엔드포인트만 허용합니다: {{template}}."
+      "regionalEndpointHint": "Azure Speech는 리소스 지역의 공식 엔드포인트만 허용합니다: {{template}}.",
+      "providerNameNeedsLatin": "이름에 영문자(a–z) 또는 숫자를 포함해야 ID로 저장할 수 있습니다."
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "API 키",
     "webFetchSharedKeyHint": "이 키는 같은 제공업체와의 채팅에도 사용됩니다. 키를 변경하거나 삭제하면 채팅에도 영향을 줍니다.",
     "autoConfirmRecommended": "추천 답변 자동 확인",
-    "autoConfirmRecommendedDesc": "에이전트가 질문하며 추천 항목을 제시할 때, 응답이 없으면 짧은 카운트다운 후 그 항목을 선택합니다. 어떤 조작이든 하면 카운트다운이 멈춥니다."
+    "autoConfirmRecommendedDesc": "에이전트가 질문하며 추천 항목을 제시할 때, 응답이 없으면 짧은 카운트다운 후 그 항목을 선택합니다. 어떤 조작이든 하면 카운트다운이 멈춥니다.",
+    "contextWindowTokens": "컨텍스트 윈도우(tokens)",
+    "contextWindowTokensPlaceholder": "예: 1000000",
+    "contextWindowHint": "선택 사항. 내장 카탈로그에 없는 모델에만 적용되며, 압축과 컨텍스트 예산 검사에 사용됩니다. 비워 두면 기본값을 사용합니다.",
+    "contextWindowInvalid": "양의 정수(token 수)를 입력하거나 비워 두세요."
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "편집 시작"
+    },
+    "mobile": {
+      "openMenu": "탐색 열기",
+      "closeMenu": "탐색 닫기"
     }
   },
   "profile": {
@@ -3271,7 +3289,21 @@
       "eachStage": "각 단계의 진행 순서",
       "yourRole": "직접 결정하고 검토하며, AI는 계획과 코드 작성을 돕습니다.",
       "preview": "미리보기에서 앱을 사용해 구현한 기능을 확인하세요.",
-      "advance": "현재 단계를 진행할 수 있을 때만 입력창 위에 보라색 버튼이 나타납니다. 버튼이 보이면 눌러서 계속하세요."
+      "advance": "현재 단계를 진행할 수 있을 때만 입력창 위에 보라색 버튼이 나타납니다. 버튼이 보이면 눌러서 계속하세요.",
+      "startBlocked": {
+        "guide": "학습을 시작하려면 작업 공간 안내를 완료하거나 닫으세요.",
+        "connecting": "학습을 시작할 수 있도록 실시간 업데이트에 연결하고 있습니다…",
+        "retrying": "실시간 업데이트에 다시 연결하고 있습니다. 연결이 복구된 후 학습을 시작하세요.",
+        "unavailable": "실시간 업데이트를 사용할 수 없습니다. 새로고침하여 다시 연결한 후 학습을 시작하세요.",
+        "pending": "작업을 처리하고 있습니다. 작업이 끝난 후 학습을 시작하세요.",
+        "busy": "도우미가 답변 중입니다. 답변이 끝난 후 학습을 시작하세요.",
+        "environment": "학습 환경이 준비된 후 시작하세요. 준비에 실패했다면 위에서 다시 시도하세요.",
+        "unsaved": "프로젝트 파일에 저장하지 않은 변경 사항이 있습니다. 저장하거나 변경 사항을 버린 후 학습을 시작하세요.",
+        "preparing": "작업 공간을 준비하고 있습니다. 잠시 기다린 후 학습을 시작하세요."
+      },
+      "singleFlow": "프로젝트 진행 과정",
+      "concepts": "엔지니어링 개념",
+      "deliverables": "구현한 기능"
     },
     "journey": {
       "currentMilestone": "현재 단계",
@@ -3408,13 +3440,14 @@
       "readOnly": "Read-only",
       "saved": "저장됨",
       "saveFailed": "저장 실패 · 재시도",
-      "draftRetained": "변경 사항이 브라우저에 보관됨"
+      "draftRetained": "변경 사항이 브라우저에 보관됨",
+      "retryRead": "읽기 다시 시도"
     },
     "inputBlocked": {
       "pending": "Processing your action. Your draft is kept.",
       "busy": "The assistant is replying. Stop the reply before sending another message.",
       "environment": "The project environment is not ready. If setup failed, retry above; your draft is kept.",
-      "unsaved": "Saving project files. You can send once saving finishes; your message stays here.",
+      "unsaved": "프로젝트 파일에 저장하지 않은 변경 사항이 있습니다. 저장하거나 변경 사항을 버린 후 전송하세요. 입력한 메시지는 유지됩니다.",
       "opening": "The assistant has not opened this step yet. Retry the opening; your draft is kept."
     },
     "recoverEnvironment": "Restore learning environment",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "소리 설정",
+    "playSound": "소리 재생",
+    "materials": "수업 자료",
+    "classroom": "수업",
+    "directory": "목차",
+    "lecture": "노트",
+    "volume": "음량",
+    "mute": "음소거",
+    "roundtable": "참여자",
+    "captions": "자막",
+    "controls": "재생 컨트롤",
+    "send": "보내기",
+    "join": "참여",
+    "skip": "건너뛰기",
+    "play": "재생",
+    "pause": "일시정지",
+    "pblDesktop": "휴대폰에서는 미리보기를 지원하지 않습니다. 컴퓨터에서 열어 체험해 주세요.",
+    "chat": "채팅",
+    "askTeacher": "선생님께 질문…",
+    "viewInNotes": "노트에서 보기",
+    "viewInChat": "채팅에서 보기",
+    "fullSpeech": "전체 발언",
+    "me": "나",
+    "listening": "청강 중",
+    "whiteboardTitle": "수업 화이트보드"
   }
 }

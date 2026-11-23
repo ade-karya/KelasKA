@@ -92,9 +92,16 @@ export interface ProviderView {
   baseUrl?: string;
   models?: string[];
   /**
+   * Context windows the provider declares per chat model (ids from `models`).
+   * Catalogue metadata still wins where it applies; the settings show these
+   * only for models the catalogue does not describe.
+   */
+  modelContextWindows?: Record<string, number>;
+  /**
    * A deployment provider's non-secret adapter options (FLUX `/infer`
    * fields, …), shown read-only: workspace edits cannot set options, they
-   * are the deployment's (openmaic.yml).
+   * are the deployment's (openmaic.yml). Also available when previewing an
+   * inactive provider.
    */
   options?: Record<string, string | number | boolean>;
   voices?: ConfiguredTTSVoice[];
@@ -232,6 +239,8 @@ export type ModelSettingsChange =
       apiKey?: string;
       baseUrl?: string | null;
       models?: string[] | null;
+      /** Omitted: keep the stored windows. Null or empty: remove them all. */
+      modelContextWindows?: Record<string, number> | null;
     }
   | { kind: 'remove-provider'; id: string };
 
@@ -319,12 +328,15 @@ function capabilityModels(
     strictModels = false,
     deployment,
     providerId,
+    declared,
   }: {
     chatOnly?: boolean;
     baseUrl?: string;
     strictModels?: boolean;
     deployment?: ModelConfigFile;
     providerId?: string;
+    /** Context windows the provider declares per chat model (`modelContextWindows`). */
+    declared?: Record<string, number>;
   } = {},
 ): CapabilityModels {
   const result: CapabilityModels = {};
@@ -357,7 +369,21 @@ function capabilityModels(
               catalogueModel(capability, registryId!, id),
           )
         : offered;
-    result[capability] = { models, ...(registryId ? { registryId } : {}) };
+    // A declared window shows on a row the catalogue says nothing about; the
+    // catalogue's own value stays, except on an endpoint the preset says the
+    // catalogue does not describe (mirrors how the calls resolve it).
+    const withDeclared =
+      capability !== 'chat' || !declared
+        ? models
+        : models.map((row) => {
+            const window = Object.hasOwn(declared, row.id) ? declared[row.id] : undefined;
+            if (window === undefined) return row;
+            if (row.contextWindow !== undefined && preset.trustsModelCatalogue !== false) {
+              return row;
+            }
+            return { ...row, contextWindow: window };
+          });
+    result[capability] = { models: withDeclared, ...(registryId ? { registryId } : {}) };
   }
   return result;
 }
@@ -547,12 +573,16 @@ export function modelSettingsView(stored: StoredWorkspaceConfig | null): ModelSe
         ...presetLabel(provider.preset),
         source: 'deployment' as const,
         ...(provider.models ? { models: [...provider.models] } : {}),
+        ...(provider.modelContextWindows
+          ? { modelContextWindows: { ...provider.modelContextWindows } }
+          : {}),
         ...(provider.options ? { options: { ...provider.options } } : {}),
         ...(provider.voices ? { voices: provider.voices.map((voice) => ({ ...voice })) } : {}),
         capabilities: capabilityModels(getProviderPreset(provider.preset), provider.models, {
           strictModels: usesServerCredentials(provider),
           deployment: deployment?.config,
           providerId: id,
+          declared: provider.modelContextWindows,
         }),
       }),
     ),
@@ -564,12 +594,16 @@ export function modelSettingsView(stored: StoredWorkspaceConfig | null): ModelSe
         source: 'workspace' as const,
         ...(provider.baseUrl ? { baseUrl: viewEndpoint(provider.baseUrl) } : {}),
         ...(provider.models ? { models: [...provider.models] } : {}),
+        ...(provider.modelContextWindows
+          ? { modelContextWindows: { ...provider.modelContextWindows } }
+          : {}),
         ...(provider.options ? { options: { ...provider.options } } : {}),
         ...(provider.voices ? { voices: provider.voices.map((voice) => ({ ...voice })) } : {}),
         capabilities: capabilityModels(getProviderPreset(provider.preset), provider.models, {
           // An official regional endpoint is the service's own, not a custom one.
           chatOnly: provider.baseUrl !== undefined && !officialEndpointOf(provider),
           baseUrl: provider.baseUrl,
+          declared: provider.modelContextWindows,
         }),
         key: {
           set: Boolean(provider.apiKey) || unreadable.has(id),
@@ -825,6 +859,33 @@ export async function applyModelSettingsChange(
       (typedBaseUrl && officialEndpointOf({ preset: change.preset, baseUrl: typedBaseUrl })) ||
       typedBaseUrl;
     const models = change.models === undefined ? existing?.models : (change.models ?? undefined);
+    const declaredSource =
+      change.modelContextWindows === undefined
+        ? existing?.modelContextWindows
+        : (change.modelContextWindows ?? undefined);
+    // A window may only be declared for a model the provider's own list pins.
+    // A change that replaces the list prunes declarations for models it
+    // dropped; one that declares windows without touching the list is refused
+    // when it names a model the list does not hold.
+    if (declaredSource && Object.keys(declaredSource).length && change.models === undefined) {
+      const stray = Object.keys(declaredSource).find(
+        (modelId) => !(existing?.models ?? []).includes(modelId),
+      );
+      if (stray) {
+        throw new ModelSettingsError(
+          'INVALID_PROVIDER',
+          `modelContextWindows: ${stray} is not in this provider's model list`,
+        );
+      }
+    }
+    // A provider without a pinned list serves catalogue models, where a
+    // declared window never applies.
+    const modelContextWindows =
+      models?.length && declaredSource
+        ? Object.fromEntries(
+            Object.entries(declaredSource).filter(([modelId]) => models.includes(modelId)),
+          )
+        : undefined;
     // Provider options are the deployment's (openmaic.yml): a workspace edit
     // never stores them, so even a well-formed options field is dropped here
     // (and refused earlier by the route's strict body schema).
@@ -833,6 +894,9 @@ export async function applyModelSettingsChange(
       ...(apiKey ? { apiKey } : {}),
       ...(baseUrl ? { baseUrl } : {}),
       ...(models?.length ? { models } : {}),
+      ...(modelContextWindows && Object.keys(modelContextWindows).length
+        ? { modelContextWindows }
+        : {}),
     };
     await checkProvider(change.id, provider);
     providers[change.id] = provider;
@@ -966,6 +1030,7 @@ const importedProviderSchema = z
     apiKey: z.string().min(1).optional(),
     baseUrl: z.string().min(1).optional(),
     models: z.array(z.string().min(1)).min(1).optional(),
+    modelContextWindows: z.record(z.string().min(1), z.number().int().positive()).optional(),
   })
   .strict();
 
@@ -990,13 +1055,20 @@ function storesProposedProvider(
       officialEndpointOf({ preset: proposed.preset, baseUrl: proposed.baseUrl })) ||
     proposed.baseUrl;
   const models = (list: string[] | undefined) => JSON.stringify(list?.length ? list : []);
+  const windows = (map: Record<string, number> | undefined) =>
+    JSON.stringify(
+      map && Object.keys(map).length
+        ? Object.fromEntries(Object.entries(map).sort(([a], [b]) => a.localeCompare(b)))
+        : {},
+    );
   // Evaluated in full, so the answer takes as long whichever part differs.
   const sameKey = sameSecret(stored.apiKey, proposed.apiKey);
   return (
     sameKey &&
     stored.preset === proposed.preset &&
     stored.baseUrl === baseUrl &&
-    models(stored.models) === models(proposed.models)
+    models(stored.models) === models(proposed.models) &&
+    windows(stored.modelContextWindows) === windows(proposed.modelContextWindows)
   );
 }
 

@@ -316,7 +316,9 @@
       "wb_clear": "Clear Whiteboard",
       "wb_delete": "Delete Element",
       "wb_close": "Close Whiteboard",
-      "discussion": "Discussion"
+      "discussion": "Discussion",
+      "web_search": "Searched the web",
+      "fetch_url": "Read a web page"
     },
     "status": {
       "inputStreaming": "Waiting",
@@ -858,7 +860,11 @@
     "restore": "Restore",
     "noHistory": "No history yet",
     "restored": "Whiteboard restored",
-    "elementCount": "{{count}} elements"
+    "elementCount": "{{count}} elements",
+    "mobileEmpty": "No board notes yet",
+    "mobileEmptyHint": "Derivations, formulas and diagrams the teacher adds will appear here",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
   },
   "quiz": {
     "title": "Quiz",
@@ -1944,7 +1950,10 @@
       "enable": "Enable",
       "statusDisabled": "Connected (off)",
       "enableThisPlan": "Enable this plan",
-      "enableThisPlanHint": "When off, this plan no longer appears in course model configuration."
+      "enableThisPlanHint": "When off, this plan no longer appears in course model configuration.",
+      "region": "Region",
+      "regionHintDomestic": "For accounts on the mainland China site",
+      "regionHintInternational": "For accounts on the international site"
     },
     "skills": {
       "nav": "Skills",
@@ -2139,7 +2148,7 @@
       "international": "International"
     },
     "providerName": "Name",
-    "providerNamePlaceholder": "e.g., My OpenAI Proxy",
+    "providerNamePlaceholder": "e.g., my-relay",
     "providers": "LLM",
     "requestUrl": "Request URL",
     "reset": "Reset",
@@ -2186,7 +2195,7 @@
       "showKey": "Show key",
       "hideKey": "Hide key",
       "inUse": "In use",
-      "modelFromCatalogue": "The model's name, capabilities and context window come from the built-in catalogue.",
+      "modelFromCatalogue": "The model's name and capabilities come from the built-in catalogue.",
       "modelWhenInUse": "Used once this service is selected in Course Model Config.",
       "planServer": "Configured by the server",
       "providerIdHint": "Saved as \"{{id}}\"",
@@ -2194,7 +2203,8 @@
       "notNarration": "This service is not the workspace's narration.",
       "useForNarration": "Use for narration",
       "fetchNotSaved": "The models were found but could not be saved. Try again.",
-      "regionalEndpointHint": "Azure Speech takes only its official endpoint for your resource's region: {{template}}."
+      "regionalEndpointHint": "Azure Speech takes only its official endpoint for your resource's region: {{template}}.",
+      "providerNameNeedsLatin": "The name needs at least one letter a–z or digit to be saved as an id."
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "API Key",
     "webFetchSharedKeyHint": "This key is also used for chat with this provider. Changing or removing it affects chat.",
     "autoConfirmRecommended": "Auto-confirm recommended answers",
-    "autoConfirmRecommendedDesc": "When the workbench agent asks a question and recommends an option, choose it after a short countdown if you don't respond. Any interaction stops the countdown."
+    "autoConfirmRecommendedDesc": "When the workbench agent asks a question and recommends an option, choose it after a short countdown if you don't respond. Any interaction stops the countdown.",
+    "contextWindowTokens": "Context window (tokens)",
+    "contextWindowTokensPlaceholder": "e.g., 1000000",
+    "contextWindowHint": "Optional. Applies only to models the built-in catalogue does not know; compaction and the context budget check plan with it. Leave empty for the default.",
+    "contextWindowInvalid": "Enter a positive whole number of tokens, or leave it empty."
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "Start editing"
+    },
+    "mobile": {
+      "openMenu": "Open navigation",
+      "closeMenu": "Close navigation"
     }
   },
   "profile": {
@@ -3271,7 +3289,21 @@
       "eachStage": "In each stage",
       "yourRole": "You make decisions and review; AI helps write the plan and code.",
       "preview": "Try your application in the preview pane and check what you built.",
-      "advance": "The purple action above the input appears only when the current step is ready to advance. Click it to continue."
+      "advance": "The purple action above the input appears only when the current step is ready to advance. Click it to continue.",
+      "startBlocked": {
+        "guide": "Finish or close the workspace guide to start learning.",
+        "connecting": "Connecting live updates before learning can start…",
+        "retrying": "Reconnecting live updates. Wait for the connection before starting.",
+        "unavailable": "Live updates are unavailable. Refresh to reconnect before starting.",
+        "pending": "An action is in progress. Wait for it to finish before starting.",
+        "busy": "The assistant is still replying. Wait for it to finish before starting.",
+        "environment": "Wait for the learning environment to be ready before starting. If preparation failed, retry above.",
+        "unsaved": "Project files have unsaved changes. Save them or discard the changes before starting.",
+        "preparing": "Preparing the workspace. Please wait before starting."
+      },
+      "singleFlow": "Project workflow",
+      "concepts": "Engineering concepts",
+      "deliverables": "Functional outcomes"
     },
     "journey": {
       "currentMilestone": "Current milestone",
@@ -3408,13 +3440,14 @@
       "readOnly": "Read-only",
       "saved": "Saved",
       "saveFailed": "Save failed · Retry",
-      "draftRetained": "Changes kept in this browser"
+      "draftRetained": "Changes kept in this browser",
+      "retryRead": "Retry read"
     },
     "inputBlocked": {
       "pending": "Processing your action. Your draft is kept.",
       "busy": "The assistant is replying. Stop the reply before sending another message.",
       "environment": "The project environment is not ready. If setup failed, retry above; your draft is kept.",
-      "unsaved": "Saving project files. You can send once saving finishes; your message stays here.",
+      "unsaved": "Project files have unsaved changes. Save them or discard the changes before sending; your message stays here.",
       "opening": "The assistant has not opened this step yet. Retry the opening; your draft is kept."
     },
     "recoverEnvironment": "Restore learning environment",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "Sound settings",
+    "playSound": "Play sound",
+    "materials": "Materials",
+    "classroom": "Class",
+    "directory": "Contents",
+    "lecture": "Notes",
+    "volume": "Volume",
+    "mute": "Mute",
+    "roundtable": "Participants",
+    "captions": "Captions",
+    "controls": "Playback controls",
+    "send": "Send",
+    "join": "Join",
+    "skip": "Skip",
+    "play": "Play",
+    "pause": "Pause",
+    "pblDesktop": "Preview is not available on phones. Open this project on a computer to try it.",
+    "chat": "Chat",
+    "askTeacher": "Ask the teacher…",
+    "viewInNotes": "View in notes",
+    "viewInChat": "View in chat",
+    "fullSpeech": "Full message",
+    "me": "Me",
+    "listening": "Listening",
+    "whiteboardTitle": "Classroom whiteboard"
   }
 }

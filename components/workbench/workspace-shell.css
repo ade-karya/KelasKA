@@ -691,6 +691,39 @@
   .ws-home-first {
     --ws-home-chrome: 48px;
   }
+
+  /* Keep the header, lockup and editor in one frame as Safari pans over the keyboard. */
+  .ws-root[data-home-keyboard]:has(.ws-home-composer:focus-within) {
+    position: fixed;
+    inset-inline: 0;
+    top: var(--ws-visible-top);
+    height: var(--ws-visible-height);
+    overscroll-behavior: none;
+
+    .ws-canvas {
+      overflow: clip;
+    }
+
+    .ws-canvas > div {
+      height: 100%;
+      padding-bottom: 0;
+    }
+
+    .ws-home-first {
+      height: 100%;
+      justify-content: flex-end;
+      padding-block: 0 12px;
+    }
+
+    .ws-home-composer {
+      animation: none;
+    }
+
+    .pro-skill-slash-popover > ul {
+      max-height: min(14rem, max(4rem, calc(var(--ws-visible-height) - 16rem)));
+      overscroll-behavior: contain;
+    }
+  }
 }
 
 /* ── Featured seam ───────────────────────────────────────────────────────
@@ -1018,6 +1051,16 @@
   opacity: 1;
 }
 
+/* Leave a separate slot for the always-visible action in the phone drawer. */
+.ws-rail[data-variant='drawer'] .ws-row-wrap-actionable .ws-chat-row {
+  padding-right: 36px;
+}
+
+.ws-rail[data-variant='drawer'] .ws-row-wrap-actionable .ws-row-meta,
+.ws-rail[data-variant='drawer'] .ws-row-trailing {
+  opacity: 1;
+}
+
 /* Revealed on hover — a per-row ⋯ shown on all 139 rows at once would be a
    column of noise — but once revealed it has to look pressable, which a bare
    grey glyph did not. It gets the rail's own surface and a hairline. */
@@ -1100,22 +1143,24 @@
    chat, which is the narrow-layout form of folding the classroom on the right.
    Nothing has to be suppressed alongside it any more — the rail's fold moved
    into its own header, so the seam carries only the resize thread. */
-.ws-root:has(> .ws-tab:not(.ws-pane-last)) > .ws-tab:not(.ws-pane-last) {
-  z-index: 30;
-  margin-inline: -15px;
-  background-color: transparent;
-  background-image: none;
-  box-shadow: none;
-}
+@media (min-width: 768px) {
+  .ws-pane-row > .ws-tab:not(.ws-pane-last) {
+    z-index: 30;
+    margin-inline: -15px;
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
+  }
 
-.ws-root:has(> .ws-tab:not(.ws-pane-last)) > .ws-tab:not(.ws-pane-last):hover {
-  background-color: transparent;
-}
+  .ws-pane-row > .ws-tab:not(.ws-pane-last):hover {
+    background-color: transparent;
+  }
 
-.ws-root:has(> .ws-tab:not(.ws-pane-last):hover) > .ws-rail .ws-resize-thread,
-.ws-root:has(> .ws-tab:not(.ws-pane-last):focus-visible) > .ws-rail .ws-resize-thread {
-  width: 2px;
-  background: var(--ws-ink-faint);
+  .ws-pane-row:has(> .ws-tab:not(.ws-pane-last):hover) > .ws-rail .ws-resize-thread,
+  .ws-pane-row:has(> .ws-tab:not(.ws-pane-last):focus-visible) > .ws-rail .ws-resize-thread {
+    width: 2px;
+    background: var(--ws-ink-faint);
+  }
 }
 
 /* No transition on the rail's width: it is driven straight from the pointer,
@@ -1599,8 +1644,12 @@
   transition: background-color 160ms var(--ws-ease);
 }
 
-.ws-home:hover {
-  background: var(--ws-tint);
+/* Pointer devices only: a tap leaves a sticky :hover behind on touch screens,
+   and the phone sheet opens with its logo right under the menu button's tap. */
+@media (hover: hover) {
+  .ws-home:hover {
+    background: var(--ws-tint);
+  }
 }
 
 .ws-home:focus-visible {
@@ -1820,6 +1869,29 @@
     radial-gradient(600px 400px at 6% 70%, rgba(59, 130, 246, 0.08), transparent 70%);
 }
 
+/* The phone's bar (`WorkspaceMobileBar`) is the top of the same canvas, not a
+   strip of chrome above it: it takes the canvas base so the page runs up to it. */
+.ws-root .ws-mobile-bar {
+  background-color: #f7f7fb;
+  background-image:
+    radial-gradient(900px 420px at 50% 18%, rgba(176, 160, 255, 0.16), transparent 70%),
+    radial-gradient(700px 500px at 92% 85%, rgba(214, 196, 255, 0.2), transparent 70%),
+    radial-gradient(600px 400px at 6% 70%, rgba(190, 215, 255, 0.16), transparent 70%);
+  background-repeat: no-repeat;
+  /* The canvas's own pools, laid out over the viewport, so the violet one behind
+     the hero carries on up through the bar instead of stopping under it. */
+  background-size: 100vw 100dvh;
+  background-position: top center;
+}
+
+.dark .ws-root .ws-mobile-bar {
+  background-color: #0b1020;
+  background-image:
+    radial-gradient(900px 420px at 50% 18%, rgba(139, 92, 246, 0.14), transparent 70%),
+    radial-gradient(700px 500px at 92% 85%, rgba(124, 58, 237, 0.1), transparent 70%),
+    radial-gradient(600px 400px at 6% 70%, rgba(59, 130, 246, 0.08), transparent 70%);
+}
+
 /* ── Rail ── */
 .ws-root .ws-rail {
   background-color: rgba(250, 250, 253, 0.94);
@@ -1870,6 +1942,37 @@
 .ws-nav-item:hover {
   background: rgba(124, 58, 237, 0.06);
   color: var(--ws-ink);
+}
+
+/* In the phone sheet "new chat" is an action, not a place: drawn as one of the
+   nav rows rather than as the raised button the desktop rail lifts above its
+   list, so the sheet has exactly one marked row — the page you are on. */
+.ws-rail[data-variant='drawer'] .ws-new {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.ws-rail[data-variant='drawer'] .ws-new:hover {
+  background: rgba(167, 139, 250, 0.08);
+  transform: none;
+  box-shadow: none;
+}
+
+.ws-rail[data-variant='drawer'] .ws-new svg {
+  color: var(--ws-ink-mute);
+}
+
+/* The current page, told apart by ink and weight rather than by a second filled
+   box of nearly the same shade as the one above it. */
+.ws-rail[data-variant='drawer'] .ws-nav-item[aria-current='page'] {
+  background: transparent;
+  color: var(--ws-accent);
+  font-weight: 600;
+}
+
+.ws-rail[data-variant='drawer'] .ws-nav-item[aria-current='page'] svg {
+  color: var(--ws-accent);
 }
 
 .ws-nav-item[aria-current='page'] {
@@ -2293,6 +2396,13 @@
   font-size: 13.5px;
   color: var(--ws-ink-mute);
   box-shadow: 0 1px 2px rgba(25, 25, 60, 0.04);
+}
+
+/* A phone gives the page's search its own row (see My courses' toolbar). */
+@media (max-width: 767px) {
+  .ws-page-search {
+    width: 100%;
+  }
 }
 
 .ws-page-search input {
@@ -3196,4 +3306,93 @@
   border-color: transparent;
   color: #fff;
   opacity: 0.92;
+}
+
+/* Available with the workspace shell, before the playback bundle or document.
+   Keep a phone refresh in the same full-window classroom layout from first paint. */
+.classroom-pane-loading-mobile,
+.ws-classroom-loading-back {
+  display: none;
+}
+@media (max-width: 767px), (max-height: 500px) and (pointer: coarse) {
+  .ws-classroom-pane:not([aria-hidden='true']) {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    width: 100%;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+    animation: none;
+    background: var(--background);
+  }
+  .ws-classroom-pane:not(:has([data-classroom-stage])) > .ws-classroom-loading-back {
+    position: absolute;
+    top: calc(env(safe-area-inset-top) + 4px);
+    inset-inline-start: calc(env(safe-area-inset-left) + 6px);
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: var(--foreground);
+  }
+  .ws-classroom-pane > header,
+  .ws-classroom-pane > .ws-pane-hint {
+    display: none;
+  }
+  .ws-classroom-pane .classroom-pane-loading {
+    background: var(--background);
+    padding-top: env(safe-area-inset-top);
+  }
+  .ws-classroom-pane .classroom-pane-loading-canvas {
+    flex: 0 0 auto;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 38dvh;
+  }
+  .ws-classroom-pane .classroom-pane-loading-dock {
+    height: 210px;
+    padding: 48px 12px 10px;
+    border: 0;
+    background: var(--background);
+  }
+  .ws-classroom-pane .classroom-pane-loading-mobile {
+    display: block;
+  }
+  .classroom-pane-loading-roles {
+    display: flex;
+    gap: 44px;
+    padding: 8px 4px 14px;
+  }
+  .classroom-pane-loading-roles span {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .classroom-pane-loading-speech {
+    height: 78px;
+    border-radius: 16px;
+    background: var(--muted);
+  }
+}
+
+@media (max-height: 500px) and (pointer: coarse) and (orientation: landscape) {
+  .ws-classroom-pane .classroom-pane-loading-canvas {
+    flex: 1 1 0;
+    aspect-ratio: auto;
+    max-height: none;
+  }
+  .ws-classroom-pane .classroom-pane-loading-dock {
+    height: 52px;
+    padding: 4px 12px;
+  }
+  .ws-classroom-pane .classroom-pane-loading-roles {
+    padding: 4px;
+    gap: 8px;
+  }
+  .ws-classroom-pane .classroom-pane-loading-speech {
+    display: none;
+  }
 }

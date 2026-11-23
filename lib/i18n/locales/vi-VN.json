@@ -316,7 +316,9 @@
       "wb_clear": "Xóa bảng",
       "wb_delete": "Xóa phần tử",
       "wb_close": "Đóng bảng",
-      "discussion": "Thảo luận"
+      "discussion": "Thảo luận",
+      "web_search": "Searched the web",
+      "fetch_url": "Read a web page"
     },
     "status": {
       "inputStreaming": "Đang chờ",
@@ -858,7 +860,11 @@
     "restore": "Phục hồi",
     "noHistory": "Chưa có lịch sử",
     "restored": "Đã phục hồi bảng",
-    "elementCount": "{{count}} phần tử"
+    "elementCount": "{{count}} phần tử",
+    "mobileEmpty": "Chưa có nội dung trên bảng",
+    "mobileEmptyHint": "Các bước suy luận, công thức và sơ đồ giáo viên thêm sẽ hiển thị ở đây",
+    "zoomIn": "Phóng to",
+    "zoomOut": "Thu nhỏ"
   },
   "quiz": {
     "title": "Câu đố",
@@ -1360,9 +1366,9 @@
       "system": "Theo hệ thống"
     },
     "apiKey": "Khóa API",
+    "apiKeyDesc": "Thiết lập khóa API của bạn",
     "credentialStorageHint": "Encrypted on this instance's server",
     "credentialStorageHintDetail": "Saved encrypted on this instance's server and used to call the provider for you. The operator of this deployment can access it, so only enter keys on instances you trust.",
-    "apiKeyDesc": "Thiết lập khóa API của bạn",
     "apiBaseUrl": "Địa chỉ API",
     "apiBaseUrlDesc": "Thiết lập địa chỉ endpoint API của bạn",
     "apiKeyRequired": "Khóa API không được để trống",
@@ -1944,7 +1950,10 @@
       "enable": "Bật",
       "statusDisabled": "Đã kết nối (đang tắt)",
       "enableThisPlan": "Bật gói này",
-      "enableThisPlanHint": "Khi tắt, gói này sẽ không còn xuất hiện trong Cấu hình mô hình khóa học."
+      "enableThisPlanHint": "Khi tắt, gói này sẽ không còn xuất hiện trong Cấu hình mô hình khóa học.",
+      "region": "Khu vực",
+      "regionHintDomestic": "Dành cho tài khoản trên trang Trung Quốc đại lục",
+      "regionHintInternational": "Dành cho tài khoản trên trang quốc tế"
     },
     "skills": {
       "nav": "Skill",
@@ -2139,7 +2148,7 @@
       "international": "Quốc tế"
     },
     "providerName": "Tên",
-    "providerNamePlaceholder": "ví dụ: Proxy OpenAI của tôi",
+    "providerNamePlaceholder": "ví dụ: my-relay",
     "providers": "Model ngôn ngữ",
     "requestUrl": "Địa chỉ yêu cầu",
     "reset": "Đặt lại",
@@ -2186,7 +2195,7 @@
       "showKey": "Hiện khóa",
       "hideKey": "Ẩn khóa",
       "inUse": "Đang dùng",
-      "modelFromCatalogue": "Tên, khả năng và cửa sổ ngữ cảnh của mô hình lấy từ danh mục tích hợp.",
+      "modelFromCatalogue": "Tên và khả năng của mô hình lấy từ danh mục tích hợp.",
       "modelWhenInUse": "Được dùng khi dịch vụ này được chọn trong cấu hình mô hình khóa học.",
       "planServer": "Do máy chủ cấu hình",
       "providerIdHint": "Lưu với tên \"{{id}}\"",
@@ -2194,7 +2203,8 @@
       "notNarration": "Dịch vụ này không phải giọng thuyết minh của không gian làm việc.",
       "useForNarration": "Dùng cho thuyết minh",
       "fetchNotSaved": "Đã tìm thấy mô hình nhưng không lưu được. Hãy thử lại.",
-      "regionalEndpointHint": "Azure Speech chỉ chấp nhận endpoint chính thức của khu vực chứa tài nguyên của bạn: {{template}}."
+      "regionalEndpointHint": "Azure Speech chỉ chấp nhận endpoint chính thức của khu vực chứa tài nguyên của bạn: {{template}}.",
+      "providerNameNeedsLatin": "Tên cần có ít nhất một chữ cái a–z hoặc chữ số để được lưu làm ID."
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "Khóa API",
     "webFetchSharedKeyHint": "Khóa này cũng được dùng để trò chuyện với nhà cung cấp này. Thay đổi hoặc xóa khóa sẽ ảnh hưởng đến trò chuyện.",
     "autoConfirmRecommended": "Tự động xác nhận câu trả lời đề xuất",
-    "autoConfirmRecommendedDesc": "Khi tác nhân đặt câu hỏi kèm phương án đề xuất, phương án đó sẽ được chọn sau một khoảng đếm ngược ngắn nếu bạn không phản hồi. Mọi thao tác đều dừng đếm ngược."
+    "autoConfirmRecommendedDesc": "Khi tác nhân đặt câu hỏi kèm phương án đề xuất, phương án đó sẽ được chọn sau một khoảng đếm ngược ngắn nếu bạn không phản hồi. Mọi thao tác đều dừng đếm ngược.",
+    "contextWindowTokens": "Cửa sổ ngữ cảnh (token)",
+    "contextWindowTokensPlaceholder": "vd: 1000000",
+    "contextWindowHint": "Tùy chọn. Chỉ áp dụng cho mô hình mà danh mục tích hợp không biết; dùng cho nén và kiểm tra ngân sách ngữ cảnh. Để trống sẽ dùng giá trị mặc định.",
+    "contextWindowInvalid": "Nhập số nguyên dương token, hoặc để trống."
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "Bắt đầu sửa"
+    },
+    "mobile": {
+      "openMenu": "Mở điều hướng",
+      "closeMenu": "Đóng điều hướng"
     }
   },
   "profile": {
@@ -3271,7 +3289,21 @@
       "eachStage": "Quy trình mỗi giai đoạn",
       "yourRole": "Bạn quyết định và rà soát; AI hỗ trợ viết kế hoạch và mã.",
       "preview": "Dùng ứng dụng trong vùng xem trước để kiểm tra kết quả.",
-      "advance": "Nút màu tím phía trên ô nhập chỉ xuất hiện khi bước hiện tại đủ điều kiện để tiếp tục. Khi nút xuất hiện, hãy nhấn để đi tiếp."
+      "advance": "Nút màu tím phía trên ô nhập chỉ xuất hiện khi bước hiện tại đủ điều kiện để tiếp tục. Khi nút xuất hiện, hãy nhấn để đi tiếp.",
+      "startBlocked": {
+        "guide": "Hoàn tất hoặc đóng hướng dẫn không gian làm việc để bắt đầu học.",
+        "connecting": "Đang kết nối cập nhật trực tiếp trước khi bắt đầu học…",
+        "retrying": "Đang kết nối lại cập nhật trực tiếp. Chờ kết nối được khôi phục trước khi bắt đầu.",
+        "unavailable": "Cập nhật trực tiếp không khả dụng. Tải lại trang để kết nối lại trước khi bắt đầu.",
+        "pending": "Một thao tác đang được xử lý. Chờ thao tác hoàn tất trước khi bắt đầu.",
+        "busy": "Trợ lý vẫn đang trả lời. Chờ câu trả lời kết thúc trước khi bắt đầu.",
+        "environment": "Chờ môi trường học tập sẵn sàng trước khi bắt đầu. Nếu chuẩn bị thất bại, hãy thử lại ở phía trên.",
+        "unsaved": "Các tệp dự án có thay đổi chưa lưu. Lưu hoặc bỏ các thay đổi trước khi bắt đầu.",
+        "preparing": "Đang chuẩn bị không gian làm việc. Vui lòng chờ trước khi bắt đầu."
+      },
+      "singleFlow": "Quy trình thực hiện dự án",
+      "concepts": "Khái niệm kỹ thuật",
+      "deliverables": "Chức năng đạt được"
     },
     "journey": {
       "currentMilestone": "Giai đoạn hiện tại",
@@ -3408,13 +3440,14 @@
       "readOnly": "Read-only",
       "saved": "Đã lưu",
       "saveFailed": "Lưu thất bại · Thử lại",
-      "draftRetained": "Thay đổi được giữ trong trình duyệt này"
+      "draftRetained": "Thay đổi được giữ trong trình duyệt này",
+      "retryRead": "Thử đọc lại"
     },
     "inputBlocked": {
       "pending": "Processing your action. Your draft is kept.",
       "busy": "The assistant is replying. Stop the reply before sending another message.",
       "environment": "The project environment is not ready. If setup failed, retry above; your draft is kept.",
-      "unsaved": "Saving project files. You can send once saving finishes; your message stays here.",
+      "unsaved": "Các tệp dự án có thay đổi chưa lưu. Lưu hoặc bỏ các thay đổi trước khi gửi; tin nhắn của bạn vẫn được giữ ở đây.",
       "opening": "The assistant has not opened this step yet. Retry the opening; your draft is kept."
     },
     "recoverEnvironment": "Restore learning environment",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "Cài đặt âm thanh",
+    "playSound": "Phát âm thanh",
+    "materials": "Tài liệu lớp học",
+    "classroom": "Lớp học",
+    "directory": "Mục lục",
+    "lecture": "Ghi chú",
+    "volume": "Âm lượng",
+    "mute": "Tắt tiếng",
+    "roundtable": "Người tham gia",
+    "captions": "Phụ đề",
+    "controls": "Điều khiển phát",
+    "send": "Gửi",
+    "join": "Tham gia",
+    "skip": "Bỏ qua",
+    "play": "Phát",
+    "pause": "Tạm dừng",
+    "pblDesktop": "Chưa hỗ trợ xem trước trên điện thoại. Hãy mở dự án trên máy tính để trải nghiệm.",
+    "chat": "Trò chuyện",
+    "askTeacher": "Hỏi giáo viên…",
+    "viewInNotes": "Xem trong ghi chú",
+    "viewInChat": "Xem trong trò chuyện",
+    "fullSpeech": "Phát biểu đầy đủ",
+    "me": "Tôi",
+    "listening": "Đang nghe",
+    "whiteboardTitle": "Bảng lớp học"
   }
 }

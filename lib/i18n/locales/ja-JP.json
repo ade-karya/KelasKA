@@ -316,7 +316,9 @@
       "wb_clear": "ホワイトボードをクリア",
       "wb_delete": "要素を削除",
       "wb_close": "ホワイトボードを閉じる",
-      "discussion": "ディスカッション"
+      "discussion": "ディスカッション",
+      "web_search": "Searched the web",
+      "fetch_url": "Read a web page"
     },
     "status": {
       "inputStreaming": "待機中",
@@ -858,7 +860,11 @@
     "restore": "復元",
     "noHistory": "履歴はまだありません",
     "restored": "ホワイトボードを復元しました",
-    "elementCount": "{{count}} 個の要素"
+    "elementCount": "{{count}} 個の要素",
+    "mobileEmpty": "まだ板書はありません",
+    "mobileEmptyHint": "先生が追加した導出・数式・図がここに表示されます",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小"
   },
   "quiz": {
     "title": "クイズ",
@@ -1360,9 +1366,9 @@
       "system": "システム"
     },
     "apiKey": "APIキー",
+    "apiKeyDesc": "APIキーの設定",
     "credentialStorageHint": "Encrypted on this instance's server",
     "credentialStorageHintDetail": "Saved encrypted on this instance's server and used to call the provider for you. The operator of this deployment can access it, so only enter keys on instances you trust.",
-    "apiKeyDesc": "APIキーの設定",
     "apiBaseUrl": "APIエンドポイントURL",
     "apiBaseUrlDesc": "APIエンドポイントURLの設定",
     "apiKeyRequired": "APIキーを入力してください",
@@ -1944,7 +1950,10 @@
       "enable": "Enable",
       "statusDisabled": "接続済み（無効）",
       "enableThisPlan": "このプランを有効化",
-      "enableThisPlanHint": "オフにすると、このプランはコースモデル設定に表示されなくなります。"
+      "enableThisPlanHint": "オフにすると、このプランはコースモデル設定に表示されなくなります。",
+      "region": "サービス地域",
+      "regionHintDomestic": "中国国内サイトのアカウント向け",
+      "regionHintInternational": "海外サイトのアカウント向け"
     },
     "skills": {
       "nav": "スキル",
@@ -2139,7 +2148,7 @@
       "international": "海外"
     },
     "providerName": "名前",
-    "providerNamePlaceholder": "例：My OpenAI Proxy",
+    "providerNamePlaceholder": "例：my-relay",
     "providers": "LLM",
     "requestUrl": "リクエストURL",
     "reset": "リセット",
@@ -2186,7 +2195,7 @@
       "showKey": "キーを表示",
       "hideKey": "キーを隠す",
       "inUse": "使用中",
-      "modelFromCatalogue": "モデルの名前・機能・コンテキストウィンドウは内蔵カタログから取得します。",
+      "modelFromCatalogue": "モデルの名前と機能は内蔵カタログから取得します。",
       "modelWhenInUse": "コースモデル設定でこのサービスを選ぶと使われます。",
       "planServer": "サーバーで設定済み",
       "providerIdHint": "「{{id}}」として保存",
@@ -2194,7 +2203,8 @@
       "notNarration": "このサービスはワークスペースのナレーションではありません。",
       "useForNarration": "ナレーションに使う",
       "fetchNotSaved": "モデルは見つかりましたが保存できませんでした。もう一度お試しください。",
-      "regionalEndpointHint": "Azure Speech は、リソースのリージョンの公式エンドポイントのみ受け付けます：{{template}}。"
+      "regionalEndpointHint": "Azure Speech は、リソースのリージョンの公式エンドポイントのみ受け付けます：{{template}}。",
+      "providerNameNeedsLatin": "名前に英字（a–z）か数字を含めてください。含まないと ID として保存できません。"
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "APIキー",
     "webFetchSharedKeyHint": "このキーは同じプロバイダーとのチャットにも使用されます。変更や削除はチャットにも影響します。",
     "autoConfirmRecommended": "おすすめの回答を自動で確定",
-    "autoConfirmRecommendedDesc": "エージェントが質問でおすすめの選択肢を示したとき、操作がなければ短いカウントダウンの後にそれを選びます。何か操作するとカウントダウンは止まります。"
+    "autoConfirmRecommendedDesc": "エージェントが質問でおすすめの選択肢を示したとき、操作がなければ短いカウントダウンの後にそれを選びます。何か操作するとカウントダウンは止まります。",
+    "contextWindowTokens": "コンテキストウィンドウ（tokens）",
+    "contextWindowTokensPlaceholder": "例：1000000",
+    "contextWindowHint": "任意。内蔵カタログにないモデルにのみ適用され、圧縮とコンテキスト予算チェックで使われます。空欄なら既定値を使います。",
+    "contextWindowInvalid": "正の整数（token 数）を入力するか、空欄にしてください。"
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "編集を始める"
+    },
+    "mobile": {
+      "openMenu": "ナビゲーションを開く",
+      "closeMenu": "ナビゲーションを閉じる"
     }
   },
   "profile": {
@@ -3271,7 +3289,21 @@
       "eachStage": "各段階の進め方",
       "yourRole": "判断とレビューはあなたが行い、計画とコードの作成は AI が支援します。",
       "preview": "プレビューでアプリを使い、作成した機能を確かめましょう。",
-      "advance": "現在のステップを進められる状態になると、入力欄の上に紫色のボタンが表示されます。表示されたらクリックして進みましょう。"
+      "advance": "現在のステップを進められる状態になると、入力欄の上に紫色のボタンが表示されます。表示されたらクリックして進みましょう。",
+      "startBlocked": {
+        "guide": "学習を始めるには、ワークスペースガイドを完了するか閉じてください。",
+        "connecting": "学習を始められるよう、リアルタイム更新に接続しています…",
+        "retrying": "リアルタイム更新に再接続しています。接続が戻ってから学習を始めてください。",
+        "unavailable": "リアルタイム更新を利用できません。ページを再読み込みして接続してから学習を始めてください。",
+        "pending": "操作を処理しています。完了してから学習を始めてください。",
+        "busy": "アシスタントが返信中です。返信が終わってから学習を始めてください。",
+        "environment": "学習環境の準備が整ってから始めてください。準備に失敗した場合は上の操作で再試行してください。",
+        "unsaved": "プロジェクトファイルに未保存の変更があります。保存するか変更を破棄してから学習を始めてください。",
+        "preparing": "ワークスペースを準備しています。少し待ってから学習を始めてください。"
+      },
+      "singleFlow": "プロジェクトの進め方",
+      "concepts": "エンジニアリングの概念",
+      "deliverables": "実装した機能"
     },
     "journey": {
       "currentMilestone": "現在の段階",
@@ -3408,13 +3440,14 @@
       "readOnly": "Read-only",
       "saved": "保存済み",
       "saveFailed": "保存失敗 · 再試行",
-      "draftRetained": "変更をこのブラウザに保持"
+      "draftRetained": "変更をこのブラウザに保持",
+      "retryRead": "読み取りを再試行"
     },
     "inputBlocked": {
       "pending": "Processing your action. Your draft is kept.",
       "busy": "The assistant is replying. Stop the reply before sending another message.",
       "environment": "The project environment is not ready. If setup failed, retry above; your draft is kept.",
-      "unsaved": "Saving project files. You can send once saving finishes; your message stays here.",
+      "unsaved": "プロジェクトファイルに未保存の変更があります。保存するか変更を破棄してから送信してください。入力したメッセージは保持されます。",
       "opening": "The assistant has not opened this step yet. Retry the opening; your draft is kept."
     },
     "recoverEnvironment": "Restore learning environment",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "音声設定",
+    "playSound": "音声を再生",
+    "materials": "授業資料",
+    "classroom": "教室",
+    "directory": "目次",
+    "lecture": "ノート",
+    "volume": "音量",
+    "mute": "ミュート",
+    "roundtable": "参加者",
+    "captions": "字幕",
+    "controls": "再生操作",
+    "send": "送信",
+    "join": "参加",
+    "skip": "スキップ",
+    "play": "再生",
+    "pause": "一時停止",
+    "pblDesktop": "スマートフォンではプレビューできません。パソコンで開いてお試しください。",
+    "chat": "チャット",
+    "askTeacher": "先生に質問…",
+    "viewInNotes": "ノートで見る",
+    "viewInChat": "チャットで見る",
+    "fullSpeech": "発言の全文",
+    "me": "自分",
+    "listening": "聴講中",
+    "whiteboardTitle": "授業ホワイトボード"
   }
 }

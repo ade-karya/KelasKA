@@ -316,7 +316,9 @@
       "wb_clear": "Limpiar pizarrón",
       "wb_delete": "Eliminar elemento",
       "wb_close": "Cerrar pizarrón",
-      "discussion": "Debate"
+      "discussion": "Debate",
+      "web_search": "Searched the web",
+      "fetch_url": "Read a web page"
     },
     "status": {
       "inputStreaming": "En espera",
@@ -858,7 +860,11 @@
     "restore": "Restaurar",
     "noHistory": "Aún no hay historial",
     "restored": "Pizarrón restaurado",
-    "elementCount": "{{count}} elementos"
+    "elementCount": "{{count}} elementos",
+    "mobileEmpty": "Aún no hay notas en el pizarrón",
+    "mobileEmptyHint": "Las deducciones, fórmulas y diagramas que agregue el docente aparecerán aquí",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar"
   },
   "quiz": {
     "title": "Cuestionario",
@@ -1360,9 +1366,9 @@
       "system": "Sistema"
     },
     "apiKey": "Clave API",
+    "apiKeyDesc": "Configura tu clave API",
     "credentialStorageHint": "Encrypted on this instance's server",
     "credentialStorageHintDetail": "Saved encrypted on this instance's server and used to call the provider for you. The operator of this deployment can access it, so only enter keys on instances you trust.",
-    "apiKeyDesc": "Configura tu clave API",
     "apiBaseUrl": "URL del endpoint de la API",
     "apiBaseUrlDesc": "Configura la URL del endpoint de la API",
     "apiKeyRequired": "La clave API no puede estar vacía",
@@ -1944,7 +1950,10 @@
       "enable": "Habilitar",
       "statusDisabled": "Conectado (apagado)",
       "enableThisPlan": "Habilitar este plan",
-      "enableThisPlanHint": "Desactivado, este plan ya no aparece en la configuración de modelos del curso."
+      "enableThisPlanHint": "Desactivado, este plan ya no aparece en la configuración de modelos del curso.",
+      "region": "Región",
+      "regionHintDomestic": "Para cuentas del sitio de China continental",
+      "regionHintInternational": "Para cuentas del sitio internacional"
     },
     "skills": {
       "nav": "Skills",
@@ -2139,7 +2148,7 @@
       "international": "Internacional"
     },
     "providerName": "Nombre",
-    "providerNamePlaceholder": "p. ej., Mi proxy de OpenAI",
+    "providerNamePlaceholder": "p. ej., my-relay",
     "providers": "LLM",
     "requestUrl": "URL de solicitud",
     "reset": "Restablecer",
@@ -2186,7 +2195,7 @@
       "showKey": "Mostrar clave",
       "hideKey": "Ocultar clave",
       "inUse": "En uso",
-      "modelFromCatalogue": "El nombre, las capacidades y la ventana de contexto del modelo provienen del catálogo integrado.",
+      "modelFromCatalogue": "El nombre y las capacidades del modelo provienen del catálogo integrado.",
       "modelWhenInUse": "Se usa cuando este servicio se selecciona en la configuración de modelos del curso.",
       "planServer": "Configurado por el servidor",
       "providerIdHint": "Se guarda como \"{{id}}\"",
@@ -2194,7 +2203,8 @@
       "notNarration": "Este servicio no es la narración del espacio de trabajo.",
       "useForNarration": "Usar para la narración",
       "fetchNotSaved": "Se encontraron los modelos, pero no se pudieron guardar. Inténtalo de nuevo.",
-      "regionalEndpointHint": "Azure Speech solo acepta el endpoint oficial de la región de tu recurso: {{template}}."
+      "regionalEndpointHint": "Azure Speech solo acepta el endpoint oficial de la región de tu recurso: {{template}}.",
+      "providerNameNeedsLatin": "El nombre necesita al menos una letra a–z o un dígito para guardarse como identificador."
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "Clave de API",
     "webFetchSharedKeyHint": "Esta clave también se usa para chatear con este proveedor. Cambiarla o eliminarla afecta al chat.",
     "autoConfirmRecommended": "Confirmar automáticamente las respuestas recomendadas",
-    "autoConfirmRecommendedDesc": "Cuando el agente hace una pregunta con una opción recomendada, la elige tras una breve cuenta regresiva si no respondes. Cualquier interacción la detiene."
+    "autoConfirmRecommendedDesc": "Cuando el agente hace una pregunta con una opción recomendada, la elige tras una breve cuenta regresiva si no respondes. Cualquier interacción la detiene.",
+    "contextWindowTokens": "Ventana de contexto (tokens)",
+    "contextWindowTokensPlaceholder": "p. ej., 1000000",
+    "contextWindowHint": "Opcional. Se aplica solo a modelos que el catálogo integrado no conoce; la compactación y la verificación del presupuesto de contexto lo usan. Déjalo vacío para el valor predeterminado.",
+    "contextWindowInvalid": "Escribe un número entero positivo de tokens, o déjalo vacío."
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "Empezar a editar"
+    },
+    "mobile": {
+      "openMenu": "Abrir navegación",
+      "closeMenu": "Cerrar navegación"
     }
   },
   "profile": {
@@ -3271,7 +3289,21 @@
       "eachStage": "Pasos de cada etapa",
       "yourRole": "Tú decides y revisas; la IA ayuda a escribir el plan y el código.",
       "preview": "Prueba tu aplicación en la vista previa y comprueba lo que construiste.",
-      "advance": "El botón morado sobre el campo de entrada aparece solo cuando puedes avanzar desde el paso actual. Cuando aparezca, haz clic para continuar."
+      "advance": "El botón morado sobre el campo de entrada aparece solo cuando puedes avanzar desde el paso actual. Cuando aparezca, haz clic para continuar.",
+      "startBlocked": {
+        "guide": "Termina o cierra la guía del espacio de trabajo para comenzar a aprender.",
+        "connecting": "Conectando las actualizaciones en vivo antes de comenzar…",
+        "retrying": "Reconectando las actualizaciones en vivo. Espera a que se restablezca la conexión antes de comenzar.",
+        "unavailable": "Las actualizaciones en vivo no están disponibles. Actualiza la página para reconectarte antes de comenzar.",
+        "pending": "Hay una acción en curso. Espera a que termine antes de comenzar.",
+        "busy": "El asistente aún está respondiendo. Espera a que termine antes de comenzar.",
+        "environment": "Espera a que el entorno de aprendizaje esté listo antes de comenzar. Si la preparación falló, vuelve a intentarlo arriba.",
+        "unsaved": "Los archivos del proyecto tienen cambios sin guardar. Guárdalos o descártalos antes de comenzar.",
+        "preparing": "Preparando el espacio de trabajo. Espera antes de comenzar."
+      },
+      "singleFlow": "Proceso del proyecto",
+      "concepts": "Conceptos de ingeniería",
+      "deliverables": "Resultados funcionales"
     },
     "journey": {
       "currentMilestone": "Etapa actual",
@@ -3408,13 +3440,14 @@
       "readOnly": "Read-only",
       "saved": "Guardado",
       "saveFailed": "Error al guardar · Reintentar",
-      "draftRetained": "Cambios conservados en este navegador"
+      "draftRetained": "Cambios conservados en este navegador",
+      "retryRead": "Reintentar lectura"
     },
     "inputBlocked": {
       "pending": "Processing your action. Your draft is kept.",
       "busy": "The assistant is replying. Stop the reply before sending another message.",
       "environment": "The project environment is not ready. If setup failed, retry above; your draft is kept.",
-      "unsaved": "Saving project files. You can send once saving finishes; your message stays here.",
+      "unsaved": "Los archivos del proyecto tienen cambios sin guardar. Guárdalos o descártalos antes de enviar; tu mensaje permanece aquí.",
       "opening": "The assistant has not opened this step yet. Retry the opening; your draft is kept."
     },
     "recoverEnvironment": "Restore learning environment",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "Configuración de sonido",
+    "playSound": "Reproducir sonido",
+    "materials": "Material del curso",
+    "classroom": "Clase",
+    "directory": "Índice",
+    "lecture": "Notas",
+    "volume": "Volumen",
+    "mute": "Silenciar",
+    "roundtable": "Participantes",
+    "captions": "Subtítulos",
+    "controls": "Controles de reproducción",
+    "send": "Enviar",
+    "join": "Unirse",
+    "skip": "Omitir",
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "pblDesktop": "La vista previa no está disponible en teléfonos. Abre este proyecto en una computadora para probarlo.",
+    "chat": "Chat",
+    "askTeacher": "Pregunta al docente…",
+    "viewInNotes": "Ver en las notas",
+    "viewInChat": "Ver en el chat",
+    "fullSpeech": "Mensaje completo",
+    "me": "Yo",
+    "listening": "Escuchando",
+    "whiteboardTitle": "Pizarrón de la clase"
   }
 }

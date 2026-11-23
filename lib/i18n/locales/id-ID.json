@@ -316,7 +316,9 @@
       "wb_clear": "Hapus papan tulis",
       "wb_delete": "Hapus elemen",
       "wb_close": "Tutup papan tulis",
-      "discussion": "Diskusi kelas"
+      "discussion": "Diskusi kelas",
+      "web_search": "Menelusuri web",
+      "fetch_url": "Membaca halaman web"
     },
     "status": {
       "inputStreaming": "Menunggu",
@@ -858,7 +860,11 @@
     "restore": "Pulihkan",
     "noHistory": "Belum ada riwayat",
     "restored": "Konten papan tulis dipulihkan",
-    "elementCount": "{{count}} elemen"
+    "elementCount": "{{count}} elemen",
+    "mobileEmpty": "Belum ada catatan papan tulis",
+    "mobileEmptyHint": "Turunan, rumus, dan diagram yang ditambahkan guru akan muncul di sini",
+    "zoomIn": "Perbesar",
+    "zoomOut": "Perkecil"
   },
   "quiz": {
     "title": "Kuis",
@@ -1944,7 +1950,10 @@
       "enable": "Aktifkan",
       "statusDisabled": "Terhubung (nonaktif)",
       "enableThisPlan": "Aktifkan paket ini",
-      "enableThisPlanHint": "Jika dimatikan, paket ini tidak lagi muncul di konfigurasi model kursus"
+      "enableThisPlanHint": "Jika dimatikan, paket ini tidak lagi muncul di konfigurasi model kursus",
+      "region": "Wilayah",
+      "regionHintDomestic": "Untuk akun di situs Tiongkok daratan",
+      "regionHintInternational": "Untuk akun di situs internasional"
     },
     "skills": {
       "nav": "Skill",
@@ -2194,7 +2203,8 @@
       "notNarration": "Layanan ini bukan narasi workspace.",
       "useForNarration": "Pakai untuk narasi",
       "fetchNotSaved": "Model ditemukan tetapi tidak dapat disimpan. Coba lagi.",
-      "regionalEndpointHint": "Azure Speech hanya menerima endpoint resmi sesuai region resource Anda: {{template}}."
+      "regionalEndpointHint": "Azure Speech hanya menerima endpoint resmi sesuai region resource Anda: {{template}}.",
+      "providerNameNeedsLatin": "Nama harus memiliki setidaknya satu huruf a–z atau angka agar dapat disimpan sebagai id."
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "API Key",
     "webFetchSharedKeyHint": "Kunci ini juga digunakan untuk chat dengan penyedia ini. Mengubah atau menghapusnya akan memengaruhi chat.",
     "autoConfirmRecommended": "Konfirmasi otomatis jawaban yang disarankan",
-    "autoConfirmRecommendedDesc": "Saat agen workbench mengajukan pertanyaan dan menyarankan opsi, opsi itu dipilih setelah hitungan mundur singkat bila Anda tidak merespons. Interaksi apa pun menghentikan hitungan mundur."
+    "autoConfirmRecommendedDesc": "Saat agen workbench mengajukan pertanyaan dan menyarankan opsi, opsi itu dipilih setelah hitungan mundur singkat bila Anda tidak merespons. Interaksi apa pun menghentikan hitungan mundur.",
+    "contextWindowTokens": "Jendela konteks (token)",
+    "contextWindowTokensPlaceholder": "mis. 1000000",
+    "contextWindowHint": "Opsional. Hanya berlaku untuk model yang tidak dikenali katalog bawaan; kompresi dan pemeriksaan anggaran konteks memakai nilai ini. Biarkan kosong untuk memakai default.",
+    "contextWindowInvalid": "Masukkan jumlah token berupa bilangan bulat positif, atau biarkan kosong."
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "Mulai mengedit"
+    },
+    "mobile": {
+      "openMenu": "Buka navigasi",
+      "closeMenu": "Tutup navigasi"
     }
   },
   "profile": {
@@ -3271,7 +3289,21 @@
       "eachStage": "Di setiap tahap",
       "yourRole": "Anda mengambil keputusan dan meninjau; AI membantu menulis rencana dan kode.",
       "preview": "Coba aplikasi Anda di panel pratinjau dan periksa hasil yang Anda buat.",
-      "advance": "Tombol ungu di atas kolom input muncul hanya saat langkah saat ini siap dilanjutkan. Klik untuk melanjutkan."
+      "advance": "Tombol ungu di atas kolom input muncul hanya saat langkah saat ini siap dilanjutkan. Klik untuk melanjutkan.",
+      "startBlocked": {
+        "guide": "Selesaikan atau tutup panduan workspace untuk mulai belajar.",
+        "connecting": "Menyambungkan pembaruan langsung sebelum belajar dapat dimulai…",
+        "retrying": "Menyambungkan ulang pembaruan langsung. Tunggu koneksi pulih sebelum mulai.",
+        "unavailable": "Pembaruan langsung tidak tersedia. Muat ulang untuk menyambung kembali sebelum mulai.",
+        "pending": "Sebuah tindakan sedang berjalan. Tunggu hingga selesai sebelum mulai.",
+        "busy": "Asisten masih menjawab. Tunggu hingga selesai sebelum mulai.",
+        "environment": "Tunggu lingkungan belajar siap sebelum mulai. Jika penyiapan gagal, coba lagi di atas.",
+        "unsaved": "Berkas proyek memiliki perubahan yang belum disimpan. Simpan atau buang perubahan sebelum mulai.",
+        "preparing": "Menyiapkan workspace. Mohon tunggu sebelum mulai."
+      },
+      "singleFlow": "Alur kerja proyek",
+      "concepts": "Konsep rekayasa",
+      "deliverables": "Hasil fungsional"
     },
     "journey": {
       "currentMilestone": "Tonggak saat ini",
@@ -3408,7 +3440,8 @@
       "readOnly": "Hanya baca",
       "saved": "Tersimpan",
       "saveFailed": "Gagal menyimpan · Coba lagi",
-      "draftRetained": "Perubahan tetap tersimpan di browser ini"
+      "draftRetained": "Perubahan tetap tersimpan di browser ini",
+      "retryRead": "Coba baca lagi"
     },
     "inputBlocked": {
       "pending": "Tindakan Anda sedang diproses. Draf Anda tetap tersimpan.",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "Pengaturan suara",
+    "playSound": "Putar suara",
+    "materials": "Materi",
+    "classroom": "Kelas",
+    "directory": "Daftar isi",
+    "lecture": "Catatan",
+    "volume": "Volume",
+    "mute": "Mute",
+    "roundtable": "Peserta",
+    "captions": "Subtitle",
+    "controls": "Kontrol pemutaran",
+    "send": "Kirim",
+    "join": "Gabung",
+    "skip": "Lewati",
+    "play": "Putar",
+    "pause": "Jeda",
+    "pblDesktop": "Pratinjau tidak tersedia di ponsel. Buka proyek ini di komputer untuk mencobanya.",
+    "chat": "Percakapan",
+    "askTeacher": "Tanya guru…",
+    "viewInNotes": "Lihat di catatan",
+    "viewInChat": "Lihat di percakapan",
+    "fullSpeech": "Pesan lengkap",
+    "me": "Saya",
+    "listening": "Menyimak",
+    "whiteboardTitle": "Papan tulis kelas"
   }
 }

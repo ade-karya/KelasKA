@@ -316,7 +316,9 @@
       "wb_clear": "清空白板",
       "wb_delete": "刪除元素",
       "wb_close": "關閉白板",
-      "discussion": "課堂討論"
+      "discussion": "課堂討論",
+      "web_search": "Searched the web",
+      "fetch_url": "Read a web page"
     },
     "status": {
       "inputStreaming": "等待中",
@@ -858,7 +860,11 @@
     "restore": "恢復",
     "noHistory": "暫無歷史紀錄",
     "restored": "已恢復白板內容",
-    "elementCount": "{{count}} 個元素"
+    "elementCount": "{{count}} 個元素",
+    "mobileEmpty": "老師還沒有新增板書",
+    "mobileEmptyHint": "老師補充的推導、公式和圖示會顯示在這裡",
+    "zoomIn": "放大板書",
+    "zoomOut": "縮小板書"
   },
   "quiz": {
     "title": "課堂小測",
@@ -1944,7 +1950,10 @@
       "enable": "啟用",
       "statusDisabled": "已連接（未啟用）",
       "enableThisPlan": "啟用此套餐",
-      "enableThisPlanHint": "關閉後，此套餐不再出現在課程模型設定中"
+      "enableThisPlanHint": "關閉後，此套餐不再出現在課程模型設定中",
+      "region": "服務區域",
+      "regionHintDomestic": "適用於國內站帳號",
+      "regionHintInternational": "適用於海外站帳號"
     },
     "skills": {
       "nav": "技能",
@@ -2139,7 +2148,7 @@
       "international": "海外"
     },
     "providerName": "名稱",
-    "providerNamePlaceholder": "例如：我的OpenAI代理",
+    "providerNamePlaceholder": "例如：my-relay",
     "providers": "語言模型",
     "requestUrl": "請求位址",
     "reset": "重設",
@@ -2186,7 +2195,7 @@
       "showKey": "顯示金鑰",
       "hideKey": "隱藏金鑰",
       "inUse": "使用中",
-      "modelFromCatalogue": "模型名稱、能力與上下文視窗來自內建目錄。",
+      "modelFromCatalogue": "模型名稱與能力來自內建目錄。",
       "modelWhenInUse": "在「課程模型設定」中選用此服務後生效。",
       "planServer": "由伺服器設定",
       "providerIdHint": "儲存為「{{id}}」",
@@ -2194,7 +2203,8 @@
       "notNarration": "此服務不是目前工作區的旁白語音。",
       "useForNarration": "用作旁白語音",
       "fetchNotSaved": "已找到模型，但未能儲存，請重試。",
-      "regionalEndpointHint": "Azure 語音服務只接受你的資源所在區域的官方位址：{{template}}。"
+      "regionalEndpointHint": "Azure 語音服務只接受你的資源所在區域的官方位址：{{template}}。",
+      "providerNameNeedsLatin": "名稱需包含英文字母或數字，否則無法轉換為 id 儲存。"
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "API 金鑰",
     "webFetchSharedKeyHint": "此金鑰也用於與同一供應商進行對話。修改或移除金鑰也會影響對話。",
     "autoConfirmRecommended": "自動確認推薦選項",
-    "autoConfirmRecommendedDesc": "Agent 提問並給出推薦選項時，若你一段時間內沒有操作，倒數結束後自動選擇推薦項。任何操作都會停止倒數。"
+    "autoConfirmRecommendedDesc": "Agent 提問並給出推薦選項時，若你一段時間內沒有操作，倒數結束後自動選擇推薦項。任何操作都會停止倒數。",
+    "contextWindowTokens": "上下文視窗（tokens）",
+    "contextWindowTokensPlaceholder": "例如：1000000",
+    "contextWindowHint": "可選。僅對內建目錄不認識的模型生效，供壓縮與上下文預算檢查使用；留空則使用預設值。",
+    "contextWindowInvalid": "請輸入正整數 token 數，或留空。"
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "開始編輯"
+    },
+    "mobile": {
+      "openMenu": "開啟導覽",
+      "closeMenu": "關閉導覽"
     }
   },
   "profile": {
@@ -3271,7 +3289,21 @@
       "eachStage": "每個階段怎麼走",
       "yourRole": "由你做決策和審閱，AI 協助撰寫計畫和程式碼。",
       "preview": "在作品預覽區使用自己的產品，檢查做出的效果。",
-      "advance": "目前環節達到推進條件後，輸入框上方才會出現紫色操作列；看到它時，點擊即可繼續。"
+      "advance": "目前環節達到推進條件後，輸入框上方才會出現紫色操作列；看到它時，點擊即可繼續。",
+      "startBlocked": {
+        "guide": "請先完成或關閉工作台指引，再開始學習。",
+        "connecting": "正在連線即時更新，連線後即可開始學習…",
+        "retrying": "正在重新連線即時更新，請連線恢復後再開始學習。",
+        "unavailable": "即時更新無法使用，請重新整理並重新連線後再開始學習。",
+        "pending": "目前操作尚未結束，請等待操作結束後再開始學習。",
+        "busy": "助手仍在回覆，請回覆結束後再開始學習。",
+        "environment": "學習環境尚未就緒，請等待就緒後再開始學習；若準備失敗，請在上方重試。",
+        "unsaved": "專案檔案有未儲存的變更，請先儲存或捨棄變更，再開始學習。",
+        "preparing": "工作台正在準備中，請稍候再開始學習。"
+      },
+      "singleFlow": "專案實施流程",
+      "concepts": "工程知識",
+      "deliverables": "功能成果"
     },
     "journey": {
       "currentMilestone": "目前階段",
@@ -3408,13 +3440,14 @@
       "readOnly": "唯讀",
       "saved": "已儲存",
       "saveFailed": "儲存失敗 · 重試",
-      "draftRetained": "修改暫存於此瀏覽器"
+      "draftRetained": "修改暫存於此瀏覽器",
+      "retryRead": "重試讀取"
     },
     "inputBlocked": {
       "pending": "正在处理操作，请稍候；输入的内容会保留。",
       "busy": "助手正在回覆，可停止回覆後再傳送。",
       "environment": "The project environment is not ready. If setup failed, retry above; your draft is kept.",
-      "unsaved": "正在自动保存项目文件，完成后即可发送；输入的内容会保留。",
+      "unsaved": "專案檔案有未儲存的變更，請先儲存或捨棄變更，再傳送；輸入的內容會保留。",
       "opening": "助手尚未完成本環節開場，請重試開場；輸入的內容會保留。"
     },
     "recoverEnvironment": "恢復學習環境",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "聲音設定",
+    "playSound": "播放聲音",
+    "materials": "課堂資料",
+    "classroom": "課堂",
+    "directory": "目錄",
+    "lecture": "筆記",
+    "volume": "音量",
+    "mute": "靜音",
+    "roundtable": "圓桌成員",
+    "captions": "字幕",
+    "controls": "播放控制",
+    "send": "傳送",
+    "join": "加入",
+    "skip": "略過",
+    "play": "播放",
+    "pause": "暫停",
+    "pblDesktop": "暫不支援預覽，請用電腦開啟體驗",
+    "chat": "聊天",
+    "askTeacher": "向老師提問…",
+    "viewInNotes": "在筆記中查看",
+    "viewInChat": "在聊天中查看",
+    "fullSpeech": "完整發言",
+    "me": "我",
+    "listening": "旁聽中",
+    "whiteboardTitle": "課堂白板"
   }
 }

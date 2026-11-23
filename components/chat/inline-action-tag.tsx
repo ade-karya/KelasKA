@@ -4,6 +4,8 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import {
   Flashlight,
+  Search,
+  Globe,
   MousePointer2,
   Type,
   Shapes,
@@ -24,6 +26,7 @@ import {
   FileCode,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { InlineActionIcon } from './inline-action-icon';
 
 interface InlineActionTagProps {
   actionName: string;
@@ -51,11 +54,27 @@ interface ActionCfg {
   i18nKey: string;
   Icon: LucideIcon;
   style: string;
+  iconOnly?: boolean;
   /** Whiteboard family — gets the pen-line accent indicator */
   wb?: boolean;
 }
 
 const ACTION_CONFIG: Record<string, ActionCfg> = {
+  web_search: {
+    i18nKey: 'actions.names.web_search',
+    Icon: Search,
+    style:
+      'bg-cyan-50 dark:bg-cyan-500/15 border-cyan-300/40 dark:border-cyan-500/30 text-cyan-700 dark:text-cyan-300',
+    iconOnly: true,
+  },
+  fetch_url: {
+    i18nKey: 'actions.names.fetch_url',
+    Icon: Globe,
+    style:
+      'bg-teal-50 dark:bg-teal-500/15 border-teal-300/40 dark:border-teal-500/30 text-teal-700 dark:text-teal-300',
+    iconOnly: true,
+  },
+
   // Slide effects
   spotlight: { i18nKey: 'actions.names.spotlight', Icon: Flashlight, style: SPOTLIGHT_STYLE },
   laser: { i18nKey: 'actions.names.laser', Icon: MousePointer2, style: LASER_STYLE },
@@ -106,6 +125,9 @@ const ACTION_CONFIG: Record<string, ActionCfg> = {
 export function InlineActionTag({ actionName, state }: InlineActionTagProps) {
   const { t } = useI18n();
   const config = ACTION_CONFIG[actionName];
+  if (config?.iconOnly) {
+    return <InlineActionIcon icon={config.Icon} style={config.style} title={t(config.i18nKey)} />;
+  }
   const Icon = config?.Icon || Zap;
   const label = config ? t(config.i18nKey) : actionName;
   const style = config?.style || DEFAULT_STYLE;

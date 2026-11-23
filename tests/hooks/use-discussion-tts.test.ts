@@ -22,7 +22,7 @@ const mocks = vi.hoisted(() => ({
     agentVoiceOverrides: {},
   },
   browserOptions: {} as UseBrowserTTSOptions,
-  speak: vi.fn(),
+  speak: vi.fn<(text: string, voice?: string) => Promise<boolean>>(),
   pause: vi.fn(),
   resume: vi.fn(),
   cancel: vi.fn(),
@@ -183,7 +183,9 @@ beforeEach(() => {
   clearUnavailableVoiceBindingsForTests();
   resetDiscussionAudioElementForTests();
   mocks.voiceOptions.mockResolvedValue(undefined);
+  mocks.speak.mockResolvedValue(true);
   mocks.settings.ttsMuted = false;
+  mocks.settings.ttsSpeed = 1;
   mocks.settings.ttsVolume = 0.7;
   mocks.settings.playbackSpeed = 1;
   requests.length = 0;
@@ -576,6 +578,44 @@ describe('discussion TTS synthesis lookahead', () => {
     expect(FakeAudio.instances[0].play).toHaveBeenCalledTimes(2);
   });
 
+  it('finishes a browser line that cannot be spoken and moves on to the next one', async () => {
+    agents = [
+      teacher,
+      {
+        ...teacher,
+        id: 'browser-teacher',
+        voiceConfig: { providerId: 'browser-native-tts', voiceId: 'browser-voice' },
+      },
+    ];
+    act(() => root.render(createElement(Probe)));
+    mocks.speak.mockResolvedValueOnce(false);
+    await seal('A', 'browser-teacher');
+    await seal('B', 'browser-teacher');
+    expect(mocks.speak.mock.calls.map(([text]) => text)).toEqual(['Sentence A.', 'Sentence B.']);
+    expect(hook.shouldHold()).toEqual({ holding: true, segmentDone: 1 });
+    act(() => mocks.browserOptions.onEnd?.());
+    expect(hook.shouldHold()).toEqual({ holding: false, segmentDone: 2 });
+  });
+
+  it('gives browser speech the discussion speed, volume, mute and language', async () => {
+    mocks.settings.ttsSpeed = 1.5;
+    mocks.settings.playbackSpeed = 2;
+    mocks.settings.ttsVolume = 0.4;
+    act(() => root.render(createElement(Probe)));
+    expect(mocks.browserOptions.getSettings?.()).toEqual({
+      locale: 'en',
+      rate: 3,
+      volume: 0.4,
+      muted: false,
+    });
+
+    // Read per sentence: a later change shows up on the next read.
+    mocks.settings.ttsMuted = true;
+    mocks.settings.playbackSpeed = 1;
+    act(() => root.render(createElement(Probe)));
+    expect(mocks.browserOptions.getSettings?.()).toMatchObject({ rate: 1.5, muted: true });
+  });
+
   it('applies current playback speed and volume when consuming prepared audio', async () => {
     await seal('A');
     await seal('B');
@@ -631,8 +671,13 @@ describe('discussion TTS synthesis lookahead', () => {
  * `end`), and `useDiscussionTTS` previously had no `onError` path: one failed
  * utterance left isPlaying true forever, the StreamBuffer TTS hold never
  * released, and discussion narration stalled with the loader spinning.
- * Whiteboard turns seal many short segments around draw actions, so they hit
- * speak/cancel cycling far more often than plain turns.
+ * Since the upstream sentence-by-sentence player, the recovery lives in
+ * `BrowserSpeechPlayer` (a failed/stalled sentence is skipped and the line
+ * still ends — pinned in tests/audio/browser-speech-player.test.ts); the
+ * hook's contract is `onEnd` only, and these tests pin that the hold releases
+ * on it and the queue advances. Whiteboard turns seal many short segments
+ * around draw actions, so they hit speak/cancel cycling far more often than
+ * plain turns.
  */
 describe('discussion TTS browser speech failure recovery', () => {
   const browserTeacher: AgentConfig = {
@@ -646,23 +691,23 @@ describe('discussion TTS browser speech failure recovery', () => {
     act(() => root.render(createElement(Probe)));
   });
 
-  it('releases the hold when a browser utterance errors instead of ending', async () => {
+  it('releases the hold when a browser line ends after its failed sentences were skipped', async () => {
     await seal('A');
     await seal('B', 'browser-teacher');
     await respond(0);
     await act(async () => FakeAudio.instances[0].end());
     expect(mocks.speak).toHaveBeenCalledWith('Sentence B.', 'browser-voice');
     expect(hook.shouldHold()).toEqual({ holding: true, segmentDone: 1 });
-    // Chrome reports the failed utterance with `error`, never `end`.
-    await act(async () => mocks.browserOptions.onError?.('interrupted'));
+    // The player skips the failed sentences itself and reports the line as
+    // ended; the hook must release the hold on that end.
+    await act(async () => mocks.browserOptions.onEnd?.());
     expect(hook.shouldHold()).toEqual({ holding: false, segmentDone: 2 });
     // A late duplicate end must not double-count the segment.
     await act(async () => mocks.browserOptions.onEnd?.());
     expect(hook.shouldHold()).toEqual({ holding: false, segmentDone: 2 });
   });
 
-  it('continues with the next segment after a browser speech error', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  it('continues with the next segment after a browser line ends', async () => {
     await seal('A');
     await seal('B', 'browser-teacher');
     await seal('C');
@@ -672,13 +717,13 @@ describe('discussion TTS browser speech failure recovery', () => {
     // B is browser-native (no fetch); C is prefetched while B plays.
     expect(requests.map((r) => r.body.audioId)).toEqual(['A', 'C']);
     await respond(1);
-    await act(async () => mocks.browserOptions.onError?.('network'));
-    expect(warn).toHaveBeenCalledOnce();
+    // Sentence errors never reach the hook: the player skips them and ends
+    // the line, which advances the queue to the prefetched segment.
+    await act(async () => mocks.browserOptions.onEnd?.());
     expect(FakeAudio.instances[0].play).toHaveBeenCalledTimes(2);
     expect(hook.shouldHold()).toEqual({ holding: true, segmentDone: 2 });
     await act(async () => FakeAudio.instances[0].end());
     expect(hook.shouldHold()).toEqual({ holding: false, segmentDone: 3 });
-    warn.mockRestore();
   });
 });
 

@@ -11,6 +11,7 @@ import { useSlotTTSProvidersConfig, useTTSSelection } from '@/lib/audio/use-tts-
 import { useAgentRegistry } from '@/lib/orchestration/registry/store';
 import { resolveAgentVoice, getSelectableProvidersWithVoices } from '@/lib/audio/voice-resolver';
 import { playBrowserTTSPreview } from '@/lib/audio/browser-tts-preview';
+import { useBrowserVoices } from '@/lib/audio/use-browser-voices';
 import { useAllVoiceProfiles } from '@/lib/audio/voxcpm-voices';
 import { resolveAgentVoiceOptions } from '@/lib/audio/agent-voice';
 import { VOXCPM_AUTO_VOICE_ID, VOXCPM_TTS_PROVIDER_ID } from '@/lib/audio/voxcpm';
@@ -615,27 +616,9 @@ export function AgentBar() {
   const ttsEnabled = !!useTTSSelection();
 
   const [open, setOpen] = useState(false);
-  const [browserVoices, setBrowserVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const browserVoices = useBrowserVoices();
   const { profiles: voiceProfiles } = useAllVoiceProfiles();
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Load browser native TTS voices (Chrome loads async via voiceschanged;
-  // poll briefly so the picker upgrades from the placeholder to OS voices).
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    const synth = window.speechSynthesis;
-    const loadVoices = () => {
-      const voices = synth.getVoices();
-      if (voices.length > 0) setBrowserVoices(voices);
-    };
-    loadVoices();
-    const timers = [250, 750, 1500].map((ms) => window.setTimeout(loadVoices, ms));
-    synth.addEventListener('voiceschanged', loadVoices);
-    return () => {
-      timers.forEach((id) => window.clearTimeout(id));
-      synth.removeEventListener('voiceschanged', loadVoices);
-    };
-  }, []);
 
   const allAgents = listAgents();
   const agents = allAgents.filter((a) => !a.isGenerated);

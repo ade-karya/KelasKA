@@ -3145,10 +3145,11 @@ pm2_hentikan_untuk_build() {
 jalankan_build() {
   LANGKAH="bun: build produksi"
   # Heap adaptif untuk tsc/esbuild yang dijalankan bun saat build (pola
-  # install-node.sh). Host besar (Colab 12 GB) memakai 8 GB seperti AGENTS.md;
-  # sisakan ~2 GB agar kernel tidak kehabisan memori.
+  # install-node.sh). Plafon 30 GB sesuai AGENTS.md: host 31 GB memakai
+  # ~29 GB, Colab 12 GB memakai 10 GB; sisakan ~2 GB agar kernel tidak
+  # kehabisan memori.
   if [[ -z "${NODE_OPTIONS:-}" ]]; then
-    BUILD_HEAP=8192
+    BUILD_HEAP=30720
     _ram_mb="$(awk '/^MemTotal:/ {printf "%d", $2/1024}' /proc/meminfo 2>/dev/null || true)"
     if [[ "$_ram_mb" =~ ^[0-9]+$ ]]; then
       _heap_ram=$((_ram_mb - 2048))

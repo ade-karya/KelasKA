@@ -347,6 +347,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
           recognition.onerror = (event: { error: string }) => {
             if (!isCurrentSession(session)) return;
+            setIsProcessing(false);
             setIsStarting(false);
             // 'no-speech' (user silent) and 'aborted' (our own stop/cancel)
             // are expected conditions — log at warn so they don't surface
@@ -399,6 +400,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
           recognition.onend = () => {
             if (!isCurrentSession(session)) return;
             speechRecognitionRef.current = null;
+            setIsProcessing(false);
             setIsStarting(false);
             busyRef.current = false;
             setIsRecording(false);
@@ -489,6 +491,7 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
   // Explicit stop preserves the final transcription; cancellation discards it.
   const stopRecording = useCallback(() => {
     if (speechRecognitionRef.current) {
+      setIsProcessing(true);
       speechRecognitionRef.current.stop();
       setIsStarting(false);
       setIsRecording(false);

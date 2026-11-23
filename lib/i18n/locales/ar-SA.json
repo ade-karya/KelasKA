@@ -94,6 +94,7 @@
     "exportFailed": "فشل التصدير",
     "classroomZip": "تصدير ملف الفصل ZIP",
     "classroomZipDesc": "هيكل المقرر + ملفات الوسائط",
+    "viewerCopyHint": "هل تريد نسخة قابلة للتعديل؟ نزّلها عبر «{{zip}}»، ثم استخدم «{{importLabel}}» في {{courses}}.",
     "html": "تصدير بتنسيق HTML",
     "htmlDesc": "ملف واحد للاستخدام دون اتصال يُشغَّل تلقائيًا",
     "htmlWithNarration": "مع التعليق الصوتي والفيديو",
@@ -217,8 +218,7 @@
       "pblDesc": "نشاط قائم على المشاريع بأدوار ذكاء اصطناعي. افتحه عبر الإنترنت أو امسح رمز QR.",
       "pblGoal": "الهدف: {{goal}}",
       "pblMilestoneCount": "المراحل: {{count}}"
-    },
-    "viewerCopyHint": "هل تريد نسخة قابلة للتعديل؟ نزّلها عبر «{{zip}}»، ثم استخدم «{{importLabel}}» في {{courses}}."
+    }
   },
   "import": {
     "classroom": "استيراد فصل",
@@ -316,7 +316,9 @@
       "wb_clear": "مسح السبورة",
       "wb_delete": "حذف العنصر",
       "wb_close": "إغلاق السبورة",
-      "discussion": "نقاش"
+      "discussion": "نقاش",
+      "web_search": "Searched the web",
+      "fetch_url": "Read a web page"
     },
     "status": {
       "inputStreaming": "في الانتظار",
@@ -858,7 +860,11 @@
     "restore": "استعادة",
     "noHistory": "لا يوجد سجل بعد",
     "restored": "تمت استعادة السبورة",
-    "elementCount": "{{count}} عنصر"
+    "elementCount": "{{count}} عنصر",
+    "mobileEmpty": "لا توجد ملاحظات على السبورة بعد",
+    "mobileEmptyHint": "ستظهر هنا الاشتقاقات والمعادلات والرسوم التي يضيفها المعلم",
+    "zoomIn": "تكبير",
+    "zoomOut": "تصغير"
   },
   "quiz": {
     "title": "اختبار",
@@ -1360,9 +1366,9 @@
       "system": "النظام"
     },
     "apiKey": "مفتاح API",
+    "apiKeyDesc": "تكوين مفتاح API الخاص بك",
     "credentialStorageHint": "Encrypted on this instance's server",
     "credentialStorageHintDetail": "Saved encrypted on this instance's server and used to call the provider for you. The operator of this deployment can access it, so only enter keys on instances you trust.",
-    "apiKeyDesc": "تكوين مفتاح API الخاص بك",
     "apiBaseUrl": "عنوان نقطة نهاية API",
     "apiBaseUrlDesc": "تكوين عنوان نقطة نهاية API",
     "apiKeyRequired": "لا يمكن أن يكون مفتاح API فارغًا",
@@ -1944,7 +1950,10 @@
       "enable": "Enable",
       "statusDisabled": "متصل (متوقف)",
       "enableThisPlan": "تفعيل هذه الباقة",
-      "enableThisPlanHint": "عند الإيقاف لن تظهر هذه الباقة في إعداد نماذج المقرر."
+      "enableThisPlanHint": "عند الإيقاف لن تظهر هذه الباقة في إعداد نماذج المقرر.",
+      "region": "المنطقة",
+      "regionHintDomestic": "لحسابات موقع البر الرئيسي الصيني",
+      "regionHintInternational": "لحسابات الموقع الدولي"
     },
     "skills": {
       "nav": "المهارات",
@@ -2139,7 +2148,7 @@
       "international": "دولي"
     },
     "providerName": "الاسم",
-    "providerNamePlaceholder": "مثلاً: بروكسي OpenAI الخاص بي",
+    "providerNamePlaceholder": "مثلاً، my-relay",
     "providers": "LLM",
     "requestUrl": "عنوان الطلب",
     "reset": "إعادة تعيين",
@@ -2186,7 +2195,7 @@
       "showKey": "إظهار المفتاح",
       "hideKey": "إخفاء المفتاح",
       "inUse": "قيد الاستخدام",
-      "modelFromCatalogue": "يأتي اسم النموذج وقدراته ونافذة السياق من الكتالوج المدمج.",
+      "modelFromCatalogue": "يأتي اسم النموذج وقدراته من الكتالوج المدمج.",
       "modelWhenInUse": "يُستخدم عند اختيار هذه الخدمة في إعدادات نماذج الدورة.",
       "planServer": "مهيأ من الخادم",
       "providerIdHint": "يُحفظ باسم \"{{id}}\"",
@@ -2194,7 +2203,8 @@
       "notNarration": "هذه الخدمة ليست صوت السرد لمساحة العمل.",
       "useForNarration": "استخدامها للسرد",
       "fetchNotSaved": "عُثر على النماذج لكن تعذّر حفظها. حاول مرة أخرى.",
-      "regionalEndpointHint": "لا تقبل خدمة Azure Speech إلا نقطة النهاية الرسمية لمنطقة موردك: {{template}}."
+      "regionalEndpointHint": "لا تقبل خدمة Azure Speech إلا نقطة النهاية الرسمية لمنطقة موردك: {{template}}.",
+      "providerNameNeedsLatin": "يجب أن يحتوي الاسم على حرف لاتيني (a–z) أو رقم واحد على الأقل حتى يُحفظ كمعرّف."
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "مفتاح API",
     "webFetchSharedKeyHint": "يُستخدم هذا المفتاح أيضًا للدردشة مع هذا المزوّد. تغييره أو حذفه يؤثر في الدردشة.",
     "autoConfirmRecommended": "تأكيد الإجابات الموصى بها تلقائيًا",
-    "autoConfirmRecommendedDesc": "عندما يطرح الوكيل سؤالًا مع خيار موصى به، يتم اختياره بعد عد تنازلي قصير إذا لم تستجب. أي تفاعل يوقف العد التنازلي."
+    "autoConfirmRecommendedDesc": "عندما يطرح الوكيل سؤالًا مع خيار موصى به، يتم اختياره بعد عد تنازلي قصير إذا لم تستجب. أي تفاعل يوقف العد التنازلي.",
+    "contextWindowTokens": "نافذة السياق (رموز)",
+    "contextWindowTokensPlaceholder": "مثلاً، 1000000",
+    "contextWindowHint": "اختياري. ينطبق فقط على النماذج التي لا يعرفها الكتالوج المدمج؛ يُستخدم في الضغط والتحقق من ميزانية السياق. اتركه فارغاً للقيمة الافتراضية.",
+    "contextWindowInvalid": "أدخل عدداً صحيحاً موجباً من الرموز، أو اتركه فارغاً."
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "ابدأ التحرير"
+    },
+    "mobile": {
+      "openMenu": "فتح التنقل",
+      "closeMenu": "إغلاق التنقل"
     }
   },
   "profile": {
@@ -3271,7 +3289,21 @@
       "eachStage": "خطوات كل مرحلة",
       "yourRole": "أنت تتخذ القرارات وتراجع؛ ويساعدك الذكاء الاصطناعي في كتابة الخطة والكود.",
       "preview": "جرّب تطبيقك في منطقة المعاينة وتحقق مما بنيته.",
-      "advance": "لا يظهر الزر البنفسجي فوق حقل الإدخال إلا عندما تصبح الخطوة الحالية جاهزة للتقدّم. عند ظهوره، اضغط عليه للمتابعة."
+      "advance": "لا يظهر الزر البنفسجي فوق حقل الإدخال إلا عندما تصبح الخطوة الحالية جاهزة للتقدّم. عند ظهوره، اضغط عليه للمتابعة.",
+      "startBlocked": {
+        "guide": "أكمل دليل مساحة العمل أو أغلقه لبدء التعلّم.",
+        "connecting": "جارٍ الاتصال بالتحديثات المباشرة قبل بدء التعلّم…",
+        "retrying": "جارٍ إعادة الاتصال بالتحديثات المباشرة. انتظر عودة الاتصال قبل البدء.",
+        "unavailable": "التحديثات المباشرة غير متاحة. حدّث الصفحة لإعادة الاتصال قبل البدء.",
+        "pending": "هناك إجراء قيد التنفيذ. انتظر اكتماله قبل البدء.",
+        "busy": "المساعد ما زال يرد. انتظر انتهاء الرد قبل البدء.",
+        "environment": "انتظر حتى تصبح بيئة التعلّم جاهزة قبل البدء. إذا فشل الإعداد، فأعد المحاولة من الأعلى.",
+        "unsaved": "توجد تغييرات غير محفوظة في ملفات المشروع. احفظها أو تجاهلها قبل البدء.",
+        "preparing": "جارٍ تجهيز مساحة العمل. يُرجى الانتظار قبل البدء."
+      },
+      "singleFlow": "سير عمل المشروع",
+      "concepts": "مفاهيم هندسية",
+      "deliverables": "النتائج الوظيفية"
     },
     "journey": {
       "currentMilestone": "المرحلة الحالية",
@@ -3408,13 +3440,14 @@
       "readOnly": "Read-only",
       "saved": "تم الحفظ",
       "saveFailed": "فشل الحفظ · إعادة المحاولة",
-      "draftRetained": "التغييرات محفوظة في هذا المتصفح"
+      "draftRetained": "التغييرات محفوظة في هذا المتصفح",
+      "retryRead": "إعادة محاولة القراءة"
     },
     "inputBlocked": {
       "pending": "Processing your action. Your draft is kept.",
       "busy": "The assistant is replying. Stop the reply before sending another message.",
       "environment": "The project environment is not ready. If setup failed, retry above; your draft is kept.",
-      "unsaved": "Saving project files. You can send once saving finishes; your message stays here.",
+      "unsaved": "توجد تغييرات غير محفوظة في ملفات المشروع. احفظها أو تجاهلها قبل الإرسال؛ ستبقى رسالتك هنا.",
       "opening": "The assistant has not opened this step yet. Retry the opening; your draft is kept."
     },
     "recoverEnvironment": "Restore learning environment",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "إعدادات الصوت",
+    "playSound": "تشغيل الصوت",
+    "materials": "مواد الدرس",
+    "classroom": "الصف",
+    "directory": "المحتويات",
+    "lecture": "ملاحظات",
+    "volume": "مستوى الصوت",
+    "mute": "كتم الصوت",
+    "roundtable": "المشاركون",
+    "captions": "الترجمة",
+    "controls": "عناصر التشغيل",
+    "send": "إرسال",
+    "join": "انضمام",
+    "skip": "تخطي",
+    "play": "تشغيل",
+    "pause": "إيقاف مؤقت",
+    "pblDesktop": "المعاينة غير متاحة على الهاتف. افتح هذا المشروع على جهاز كمبيوتر لتجربته.",
+    "chat": "محادثة",
+    "askTeacher": "اسأل المعلم…",
+    "viewInNotes": "عرض في الملاحظات",
+    "viewInChat": "عرض في المحادثة",
+    "fullSpeech": "الرسالة كاملة",
+    "me": "أنا",
+    "listening": "يستمع",
+    "whiteboardTitle": "سبورة الدرس"
   }
 }

@@ -316,7 +316,9 @@
       "wb_clear": "清空白板",
       "wb_delete": "删除元素",
       "wb_close": "关闭白板",
-      "discussion": "课堂讨论"
+      "discussion": "课堂讨论",
+      "web_search": "Searched the web",
+      "fetch_url": "Read a web page"
     },
     "status": {
       "inputStreaming": "等待中",
@@ -858,7 +860,11 @@
     "restore": "恢复",
     "noHistory": "暂无历史记录",
     "restored": "已恢复白板内容",
-    "elementCount": "{{count}} 个元素"
+    "elementCount": "{{count}} 个元素",
+    "mobileEmpty": "老师还没有添加板书",
+    "mobileEmptyHint": "老师补充的推导、公式和图示会显示在这里",
+    "zoomIn": "放大板书",
+    "zoomOut": "缩小板书"
   },
   "quiz": {
     "title": "随堂测验",
@@ -1099,7 +1105,6 @@
         "submissionsInStage": "提交了 {{count}} 件作品",
         "coreConceptGrasp": "核心概念「{{concept}}」——{{quality}}",
         "stageNoData": "本阶段没有记录的产出。",
-        "highlightsTitle": "你的亮点",
         "scenario": {
           "summary": "你完成了这场情景模拟的 {{acts}} 幕。这是这次角色扮演的表现回顾。",
           "whatYouDidWell": "你做得好的地方",
@@ -1123,6 +1128,7 @@
           "decisionScore": "决策总分 {{score}}",
           "castLabel": "你与之互动的角色：{{names}}"
         },
+        "highlightsTitle": "你的亮点",
         "highlight": {
           "independence": "你自主展现了 {{unlocks}}/{{total}} 个概念——不靠追问，自己就表达出来了，理解很扎实。",
           "resilience": "在「{{title}}」阶段你克服了 {{errors}} 个错误，逐一攻克——韧性强。",
@@ -1194,8 +1200,8 @@
     "folderNameEmpty": "文件夹名不能为空",
     "deleteFolderOnly": "仅删除文件夹",
     "deleteFolderAndCourses": "删除文件夹和 {{count}} 门课程",
-    "deleteFolderConfirmRemove": "将删除文件夹及其课程（含聊天记录），不可恢复。",
     "deleteFolderAndCourses_other": "删除文件夹和 {{count}} 门课程",
+    "deleteFolderConfirmRemove": "将删除文件夹及其课程（含聊天记录），不可恢复。",
     "notFound": "找不到这门课程",
     "notFoundDesc": "课程不存在，或已被删除。",
     "loadUnavailable": "暂时无法加载这门课程",
@@ -1601,8 +1607,8 @@
     "voiceBaseUrlRequired": "需要 Base URL",
     "ttsTestTextPlaceholder": "输入要转换的文本",
     "ttsTestTextDefault": "你好，这是一段测试语音。",
-    "recording": "录音中...",
-    "transcribing": "识别中...",
+    "recording": "正在录音",
+    "transcribing": "正在识别",
     "transcriptionResult": "识别结果",
     "noTranscriptionResult": "无识别结果",
     "baseUrlOptional": "Base URL（可选）",
@@ -1944,7 +1950,10 @@
       "enable": "启用",
       "statusDisabled": "已连接（未启用）",
       "enableThisPlan": "启用此套餐",
-      "enableThisPlanHint": "关闭后，此套餐不再出现在课程模型配置中"
+      "enableThisPlanHint": "关闭后，此套餐不再出现在课程模型配置中",
+      "region": "服务区域",
+      "regionHintDomestic": "适用于国内站账号",
+      "regionHintInternational": "适用于海外站账号"
     },
     "skills": {
       "nav": "技能",
@@ -2075,8 +2084,8 @@
     "defaultModel": "默认模型",
     "deleteModel": "删除",
     "deleteProvider": "删除提供方",
-    "removeModel": "移除 {{id}}",
     "deleteProviderConfirm": "确定要删除此提供方吗？",
+    "removeModel": "移除 {{id}}",
     "documentParsingSettings": "文档解析",
     "doubaoAccessKey": "Access Key",
     "doubaoAppId": "App ID",
@@ -2139,7 +2148,7 @@
       "international": "海外"
     },
     "providerName": "名称",
-    "providerNamePlaceholder": "例如：我的OpenAI代理",
+    "providerNamePlaceholder": "例如：my-relay",
     "providers": "语言模型",
     "requestUrl": "请求地址",
     "reset": "重置",
@@ -2186,7 +2195,7 @@
       "showKey": "显示密钥",
       "hideKey": "隐藏密钥",
       "inUse": "使用中",
-      "modelFromCatalogue": "模型名称、能力与上下文窗口来自内置目录。",
+      "modelFromCatalogue": "模型名称与能力来自内置目录。",
       "modelWhenInUse": "在「课程模型配置」中选用此服务后生效。",
       "planServer": "由服务器配置",
       "providerIdHint": "保存为「{{id}}」",
@@ -2194,7 +2203,8 @@
       "notNarration": "此服务不是当前工作区的旁白语音。",
       "useForNarration": "用作旁白语音",
       "fetchNotSaved": "已找到模型，但未能保存，请重试。",
-      "regionalEndpointHint": "Azure 语音服务只接受你的资源所在区域的官方地址：{{template}}。"
+      "regionalEndpointHint": "Azure 语音服务只接受你的资源所在区域的官方地址：{{template}}。",
+      "providerNameNeedsLatin": "名称需包含英文字母或数字，否则无法转换为 id 保存。"
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "API 密钥",
     "webFetchSharedKeyHint": "此密钥也用于与同一服务商进行对话。修改或移除密钥也会影响对话。",
     "autoConfirmRecommended": "自动确认推荐选项",
-    "autoConfirmRecommendedDesc": "Agent 提问并给出推荐选项时，若你一段时间内没有操作，倒计时结束后自动选择推荐项。任何操作都会停止倒计时。"
+    "autoConfirmRecommendedDesc": "Agent 提问并给出推荐选项时，若你一段时间内没有操作，倒计时结束后自动选择推荐项。任何操作都会停止倒计时。",
+    "contextWindowTokens": "上下文窗口（tokens）",
+    "contextWindowTokensPlaceholder": "例如：1000000",
+    "contextWindowHint": "可选。仅对内置目录不认识的模型生效，供压缩与上下文预算检查使用；留空则使用默认值。",
+    "contextWindowInvalid": "请输入正整数 token 数，或留空。"
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "开始编辑"
+    },
+    "mobile": {
+      "openMenu": "打开导航",
+      "closeMenu": "关闭导航"
     }
   },
   "profile": {
@@ -2906,11 +2924,6 @@
     "language": "语言",
     "model": "模型"
   },
-  "accessCode": {
-    "title": "请输入访问码",
-    "placeholder": "访问码",
-    "error": "访问码错误，请重试。"
-  },
   "proMode": {
     "attach": "添加材料",
     "mentionCourse": "引用课堂",
@@ -2929,6 +2942,11 @@
     "launchPlaceholder": "描述你想创造的学习体验",
     "launchSend": "开始构建",
     "mentionCourseOrMaterial": "引用课堂或知识库材料"
+  },
+  "accessCode": {
+    "title": "请输入访问码",
+    "placeholder": "访问码",
+    "error": "访问码错误，请重试。"
   },
   "workbench": {
     "tool": {
@@ -3271,7 +3289,21 @@
       "eachStage": "每个阶段怎么走",
       "yourRole": "你来做决策和审阅，AI 协助写计划和代码。",
       "preview": "在作品预览区使用自己的产品，检查做出的效果。",
-      "advance": "当前环节达到推进条件后，输入框上方才会出现紫色执行条；看到它时，点击即可继续。"
+      "advance": "当前环节达到推进条件后，输入框上方才会出现紫色执行条；看到它时，点击即可继续。",
+      "startBlocked": {
+        "guide": "请先完成或关闭工作台指引，再开始学习。",
+        "connecting": "正在连接实时更新，连接后即可开始学习…",
+        "retrying": "正在重新连接实时更新，请连接恢复后再开始学习。",
+        "unavailable": "实时更新不可用，请刷新并重新连接后再开始学习。",
+        "pending": "当前操作尚未结束，请等待操作结束后再开始学习。",
+        "busy": "助手仍在回复，请回复结束后再开始学习。",
+        "environment": "学习环境尚未就绪，请等待就绪后再开始学习；若准备失败，请在上方重试。",
+        "unsaved": "项目文件有未保存的更改，请先保存或放弃更改，再开始学习。",
+        "preparing": "工作台正在准备中，请稍候再开始学习。"
+      },
+      "singleFlow": "项目实施流程",
+      "concepts": "工程知识",
+      "deliverables": "功能成果"
     },
     "journey": {
       "currentMilestone": "当前阶段",
@@ -3408,13 +3440,14 @@
       "readOnly": "只读",
       "saved": "已保存",
       "saveFailed": "保存失败 · 重试",
-      "draftRetained": "修改暂存于此浏览器"
+      "draftRetained": "修改暂存于此浏览器",
+      "retryRead": "重试读取"
     },
     "inputBlocked": {
       "pending": "正在处理操作，请稍候；输入的内容会保留。",
       "busy": "助手正在回复，可停止回复后再发送。",
       "environment": "项目环境尚未就绪。若准备失败，请在上方重试；你的草稿会保留。",
-      "unsaved": "正在自动保存项目文件，完成后即可发送；输入的内容会保留。",
+      "unsaved": "项目文件有未保存的更改，请先保存或放弃更改，再发送；输入的内容会保留。",
       "opening": "助手尚未完成本环节开场，请重试开场；输入的内容会保留。"
     },
     "recoverEnvironment": "恢复学习环境",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "声音设置",
+    "playSound": "播放声音",
+    "materials": "课堂资料",
+    "classroom": "课堂",
+    "directory": "目录",
+    "lecture": "笔记",
+    "volume": "音量",
+    "mute": "静音",
+    "roundtable": "圆桌成员",
+    "captions": "字幕",
+    "controls": "播放控件",
+    "send": "发送",
+    "join": "加入",
+    "skip": "跳过",
+    "play": "播放",
+    "pause": "暂停",
+    "pblDesktop": "暂不支持预览，请用电脑打开体验",
+    "chat": "聊天",
+    "askTeacher": "向老师提问…",
+    "viewInNotes": "在笔记中查看",
+    "viewInChat": "在聊天中查看",
+    "fullSpeech": "完整发言",
+    "me": "我",
+    "listening": "旁听中",
+    "whiteboardTitle": "课堂白板"
   }
 }

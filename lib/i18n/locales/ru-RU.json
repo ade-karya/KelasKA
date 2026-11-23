@@ -316,7 +316,9 @@
       "wb_clear": "Очистить доску",
       "wb_delete": "Удалить элемент",
       "wb_close": "Закрыть доску",
-      "discussion": "Обсуждение"
+      "discussion": "Обсуждение",
+      "web_search": "Searched the web",
+      "fetch_url": "Read a web page"
     },
     "status": {
       "inputStreaming": "Ожидание",
@@ -858,7 +860,11 @@
     "restore": "Восстановить",
     "noHistory": "Истории пока нет",
     "restored": "Доска восстановлена",
-    "elementCount": "{{count}} элементов"
+    "elementCount": "{{count}} элементов",
+    "mobileEmpty": "На доске пока ничего нет",
+    "mobileEmptyHint": "Здесь появятся выводы, формулы и схемы, которые добавит преподаватель",
+    "zoomIn": "Увеличить",
+    "zoomOut": "Уменьшить"
   },
   "quiz": {
     "title": "Тест",
@@ -1360,9 +1366,9 @@
       "system": "Системная"
     },
     "apiKey": "API-ключ",
+    "apiKeyDesc": "Настройте ваш API-ключ",
     "credentialStorageHint": "Encrypted on this instance's server",
     "credentialStorageHintDetail": "Saved encrypted on this instance's server and used to call the provider for you. The operator of this deployment can access it, so only enter keys on instances you trust.",
-    "apiKeyDesc": "Настройте ваш API-ключ",
     "apiBaseUrl": "URL API-эндпоинта",
     "apiBaseUrlDesc": "Настройте URL API-эндпоинта",
     "apiKeyRequired": "API-ключ не может быть пустым",
@@ -1944,7 +1950,10 @@
       "enable": "Enable",
       "statusDisabled": "Подключено (выключено)",
       "enableThisPlan": "Включить этот тариф",
-      "enableThisPlanHint": "В выключенном состоянии тариф больше не отображается в настройке моделей курса."
+      "enableThisPlanHint": "В выключенном состоянии тариф больше не отображается в настройке моделей курса.",
+      "region": "Регион",
+      "regionHintDomestic": "Для аккаунтов на сайте для материкового Китая",
+      "regionHintInternational": "Для аккаунтов на международном сайте"
     },
     "skills": {
       "nav": "Навыки",
@@ -2139,7 +2148,7 @@
       "international": "Международный"
     },
     "providerName": "Название",
-    "providerNamePlaceholder": "напр., Мой OpenAI Proxy",
+    "providerNamePlaceholder": "напр., my-relay",
     "providers": "LLM",
     "requestUrl": "URL запроса",
     "reset": "Сброс",
@@ -2186,7 +2195,7 @@
       "showKey": "Показать ключ",
       "hideKey": "Скрыть ключ",
       "inUse": "Используется",
-      "modelFromCatalogue": "Название, возможности и окно контекста модели берутся из встроенного каталога.",
+      "modelFromCatalogue": "Название и возможности модели берутся из встроенного каталога.",
       "modelWhenInUse": "Используется, когда этот сервис выбран в настройке моделей курса.",
       "planServer": "Настроено сервером",
       "providerIdHint": "Сохраняется как «{{id}}»",
@@ -2194,7 +2203,8 @@
       "notNarration": "Этот сервис не используется для озвучки рабочего пространства.",
       "useForNarration": "Использовать для озвучки",
       "fetchNotSaved": "Модели найдены, но сохранить их не удалось. Повторите попытку.",
-      "regionalEndpointHint": "Azure Speech принимает только официальный адрес региона вашего ресурса: {{template}}."
+      "regionalEndpointHint": "Azure Speech принимает только официальный адрес региона вашего ресурса: {{template}}.",
+      "providerNameNeedsLatin": "Чтобы сохранить имя как идентификатор, в нём должна быть хотя бы одна латинская буква (a–z) или цифра."
     },
     "modelSettings": {
       "card": {
@@ -2448,7 +2458,11 @@
     "webFetchApiKey": "Ключ API",
     "webFetchSharedKeyHint": "Этот ключ также используется для чата с этим провайдером. Его изменение или удаление влияет на чат.",
     "autoConfirmRecommended": "Автоматически подтверждать рекомендуемые ответы",
-    "autoConfirmRecommendedDesc": "Если агент задаёт вопрос с рекомендуемым вариантом и вы не отвечаете, он выбирается после короткого отсчёта. Любое действие останавливает отсчёт."
+    "autoConfirmRecommendedDesc": "Если агент задаёт вопрос с рекомендуемым вариантом и вы не отвечаете, он выбирается после короткого отсчёта. Любое действие останавливает отсчёт.",
+    "contextWindowTokens": "Окно контекста (токены)",
+    "contextWindowTokensPlaceholder": "напр., 1000000",
+    "contextWindowHint": "Необязательно. Применяется только к моделям, которых нет во встроенном каталоге; используется при компактации и проверке бюджета контекста. Оставьте пустым для значения по умолчанию.",
+    "contextWindowInvalid": "Введите положительное целое число токенов или оставьте поле пустым."
   },
   "workspace": {
     "knowledgeBase": {
@@ -2878,6 +2892,10 @@
         }
       },
       "editDone": "Начать правку"
+    },
+    "mobile": {
+      "openMenu": "Открыть навигацию",
+      "closeMenu": "Закрыть навигацию"
     }
   },
   "profile": {
@@ -3271,7 +3289,21 @@
       "eachStage": "Порядок каждой стадии",
       "yourRole": "Вы принимаете решения и проверяете; ИИ помогает написать план и код.",
       "preview": "Испытайте приложение в области предпросмотра и проверьте результат.",
-      "advance": "Фиолетовая кнопка над полем ввода появляется только тогда, когда можно перейти дальше. Когда она появится, нажмите её, чтобы продолжить."
+      "advance": "Фиолетовая кнопка над полем ввода появляется только тогда, когда можно перейти дальше. Когда она появится, нажмите её, чтобы продолжить.",
+      "startBlocked": {
+        "guide": "Завершите или закройте руководство по рабочей области, чтобы начать обучение.",
+        "connecting": "Подключаем обновления в реальном времени перед началом обучения…",
+        "retrying": "Восстанавливаем подключение к обновлениям. Дождитесь восстановления связи перед началом обучения.",
+        "unavailable": "Обновления недоступны. Обновите страницу для подключения перед началом обучения.",
+        "pending": "Выполняется действие. Дождитесь его завершения перед началом обучения.",
+        "busy": "Помощник ещё отвечает. Дождитесь конца ответа перед началом обучения.",
+        "environment": "Дождитесь готовности учебной среды перед началом обучения. Если подготовка не удалась, повторите попытку выше.",
+        "unsaved": "В файлах проекта есть несохранённые изменения. Сохраните или отмените их перед началом обучения.",
+        "preparing": "Рабочая область готовится. Подождите перед началом обучения."
+      },
+      "singleFlow": "Ход работы над проектом",
+      "concepts": "Инженерные понятия",
+      "deliverables": "Реализованные функции"
     },
     "journey": {
       "currentMilestone": "Текущий этап",
@@ -3408,13 +3440,14 @@
       "readOnly": "Read-only",
       "saved": "Сохранено",
       "saveFailed": "Ошибка · Повторить",
-      "draftRetained": "Изменения сохранены в этом браузере"
+      "draftRetained": "Изменения сохранены в этом браузере",
+      "retryRead": "Повторить чтение"
     },
     "inputBlocked": {
       "pending": "Processing your action. Your draft is kept.",
       "busy": "The assistant is replying. Stop the reply before sending another message.",
       "environment": "The project environment is not ready. If setup failed, retry above; your draft is kept.",
-      "unsaved": "Saving project files. You can send once saving finishes; your message stays here.",
+      "unsaved": "В файлах проекта есть несохранённые изменения. Сохраните или отмените их перед отправкой; ваше сообщение останется здесь.",
       "opening": "The assistant has not opened this step yet. Retry the opening; your draft is kept."
     },
     "recoverEnvironment": "Restore learning environment",
@@ -3801,5 +3834,32 @@
     "offline": "The class backend is offline. New requests will be queued.",
     "queued": "{{count}} request(s) waiting for the class backend.",
     "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+  },
+  "mobileClassroom": {
+    "soundSettings": "Настройки звука",
+    "playSound": "Воспроизводить звук",
+    "materials": "Материалы",
+    "classroom": "Урок",
+    "directory": "Содержание",
+    "lecture": "Заметки",
+    "volume": "Громкость",
+    "mute": "Без звука",
+    "roundtable": "Участники",
+    "captions": "Субтитры",
+    "controls": "Управление воспроизведением",
+    "send": "Отправить",
+    "join": "Присоединиться",
+    "skip": "Пропустить",
+    "play": "Воспроизвести",
+    "pause": "Пауза",
+    "pblDesktop": "Предпросмотр на телефоне недоступен. Откройте проект на компьютере, чтобы попробовать.",
+    "chat": "Чат",
+    "askTeacher": "Спросите преподавателя…",
+    "viewInNotes": "Посмотреть в заметках",
+    "viewInChat": "Посмотреть в чате",
+    "fullSpeech": "Полное сообщение",
+    "me": "Я",
+    "listening": "Слушаю",
+    "whiteboardTitle": "Доска занятия"
   }
 }
