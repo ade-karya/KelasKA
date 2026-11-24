@@ -11,6 +11,7 @@ import l8 from '@/lib/i18n/locales/ru-RU.json';
 import l9 from '@/lib/i18n/locales/en-US.json';
 import l10 from '@/lib/i18n/locales/es-MX.json';
 import l11 from '@/lib/i18n/locales/vi-VN.json';
+import idID from '@/lib/i18n/locales/id-ID.json';
 
 const locales: Record<string, typeof l0> = {
   'ko-KR': l0,
@@ -25,6 +26,7 @@ const locales: Record<string, typeof l0> = {
   'en-US': l9,
   'es-MX': l10,
   'vi-VN': l11,
+  'id-ID': idID,
 };
 /** Exact localized controls, independent of the Agent response language. */
 export function visibleProductLabels(locale = 'en-US', nextStep?: string, nextMilestone = false) {

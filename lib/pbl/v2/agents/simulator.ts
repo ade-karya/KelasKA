@@ -378,6 +378,18 @@ function buildActContext(milestone: PBLMilestone, current: PBLMicrotask): PBLMic
   };
 }
 
+/** Locale-aware fallback when both Simulator attempts return no text. */
+function emptySimulatorOutputMessage(language: string | undefined): string {
+  const lang = language || 'id-ID';
+  if (lang === 'zh-CN' || lang === 'zh-TW' || lang.toLowerCase().startsWith('zh')) {
+    return '角色这一轮没有说话，请再试一次。';
+  }
+  if (lang === 'id-ID' || lang.toLowerCase().startsWith('id')) {
+    return 'Karakter tidak mengatakan apa pun pada putaran ini. Silakan coba lagi.';
+  }
+  return 'The character did not speak this turn. Please try again.';
+}
+
 /** Run one Simulator turn, yielding SSE events. */
 export async function* runSimulatorTurn(
   args: RunSimulatorTurnArgs,
@@ -593,7 +605,7 @@ export async function* runSimulatorTurn(
     yield {
       type: 'error',
       code: 'EMPTY_LLM_OUTPUT',
-      message: '角色这一轮没有说话，请再试一次。',
+      message: emptySimulatorOutputMessage(project.languageDirective || project.language),
     };
     yield { type: 'done' };
     return;

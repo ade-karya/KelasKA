@@ -1354,7 +1354,7 @@
     "runLoadRetrying": "Mencoba lagi…",
     "mediaGenerationFailed": "Gagal membuat media",
     "mediaGenerationDisabled": "Pembuatan dinonaktifkan",
-    "backendQueued": "The class backend is starting. Your request is queued at #{{position}} and will run automatically."
+    "backendQueued": "Backend kelas sedang dimulai. Permintaan Anda berada di antrean posisi #{{position}} dan akan dijalankan otomatis."
   },
   "settings": {
     "title": "Pengaturan",
@@ -3781,7 +3781,7 @@
     "saveAndVerify": "Simpan & Verifikasi",
     "keySaved": "Key tersimpan dan terverifikasi.",
     "revokeTitle": "Cabut key akun ini?",
-    "revokeBody": "Provider chat milik {{email}} dihapus dari pengaturannya dan verifikasinya dibatalkan. Akun harus memasukkan key lagi sebelum memakai aplikasi.",
+    "revokeBody": "Provider chat akun ini dihapus dari pengaturannya dan verifikasinya dibatalkan. Akun harus memasukkan key lagi sebelum memakai aplikasi.",
     "revokeConfirm": "Cabut key",
     "revoked": "Key dicabut.",
     "exemptLabel": "Bebaskan akun dari kewajiban API key",
@@ -3834,9 +3834,9 @@
     "greeting": "Halo {{name}} — sebelum mulai, satu langkah lagi."
   },
   "backendStatus": {
-    "offline": "The class backend is offline. New requests will be queued.",
-    "queued": "{{count}} request(s) waiting for the class backend.",
-    "gpuStarting": "The GPU machine is starting; this can take a few minutes."
+    "offline": "Backend kelas sedang offline. Permintaan baru akan masuk antrean.",
+    "queued": "{{count}} permintaan menunggu backend kelas.",
+    "gpuStarting": "Mesin GPU sedang dimulai; ini dapat memakan waktu beberapa menit."
   },
   "mobileClassroom": {
     "soundSettings": "Pengaturan suara",
