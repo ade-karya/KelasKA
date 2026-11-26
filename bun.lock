@@ -203,7 +203,7 @@
     },
     "packages/@openmaic/editor": {
       "name": "@openmaic/editor",
-      "version": "0.0.14",
+      "version": "0.0.15",
       "dependencies": {
         "@openmaic/dsl": "workspace:^",
         "@openmaic/geometry": "workspace:^",
@@ -365,7 +365,7 @@
     },
     "packages/@openmaic/storage": {
       "name": "@openmaic/storage",
-      "version": "0.39.4",
+      "version": "0.39.6",
       "dependencies": {
         "@openmaic/dsl": "workspace:^",
       },
