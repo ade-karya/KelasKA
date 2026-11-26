@@ -231,7 +231,12 @@
       "readTeachingSkill": "Baca bagian pengajaran",
       "requestReview": "Minta tinjauan",
       "respondToLearner": "Jawab pertanyaan Anda",
-      "completeTeachingStage": "Selesaikan langkah pengajaran"
+      "completeTeachingStage": "Selesaikan langkah pengajaran",
+      "cueUser": "Sarankan balasan",
+      "openBoard": "Buka papan tulis",
+      "closeBoard": "Tutup papan tulis",
+      "pointAtCode": "Tunjuk ke kode",
+      "pointAtPreview": "Tunjuk ke aplikasi"
     },
     "chip": {
       "seconds": "{{count}} dtk",
