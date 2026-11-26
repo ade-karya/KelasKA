@@ -1,6 +1,7 @@
 'use client';
 import { parseFileReference, type FileReference } from '@/lib/pbl/v3/file-reference';
-import { continueActionLabel, hasTaskDrawer, TASK_DRAWER_LINK } from '@/lib/pbl/v3/presentation';
+import { hasTaskDrawer, stageCompletionCopy, TASK_DRAWER_LINK } from '@/lib/pbl/v3/presentation';
+import { completionHandoff } from '@/lib/pbl/v3/narration';
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { Route, Code2, GraduationCap, ListChecks, MessageSquareText } from 'lucide-react';
 import { TextBlock } from '@/components/workbench/chat/text-block';
@@ -50,12 +51,12 @@ function AgentTurn({
   entry,
   files,
   onOpenReport,
-  nextAction,
+  completion,
   persona = false,
 }: {
   entry: LearningConversationEntry;
   files?: readonly string[];
-  nextAction?: string;
+  completion?: ReturnType<typeof stageCompletionCopy>;
   onOpenReport?: () => void;
   /** Show the role as a named character, with its face, instead of a role label. */
   persona?: boolean;
@@ -70,8 +71,9 @@ function AgentTurn({
   );
   const copyText = entry.parts.flatMap((p) => (p.kind === 'text' ? [p.text] : [])).join('\n\n');
   const parts = entry.parts.filter((part) => part.kind !== 'tool' || !part.recovered);
+  const handoff = completionHandoff(entry, completion?.instruction, completion?.afterMention);
+  const confirmed = handoff && entry.parts[handoff.part];
   if (
-    entry.parts.length &&
     !parts.length &&
     !['running', 'failed', 'cancelled', 'interrupted'].includes(entry.status ?? '')
   )
@@ -116,16 +118,21 @@ function AgentTurn({
             <div key={part[0].id} className="flex flex-col gap-3">
               {/* Whiteboard and pointer calls are tool calls like any other in the stream. */}
               <ToolActivity tools={part} t={t} />
-              {part.some((tool) => tool.action === 'complete' && tool.status === 'succeeded') && (
+              {part.some((tool) => tool.acknowledgeResponse) && (
+                <p className="text-foreground">{t('pblV3.journey.acceptedResponse')}</p>
+              )}
+              {part.some(
+                (tool) =>
+                  tool.action === 'complete' &&
+                  tool.status === 'succeeded' &&
+                  (!confirmed || tool === confirmed || tool.projectCompleted),
+              ) && (
                 <p className="text-foreground" data-testid="pbl-completion-handoff">
-                  {t(
-                    part.some((tool) => tool.projectCompleted)
-                      ? 'pblV3.reportCopy.completed'
-                      : nextAction
-                        ? 'pblV3.journey.ready'
-                        : 'pblV3.journey.completionHandoff',
-                    { action: nextAction },
-                  )}
+                  {part.some((tool) => tool.projectCompleted)
+                    ? t('pblV3.reportCopy.completed')
+                    : (handoff?.text ??
+                      completion?.instruction ??
+                      t('pblV3.journey.completionHandoff'))}
                 </p>
               )}
               {onOpenReport &&
@@ -136,7 +143,8 @@ function AgentTurn({
                     tool.projectCompleted,
                 ) && (
                   <button
-                    className="rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-500"
+                    data-pbl-report-handoff
+                    className="pbl-report-action rounded-lg px-3 py-2 text-xs font-semibold"
                     onClick={onOpenReport}
                   >
                     {t('pblV3.report')}
@@ -182,12 +190,12 @@ function ConversationEntry({
   entry,
   files,
   onOpenReport,
-  nextAction,
+  completion,
   persona,
 }: {
   entry: LearningConversationEntry;
   files?: readonly string[];
-  nextAction?: string;
+  completion?: ReturnType<typeof stageCompletionCopy>;
   onOpenReport?: () => void;
   persona?: boolean;
 }) {
@@ -220,12 +228,13 @@ function ConversationEntry({
       files={files}
       onOpenReport={onOpenReport}
       persona={persona}
-      nextAction={nextAction}
+      completion={completion}
     />
   );
 }
 export function LearningConversation({
   view,
+  actionsDisabled,
   sent,
   requesting = false,
   modalActive = false,
@@ -233,11 +242,14 @@ export function LearningConversation({
   waitingToStart = false,
   onOpenFile,
   onOpenReport,
+  onHistoryOpenChange,
   onOpenTask,
   overview,
 }: {
   view: LearningView;
+  actionsDisabled: boolean;
   onOpenReport?: () => void;
+  onHistoryOpenChange?: (open: boolean) => void;
   onOpenFile?: (reference: FileReference) => void;
   onOpenTask?: () => void;
   overview?: ReactNode;
@@ -280,6 +292,7 @@ export function LearningConversation({
   };
   // Where the role is a companion it is shown as one here too: the same face and name.
   const persona = !!view.explainBoard;
+  const completion = stageCompletionCopy(view, t, actionsDisabled);
   const placeholder = (requesting || view.busy) && !entries.some((e) => e.status === 'running');
   if (waitingToStart) {
     // An ordinary reading pane: no tail observer runs before the learner starts.
@@ -304,6 +317,7 @@ export function LearningConversation({
     >
       <ConversationHistory
         id={view.id}
+        onOpenChange={onHistoryOpenChange}
         sources={view.conversationHistory ?? []}
         milestones={view.milestones}
         renderEntry={(entry, dismiss) => (
@@ -337,11 +351,7 @@ export function LearningConversation({
           key={entry.id}
           entry={entry}
           files={view.files}
-          nextAction={
-            entry.currentStage && view.actions.includes('next')
-              ? continueActionLabel(view, t)
-              : undefined
-          }
+          completion={entry.currentStage ? completion : undefined}
           onOpenReport={onOpenReport}
           persona={persona}
         />

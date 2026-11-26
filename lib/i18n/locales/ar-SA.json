@@ -3386,6 +3386,7 @@
       "currentMilestone": "المرحلة الحالية",
       "milestoneGoal": "الهدف:",
       "milestoneResult": "النتيجة:",
+      "acceptedResponse": "شكرًا، وضّحنا ما نحتاج إليه في هذه الخطوة.",
       "completionHandoff": "This step is complete.",
       "startConversation": "Your assistant will open this step when the learning environment is ready.",
       "latest": "Go to the latest message",
@@ -3394,7 +3395,7 @@
       "fullscreenUnavailable": "Fullscreen is unavailable. You can continue in the classroom layout.",
       "currentTask": "Current learning step",
       "collectResult": "Collect the execution result before continuing.",
-      "ready": "This step is ready. Choose “{{action}}” when you are ready to move on.",
+      "ready": "This step is ready. The “{{action}}” button is now available.",
       "followStep": "Follow the current step below. The assistant may need your answer or confirmation.",
       "steps": {
         "intro": "Project introduction",
@@ -3529,6 +3530,12 @@
     },
     "recoverEnvironment": "Restore learning environment",
     "retryOpening": "Retry step opening",
+    "completion": {
+      "title": "تهانينا، لقد أكملت المشروع!",
+      "description": "راجع القرارات التي اتخذتها وما أنجزته في تقرير التعلّم.",
+      "openReport": "عرض تقرير التعلّم",
+      "stay": "البقاء في مساحة العمل"
+    },
     "reportCopy": {
       "waitFinal": "Wait for the final teaching response to finish before preparing the report.",
       "generating": "Preparing your project report…",

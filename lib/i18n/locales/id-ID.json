@@ -3386,6 +3386,7 @@
       "currentMilestone": "Tonggak saat ini",
       "milestoneGoal": "Tujuan:",
       "milestoneResult": "Hasil:",
+      "acceptedResponse": "Terima kasih, kami sudah mendapatkan yang dibutuhkan untuk langkah ini.",
       "completionHandoff": "Langkah ini selesai. Lihat bilah tugas di bagian bawah panel Asisten Belajar untuk tindakan berikutnya.",
       "startConversation": "Asisten Anda akan membuka langkah ini saat lingkungan belajar siap.",
       "latest": "Pergi ke pesan terbaru",
@@ -3394,7 +3395,7 @@
       "fullscreenUnavailable": "Layar penuh tidak tersedia. Anda dapat melanjutkan di tata letak kelas.",
       "currentTask": "Langkah belajar saat ini",
       "collectResult": "Kumpulkan hasil eksekusi sebelum melanjutkan.",
-      "ready": "Langkah ini siap. Pilih “{{action}}” saat Anda siap melanjutkan.",
+      "ready": "Langkah ini siap. Tombol “{{action}}” sekarang tersedia.",
       "followStep": "Ikuti langkah saat ini di bawah. Asisten mungkin memerlukan jawaban atau konfirmasi dari Anda.",
       "steps": {
         "intro": "Pengenalan proyek",
@@ -3529,6 +3530,12 @@
     },
     "recoverEnvironment": "Pulihkan lingkungan belajar",
     "retryOpening": "Coba lagi buka tahap",
+    "completion": {
+      "title": "Selamat, Anda telah menyelesaikan proyek!",
+      "description": "Tinjau kembali keputusan dan hasil karya Anda di laporan belajar.",
+      "openReport": "Lihat laporan belajar",
+      "stay": "Tetap di ruang kerja"
+    },
     "reportCopy": {
       "waitFinal": "Tunggu hingga respons pengajaran akhir selesai sebelum menyiapkan laporan.",
       "generating": "Menyiapkan laporan proyek Anda…",

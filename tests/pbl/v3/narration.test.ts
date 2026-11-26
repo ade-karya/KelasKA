@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { deduplicateHandoffs, type LearningConversationEntry } from '@/lib/pbl/v3/conversation';
 import {
+  acknowledgeSilentCompletion,
   boardAt,
   boardWrites,
   narrationSegments,
@@ -9,6 +10,7 @@ import {
   recoveredReviewSpeech,
   spokenText,
   toldConversation,
+  unspokenReceipt,
 } from '@/lib/pbl/v3/narration';
 
 type Part = LearningConversationEntry['parts'][number];
@@ -74,12 +76,33 @@ it('tells a reply as the conversation stream lists it', () => {
     'say',
   ]);
   expect(steps[4]).toMatchObject({ text: 'Compare the two paths in the file.' });
-  // A step is known by its place among the reply's parts, not by an id the stream may change.
+  // Parts locate each step in the current transcript; their IDs follow it across snapshots.
   expect(steps.map((step) => step.part)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
   // The pointer is held through the sentence after it and leaves when the board is written.
   expect(pointerAt(steps, 4)).toBeUndefined();
   expect(pointerAt(steps, 6)).toMatchObject({ id: 'f' });
   expect(pointerAt(steps, 7)).toBeUndefined();
+});
+
+it('keeps a displaced live draft visible and reveals the retry only when its turn comes', () => {
+  const source = {
+    ...entry([text('receipt', 'Only the formal answer remains.')]),
+    id: 'pbl-role-a:1',
+    inputId: 6,
+  };
+  const retry = { ...source, id: 'pbl-role-a:2' };
+  const another = { ...source, id: 'pbl-role-b:1' };
+  const conversation = [source, retry, another];
+  const [heard, held, differentSession] = toldConversation(conversation, {
+    id: source.id,
+    part: -1,
+    said: 1,
+    displaced: 'Still speaking.',
+  });
+  expect(heard.parts).toMatchObject([{ kind: 'text', text: 'Still speaking.' }]);
+  expect(held.parts).toEqual([]);
+  expect(differentSession).toBe(another);
+  expect(toldConversation(conversation, null)).toBe(conversation);
 });
 
 it('shows the conversation only as far as it has been told', () => {
@@ -261,6 +284,21 @@ it('adds one spoken next action after confirmed completion, never on failure, re
   ]);
   const spoken = (e: LearningConversationEntry, next?: string) =>
     narrationSteps(e, next).flatMap((s) => (s.kind === 'say' ? [s.text] : []));
+  const afterMention = { label: 'Enter discussion', confirmation: 'This step is complete.' };
+  for (const closing of [
+    'Click **Enter discussion**.',
+    'Wait until you can click Enter discussion.',
+    'Enter discussion later.\n\nFirst, compare both options.',
+  ]) {
+    expect(
+      narrationSteps(entry([text('summary', closing), complete]), instruction, afterMention).at(-1),
+    ).toMatchObject({ kind: 'say', text: afterMention.confirmation });
+  }
+  for (const closing of ['Let us discuss this.', 'Go on when you are ready.']) {
+    expect(
+      narrationSteps(entry([text('summary', closing), complete]), instruction, afterMention).at(-1),
+    ).toMatchObject({ kind: 'say', text: instruction });
+  }
   expect(spoken(reply, instruction)).toEqual(['Keep this explanation.', instruction]);
   expect(
     spoken(entry([{ ...complete, readyForStudentConfirmation: undefined }]), instruction),
@@ -268,6 +306,58 @@ it('adds one spoken next action after confirmed completion, never on failure, re
   expect(spoken(reply)).toEqual(['Keep this explanation.']);
   expect(spoken(entry([{ ...complete, projectCompleted: true }]), instruction)).toEqual([]);
   expect(spoken(entry([{ ...complete, action: 'read' }]), instruction)).toEqual([]);
+});
+
+it('acknowledges a silent successful completion once for its actual learner reply', () => {
+  const learner: LearningConversationEntry = {
+    ...entry([text('answer', 'Use the recorded value.')]),
+    id: 'user-1',
+    speaker: 'user',
+  };
+  const receipt = {
+    kind: 'tool',
+    id: 'receipt',
+    action: 'complete',
+    status: 'succeeded',
+    readyForStudentConfirmation: true,
+  } as const;
+  const response = 'Thanks, we have what we need for this step.';
+  const next = 'Continue to the next step.';
+  const visible = (entries: LearningConversationEntry[]) => {
+    const turn = deduplicateHandoffs(entries).at(-1)!;
+    const spoken = acknowledgeSilentCompletion(narrationSteps(turn, next), response).flatMap((s) =>
+      s.kind === 'say' ? [s.text] : [],
+    );
+    return {
+      acknowledged: turn.parts.some((p) => p.kind === 'tool' && p.acknowledgeResponse),
+      spoken,
+    };
+  };
+  const silent = entry([{ kind: 'thinking', id: 'thinking', text: 'Internal evidence.' }, receipt]);
+  expect(visible([learner, silent])).toEqual({
+    acknowledged: true,
+    spoken: [response + ' ' + next],
+  });
+  expect(
+    visible([
+      learner,
+      entry([{ ...receipt, readyForStudentConfirmation: false, projectCompleted: true }]),
+    ]),
+  ).toEqual({ acknowledged: true, spoken: [response] });
+  expect(visible([learner, entry([{ ...receipt, status: 'failed' }])])).toEqual({
+    acknowledged: false,
+    spoken: [],
+  });
+  expect(visible([learner, entry([text('authored', 'You found the source.'), receipt])])).toEqual({
+    acknowledged: false,
+    spoken: ['You found the source.', next],
+  });
+  // A page starting mid-turn is inconclusive. A prior attempt can already own the response.
+  expect(visible([silent])).toEqual({ acknowledged: false, spoken: [next] });
+  expect(visible([learner, entry([text('previous', 'You found the source.')]), silent])).toEqual({
+    acknowledged: false,
+    spoken: [next],
+  });
 });
 
 it('never navigates from a file link alone and avoids guessing between competing ranges', () => {
@@ -431,4 +521,22 @@ it('restores a previously spoken receipt without queuing it when the source page
   expect(
     narrationSteps(entry([text('question-tool-only', words)])).map((step) => step.kind),
   ).toEqual(['say']);
+});
+
+it('voices the rest of a legacy receipt after the source has played', () => {
+  expect(unspokenReceipt('浏览器发送问题。请打开 PLAN.md 第七行。', ['浏览器发送问题。'])).toBe(
+    '请打开 PLAN.md 第七行。',
+  );
+  expect(unspokenReceipt('First. Second. A new direction.', ['First.', 'Second.'])).toBe(
+    'A new direction.',
+  );
+  expect(unspokenReceipt('First. New direction.', ['First. Old direction.'])).toBe(
+    'New direction.',
+  );
+  expect(unspokenReceipt('First.', ['First.'])).toBe('');
+  expect(unspokenReceipt('42 records returned.', ['4'])).toBe('42 records returned.');
+  expect(unspokenReceipt('Open main.ts.', ['Open main.'])).toBe('Open main.ts.');
+  expect(
+    unspokenReceipt('Open the shell. Run `echo "A. C"`.', ['Open the shell. Run `echo "A. B"`.']),
+  ).toBe('Run `echo "A. C"`.');
 });

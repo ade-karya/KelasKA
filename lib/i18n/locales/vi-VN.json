@@ -3386,6 +3386,7 @@
       "currentMilestone": "Giai đoạn hiện tại",
       "milestoneGoal": "Mục tiêu:",
       "milestoneResult": "Kết quả:",
+      "acceptedResponse": "Cảm ơn bạn, chúng ta đã làm rõ những điều cần thiết ở bước này.",
       "completionHandoff": "This step is complete.",
       "startConversation": "Your assistant will open this step when the learning environment is ready.",
       "latest": "Go to the latest message",
@@ -3394,7 +3395,7 @@
       "fullscreenUnavailable": "Fullscreen is unavailable. You can continue in the classroom layout.",
       "currentTask": "Current learning step",
       "collectResult": "Collect the execution result before continuing.",
-      "ready": "This step is ready. Choose “{{action}}” when you are ready to move on.",
+      "ready": "This step is ready. The “{{action}}” button is now available.",
       "followStep": "Follow the current step below. The assistant may need your answer or confirmation.",
       "steps": {
         "intro": "Project introduction",
@@ -3529,6 +3530,12 @@
     },
     "recoverEnvironment": "Restore learning environment",
     "retryOpening": "Retry step opening",
+    "completion": {
+      "title": "Chúc mừng bạn đã hoàn thành dự án!",
+      "description": "Xem lại những quyết định và sản phẩm của bạn trong báo cáo học tập.",
+      "openReport": "Xem báo cáo học tập",
+      "stay": "Ở lại không gian làm việc"
+    },
     "reportCopy": {
       "waitFinal": "Wait for the final teaching response to finish before preparing the report.",
       "generating": "Preparing your project report…",

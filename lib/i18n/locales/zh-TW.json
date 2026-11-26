@@ -3386,6 +3386,7 @@
       "currentMilestone": "目前階段",
       "milestoneGoal": "目標：",
       "milestoneResult": "成果：",
+      "acceptedResponse": "謝謝，這一步需要確認的內容已經說清楚了。",
       "completionHandoff": "本環節已完成。",
       "startConversation": "Your assistant will open this step when the learning environment is ready.",
       "latest": "Go to the latest message",
@@ -3394,7 +3395,7 @@
       "fullscreenUnavailable": "Fullscreen is unavailable. You can continue in the classroom layout.",
       "currentTask": "Current learning step",
       "collectResult": "Collect the execution result before continuing.",
-      "ready": "本環節已就緒，準備好後點擊「{{action}}」。",
+      "ready": "本環節已就緒，「{{action}}」按鈕已可用。",
       "followStep": "Follow the current step below. The assistant may need your answer or confirmation.",
       "steps": {
         "intro": "Project introduction",
@@ -3529,6 +3530,12 @@
     },
     "recoverEnvironment": "恢復學習環境",
     "retryOpening": "重試本環節開場",
+    "completion": {
+      "title": "恭喜你，完成了這個專案！",
+      "description": "在學習報告裡，回顧你做過的決策與完成的作品。",
+      "openReport": "查看學習報告",
+      "stay": "留在工作台"
+    },
     "reportCopy": {
       "waitFinal": "最後一輪復盤回覆儲存完成後，即可產生報告。",
       "generating": "Preparing your project report…",
