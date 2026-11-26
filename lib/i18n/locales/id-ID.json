@@ -36,7 +36,7 @@
     "footer": "Kelas Kecerdasan Artifisial"
   },
   "toolbar": {
-    "pdfParser": "Parser",
+    "pdfParser": "Parser PDF",
     "pdfUpload": "Unggah PDF",
     "removePdf": "Hapus file",
     "documentExtractor": "Ekstraktor",
@@ -331,15 +331,15 @@
     }
   },
   "canvas": {
-    "toggleSidebar": "Toggle sidebar",
-    "mute": "Mute",
-    "unmute": "Unmute",
-    "playbackSpeed": "Playback speed",
-    "prevScene": "Previous scene",
-    "nextScene": "Next scene",
-    "pause": "Pause",
-    "play": "Play",
-    "toggleChat": "Toggle chat"
+    "toggleSidebar": "Tampilkan/sembunyikan sidebar",
+    "mute": "Bisukan",
+    "unmute": "Nyalakan suara",
+    "playbackSpeed": "Kecepatan pemutaran",
+    "prevScene": "Adegan sebelumnya",
+    "nextScene": "Adegan berikutnya",
+    "pause": "Jeda",
+    "play": "Putar",
+    "toggleChat": "Tampilkan/sembunyikan obrolan"
   },
   "agentBar": {
     "readyToLearn": "Siap untuk belajar bersama?",
@@ -377,7 +377,7 @@
     "editCourse": "Edit kursus",
     "doneEditing": "Selesai mengedit",
     "editDisabledHint": "Pengeditan tidak tersedia di halaman ini — buka slide kursus untuk mengeditnya.",
-    "editToggle": "Edit",
+    "editToggle": "Ubah",
     "openInWorkspace": "Buka di ruang kerja",
     "openInWorkspaceHint": "Buka di ruang kerja untuk melanjutkan kelas ini dalam percakapan",
     "makeOwnCourse": "Buat kelas Anda sendiri",
@@ -1078,7 +1078,7 @@
         "modalTaskLabel": "Tugas: {{title}}",
         "fileRead": "Terbaca: {{filename}} · {{size}} KB",
         "submittedBadge": "Dikirim ({{count}})",
-        "receiptFile": "File: {{filename}}",
+        "receiptFile": "Berkas: {{filename}}",
         "receiptTemplate": "Hasil untuk tugas ini telah dikirim ({{label}})."
       },
       "agentTabs": {
@@ -1365,7 +1365,7 @@
       "dark": "Gelap",
       "system": "Mengikuti sistem"
     },
-    "apiKey": "API Key",
+    "apiKey": "Kunci API",
     "apiKeyDesc": "Konfigurasikan API Key Anda",
     "credentialStorageHint": "Terenkripsi di server instance ini",
     "credentialStorageHintDetail": "Disimpan terenkripsi di server instance ini dan digunakan untuk memanggil penyedia atas nama Anda. Operator deployment ini dapat mengaksesnya, jadi masukkan kunci hanya pada instance yang Anda percayai.",
@@ -1918,7 +1918,7 @@
     "tokenPlan": {
       "nav": "Token Plan",
       "selectPlan": "Pilih penyedia",
-      "apiKey": "API Key",
+      "apiKey": "Kunci API",
       "updateKey": "Perbarui kunci",
       "modelsCount": "{{n}} model",
       "offeredNote": "Daftar model yang disediakan paket. Pilih model yang ingin digunakan di bilah pembuatan — ketersediaan tergantung pada tingkatan paket Anda, model yang tidak didukung akan error saat pembuatan.",
@@ -2071,7 +2071,7 @@
       "restoreFollow": "Kembalikan ikuti alur utama",
       "stopped": "Dinonaktifkan",
       "loop": "loop",
-      "parallel": "parallel",
+      "parallel": "paralel",
       "visionSupported": "Mendukung input visual",
       "modelSource": "Sumber model",
       "mainlineUnset": "Belum ditentukan",
@@ -2125,8 +2125,8 @@
     "apiModeAnthropic": "Protokol Claude",
     "apiModeGoogle": "Protokol Gemini",
     "apiModeOpenAI": "Protokol OpenAI",
-    "apiSecret": "API Key",
-    "asrApiKey": "API Key",
+    "apiSecret": "Kunci API",
+    "asrApiKey": "Kunci API",
     "asrBaseUrl": "Base URL",
     "asrNoTranscription": "Tidak ada hasil transkripsi, coba bicara lebih keras atau lebih lama.",
     "asrNotSupported": "Browser tidak mendukung API pengenalan suara",
@@ -2141,7 +2141,7 @@
     "capabilities": {
       "streaming": "Streaming",
       "tools": "Perkakas",
-      "vision": "Vision",
+      "vision": "Visi",
       "thinking": "Penalaran"
     },
     "claudeSearchModel": "Model pencarian",
@@ -2166,7 +2166,7 @@
     "documentParsingSettings": "Penguraian dokumen",
     "doubaoAccessKey": "Access Key",
     "doubaoAppId": "App ID",
-    "editModel": "Edit model",
+    "editModel": "Ubah model",
     "editModelDescription": "Edit konfigurasi dan kapabilitas model",
     "enableASR": "Aktifkan pengenalan suara",
     "enableImageGeneration": "Aktifkan pembuatan gambar AI",
@@ -2215,7 +2215,7 @@
     "models": "Model",
     "more": "Tindakan lainnya",
     "optionalOverride": "Opsional — kosongkan untuk menggunakan konfigurasi server",
-    "pdfApiKey": "API Key",
+    "pdfApiKey": "Kunci API",
     "pdfBaseUrl": "Base URL",
     "pdfFeatures": "Fitur yang didukung",
     "providerApiMode": "Mode API",
@@ -2242,7 +2242,7 @@
     "testConnection": "Uji koneksi",
     "testModel": "Uji model",
     "testing": "Menguji...",
-    "ttsApiKey": "API Key",
+    "ttsApiKey": "Kunci API",
     "ttsBaseUrl": "Base URL",
     "videoConnectivityFailed": "Koneksi layanan video gagal",
     "videoConnectivitySuccess": "Layanan video berhasil terhubung",
@@ -2381,7 +2381,7 @@
           "desc": "Diskusi, penilaian kuis, dan proyek saat belajar."
         },
         "agent": {
-          "name": "Agent",
+          "name": "Agen",
           "desc": "Membuat dan mengedit kursus bersama Anda. Perlu model yang mendukung tool calling."
         },
         "tts": {
@@ -2478,7 +2478,7 @@
     "addModel": "Tambah",
     "fetch": "Ambil",
     "contextWindow": "Konteks",
-    "outputWindow": "Output",
+    "outputWindow": "Keluaran",
     "providerNameRequired": "Masukkan nama provider",
     "providerIcon": "URL ikon provider",
     "requiresApiKey": "Memerlukan API Key",
@@ -2532,7 +2532,7 @@
     "serverConfiguredAddOwn": "Untuk menggunakan kredensial Anda sendiri, tambahkan provider terpisah.",
     "webFetchSettings": "Pengambilan halaman web",
     "webFetchHint": "Pilih cara halaman web dibaca. Pembaca terkelola hanya menerima URL publik yang disetujui dalam sesi. Hasilnya tetap dianggap tidak tepercaya, dan kegagalan tidak mengalihkan pembaca.",
-    "webFetchApiKey": "API Key",
+    "webFetchApiKey": "Kunci API",
     "webFetchSharedKeyHint": "Kunci ini juga digunakan untuk chat dengan penyedia ini. Mengubah atau menghapusnya akan memengaruhi chat.",
     "autoConfirmRecommended": "Konfirmasi otomatis jawaban yang disarankan",
     "autoConfirmRecommendedDesc": "Saat agen workbench mengajukan pertanyaan dan menyarankan opsi, opsi itu dipilih setelah hitungan mundur singkat bila Anda tidak merespons. Interaksi apa pun menghentikan hitungan mundur.",
@@ -2730,7 +2730,7 @@
     "startLearning": "Mulai belajar",
     "classroomMode": "Mode kelas",
     "learningMode": "Belajar",
-    "editingMode": "Edit",
+    "editingMode": "Ubah",
     "editingUnavailableGenerating": "Pengeditan tidak tersedia selama kursus ini sedang dibuat.",
     "fullscreenLearning": "Belajar layar penuh",
     "time": {
@@ -3631,7 +3631,7 @@
     "toolDetails": {
       "input": "Input",
       "progress": "Progres",
-      "output": "Output",
+      "output": "Keluaran",
       "display": "Tampilan",
       "stopped": "Dihentikan"
     },
@@ -3955,7 +3955,7 @@
     "setKeyTitle": "Atur API key — {{email}}",
     "setKeyBody": "Key diuji ke penyedia sebelum disimpan. Jika valid, key tersimpan terenkripsi dan akun langsung bisa memakai aplikasi.",
     "keyProviderLabel": "Penyedia",
-    "keyFieldLabel": "API key",
+    "keyFieldLabel": "Kunci API",
     "modelFieldLabel": "Model",
     "saveAndVerify": "Simpan & Verifikasi",
     "keySaved": "Key tersimpan dan terverifikasi.",
@@ -3991,7 +3991,7 @@
       "coarena": "1. Buka coarena.ai dan daftar\n2. Masuk ke dashboard Anda\n3. Buka API Keys → Create\n4. Salin key dan tempel di bawah — semua model Coarena gratis",
       "crowllm": "1. Buka crowllm.com dan daftar\n2. Masuk ke dashboard Anda\n3. Buka API Keys → Create new key\n4. Salin key dan tempel di bawah — pilih model berakhiran “:free”"
     },
-    "keyLabel": "API key",
+    "keyLabel": "Kunci API",
     "keyPlaceholder": "Tempel API key Anda di sini",
     "keyTooShort": "Key itu terlalu pendek. Salin key utuh dari penyedia.",
     "securityNote": "Tersimpan terenkripsi di server; tidak pernah ditampilkan lagi (hanya 4 karakter terakhir yang tampil).",
@@ -4025,7 +4025,7 @@
     "directory": "Daftar isi",
     "lecture": "Catatan",
     "volume": "Volume",
-    "mute": "Mute",
+    "mute": "Bisukan",
     "roundtable": "Peserta",
     "captions": "Subtitle",
     "controls": "Kontrol pemutaran",
