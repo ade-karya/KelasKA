@@ -246,7 +246,7 @@
     },
     "packages/@openmaic/generation": {
       "name": "@openmaic/generation",
-      "version": "0.3.34",
+      "version": "0.3.35",
       "dependencies": {
         "@openmaic/dsl": "workspace:^",
         "@openmaic/geometry": "workspace:^",

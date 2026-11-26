@@ -244,6 +244,27 @@ export function buildNarratorSystemPrompt(
 }
 
 /** Result of one director-narrator pass. */
+const NONE_SENTINEL_WRAPPERS = /^[`*_"'“”‘’«»]+|[`*_"'“”‘’«»]+$/g;
+const NONE_SENTINEL_TRAILING_PUNCTUATION = /[.。!！\s]+$/;
+
+/** The director-narrator asks for a literal `NONE` when nothing visible
+ *  happened, but models routinely wrap it in light Markdown or quotes
+ *  (`` `NONE` ``, `**NONE**`, `"NONE"`), sometimes with punctuation outside
+ *  the wrapper (`"NONE".`). Peel wrappers and trailing punctuation until
+ *  nothing changes, and accept the sentinel solely when nothing else remains,
+ *  so narration that merely mentions NONE keeps its bubble. */
+export function isNoneSentinel(text: string): boolean {
+  let stripped = text.trim();
+  for (let prev = ''; prev !== stripped; ) {
+    prev = stripped;
+    stripped = stripped
+      .replace(NONE_SENTINEL_WRAPPERS, '')
+      .replace(NONE_SENTINEL_TRAILING_PUNCTUATION, '')
+      .trim();
+  }
+  return /^none$/i.test(stripped);
+}
+
 /** Run the director-narrator pass: a short, non-streamed system-voice
  *  narration that sets / develops the scene. In the ACT model the director has
  *  NO progression role — a roleplay act is one continuous scene and only the
@@ -313,7 +334,7 @@ async function runDirectorNarratorPass(args: {
     const text = (result.text ?? '').trim();
     if (!text) return [];
     // Sentinel: model says nothing happened → no narration this turn.
-    if (/^none[.。!！\s]*$/i.test(text)) return [];
+    if (isNoneSentinel(text)) return [];
     // The narrator may emit several distinct beats (blank-line separated)
     // → render one neutral 'system' bubble each.
     return text
@@ -376,18 +397,6 @@ function buildActContext(milestone: PBLMilestone, current: PBLMicrotask): PBLMic
     characterObjective:
       objectives.length > 0 ? objectives.join(' ｜ ') : current.characterObjective,
   };
-}
-
-/** Locale-aware fallback when both Simulator attempts return no text. */
-function emptySimulatorOutputMessage(language: string | undefined): string {
-  const lang = language || 'id-ID';
-  if (lang === 'zh-CN' || lang === 'zh-TW' || lang.toLowerCase().startsWith('zh')) {
-    return '角色这一轮没有说话，请再试一次。';
-  }
-  if (lang === 'id-ID' || lang.toLowerCase().startsWith('id')) {
-    return 'Karakter tidak mengatakan apa pun pada putaran ini. Silakan coba lagi.';
-  }
-  return 'The character did not speak this turn. Please try again.';
 }
 
 /** Run one Simulator turn, yielding SSE events. */
@@ -605,7 +614,8 @@ export async function* runSimulatorTurn(
     yield {
       type: 'error',
       code: 'EMPTY_LLM_OUTPUT',
-      message: emptySimulatorOutputMessage(project.languageDirective || project.language),
+      // Locale-neutral on purpose: the client maps this code to an i18n string.
+      message: 'The character did not speak this turn. Please try again.',
     };
     yield { type: 'done' };
     return;

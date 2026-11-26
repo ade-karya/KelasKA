@@ -618,6 +618,7 @@ describe('capability-dependent tool registration (#2102)', () => {
       vi.stubEnv('RENDER_SERVICE_URL', '');
       const capabilities = await resolveRunnerCapabilities({ workspaceId: null });
       expect(capabilities.isAvailable('render_service')).toBe(false);
+      expect(capabilities.isAvailable('interactive_runtime_check')).toBe(false);
     });
 
     it('drops render_scene_preview when the URL is set but the health probe fails', async () => {
@@ -639,22 +640,35 @@ describe('capability-dependent tool registration (#2102)', () => {
       expect(runtime.tools.map((t) => t.name)).toEqual(['read_stage', 'patch_stage', 'ask_user']);
     });
 
-    it('registers render_scene_preview when the health probe reports the service enabled', async () => {
-      vi.stubEnv('RENDER_SERVICE_URL', 'http://render-service:9000');
-      vi.spyOn(renderServiceModule, 'getRenderServiceCapability').mockResolvedValue({
-        enabled: true,
-        accepting: false,
-      });
+    it.each([
+      { interactiveRuntimeCheck: undefined, interactiveRuntimeHostedLibraries: undefined },
+      { interactiveRuntimeCheck: true, interactiveRuntimeHostedLibraries: undefined },
+      { interactiveRuntimeCheck: false, interactiveRuntimeHostedLibraries: true },
+      { interactiveRuntimeCheck: true, interactiveRuntimeHostedLibraries: true },
+    ])(
+      'registers preview with runtime check=$interactiveRuntimeCheck and hosted libraries=$interactiveRuntimeHostedLibraries',
+      async ({ interactiveRuntimeCheck, interactiveRuntimeHostedLibraries }) => {
+        vi.stubEnv('RENDER_SERVICE_URL', 'https://example.com');
+        vi.spyOn(renderServiceModule, 'getRenderServiceCapability').mockResolvedValue({
+          enabled: true,
+          accepting: false,
+          interactiveRuntimeCheck,
+          interactiveRuntimeHostedLibraries,
+        });
 
-      const capabilities = await resolveRunnerCapabilities({ workspaceId: null });
-      expect(capabilities.isAvailable('render_service')).toBe(true);
+        const capabilities = await resolveRunnerCapabilities({ workspaceId: null });
+        expect(capabilities.isAvailable('render_service')).toBe(true);
+        expect(capabilities.isAvailable('interactive_runtime_check')).toBe(
+          interactiveRuntimeCheck === true && interactiveRuntimeHostedLibraries === true,
+        );
 
-      const runtime = assembleCapabilityRuntime({
-        capabilities,
-        candidateTools: [baseTools, previewTools()],
-      });
-      expect(runtime.tools.some((t) => t.name === 'render_scene_preview')).toBe(true);
-      expect(runtime.allowedToolNames.has('render_scene_preview')).toBe(true);
-    });
+        const runtime = assembleCapabilityRuntime({
+          capabilities,
+          candidateTools: [baseTools, previewTools()],
+        });
+        expect(runtime.tools.some((t) => t.name === 'render_scene_preview')).toBe(true);
+        expect(runtime.allowedToolNames.has('render_scene_preview')).toBe(true);
+      },
+    );
   });
 });

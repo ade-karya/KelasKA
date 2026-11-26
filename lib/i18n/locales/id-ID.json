@@ -279,10 +279,6 @@
         "audioMetadata": "Audio (hanya rujuk metadata)"
       }
     },
-    "interactiveRuntimeError": {
-      "title": "Interaksi ini gagal berjalan",
-      "dismiss": "Tutup"
-    },
     "tabs": {
       "lecture": "Catatan",
       "chat": "Percakapan"
@@ -1004,7 +1000,8 @@
         "emptyChatHint": "Panduan proyek Anda dengan {{name}} akan dimulai di sini.",
         "continueError": "Tidak dapat lanjut ke tahap berikutnya: {{error}}",
         "stillTyping": "Masih mengetik",
-        "handoverHint": "Silakan klik “Lanjut ke Tahap Berikutnya” terlebih dahulu."
+        "handoverHint": "Silakan klik “Lanjut ke Tahap Berikutnya” terlebih dahulu.",
+        "emptyOutput": "Tidak ada respons baru pada giliran ini. Silakan coba lagi."
       },
       "scene": {
         "expand": "Bentangkan",
@@ -1913,25 +1910,19 @@
     },
     "tokenPlan": {
       "nav": "Token Plan",
-      "title": "Penyiapan Token Plan sekali klik",
-      "desc": "Pilih penyedia Token Plan Anda dan masukkan kunci — semua modalitas yang didukung (model bahasa/gambar/video/suara/pencarian web/pengambilan halaman web) akan dikonfigurasi secara otomatis.",
       "selectPlan": "Pilih penyedia",
       "apiKey": "API Key",
       "updateKey": "Perbarui kunci",
       "modelsCount": "{{n}} model",
-      "capabilities": "Kemampuan yang disediakan paket",
       "offeredNote": "Daftar model yang disediakan paket. Pilih model yang ingin digunakan di bilah pembuatan — ketersediaan tergantung pada tingkatan paket Anda, model yang tidak didukung akan error saat pembuatan.",
       "statusConnected": "Terhubung",
       "applyModelsNote": "Menghubungkan akan menerapkan model rekomendasi paket ini ke tahap-tahap kursus; jika itu akan menggantikan model yang sedang dipakai suatu tahap (model pilihan Anda atau bawaan server), Anda akan ditanya terlebih dahulu.",
       "saveKey": "Simpan dan aktifkan",
       "cancelKeyUpdate": "Batalkan pembaruan",
-      "manageAccount": "Kelola akun",
       "disconnect": "Putuskan koneksi",
       "disconnectTitle": "Putus koneksi paket?",
       "disconnectBody": "Setelah diputus, paket ini tidak lagi digunakan untuk panggilan baru. Langganan Anda di pihak penyedia tidak dibatalkan.",
       "statusNotConnected": "Belum terhubung",
-      "balanceManagement": "Manajemen saldo",
-      "modelPlan": "Lihat skema model",
       "planNoteEntitlement": "Kemampuan dan biaya paket mengikuti ketentuan penyedia.",
       "planUnavailable": "Model tidak diungkapkan",
       "planNoteEditable": "Ini adalah konfigurasi default; model tiap node dapat diubah di “Konfigurasi Model Kursus”",
@@ -1956,7 +1947,83 @@
       "enableThisPlanHint": "Jika dimatikan, paket ini tidak lagi muncul di konfigurasi model kursus",
       "region": "Wilayah",
       "regionHintDomestic": "Untuk akun di situs Tiongkok daratan",
-      "regionHintInternational": "Untuk akun di situs internasional"
+      "regionHintInternational": "Untuk akun di situs internasional",
+      "quotaTitle": "Kuota paket",
+      "quotaRemaining": "{{percent}}% tersisa",
+      "quotaCalls": "{{used}} / {{total}} panggilan terpakai",
+      "quotaUnlimited": "Tanpa batas",
+      "quotaExhausted": "Habis",
+      "quotaUnknown": "Sisa tidak diketahui",
+      "quotaResetsAt": "Reset {{time}}",
+      "quotaResetUnknown": "Waktu reset tidak tersedia",
+      "quotaNoReset": "Akun bayar sesuai pemakaian — ditagih per token tanpa reset berkala.",
+      "deploymentUsage": "Penggunaan deployment",
+      "deploymentUsageNote": "Panggilan seluruh server di semua ruang kerja",
+      "capImageShort": "Gambar",
+      "capLlmShort": "Chat LLM",
+      "capTtsShort": "Suara",
+      "capVideoShort": "Video",
+      "capWebSearchShort": "Pencarian web",
+      "capWebFetchShort": "Ambil halaman web",
+      "subtitle": "Satu kunci langganan mengonfigurasi setiap kemampuan yang didukung secara otomatis.",
+      "connectedCount": "Terhubung ({{n}})",
+      "availableCount": "Tersedia ({{n}})",
+      "priorityOrder": "Urutan prioritas",
+      "priorityNote": "Paket dengan peringkat lebih tinggi melayani kemampuan bersama lebih dulu.",
+      "setUp": "Atur",
+      "regionGlobal": "Global",
+      "payAsYouGo": "Bayar sesuai pemakaian",
+      "keyLabel": "Kunci",
+      "priority": "Prioritas #{{n}}",
+      "connectHint": "Tempelkan kunci API paket {{name}} Anda untuk mengonfigurasi kemampuannya secara otomatis.",
+      "consoleLink": "Konsol {{name}}",
+      "portalLink": "Portal {{name}}",
+      "platformLink": "Platform {{name}}",
+      "more": "Lainnya",
+      "subscribeOn": "Berlangganan ({{site}})",
+      "connectTitle": "Hubungkan {{name}}",
+      "missingCapability": "Tidak di paket: {{name}}",
+      "missingCapabilityShort": "Tanpa {{name}}",
+      "listSeparator": ", ",
+      "deploymentConnection": "koneksi deployment",
+      "workspaceConnection": "koneksi ruang kerja",
+      "quotaNa": "Kuota tidak tersedia",
+      "quotaLeft": "tersisa",
+      "quotaUpdatedAt": "Diperbarui {{time}}",
+      "windowHours": "Jendela {{n}} jam",
+      "windowWeek": "Jendela mingguan",
+      "windowMonth": "Bulan ini",
+      "balanceTitle": "Saldo akun",
+      "balanceOf": "Saldo {{currency}}",
+      "openPlatform": "Buka platform",
+      "checkBalance": "Lihat saldo",
+      "quotaUnavailableTitle": "Kuota {{name}} tidak dapat dilihat di sini",
+      "quotaUnavailableBody": "Periksa sisa kuota di situs {{name}}.",
+      "capsTitle": "Kemampuan di Kelas KA",
+      "capsTitlePreview": "Yang aktif setelah paket ini terhubung",
+      "capsCount": "{{serving}} aktif · {{included}} dari {{total}} termasuk",
+      "capsCountPreview": "{{included}} dari {{total}} kemampuan termasuk",
+      "capActive": "Aktif",
+      "capIncluded": "Termasuk",
+      "capNotInTier": "Tidak di paket",
+      "capUnavailable": "Tidak tersedia",
+      "capNotOffered": "Tidak disediakan",
+      "capViaPlan": "Melalui {{name}}",
+      "searchBy": "Pencarian {{name}}",
+      "notInTierReason": "Tidak termasuk dalam paket {{name}} Anda saat ini",
+      "unavailableReason": "Tidak tersedia pada koneksi ini",
+      "notOfferedBy": "Tidak disediakan {{name}}",
+      "routeDefault": "Bawaan · {{target}}",
+      "routeOther": "Termasuk · {{target}} aktif",
+      "routeHandledBy": "Tidak disediakan · Ditangani oleh {{target}}",
+      "routeOff": "Dimatikan",
+      "routeUnset": "Belum ada bawaan",
+      "routeInvalid": "Pengaturan bawaan tidak valid",
+      "stageRoutes": "(+{{n}} rute tahap)",
+      "moreModels": "+ {{n}} model",
+      "alsoProvides": "Kunci yang sama juga menyediakan {{list}}.",
+      "modelsRouting": "Model & rute bawaan",
+      "viewStats": "Lihat statistik"
     },
     "skills": {
       "nav": "Skill",
@@ -3673,6 +3740,111 @@
         }
       },
       "close": "Tutup panduan"
+    },
+    "resetProgress": "Atur ulang progres",
+    "resetProgressConfirm": "Mengatur ulang akan mengembalikan proyek ini ke kondisi sebelum Anda mulai: percakapan, progres langkah, papan tulis, dan perubahan kode Anda dimulai dari awal. Atur ulang sekarang?",
+    "personas": {
+      "mentor": "Mo",
+      "discussion": "Quinn",
+      "planner": "Ray",
+      "coder": "Cody"
+    },
+    "board": {
+      "previous": "Papan sebelumnya",
+      "next": "Papan berikutnya",
+      "current": "Sekarang",
+      "ops": {
+        "text": "Teks",
+        "table": "Tabel",
+        "code": "Kode",
+        "shape": "Bentuk",
+        "line": "Garis",
+        "latex": "Rumus",
+        "chart": "Diagram",
+        "edit": "Ubah kode",
+        "delete": "Hapus",
+        "clear": "Bersihkan",
+        "read": "Lihat",
+        "point": "menunjuk kode",
+        "open": "buka",
+        "close": "tutup"
+      },
+      "speed": "Kecepatan {{speed}}x, klik untuk mengubah",
+      "collapse": "Perkecil",
+      "dock": "Buka percakapan lengkap",
+      "float": "Kecilkan menjadi pendamping"
+    },
+    "tour": {
+      "done": "Ayo mulai",
+      "welcome": {
+        "title": "Selamat datang di meja kerja proyek Anda",
+        "body": "Di pelajaran ini Anda membuat sesuatu yang nyata dengan tangan Anda sendiri. Luangkan setengah menit untuk mengenal apa yang ada di sini, lalu semuanya terserah Anda dan pendamping Anda."
+      },
+      "preview": {
+        "title": "Ini karya Anda, dan benar-benar berjalan",
+        "body": "Bukan tangkapan layar: programnya berjalan langsung. Klik-klik atau kirim satu baris kapan saja untuk melihat apa yang sudah bisa dan apa yang masih kurang."
+      },
+      "companion": {
+        "title": "Pendamping yang bekerja bersama Anda",
+        "body": "Seorang pendamping menemani Anda di setiap langkah. Ucapannya muncul di sini kalimat demi kalimat dan dibacakan. Klik balonnya untuk menjeda saat berbicara; klik avatarnya untuk melihat seluruh percakapan."
+      },
+      "progress": {
+        "title": "Cincin itu adalah progres Anda",
+        "body": "Cincin di sekitar wajah memiliki satu segmen per tahap. Arahkan ke segmen untuk melihat langkahnya; klik untuk membuka tugas saat ini."
+      },
+      "controls": {
+        "title": "Tombol di sampingnya",
+        "body": "Arahkan penunjuk ke avatar dan dua tombol akan terbuka di sampingnya: ubah kecepatan baca, atau matikan suara. Saat giliran Anda, kolom input muncul di bawah balon untuk mengetik, atau ketuk mikrofon untuk berbicara."
+      },
+      "layout": {
+        "title": "Papan tulis dan kode muncul sendiri",
+        "body": "Saat ada yang perlu digambar, papan tulis muncul; saat membahas kode Anda, berkasnya terbuka. Ketiga tombol ini membuka dan menutupnya sendiri, atau menambatkan percakapan di sebelah kanan."
+      },
+      "start": {
+        "title": "Mulai saat Anda siap",
+        "body": "Tekan Mulai belajar dan pendamping Anda akan menunjukkan dulu apa yang akan dibuat dalam pelajaran ini. Tanya apa saja; tidak perlu terburu-buru."
+      },
+      "conversationPane": {
+        "title": "Percakapan Anda",
+        "body": "Baca penjelasan, pertanyaan, dan umpan balik pendamping Anda di sini. Gulir ke atas untuk melihat pesan sebelumnya."
+      },
+      "learningPath": {
+        "title": "Jalur belajar Anda",
+        "body": "Di sini terlihat milestone dan langkah saat ini. Buka untuk melihat jalur belajar proyek."
+      },
+      "reply": {
+        "title": "Balas pendamping Anda",
+        "body": "Saat giliran Anda, ketik dan kirim balasan Anda di sini."
+      },
+      "collapsePane": {
+        "title": "Kembali ke avatar",
+        "body": "Ciutkan panel ini untuk kembali ke avatar dan balonnya. Tombol di samping avatar memungkinkan Anda mengubah kecepatan baca atau mematikan suara."
+      },
+      "replay": {
+        "title": "Lihat panduan lagi",
+        "body": "Buka panduan ruang kerja di sini kapan pun Anda ingin melihat langkah-langkah ini lagi."
+      },
+      "greeting": "Hai, saya {{name}}, dan saya akan mengerjakan pelajaran ini bersama Anda. Tekan mulai di bawah kalau Anda sudah siap, dan saya akan menunjukkan dulu apa yang akan kita buat."
+    },
+    "cast": {
+      "title": "Para pendamping di proyek ini",
+      "hint": "Keempatnya menunggu Anda di meja kerja.",
+      "discussion": {
+        "part": "Menjelaskan dan memutuskan",
+        "line": "Saya mulai dengan Anda: kita pahami masalahnya sampai jelas, lalu putuskan langkah berikutnya."
+      },
+      "planner": {
+        "part": "Merencanakan",
+        "line": "Setelah arahnya jelas, saya uraikan menjadi rencana langkah demi langkah untuk Anda periksa."
+      },
+      "coder": {
+        "part": "Menulis kode",
+        "line": "Kalau Anda menyetujui rencananya, saya yang menulis kodenya dan menjelaskan setiap perubahan."
+      },
+      "mentor": {
+        "part": "Menguji dan meninjau",
+        "line": "Di akhir kita uji bersama dan menengok lagi apa yang benar-benar sudah Anda pelajari."
+      }
     }
   },
   "classroomEnd": {

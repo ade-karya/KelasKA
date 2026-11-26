@@ -1311,22 +1311,6 @@ export function stripPrematureNextTaskSetup(
 }
 
 /**
- * Trilingual empty-output retry hint, following the quiz-grade
- * isZh / isId / en pattern. Shown when a turn produced nothing the
- * learner can perceive. Falls back to English for locales we haven't
- * translated yet (same fallback as the platform openers below).
- */
-function emptyLlmOutputMessage(language: string | undefined): string {
-  const lang = language || 'id-ID';
-  const isZh = lang === 'zh-CN' || lang === 'zh-TW' || lang.startsWith('zh');
-  const isId = lang === 'id-ID' || lang.toLowerCase().startsWith('id');
-  if (isZh) return '导师本轮没有产生新的内容。请稍后再试，或者把你的问题再说得具体一些。';
-  if (isId)
-    return 'Mentor tidak menghasilkan konten baru pada putaran ini. Silakan coba lagi nanti, atau jelaskan pertanyaanmu dengan lebih spesifik.';
-  return 'The mentor did not produce new content this turn. Please try again later, or describe your question in more detail.';
-}
-
-/**
  * Neutral, TIER-AGNOSTIC acknowledgment committed when the learner asked to
  * change difficulty (the model called `adjust_difficulty`) but wrote no text of
  * its own. The proficiency tier itself is underlying by design and is NEVER
@@ -1709,7 +1693,8 @@ export async function* runInstructorTurn(
     yield {
       type: 'error',
       code: 'EMPTY_LLM_OUTPUT',
-      message: emptyLlmOutputMessage(project.language),
+      // Locale-neutral on purpose: the client maps this code to an i18n string.
+      message: 'The model produced no new content for this turn. Please try again.',
     };
   }
 

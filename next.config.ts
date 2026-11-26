@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingIncludes: {
     '/*': [
+      'skills/pbl/pbl-explanation/SKILL.md',
       'lib/server/agent-runtime/import-pptx-worker.mjs',
       // The Antigravity bridge is spawned by path at run time
       // (lib/ai/antigravity-sdk.ts), so the tracer never sees it. Without this,

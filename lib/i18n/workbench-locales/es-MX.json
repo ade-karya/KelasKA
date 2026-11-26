@@ -22,7 +22,8 @@
     "waiting": "Procesando",
     "emptyTitle": "Empieza una conversación",
     "emptyHint": "Describe el cambio que quieres, o usa @ para indicar un aula",
-    "copyReply": "Copy Agent reply"
+    "copyReply": "Copiar respuesta",
+    "copied": "Copiado"
   },
   "question": {
     "waiting": "Esperando tu respuesta",
@@ -234,7 +235,12 @@
       "createMaterialFolder": "Crear carpeta en la base de conocimientos",
       "renameMaterialFolder": "Renombrar carpeta de la base de conocimientos",
       "moveMaterials": "Mover materiales",
-      "renameMaterial": "Renombrar material"
+      "renameMaterial": "Renombrar material",
+      "cueUser": "Suggest replies",
+      "openBoard": "Open the whiteboard",
+      "closeBoard": "Put the whiteboard away",
+      "pointAtCode": "Point at code",
+      "pointAtPreview": "Point at the app"
     },
     "chip": {
       "seconds": "{{count}} s",

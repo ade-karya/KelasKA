@@ -680,12 +680,16 @@ describe('admission observability (429 reason + /health accepting)', () => {
     // IPs behind a trusted proxy, so they must never reach this response.
     expect(Object.keys(body).sort()).toEqual([
       'accepting',
+      'interactiveRuntimeCheck',
+      'interactiveRuntimeHostedLibraries',
       'ok',
       'previewMaxConcurrency',
       'resourceProfile',
       'versions',
     ]);
     expect(typeof body.accepting).toBe('boolean');
+    expect(typeof body.interactiveRuntimeCheck).toBe('boolean');
+    expect(body.interactiveRuntimeHostedLibraries).toBe(true);
   });
 
   it('labels a queue-full 429 with reason and flips /health accepting', async () => {
