@@ -19,7 +19,9 @@ Required Kaggle Secrets (Secrets -> Add new secret):
   KELASKA_ENV_B64            base64 of the production .env.local. It must
                              contain the same DATABASE_URL and
                              OPENMAIC_SECRET_KEY as Vercel, plus
-                             WORKER_STATUS_TOKEN and GOOGLE_API_KEY.
+                             WORKER_STATUS_TOKEN, GOOGLE_API_KEY and
+                             KELASKA_API_TUNNEL_TOKEN (the mapped tunnel for
+                             api.kelaska.riau.ai -> :3000).
   KELASKA_WORKER_STATUS_TOKEN optional override; otherwise read from the env.
 
 Optional Kaggle Secrets:
@@ -202,7 +204,7 @@ def prepare_files() -> str:
         shutil.copyfile(REPO_DIR / "deploy" / "kaggle" / template, REPO_DIR / "openmaic.yml")
         log(f"openmaic.yml selected: {template}")
 
-    return env.get("WORKER_STATUS_TOKEN", "")
+    return env
 
 
 def install_app() -> None:
@@ -220,6 +222,36 @@ def install_app() -> None:
     code = process.wait()
     if code != 0:
         raise RuntimeError(f"install.sh --kaggle exited with {code}")
+
+
+def start_api_tunnel(token: str) -> subprocess.Popen | None:
+    """Expose the app on :3000 as api.kelaska.riau.ai (the SPA's backend)."""
+    if not token:
+        log("KELASKA_API_TUNNEL_TOKEN missing; the SPA will have no API backend")
+        return None
+    binary = Path("/usr/local/bin/cloudflared")
+    if not binary.exists():
+        arch = "amd64" if os.uname().machine in {"x86_64", "amd64"} else "arm64"
+        url = (
+            "https://github.com/cloudflare/cloudflared/releases/latest/download/"
+            f"cloudflared-linux-{arch}"
+        )
+        log("downloading cloudflared")
+        urllib.request.urlretrieve(url, "/kaggle/temp/cloudflared")
+        binary = Path("/kaggle/temp/cloudflared")
+        binary.chmod(0o755)
+    log("starting cloudflared tunnel for api.kelaska.riau.ai -> :3000")
+    logfile = (REPO_DIR / "cloudflared.log").open("ab")
+    child = subprocess.Popen(
+        [str(binary), "tunnel", "--no-autoupdate", "run", "--token", token],
+        stdout=logfile,
+        stderr=subprocess.STDOUT,
+        stdin=subprocess.DEVNULL,
+    )
+    time.sleep(5)
+    if child.poll() is not None:
+        raise RuntimeError("cloudflared exited immediately; see cloudflared.log")
+    return child
 
 
 def http_json(url: str, token: str = "", timeout: int = 10) -> dict | None:
@@ -288,12 +320,19 @@ def monitor(token: str) -> None:
 
 def main() -> int:
     clone_repo()
-    token = prepare_files()
+    env = prepare_files()
     install_app()
+    tunnel = start_api_tunnel(
+        env.get("KELASKA_API_TUNNEL_TOKEN") or secret("KELASKA_API_TUNNEL_TOKEN", retries=0)
+    )
     if not wait_for_app():
         log("App never became healthy; exiting")
         return 1
-    monitor(token)
+    try:
+        monitor(env.get("WORKER_STATUS_TOKEN", ""))
+    finally:
+        if tunnel is not None:
+            tunnel.terminate()
     log("KelasKA worker finished")
     return 0
 
