@@ -1,0 +1,47 @@
+# Model configuration for the Kaggle worker WITH a GPU.
+# Copied to the repo root as openmaic.yml by deploy/kaggle/worker-kernel.py.
+# Secrets stay in Kaggle Secrets / .env.local; this file has only ${VAR} refs.
+providers:
+  google:
+    preset: google
+    apiKey: ${GOOGLE_API_KEY}
+    models:
+      - gemini-3.8-flash
+      - gemini-3.6-flash
+      - gemini-3.5-flash-lite
+      - gemini-3.1-flash-lite
+
+  google-asr:
+    preset: google-asr
+    apiKey: ${GOOGLE_API_KEY}
+    models:
+      - gemini-3.1-flash-lite
+      - gemini-3.5-transcribe
+
+  funasr:
+    preset: funasr-asr
+    baseUrl: http://127.0.0.1:8000/v1
+
+  voxcpm:
+    preset: voxcpm-tts
+    baseUrl: http://127.0.0.1:8001
+    options:
+      backend: python-api
+
+  comfyui:
+    preset: comfyui-image
+    baseUrl: http://127.0.0.1:8188
+
+slots:
+  llm:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  agent:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  classroom: google:gemini-3.5-flash-lite
+  # Indonesian audio: the local FunASR models only know zh/en/yue/ja/ko and
+  # return gibberish for Indonesian, so Gemini does the transcription.
+  asr: google-asr:gemini-3.1-flash-lite
+  tts: voxcpm
+  image: comfyui

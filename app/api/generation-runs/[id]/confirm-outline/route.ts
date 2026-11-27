@@ -10,6 +10,7 @@
 import { assertWorkspaceModelsAuthorized } from '@/lib/server/model-config/runtime';
 import { GENERATION_MODEL_SLOTS } from '@/lib/server/generation/run/start';
 import type { NextRequest } from 'next/server';
+import { after } from 'next/server';
 
 import { apiSuccess } from '@/lib/server/api-response';
 import {
@@ -24,6 +25,7 @@ import {
 } from '@/lib/server/generation/run/input';
 import { wakeGenerationRunner } from '@/lib/server/generation/run/runner';
 import { generationRunConfig } from '@/lib/server/generation/run/config';
+import { ensureKaggleWorker } from '@/lib/server/kaggle/launch';
 import {
   ActiveRunLimitError,
   confirmGenerationRunOutline,
@@ -52,6 +54,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
       if (!result) return ownerNotFound(responseHeaders);
       wakeGenerationRunner();
+      after(() => {
+        void ensureKaggleWorker('generation-run-confirm-outline');
+      });
       return withOwnerResponseHeaders(apiSuccess({ ...result }), responseHeaders);
     } catch (error) {
       if (error instanceof ActiveRunLimitError) {

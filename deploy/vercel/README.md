@@ -1,95 +1,68 @@
-# Deploy ke Vercel (Hobby) — aplikasi penuh, worker di Kaggle
+# Deploy ke Vercel (Hobby) — SPA statis + satu function
 
-Vercel menjalankan **aplikasi Next.js penuh**: UI, perpustakaan/pemutaran
-kursus, auth, dan seluruh API berbasis PostgreSQL. Pembuatan kursus, agen, dan
-media/GPU **diantre** ke PostgreSQL lalu dikerjakan oleh
-[worker eksternal](../worker/README.md) — untuk deployment ini, notebook Kaggle
-on-demand ([`../kaggle/README.md`](../kaggle/README.md)).
+Vercel **tidak bisa** menjalankan aplikasi Next.js penuh di paket Hobby:
+deployment ditolak dengan `exceeded_serverless_functions_per_deployment` karena
+app punya ~126 route, sementara Hobby hanya mengizinkan **12 Serverless Function** per
+deployment. Build-nya berhasil, tapi tahap deploy gagal.
 
-Ini bukan lagi mode "static status page" yang lama. Sejak 2026 Vercel
-menggabungkan dynamic code Next.js ke **sedikit mungkin** function, jadi 126
-route API tidak lagi menabrak batas 12 function Hobby; `maxDuration` Hobby juga
-300 detik (cukup untuk SSE/chat). Yang tetap tidak bisa dijalankan di Vercel
-adalah proses yang hidup lebih lama dari satu request.
+Jadi Vercel menjalankan:
 
-## Yang tidak bisa jalan di Vercel
+- `deploy/spa` — static export (0 function) untuk seluruh halaman UI, dan
+- **satu** function catch-all `deploy/spa/api/[[...path]].ts` yang:
+  - `POST /api/kaggle/wake` memanggil Kaggle API untuk menjalankan kernel
+    `deploy/kaggle` (pemicu worker on-demand),
+  - semua `/api/*` lain diteruskan (streaming, termasuk SSE) ke
+    `SPLIT_BACKEND_ORIGIN` — deployments Cloudflare Worker yang sudah ada —
+    dengan cookie diteruskan dan `Domain=` pada `Set-Cookie` dihapus supaya
+    cookie tetap host-only di `kelas.riau.ai`.
 
-- runner generasi dan agen (timer proses tidak selamat setelah response),
-- filesystem lokal yang awet (`data/`), komando CLI agen, dan layanan GPU,
-- endpoint media lokal (ComfyUI/Ollama/FunASR/VoxCPM).
+Halaman "Buat Kelas dari Materi" memanggil `/api/kaggle/wake` sebelum
+mengantre run. Kernel Kaggleboot dalam beberapa menit, mengklaim run dari
+PostgreSQL yang sama, lalu berhenti sendiri saat antrean kosong.
 
-Semua itu pindah ke worker Kaggle. Classroom chat per-request (`/api/chat/pi`)
-tetap bisa karena hanya streaming LLM biasa, asalkan provider dikonfigurasi.
+## Konfigurasi project
 
-## Langkah
+```
+Root Directory   : deploy/spa
+Framework        : Other
+Install Command  : npm install
+Build Command    : npm run build
+Output Directory : out
+Production Branch: deploy/vercel
+Domain           : kelas.riau.ai (CNAME -> cname.vercel-dns.com di Cloudflare)
+```
 
-1. Siapkan PostgreSQL dengan **connection pooler** (Supabase transaction
-   pooler port 6543 atau Neon pooled). `pg` di sini memakai pool per instance;
-   koneksi langsung cepat habis ketika banyak fungsi aktif.
-   `?sslmode=require` disarankan. `pgbouncer=true` bukan opsi `node-postgres`,
-   jangan dipakai.
-2. Siapkan byte store `HF_S3_*` (atau biarkan asset store PostgreSQL). Jangan
-   mengandalkan `data/`—hilang saat instance didaur ulang.
-3. Di Vercel → Project → Settings → Environment Variables, isi env dari
-   [`../shared/env.serverless.example`](../shared/env.serverless.example)
-   **ditambah** variabel `NEXT_PUBLIC_*` yang dipakai build. `VERCEL=1` sudah
-   disetel platform, jadi `OPENMAIC_DEPLOY_TARGET` boleh dibiarkan kosong
-   (otomatis `vercel`) atau diisi eksplisit.
-4. Set `AUTH_PUBLIC_URL=https://kelas.riau.ai` bila memakai akun. Tanpa itu,
-   callback Supabase membangun redirect dari origin internal Vercel dan
-   pengguna dilem ke host yang salah. Daftarkan juga
-   `https://kelas.riau.ai/api/auth/supabase/callback` di Supabase → Auth → URL
-   Configuration.
-5. Nyalakan worker Kaggle lebih dulu. **Nilai `DATABASE_URL`,
-   `OPENMAIC_SECRET_KEY`, `HF_S3_*`, dan kredensial akun harus identik** di
-   kedua host. Worker memakai `OPENMAIC_DEPLOY_TARGET=kaggle` (terdeteksi
-   otomatis di kernel) dan `OPENMAIC_AGENT_RUNTIME_ENABLED=true`.
-6. Deploy:
+Env production yang dipakai function:
 
-   ```bash
-   # dari root repo, memakai config ini (tidak perlu menyalin vercel.json)
-   vercel deploy --local-config deploy/vercel/vercel.json --prod
-   ```
+```
+SPLIT_BACKEND_ORIGIN=https://kelaska.riau.ai
+KAGGLE_USERNAME=<username kaggle>
+KAGGLE_KEY=<kaggle.json key atau KGAT_...>
+KAGGLE_KERNEL_REF=akjdev/kelaska-worker
+KAGGLE_SESSION_TIMEOUT_SECONDS=14400
+```
 
-   Atau, jika project diimport lewat dashboard, salin isi `vercel.json` ke
-   root repo (Vercel hanya membaca `vercel.json` di root saat build lewat Git).
-   `--local-config` hanya dipakai untuk deploy lewat CLI.
+Sekali lagi: `api/` harus tetap satu file. Menambah route handler di
+`deploy/spa/app/api` tidak akan ikut ke static export dan akan menambah
+function — keduanya merusak deployment Hobby.
 
-7. Tambahkan domain `kelas.riau.ai` ke project Vercel, lalu buat CNAME
-   `kelas` → `cname.vercel-dns.com` di Cloudflare (proxied). Jangan arahkan
-   `kelas.riau.ai` ke tunnel Kaggle.
+## Urutan kerja
 
-## Durasi fungsi
+1. Pastikan worker Kaggle sudah disiapkan (baca [`../kaggle/README.md`](../kaggle/README.md)):
+   secret `KELASKA_ENV_B64` terpasang di Kaggle Secrets.
+2. Deploy branch `deploy/vercel`; tambahkan domain `kelas.riau.ai` di project
+   Vercel, lalu CNAME di Cloudflare.
+3. Buka `https://kelas.riau.ai/api/health` — harus diteruskan ke backend dan
+   mengembalikan `{ "success": true, "status": "ok" }`.
+4. Buat satu kelas. `POST /api/kaggle/wake` harus mengembalikan
+   `{ "success": true, "started": true, ... }` (atau `started: false` bila
+   kernel sudah berjalan), lalu run muncul sebagai `preparing` dan diambil
+   worker Kaggle.
 
-Berkas `vercel.json` menaikkan `maxDuration` untuk route SSE
-(`/api/generation-runs/**/events`) dan streaming chat menjadi 300 detik —
-batas maksimum Hobby saat ini. Klien memakai `FetchEventSource` yang menyambung
-kembali dengan `Last-Event-ID`, jadi stream yang terputus karena batas waktu
-fungsi tetap melanjutkan dari event terakhir; biaya yang naik hanya jumlah
-invocation.
+## Kenapa tidak memakai aplikasi penuh di Vercel
 
-## Ukuran function
-
-Batas bundle function Hobby adalah 250 MB (uncompressed). Repo ini membawa
-`sharp`, `@napi-rs/canvas`, dan beberapa paket native; bila build gagal karena
-ukuran, aktifkan large functions beta dengan env
-`VERCEL_SUPPORT_LARGE_FUNCTIONS=1` (sampai 5 GB) lalu redeploy. Untuk melihat
-penyebabnya, set `VERCEL_ANALYZE_BUILD_OUTPUT=1`.
-
-## Verifikasi
-
-- `GET /api/health` → `200` dengan body `{ "success": true, "status": "ok" }`.
-- `POST /api/generation-runs` → `202`, lalu cek di worker bahwa run muncul
-  sebagai `queued` lalu berpindah ke `preparing`/`generating`.
-- Buka halaman progres kursus: SSE harus menampilkan event yang ditulis worker.
-- Pastikan tidak ada permintaan ke endpoint GPU lokal dari Vercel; bila perlu,
-  matikan `IMAGE_COMFYUI_ENABLED` dan arahkan TTS ke browser-native.
-
-## Catatan build
-
-`buildCommand` menjalankan skrip pra-build repo (sinkronisasi aset interaktif,
-player standalone, dan pengecekan vendor). Karena modul
-`lib/config/deploy-target.ts` membaca `VERCEL`, `next build` di Vercel tidak
-menghasilkan `.next/standalone`—itu memang yang diharapkan. Build Docker untuk
-worker tidak boleh menyetel `OPENMAIC_DEPLOY_TARGET=vercel`, kalau tidak
-`COPY .next/standalone` di Dockerfile akan gagal.
+Selain batas function, Vercel tidak punya filesystem awet, runner latar
+belakang, dan GPU. Itu semua sudah ada di [`../kaggle/README.md`](../kaggle/README.md).
+Kode seam `lib/config/deploy-target.ts` dan trigger untuk aplikasi penuh tetap
+dipertahankan di branch ini untuk deployment self-hosted / Cloudflare
+Containers; keduanya tidak dipakai oleh build `deploy/spa`.

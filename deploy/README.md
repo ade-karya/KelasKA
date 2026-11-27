@@ -12,13 +12,16 @@ proses apa yang boleh ia lakukan di host tempat ia berjalan.
 | `self-hosted` | Docker Compose / `bun run start` / PM2 | ya | ya | ya | aplikasi penuh (default) |
 | `kaggle` | `install.sh --kaggle` di notebook | ya | tidak | ya (bila GPU ada) | aplikasi penuh + layanan GPU |
 | `colab` | `install.sh --colab` di runtime | ya | tidak | ya (bila GPU ada) | aplikasi penuh + layanan GPU |
-| `vercel` | Vercel functions (Next.js) | **tidak** | tidak | tidak | UI, pustaka kursus, auth, API DB; generation diantre |
+| `vercel` (Hobby) | `deploy/spa` + 1 function | **tidak** | tidak | tidak | UI statis, proxy `/api/*`, pemicu Kaggle |
 | `cloudflare` | Cloudflare Containers | **tidak** | tidak | tidak | UI, pustaka kursus, auth, API DB |
 
-Vercel dan Cloudflare berjalan dalam **mode terbatas**: UI, perpustakaan/
-pemutaran kursus, auth, dan seluruh API berbasis PostgreSQL tetap berfungsi.
-Pembuatan kursus, agen, dan media/GPU dijalankan oleh **worker eksternal** yang
-memakai `DATABASE_URL` yang sama.
+Vercel berjalan dalam **mode terbatas**: karena Hobby hanya mengizinkan 12
+Serverless Function, app Next.js penuh (~126 route) tidak bisa di-deploy. Yang
+dipakai adalah static export `deploy/spa` plus satu function catch-all yang
+meneruskan `/api/*` ke backend dan menjalankan kernel Kaggle lewat API.
+Pembuatan kursus, agen, dan media/GPU dijalankan oleh **worker eksternal** di
+Kaggle yang memakai `DATABASE_URL` yang sama. Cloudflare Containers memakai
+app penuh dalam mode terbatas.
 
 > Untuk deployment split lama (Cloudflare Worker + tunnel Colab/Kaggle), lihat
 > [`split-deployment.md`](split-deployment.md). Untuk target Vercel + Kaggle

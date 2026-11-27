@@ -1,17 +1,38 @@
 # Kaggle — worker penuh + GPU (on-demand)
 
-Kaggle dipakai dalam dua mode:
+Ada dua peran Kaggle. **Peran yang dipakai sekarang** adalah worker penuh untuk
+Vercel: halaman Vercel hanya SPA statis, dan function `/api/kaggle/wake`-nya
+menjalankan kernel ini lewat Kaggle API. Kernel
+[`worker-kernel.py`](./worker-kernel.py) meng-clone branch `deploy/kaggle`,
+menjalankan `install.sh --kaggle` (aplikasi penuh + generation runner + GPU),
+lalu mengklaim generation run dari `DATABASE_URL` yang sama dengan Vercel.
 
-1. **Worker penuh untuk Vercel (mode yang dipakai sekarang).** Notebook
-   menjalankan `deploy/kaggle/run.sh` → `install.sh --kaggle`, sehingga
-   aplikasi Next.js, generation runner, dan layanan GPU hidup di kernel yang
-   sama. Vercel hanya mengantre run ke PostgreSQL; kernel ini mengklaim dan
-   mengerjakannya. Tidak perlu tunnel untuk peran ini.
-2. **GPU node untuk split deployment lama.** `kelaska-gpu.py` hanya
-   menjalankan ComfyUI/VoxCPM/FunASR/Ollama di balik `gpu.riau.ai`; aplikasi
-   penuh ada di host lain. Bagian itu tetap didokumentasikan di bawah.
+## Menyiapkan worker penuh
 
-## Worker penuh (Vercel + Kaggle)
+1. Buat Kaggle Secret `KELASKA_ENV_B64` — base64 dari `.env.local` produksi.
+   Nilainya harus memuat `DATABASE_URL`, `OPENMAIC_SECRET_KEY`, `GOOGLE_API_KEY`,
+   `HF_S3_*`, dan `WORKER_STATUS_TOKEN` yang sama dengan yang dipakai aplikasi.
+   Base64 ini dibuat operator dari `.env.local` produksi dan **jangan**
+   di-commit ke repo. Nilai `DATABASE_URL` port 6543 akan diganti kernel ke
+   5432 untuk koneksi panjang.
+2. Vercel menyimpan `KAGGLE_USERNAME`, `KAGGLE_KEY`, dan
+   `KAGGLE_KERNEL_REF=akjdev/kelaska-worker`. Saat ada kelas dibuat, Vercel
+   memanggil `SaveKernel` dengan `kernelExecutionType: SAVE_AND_RUN_ALL` dan
+   source `worker-kernel.py` dari branch `deploy/kaggle`.
+3. Kernel memilih `openmaic.yml` dari `deploy/kaggle/openmaic.yml` bila GPU
+   terlihat, atau `openmaic.cpu.yml` bila tidak. Slot media tidak pernah
+   diarahkan ke endpoint yang tidak lolos health check.
+4. Setelah `install.sh` selesai, kernel menunggu `/api/health`, lalu polling
+   `/api/worker/status` dengan `WORKER_STATUS_TOKEN`. Bila tidak ada run
+   `claimable`/`active` selama 10 menit, kernel keluar dan kuota GPU berhenti.
+
+Verifikasi: `POST https://kelas.riau.ai/api/kaggle/wake` →
+`{ "success": true, "started": true }`, lalu log kernel menampilkan
+`[GenerationRunner] claimed`.
+
+### Menjalankan manual dari notebook
+
+Tanpa pemicu Vercel, worker yang sama bisa dijalankan langsung:
 
 ```python
 !git clone --depth 1 --branch deploy/kaggle https://github.com/ade-karya/KelasKA.git /kaggle/temp/KelasKA
@@ -19,32 +40,18 @@ Kaggle dipakai dalam dua mode:
 !bash deploy/kaggle/run.sh
 ```
 
-Sebelum menjalankan, isi `.env.local` dari
+Isi `.env.local` lebih dulu dari
 [`../shared/env.worker.example`](../shared/env.worker.example) — terutama
 `DATABASE_URL`, `OPENMAIC_SECRET_KEY`, `HF_S3_*`, `GOOGLE_API_KEY`, dan
 `OPENMAIC_AGENT_RUNTIME_ENABLED=true`. Nilai `DATABASE_URL` dan
-`OPENMAIC_SECRET_KEY` **harus sama persis** dengan project Vercel.
+`OPENMAIC_SECRET_KEY` **harus sama persis** dengan Vercel.
 
-`install.sh --kaggle` mendeteksi profil `kaggle` (atau set
-`OPENMAIC_DEPLOY_TARGET=kaggle`), menyalakan background worker, dan hanya
-menulis endpoint GPU yang lolos health check. Setelah installer selesai,
-buka port 3000 lewat proxy notebook untuk memeriksa `GET /api/health`, lalu
-biarkan kernel hidup selama antrean diproses. Tanpa GPU, installer memakai
-TTS browser-native dan tidak memasang layanan media.
+## Kaggle GPU node (mode split lama)
 
-Verifikasi bahwa worker benar-benar mengambil run:
-
-```bash
-# di Vercel / browser: POST /api/generation-runs -> 202
-# di log kernel:
-grep '\[GenerationRunner\] claimed' logs/*.log
-```
-
-## Mode GPU node (split deployment)
-
-Dokumen di bawah ini menjelaskan mode kedua: Kaggle sebagai GPU node yang
-dimulai oleh Cloudflare Worker untuk deployment split. Gunakan
-`deploy/kaggle/kelaska-gpu.py` dan tunnel `gpu.riau.ai`, bukan `run.sh`.
+This half of the deployment owns every GPU workload (ComfyUI/SDXL, VoxCPM2
+TTS, FunASR ASR, Ollama). It is started **only by the Cloudflare Worker**, via
+the Kaggle API, when a generation asks for a GPU. There is no always-on Kaggle
+server.
 
 ## The Gmail sign-in and the API token
 
