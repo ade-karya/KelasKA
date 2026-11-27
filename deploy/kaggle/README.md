@@ -1,5 +1,42 @@
 # Kaggle GPU node
 
+## Vercel-node mode (this branch: `deploy/kaggle`)
+
+On the `deploy/kaggle` branch the kernel is **not** started by the Cloudflare
+Worker. It is a notebook you run once: `KelasKA-Kaggle-Deploy.ipynb`, generated
+from the committed plain-Python source with:
+
+```bash
+node deploy/kaggle/make-notebook.mjs     # writes ./KelasKA-Kaggle-Deploy.ipynb
+```
+
+Upload that notebook to Kaggle, switch the accelerator to **GPU T4 x2**, add the
+secrets below, and run all cells. The kernel clones `deploy/kaggle`, writes
+`.env.local` from `KELASKA_ENV_B64` (and merges it into the server process
+environment), starts the standalone Next.js app on `:3000`, starts ComfyUI /
+FunASR / VoxCPM2 through `scripts/gpu-services.sh`, and publishes the app on one
+Cloudflare Tunnel:
+
+| Kaggle Secret | Purpose |
+| --- | --- |
+| `KELASKA_ENV_B64` | `base64 -w0 .env.local` (Supabase, DB, Gemini, `AUTH_ENABLED`, …) |
+| `KELASKA_AUTH_PUBLIC_URL` | Vercel origin — the Google callback must land here |
+| `KELASKA_PROXY_TOKEN` | matches Vercel's `KAGGLE_PROXY_TOKEN`; closes the tunnel to direct traffic |
+| `KELASKA_APP_TUNNEL_TOKEN` | named tunnel token (optional; otherwise a quick `trycloudflare.com` URL is printed) |
+| `KELASKA_GITHUB_TOKEN` | only if `ade-karya/KelasKA` is private |
+| `KELASKA_OPENMAIC_YML_B64` | optional override of `deploy/kaggle/openmaic.kaggle.yml` |
+
+Set `KAGGLE_ORIGIN` (tunnel URL) and `KAGGLE_PROXY_TOKEN` in Vercel to finish the
+link. A prebuilt app can be mounted as `<dataset>/app` via
+`deploy/scripts/package-kaggle-app.sh`; without it the kernel builds in-place
+(10–15 min). Logs are in `/kaggle/temp/kelaska-logs/`.
+
+Everything below describes the **Worker-driven** kernel (`kelaska-gpu.py`) used
+by the older topology on the `Colab` branch; it also remains in this branch for
+reference.
+
+## Worker-driven mode (legacy)
+
 This half of the deployment owns every GPU workload (ComfyUI/SDXL, VoxCPM2
 TTS, FunASR ASR, Ollama). It is started **only by the Cloudflare Worker**, via
 the Kaggle API, when a generation asks for a GPU. There is no always-on Kaggle
