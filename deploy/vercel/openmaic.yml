@@ -1,0 +1,35 @@
+# Model configuration for the Vercel (serverless) half of the deployment.
+# Secrets stay in the environment; this file only names providers and slots.
+# Copied to the repo root by scripts/write-openmaic-yml.mjs during the build.
+#
+# No GPU and no local CLI live here, so the media slots that need them are not
+# assigned. The run engine skips an unassigned slot; generation itself (LLM,
+# agent, classroom, ASR) stays on Gemini and the narration plays in the
+# browser. The heavy media work happens in the Kaggle worker.
+providers:
+  google:
+    preset: google
+    apiKey: ${GOOGLE_API_KEY}
+    models:
+      - gemini-3.8-flash
+      - gemini-3.6-flash
+      - gemini-3.5-flash-lite
+      - gemini-3.1-flash-lite
+
+  google-asr:
+    preset: google-asr
+    apiKey: ${GOOGLE_API_KEY}
+    models:
+      - gemini-3.1-flash-lite
+      - gemini-3.5-transcribe
+
+slots:
+  llm:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  agent:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  classroom: google:gemini-3.5-flash-lite
+  asr: google-asr:gemini-3.1-flash-lite
+  tts: browser-native-tts

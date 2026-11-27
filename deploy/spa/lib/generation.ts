@@ -26,6 +26,25 @@ function failure(status: number): Error {
   );
 }
 
+/**
+ * Wake the on-demand Kaggle worker before a run is enqueued. The worker boots
+ * in several minutes, so the run simply waits in `preparing` until it claims
+ * the row; a wake failure is deliberately swallowed here (the next start or
+ * command retries it).
+ */
+export async function wakeWorker(fetchImpl: typeof fetch = fetch): Promise<boolean> {
+  try {
+    const response = await fetchImpl('/api/kaggle/wake', {
+      method: 'POST',
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function startRun(
   input: StartRunInput,
   fetchImpl: typeof fetch = fetch,

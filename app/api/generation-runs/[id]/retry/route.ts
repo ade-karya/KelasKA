@@ -13,6 +13,7 @@
 import { assertWorkspaceModelsAuthorized } from '@/lib/server/model-config/runtime';
 import { GENERATION_MODEL_SLOTS } from '@/lib/server/generation/run/start';
 import type { NextRequest } from 'next/server';
+import { after } from 'next/server';
 
 import { apiSuccess } from '@/lib/server/api-response';
 import {
@@ -34,6 +35,7 @@ import {
   RunCommandConflictError,
 } from '@/lib/server/generation/run/store';
 import { withRequestOwner } from '@/lib/server/identity/with-owner';
+import { ensureKaggleWorker } from '@/lib/server/kaggle/launch';
 import { wakeOwnerMaterialExtractor } from '@/lib/server/materials/extractor-wake';
 
 export const runtime = 'nodejs';
@@ -59,6 +61,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       wakeGenerationRunner();
       // A Retry at the materials restarts their failed extractions.
       wakeOwnerMaterialExtractor();
+      after(() => {
+        void ensureKaggleWorker('generation-run-retry');
+      });
       return withOwnerResponseHeaders(apiSuccess({ ...result }), responseHeaders);
     } catch (error) {
       if (error instanceof RunCommandConflictError) {

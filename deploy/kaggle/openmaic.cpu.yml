@@ -1,0 +1,32 @@
+# Model configuration for the Kaggle worker WITHOUT a GPU.
+# Copied to the repo root as openmaic.yml by deploy/kaggle/worker-kernel.py.
+# Never point a media slot at a backend that did not pass a health check: a
+# configured-but-dead endpoint hard-fails a run, while an unassigned slot is
+# skipped. Narration falls back to browser-native TTS and images are skipped.
+providers:
+  google:
+    preset: google
+    apiKey: ${GOOGLE_API_KEY}
+    models:
+      - gemini-3.8-flash
+      - gemini-3.6-flash
+      - gemini-3.5-flash-lite
+      - gemini-3.1-flash-lite
+
+  google-asr:
+    preset: google-asr
+    apiKey: ${GOOGLE_API_KEY}
+    models:
+      - gemini-3.1-flash-lite
+      - gemini-3.5-transcribe
+
+slots:
+  llm:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  agent:
+    model: google:gemini-3.5-flash-lite
+    fallback: google:gemini-3.1-flash-lite
+  classroom: google:gemini-3.5-flash-lite
+  asr: google-asr:gemini-3.1-flash-lite
+  tts: browser-native-tts

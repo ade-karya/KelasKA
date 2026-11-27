@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingIncludes: {
     '/*': [
+      // Vercel builds write openmaic.yml from a base64 secret (or the tracked
+      // deploy/vercel template). The loader reads it by a computed path, so
+      // the tracer cannot see it and the function would start without any
+      // provider/slot configuration.
+      'openmaic.yml',
       'skills/pbl/pbl-explanation/SKILL.md',
       'lib/server/agent-runtime/import-pptx-worker.mjs',
       // The Antigravity bridge is spawned by path at run time
