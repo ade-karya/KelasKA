@@ -108,6 +108,17 @@ async function enforceAuth(request: NextRequest): Promise<NextResponse | undefin
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // The Kaggle app is published on a tunnel, but only the Vercel project's
+  // external rewrite may call it: that route injects this shared secret, and
+  // anything arriving without it is refused before a page or API runs. Unset
+  // keeps the historical behaviour for a direct/self-hosted deployment.
+  const proxyToken = process.env.KELASKA_PROXY_TOKEN?.trim();
+  if (proxyToken && pathname !== '/api/health') {
+    if (request.headers.get('x-kelaska-proxy-token') !== proxyToken) {
+      return new NextResponse('Not found', { status: 404 });
+    }
+  }
+
   // This machine-only route verifies its own signed gateway request in Node.
   if (pathname === '/api/sandbox/preview/resolve') return NextResponse.next();
 

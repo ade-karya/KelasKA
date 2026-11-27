@@ -19,13 +19,21 @@
  */
 import { redirect } from 'next/navigation';
 import { isWorkbenchEntryEnabled } from '@/lib/workbench/entry-gate';
+import { isWorkbenchEnabled } from '@/lib/config/feature-flags';
 import { authEnabled } from '@/lib/server/auth/config';
 import { currentPageUser, homeForRole } from '@/lib/server/auth/guards';
 import { requireApiKeyPass } from '@/lib/server/auth/api-key-gate';
 import { WorkspaceEntry } from '@/components/workbench/WorkspaceEntry';
+import { StaticHome } from '@/components/static-ui/static-home';
 import { ClassicHomePage } from './classic-home';
 
 export default async function Page() {
+  // The Vercel branch is a static export: no request cookies at build time.
+  // The same role routing runs client-side after `/api/auth/me` answers.
+  if (process.env.STATIC_UI === '1') {
+    return <StaticHome workbench={isWorkbenchEnabled()} />;
+  }
+
   // With accounts on, `/` is the student home. A teacher is sent to the
   // workspace and an admin to the user console; when the workbench is not part
   // of this build, `homeForRole` answers `/` for both, and the classic home is

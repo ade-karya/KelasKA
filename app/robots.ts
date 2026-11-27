@@ -4,6 +4,8 @@ import type { MetadataRoute } from 'next';
 // production zone (AI content-signals preamble) has no Sitemap pointer. This
 // one keeps the deployment self-describing; if the zone keeps overriding it at
 // the edge, nothing breaks — crawlers just keep their current behaviour.
+export const dynamic = 'force-static';
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {

@@ -8,12 +8,16 @@ import { notFound } from 'next/navigation';
 
 import { AccountForms } from '@/components/auth/account-forms';
 import { BrandLogo } from '@/components/brand-logo';
+import { StaticAccount } from '@/components/static-ui/static-account';
+import { isWorkbenchEnabled } from '@/lib/config/feature-flags';
 import { authEnabled } from '@/lib/server/auth/config';
 import { homeForRole, requirePageUser } from '@/lib/server/auth/guards';
 
-export const dynamic = 'force-dynamic';
 
 export default async function AccountPage() {
+  if (process.env.STATIC_UI === '1') {
+    return <StaticAccount workbench={isWorkbenchEnabled()} />;
+  }
   if (!authEnabled()) notFound();
   const user = await requirePageUser('/account');
 

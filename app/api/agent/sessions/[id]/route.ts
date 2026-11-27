@@ -29,6 +29,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   });
 }
 
+/**
+ * Delete (soft) one conversation. The workspace rail's row menu calls this
+ * instead of a Server Action, so the static Vercel build can delete too.
+ */
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!isAgentRuntimeConfigured()) {
+    return new Response('Not found', { status: 404 });
+  }
+
+  return withRequestOwner(req, async ({ ownerId }, responseHeaders) => {
+    const { id } = await params;
+    if (isPBLRoleSession(id)) {
+      return NextResponse.json({ deleted: false }, { status: 404, headers: responseHeaders });
+    }
+    const store = await getAgentSessionStore();
+    const deleted = await store.softDeleteSession(id, ownerId);
+    return NextResponse.json({ deleted }, { status: deleted ? 200 : 404, headers: responseHeaders });
+  });
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!isAgentRuntimeConfigured()) {
     return new Response('Not found', { status: 404 });

@@ -32,14 +32,19 @@
  */
 import { redirect } from 'next/navigation';
 import { isWorkbenchEntryEnabled } from '@/lib/workbench/entry-gate';
+import { isWorkbenchEnabled } from '@/lib/config/feature-flags';
 import { authEnabled } from '@/lib/server/auth/config';
 import { currentPageUser } from '@/lib/server/auth/guards';
 import { requireApiKeyPass } from '@/lib/server/auth/api-key-gate';
 import { WorkspaceEntry } from '@/components/workbench/WorkspaceEntry';
+import { StaticWorkspace } from '@/components/static-ui/static-workspace';
 
-export const dynamic = 'force-dynamic';
 
 export default async function WorkspacePage() {
+  if (process.env.STATIC_UI === '1') {
+    return <StaticWorkspace workbench={isWorkbenchEnabled()} />;
+  }
+
   if (authEnabled()) {
     const user = await currentPageUser();
     if (!user) redirect('/login?next=%2Fworkspace');

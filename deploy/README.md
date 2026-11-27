@@ -1,5 +1,31 @@
 # KelasKA split deployment
 
+## Two-branch deployment: Vercel UI + Kaggle compute (current goal)
+
+`deploy/vercel` and `deploy/kaggle` carry the same application code but different
+deployment config. Vercel Hobby serves the **static UI with zero functions**;
+every `/api/*` call is a CDN rewrite to the Kaggle tunnel, where the full app and
+the GPU services run in one 2× T4 session. See
+[`deploy/vercel/README.md`](./vercel/README.md) for the Vercel project setup and
+environment variables, and [`deploy/kaggle/README.md`](./kaggle/README.md) for
+the Kaggle notebook (`KelasKA-Kaggle-Deploy.ipynb`, generated from
+`deploy/kaggle/kelaska-vercel-kernel.py`).
+
+```
+ browser ──▶ Vercel (static UI, 0 functions)
+                 │  /api/* → CDN rewrite → KAGGLE_ORIGIN + proxy token
+                 ▼
+              Kaggle 2× T4: Next.js app :3000 + ComfyUI/VoxCPM/FunASR
+```
+
+The rest of this document describes the older Cloudflare-Worker topology
+(Worker at `kelaska.riau.ai`, full app on Colab, GPU started on demand). That
+topology remains supported by `deploy/cloudflare-worker` and the `Colab` branch;
+do not confuse its `STATIC_UI_ENABLED` switch with the `STATIC_UI=1` build used
+by the Vercel branch.
+
+---
+
 ```
                        ┌───────────────────────┐
      browser ─────────▶│ Cloudflare Worker     │  kelaska.riau.ai/*

@@ -7,20 +7,30 @@
  * redirect or a 403 until this wizard finishes, or an admin exempts the
  * account. An account that already passes the gate is sent home.
  */
+import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 
 import { ApiKeyOnboarding } from '@/components/onboarding/api-key-onboarding';
+import { FullPageLoading } from '@/components/static-ui/static-auth-gate';
+import { StaticOnboarding } from '@/components/static-ui/static-onboarding';
+import { isWorkbenchEnabled } from '@/lib/config/feature-flags';
 import { authEnabled } from '@/lib/server/auth/config';
 import { homeForRole, requirePageUser, safeNextPath } from '@/lib/server/auth/guards';
 import { apiKeyPassesForUser } from '@/lib/server/auth/api-key-gate';
 
-export const dynamic = 'force-dynamic';
 
 export default async function OnboardingApiKeyPage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string | string[] }>;
 }) {
+  if (process.env.STATIC_UI === '1') {
+    return (
+      <Suspense fallback={<FullPageLoading />}>
+        <StaticOnboarding workbench={isWorkbenchEnabled()} />
+      </Suspense>
+    );
+  }
   if (!authEnabled()) notFound();
   const user = await requirePageUser('/onboarding/api-key');
   const params = await searchParams;

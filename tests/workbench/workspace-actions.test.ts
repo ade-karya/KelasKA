@@ -1,18 +1,36 @@
-import { beforeEach, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ remove: vi.fn(async () => true) }));
-vi.mock('@/lib/server/identity/resolve', () => ({
-  requireContextOwner: async () => ({ ownerId: 'owner-a' }),
-}));
-vi.mock('@/lib/server/agent-runtime/store', () => ({
-  getAgentSessionStore: async () => ({ softDeleteSession: mocks.remove }),
-}));
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+
 import { deleteWorkspaceSession } from '@/lib/workbench/workspace-actions';
-beforeEach(() => vi.clearAllMocks());
-it('refuses deletion of internal teaching sessions on the server', async () => {
-  expect(await deleteWorkspaceSession('pbl-role-internal')).toEqual({ deleted: false });
-  expect(mocks.remove).not.toHaveBeenCalled();
+
+const fetchMock = vi.fn();
+
+beforeEach(() => {
+  vi.stubGlobal('fetch', fetchMock);
+  fetchMock.mockReset();
 });
-it('preserves owner-scoped deletion of ordinary chats', async () => {
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+it('refuses an empty id without a request', async () => {
+  expect(await deleteWorkspaceSession('   ')).toEqual({ deleted: false });
+  expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('deletes through the owner-scoped route', async () => {
+  fetchMock.mockResolvedValue(new Response(JSON.stringify({ deleted: true }), { status: 200 }));
   expect(await deleteWorkspaceSession('chat-a')).toEqual({ deleted: true });
-  expect(mocks.remove).toHaveBeenCalledWith('chat-a', 'owner-a');
+  expect(fetchMock).toHaveBeenCalledWith(
+    '/api/agent/sessions/chat-a',
+    expect.objectContaining({ method: 'DELETE' }),
+  );
+});
+
+it('reports a refused or failed delete as not deleted', async () => {
+  fetchMock.mockResolvedValue(new Response('Not found', { status: 404 }));
+  expect(await deleteWorkspaceSession('chat-a')).toEqual({ deleted: false });
+
+  fetchMock.mockRejectedValue(new Error('offline'));
+  expect(await deleteWorkspaceSession('chat-a')).toEqual({ deleted: false });
 });

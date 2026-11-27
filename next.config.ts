@@ -1,10 +1,19 @@
 import type { NextConfig } from 'next';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
+/**
+ * The Vercel branch builds the UI as a static export (`STATIC_UI=1`): the
+ * browser gets plain HTML/JS, and every `/api/*` call is rewritten to the
+ * compute gateway. The Kaggle branch keeps the normal standalone build.
+ */
+const staticUi = process.env.STATIC_UI === '1';
+
 const nextConfig: NextConfig = {
   // Keep Next dev from creating or rewriting repository agent instructions.
   agentRules: false,
-  output: 'standalone',
+  output: staticUi ? 'export' : 'standalone',
+  // A static export cannot run the Image Optimization API.
+  ...(staticUi ? { images: { unoptimized: true } } : {}),
   // The app used to ship `X-Powered-By: Next.js`, which only helps fingerprint
   // the stack. There is no consumer of the header.
   poweredByHeader: false,
@@ -100,6 +109,9 @@ const nextConfig: NextConfig = {
     proxyClientMaxBodySize: '200mb',
   },
   async headers() {
+    // A static export serves files directly; the security headers are set by
+    // the gateway (Cloudflare Worker) or the Vercel project instead.
+    if (staticUi) return [];
     const extraAncestors = process.env.ALLOWED_FRAME_ANCESTORS?.trim();
     const frameAncestors = extraAncestors ? `'self' ${extraAncestors}` : "'self'";
 

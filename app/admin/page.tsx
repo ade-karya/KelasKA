@@ -8,13 +8,14 @@
 import { notFound } from 'next/navigation';
 
 import { AdminConsole } from '@/components/admin/admin-console';
+import { StaticAdmin } from '@/components/static-ui/static-admin';
 import { authEnabled } from '@/lib/server/auth/config';
 import { requirePageRole } from '@/lib/server/auth/guards';
 import { requireApiKeyPass } from '@/lib/server/auth/api-key-gate';
 
-export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
+  if (process.env.STATIC_UI === '1') return <StaticAdmin />;
   if (!authEnabled()) notFound();
   const user = await requirePageRole(['admin'], '/admin');
   await requireApiKeyPass(user);

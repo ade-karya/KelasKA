@@ -55,7 +55,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://kelaska.riau.ai'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://kelaska.riau.ai'),
   title: 'Kelas KA',
   description:
     'Platform pembelajaran interaktif berbasis AI Kelas KA. Unggah PDF untuk menghasilkan pengalaman belajar imersif secara instan.',
@@ -91,13 +91,23 @@ export default async function RootLayout({
 }>) {
   // The client hydrates with this same locale and bundle instead of detecting
   // its own, so the first render matches the server's HTML.
-  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
-  const locale = resolveRequestLocale({
-    cookie: cookieStore.get(LOCALE_COOKIE)?.value,
-    acceptLanguage: headerStore.get('accept-language'),
-  });
+  //
+  // A static export (Vercel) has no request at render time: `cookies()` and
+  // `headers()` are unavailable, so the build pins the default locale and the
+  // desktop-first layout. The browser can still switch language/theme after
+  // hydration through the existing providers.
+  const staticUi = process.env.STATIC_UI === '1';
+  let locale = resolveRequestLocale({ cookie: undefined, acceptLanguage: null });
+  let initialMobileLayout = false;
+  if (!staticUi) {
+    const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+    locale = resolveRequestLocale({
+      cookie: cookieStore.get(LOCALE_COOKIE)?.value,
+      acceptLanguage: headerStore.get('accept-language'),
+    });
+    initialMobileLayout = identifyRequestDevice(headerStore.get('user-agent')).initialMobileLayout;
+  }
   const resources = await loadLocaleResource(locale);
-  const { initialMobileLayout } = identifyRequestDevice(headerStore.get('user-agent'));
 
   return (
     <html lang={locale} suppressHydrationWarning>

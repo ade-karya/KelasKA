@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   runtimeEnabled: true,
   getSession: vi.fn(),
   setManualSessionTitle: vi.fn(),
+  softDeleteSession: vi.fn(),
 }));
 
 vi.mock('@/lib/config/feature-flags', () => ({
@@ -23,10 +24,11 @@ vi.mock('@/lib/server/agent-runtime/store', () => ({
   getAgentSessionStore: async () => ({
     getSession: mocks.getSession,
     setManualSessionTitle: mocks.setManualSessionTitle,
+    softDeleteSession: mocks.softDeleteSession,
   }),
 }));
 
-import { GET, PATCH } from '@/app/api/agent/sessions/[id]/route';
+import { DELETE, GET, PATCH } from '@/app/api/agent/sessions/[id]/route';
 
 function call() {
   return GET(new NextRequest('http://localhost/api/agent/sessions/session-1'), {
@@ -52,6 +54,7 @@ beforeEach(() => {
   mocks.setManualSessionTitle.mockImplementation(
     async (id: string, ownerId: string, title: string | null) => ({ id, ownerId, title }),
   );
+  mocks.softDeleteSession.mockResolvedValue(true);
 });
 
 describe('GET one agent session', () => {
@@ -129,6 +132,34 @@ describe('PATCH agent session title', () => {
   });
 });
 
+describe('DELETE an agent session', () => {
+  function remove(id = 'session-1') {
+    return DELETE(new NextRequest(`http://localhost/api/agent/sessions/${id}`), {
+      params: Promise.resolve({ id }),
+    });
+  }
+
+  it('soft-deletes the owned session and reports the result', async () => {
+    const response = await remove();
+    expect(response.status).toBe(200);
+    expect(mocks.softDeleteSession).toHaveBeenCalledWith('session-1', 'owner-1');
+    await expect(response.json()).resolves.toEqual({ deleted: true });
+  });
+
+  it('answers not found when the store refuses to delete it', async () => {
+    mocks.softDeleteSession.mockResolvedValue(false);
+    const response = await remove();
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ deleted: false });
+  });
+
+  it('stays behind the runtime feature gate', async () => {
+    mocks.runtimeEnabled = false;
+    expect((await remove()).status).toBe(404);
+    expect(mocks.softDeleteSession).not.toHaveBeenCalled();
+  });
+});
+
 it('hides teaching sessions from generic detail and title APIs', async () => {
   const id = 'pbl-role-owned';
   const response = await GET(new NextRequest(`http://localhost/api/agent/sessions/${id}`), {
@@ -139,4 +170,10 @@ it('hides teaching sessions from generic detail and title APIs', async () => {
   expect((await patch(JSON.stringify({ title: 'Bypass' }), id)).status).toBe(404);
   expect(mocks.getSession).not.toHaveBeenCalled();
   expect(mocks.setManualSessionTitle).not.toHaveBeenCalled();
+
+  const deleted = await DELETE(new NextRequest(`http://localhost/api/agent/sessions/${id}`), {
+    params: Promise.resolve({ id }),
+  });
+  expect(deleted.status).toBe(404);
+  expect(mocks.softDeleteSession).not.toHaveBeenCalled();
 });

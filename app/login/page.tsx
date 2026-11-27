@@ -6,19 +6,30 @@
  * when the callback refused a sign-in, the reason (`pending`, `google_denied`,
  * …) the form shows in the visitor's language.
  */
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 
 import { LoginForm } from '@/components/auth/login-form';
+import { StaticLogin } from '@/components/static-ui/static-login';
+import { FullPageLoading } from '@/components/static-ui/static-auth-gate';
+import { isWorkbenchEnabled } from '@/lib/config/feature-flags';
 import { authEnabled, supabaseBrowserConfigured } from '@/lib/server/auth/config';
 import { currentPageUser, homeForRole } from '@/lib/server/auth/guards';
 
-export const dynamic = 'force-dynamic';
 
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string | string[]; error?: string | string[] }>;
 }) {
+  if (process.env.STATIC_UI === '1') {
+    return (
+      <Suspense fallback={<FullPageLoading />}>
+        <StaticLogin workbench={isWorkbenchEnabled()} />
+      </Suspense>
+    );
+  }
+
   if (!authEnabled()) redirect('/');
 
   const user = await currentPageUser();
