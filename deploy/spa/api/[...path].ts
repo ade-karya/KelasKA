@@ -200,7 +200,12 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   const segments = url.pathname.split('/').filter(Boolean).slice(1); // drop "api"
   // Vercel's filesystem route only matches one segment after /api. A rewrite
   // folds the remaining segments into ?rest=..., so restore them here.
-  const rest = url.searchParams.get('rest');
+  const queryRest = (req as IncomingMessage & { query?: Record<string, string | string[]> }).query
+    ?.rest;
+  const rest =
+    url.searchParams.get('rest') ||
+    (Array.isArray(queryRest) ? queryRest[0] : queryRest) ||
+    undefined;
   url.searchParams.delete('rest');
   const path = rest ? `${segments.join('/')}/${rest}` : segments.join('/');
 
