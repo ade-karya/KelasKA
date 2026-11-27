@@ -1,6 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
   "installCommand": "npm install",
   "buildCommand": "npm run build",
   "outputDirectory": "out",
@@ -8,6 +7,14 @@
     {
       "source": "/__kelaska/:path*",
       "destination": "https://kelaska.riau.ai/__kelaska/:path*"
+    },
+    {
+      "source": "/api/:a/:b/:c",
+      "destination": "/api/:a~:b~:c"
+    },
+    {
+      "source": "/api/:a/:b",
+      "destination": "/api/:a~:b"
     }
   ]
 }
