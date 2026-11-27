@@ -1,48 +1,68 @@
-# Vercel (Hobby) — static offline/status page only
+# Deploy ke Vercel (Hobby) — SPA statis + satu function
 
-This app has ~126 API routes, but Vercel's **Hobby** plan allows at most 12
-Serverless Functions per deployment. Building the full Next.js app on Hobby
-therefore fails at deploy time. The deployment uses Vercel for one thing only:
-a static page served when the Colab app is offline.
+Vercel **tidak bisa** menjalankan aplikasi Next.js penuh di paket Hobby:
+deployment ditolak dengan `exceeded_serverless_functions_per_deployment` karena
+app punya ~126 route, sementara Hobby hanya mengizinkan **12 Serverless Function** per
+deployment. Build-nya berhasil, tapi tahap deploy gagal.
 
-- Project: `adekarya-projects/kelaska`
-- Production URL: `https://kelaska.vercel.app`
-- Root Directory: `deploy/vercel-status`
-- Framework: none (plain static HTML), install/build commands: auto
-- Functions in deployment: 0
+Jadi Vercel menjalankan:
 
-`index.html` fetches `/__kelaska/status` from the Cloudflare Worker and shows
-Colab/GPU/queue state. The Worker's own endpoint is intercepted before any
-origin, so the static page can read it same-origin.
+- `deploy/spa` — static export (0 function) untuk seluruh halaman UI, dan
+- **satu** function catch-all `deploy/spa/api/[[...path]].ts` yang:
+  - `POST /api/kaggle/wake` memanggil Kaggle API untuk menjalankan kernel
+    `deploy/kaggle` (pemicu worker on-demand),
+  - semua `/api/*` lain diteruskan (streaming, termasuk SSE) ke
+    `SPLIT_BACKEND_ORIGIN` — deployments Cloudflare Worker yang sudah ada —
+    dengan cookie diteruskan dan `Domain=` pada `Set-Cookie` dihapus supaya
+    cookie tetap host-only di `kelas.riau.ai`.
 
-## Routing implication
+Halaman "Buat Kelas dari Materi" memanggil `/api/kaggle/wake` sebelum
+mengantre run. Kernel Kaggleboot dalam beberapa menit, mengklaim run dari
+PostgreSQL yang sama, lalu berhenti sendiri saat antrean kosong.
 
-`deploy/cloudflare-worker/src/routing.ts` sends **every** non-`__kelaska`
-request to the full app on `api.kelaska.riau.ai` (Colab). When Colab is
-offline:
+## Konfigurasi project
 
-- browser page requests (`Accept: text/html`) are proxied to this static page;
-- generation starts are parked in the Worker's KV queue and replayed with the
-  browser's session cookie when Colab returns;
-- API calls get a small JSON `BACKEND_OFFLINE` response.
-
-If the site ever moves to Vercel Pro, the full Next.js build can be restored;
-until then do not remove `deploy/vercel-status` or set a root `vercel.json`
-build command.
-
-A static SPA is an alternative that stays on Hobby: build the client-only UI as
-static files under this root directory, and let the Worker's `STATIC_UI_ENABLED`
-flag route pages here and `/api/*` to the live session. In that mode the Worker
-also owns `POST /api/session/start` and the security headers, so Vercel can stay
-at zero functions. See `deploy/README.md` §7. The client-only shell itself
-lives in `deploy/spa/` (build instructions there); switching the project's root
-directory from `deploy/vercel-status` to `deploy/spa` is the cutover step.
-
-## CLI notes
-
-```bash
-vercel project update kelaska --root-directory deploy/vercel-status \
-  --auto-detect build-command --auto-detect install-command \
-  --framework other -y
-vercel deploy --prod --yes
 ```
+Root Directory   : deploy/spa
+Framework        : Other
+Install Command  : npm install
+Build Command    : npm run build
+Output Directory : out
+Production Branch: deploy/vercel
+Domain           : kelas.riau.ai (CNAME -> cname.vercel-dns.com di Cloudflare)
+```
+
+Env production yang dipakai function:
+
+```
+SPLIT_BACKEND_ORIGIN=https://kelaska.riau.ai
+KAGGLE_USERNAME=<username kaggle>
+KAGGLE_KEY=<kaggle.json key atau KGAT_...>
+KAGGLE_KERNEL_REF=akjdev/kelaska-worker
+KAGGLE_SESSION_TIMEOUT_SECONDS=14400
+```
+
+Sekali lagi: `api/` harus tetap satu file. Menambah route handler di
+`deploy/spa/app/api` tidak akan ikut ke static export dan akan menambah
+function — keduanya merusak deployment Hobby.
+
+## Urutan kerja
+
+1. Pastikan worker Kaggle sudah disiapkan (baca [`../kaggle/README.md`](../kaggle/README.md)):
+   secret `KELASKA_ENV_B64` terpasang di Kaggle Secrets.
+2. Deploy branch `deploy/vercel`; tambahkan domain `kelas.riau.ai` di project
+   Vercel, lalu CNAME di Cloudflare.
+3. Buka `https://kelas.riau.ai/api/health` — harus diteruskan ke backend dan
+   mengembalikan `{ "success": true, "status": "ok" }`.
+4. Buat satu kelas. `POST /api/kaggle/wake` harus mengembalikan
+   `{ "success": true, "started": true, ... }` (atau `started: false` bila
+   kernel sudah berjalan), lalu run muncul sebagai `preparing` dan diambil
+   worker Kaggle.
+
+## Kenapa tidak memakai aplikasi penuh di Vercel
+
+Selain batas function, Vercel tidak punya filesystem awet, runner latar
+belakang, dan GPU. Itu semua sudah ada di [`../kaggle/README.md`](../kaggle/README.md).
+Kode seam `lib/config/deploy-target.ts` dan trigger untuk aplikasi penuh tetap
+dipertahankan di branch ini untuk deployment self-hosted / Cloudflare
+Containers; keduanya tidak dipakai oleh build `deploy/spa`.

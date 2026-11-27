@@ -1,4 +1,52 @@
-# Kaggle GPU node
+# Kaggle — worker penuh + GPU (on-demand)
+
+Ada dua peran Kaggle. **Peran yang dipakai sekarang** adalah worker penuh untuk
+Vercel: halaman Vercel hanya SPA statis, dan function `/api/kaggle/wake`-nya
+menjalankan kernel ini lewat Kaggle API. Kernel
+[`worker-kernel.py`](./worker-kernel.py) meng-clone branch `deploy/kaggle`,
+menjalankan `install.sh --kaggle` (aplikasi penuh + generation runner + GPU),
+lalu mengklaim generation run dari `DATABASE_URL` yang sama dengan Vercel.
+
+## Menyiapkan worker penuh
+
+1. Buat Kaggle Secret `KELASKA_ENV_B64` — base64 dari `.env.local` produksi.
+   Nilainya harus memuat `DATABASE_URL`, `OPENMAIC_SECRET_KEY`, `GOOGLE_API_KEY`,
+   `HF_S3_*`, dan `WORKER_STATUS_TOKEN` yang sama dengan yang dipakai aplikasi.
+   Base64 ini dibuat operator dari `.env.local` produksi dan **jangan**
+   di-commit ke repo. Nilai `DATABASE_URL` port 6543 akan diganti kernel ke
+   5432 untuk koneksi panjang.
+2. Vercel menyimpan `KAGGLE_USERNAME`, `KAGGLE_KEY`, dan
+   `KAGGLE_KERNEL_REF=akjdev/kelaska-worker`. Saat ada kelas dibuat, Vercel
+   memanggil `SaveKernel` dengan `kernelExecutionType: SAVE_AND_RUN_ALL` dan
+   source `worker-kernel.py` dari branch `deploy/kaggle`.
+3. Kernel memilih `openmaic.yml` dari `deploy/kaggle/openmaic.yml` bila GPU
+   terlihat, atau `openmaic.cpu.yml` bila tidak. Slot media tidak pernah
+   diarahkan ke endpoint yang tidak lolos health check.
+4. Setelah `install.sh` selesai, kernel menunggu `/api/health`, lalu polling
+   `/api/worker/status` dengan `WORKER_STATUS_TOKEN`. Bila tidak ada run
+   `claimable`/`active` selama 10 menit, kernel keluar dan kuota GPU berhenti.
+
+Verifikasi: `POST https://kelas.riau.ai/api/kaggle/wake` →
+`{ "success": true, "started": true }`, lalu log kernel menampilkan
+`[GenerationRunner] claimed`.
+
+### Menjalankan manual dari notebook
+
+Tanpa pemicu Vercel, worker yang sama bisa dijalankan langsung:
+
+```python
+!git clone --depth 1 --branch deploy/kaggle https://github.com/ade-karya/KelasKA.git /kaggle/temp/KelasKA
+%cd /kaggle/temp/KelasKA
+!bash deploy/kaggle/run.sh
+```
+
+Isi `.env.local` lebih dulu dari
+[`../shared/env.worker.example`](../shared/env.worker.example) — terutama
+`DATABASE_URL`, `OPENMAIC_SECRET_KEY`, `HF_S3_*`, `GOOGLE_API_KEY`, dan
+`OPENMAIC_AGENT_RUNTIME_ENABLED=true`. Nilai `DATABASE_URL` dan
+`OPENMAIC_SECRET_KEY` **harus sama persis** dengan Vercel.
+
+## Kaggle GPU node (mode split lama)
 
 ## Vercel-node mode (this branch: `deploy/kaggle`)
 

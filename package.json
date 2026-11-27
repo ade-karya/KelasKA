@@ -17,7 +17,7 @@
     "gen:video-export-noto-cjk": "node scripts/generate-video-export-noto-cjk.mjs",
     "gen:video-export-noto-script-fonts": "node scripts/generate-video-export-noto-script-fonts.mjs",
     "dev": "node scripts/sync-interactive-assets.mjs && node scripts/prepare-code-editor.mjs && node scripts/build-standalone-player.mjs && next dev",
-    "build": "node scripts/sync-interactive-assets.mjs && node scripts/prepare-code-editor.mjs && node scripts/assert-vendor-maic-importer.mjs && node scripts/build-standalone-player.mjs && next build",
+    "build": "node scripts/write-openmaic-yml.mjs && node scripts/sync-interactive-assets.mjs && node scripts/prepare-code-editor.mjs && node scripts/assert-vendor-maic-importer.mjs && node scripts/build-standalone-player.mjs && next build",
     "start": "next start",
     "start:standalone": "node .next/standalone/server.js",
     "db:up": "docker compose -p openmaic-dev-db -f docker-compose.db.yml up -d --wait postgres",

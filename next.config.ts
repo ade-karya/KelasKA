@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants';
 
+import { isServerlessDeploy } from './lib/config/deploy-target';
+
 /**
  * The Vercel branch builds the UI as a static export (`STATIC_UI=1`): the
  * browser gets plain HTML/JS, and every `/api/*` call is rewritten to the
@@ -11,7 +13,10 @@ const staticUi = process.env.STATIC_UI === '1';
 const nextConfig: NextConfig = {
   // Keep Next dev from creating or rewriting repository agent instructions.
   agentRules: false,
-  output: staticUi ? 'export' : 'standalone',
+  // `export` is for the static Vercel UI. A serverless host that still runs
+  // functions uses its own runtime; self-hosted, Kaggle, Colab and Cloudflare
+  // Containers keep the standalone output their Dockerfile/PM2 expects.
+  output: staticUi ? 'export' : isServerlessDeploy() ? undefined : 'standalone',
   // A static export cannot run the Image Optimization API.
   ...(staticUi ? { images: { unoptimized: true } } : {}),
   // The app used to ship `X-Powered-By: Next.js`, which only helps fingerprint
@@ -23,6 +28,11 @@ const nextConfig: NextConfig = {
   },
   outputFileTracingIncludes: {
     '/*': [
+      // Vercel builds write openmaic.yml from a base64 secret (or the tracked
+      // deploy/vercel template). The loader reads it by a computed path, so
+      // the tracer cannot see it and the function would start without any
+      // provider/slot configuration.
+      'openmaic.yml',
       'skills/pbl/pbl-explanation/SKILL.md',
       'lib/server/agent-runtime/import-pptx-worker.mjs',
       // The Antigravity bridge is spawned by path at run time

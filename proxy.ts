@@ -30,6 +30,9 @@ function isAuthPublicPath(pathname: string): boolean {
   return (
     pathname === '/login' ||
     pathname === '/api/health' ||
+    // The on-demand Kaggle kernel probes this from loopback with its own
+    // token; the route itself rejects a missing/wrong token with 404.
+    pathname === '/api/worker/status' ||
     pathname.startsWith('/api/auth/') ||
     pathname.startsWith('/api/access-code/')
   );

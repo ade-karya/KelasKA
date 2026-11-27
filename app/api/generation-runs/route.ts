@@ -22,6 +22,7 @@
  *     refused.
  */
 import type { NextRequest } from 'next/server';
+import { after } from 'next/server';
 
 import { apiSuccess } from '@/lib/server/api-response';
 import { ownerApiError, withOwnerResponseHeaders } from '@/lib/server/agent-runtime/route-response';
@@ -34,6 +35,7 @@ import { generationRunConfig } from '@/lib/server/generation/run/config';
 import { startGenerationRun, startRefusal } from '@/lib/server/generation/run/start';
 import { listActiveGenerationRuns, runSnapshot } from '@/lib/server/generation/run/store';
 import { withRequestOwner } from '@/lib/server/identity/with-owner';
+import { ensureKaggleWorker } from '@/lib/server/kaggle/launch';
 import { createLogger } from '@/lib/logger';
 
 const log = createLogger('GenerationRuns API');
@@ -55,6 +57,12 @@ export async function POST(req: NextRequest) {
         principal,
         request: req,
         origin: 'generation-runs',
+      });
+      // On Vercel there is no in-process runner to pick this row up. `after`
+      // keeps the function alive just long enough to wake the Kaggle worker
+      // that executes it; a failure is logged and leaves the run queued.
+      after(() => {
+        void ensureKaggleWorker('generation-run-start');
       });
       return withOwnerResponseHeaders(apiSuccess({ run: runSnapshot(run) }, 202), responseHeaders);
     } catch (error) {

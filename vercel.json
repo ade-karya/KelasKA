@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "ONNXRUNTIME_NODE_INSTALL_CUDA=skip bunx bun@1.4.5 install --frozen-lockfile",
+  "buildCommand": "bun run build",
+  "regions": ["sin1"],
+  "functions": {
+    "app/api/generation-runs/**/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/chat/pi/route.ts": {
+      "maxDuration": 300
+    }
+  }
+}
