@@ -1,9 +1,50 @@
-# Kaggle GPU node
+# Kaggle — worker penuh + GPU (on-demand)
 
-This half of the deployment owns every GPU workload (ComfyUI/SDXL, VoxCPM2
-TTS, FunASR ASR, Ollama). It is started **only by the Cloudflare Worker**, via
-the Kaggle API, when a generation asks for a GPU. There is no always-on Kaggle
-server.
+Kaggle dipakai dalam dua mode:
+
+1. **Worker penuh untuk Vercel (mode yang dipakai sekarang).** Notebook
+   menjalankan `deploy/kaggle/run.sh` → `install.sh --kaggle`, sehingga
+   aplikasi Next.js, generation runner, dan layanan GPU hidup di kernel yang
+   sama. Vercel hanya mengantre run ke PostgreSQL; kernel ini mengklaim dan
+   mengerjakannya. Tidak perlu tunnel untuk peran ini.
+2. **GPU node untuk split deployment lama.** `kelaska-gpu.py` hanya
+   menjalankan ComfyUI/VoxCPM/FunASR/Ollama di balik `gpu.riau.ai`; aplikasi
+   penuh ada di host lain. Bagian itu tetap didokumentasikan di bawah.
+
+## Worker penuh (Vercel + Kaggle)
+
+```python
+!git clone --depth 1 --branch deploy/kaggle https://github.com/ade-karya/KelasKA.git /kaggle/temp/KelasKA
+%cd /kaggle/temp/KelasKA
+!bash deploy/kaggle/run.sh
+```
+
+Sebelum menjalankan, isi `.env.local` dari
+[`../shared/env.worker.example`](../shared/env.worker.example) — terutama
+`DATABASE_URL`, `OPENMAIC_SECRET_KEY`, `HF_S3_*`, `GOOGLE_API_KEY`, dan
+`OPENMAIC_AGENT_RUNTIME_ENABLED=true`. Nilai `DATABASE_URL` dan
+`OPENMAIC_SECRET_KEY` **harus sama persis** dengan project Vercel.
+
+`install.sh --kaggle` mendeteksi profil `kaggle` (atau set
+`OPENMAIC_DEPLOY_TARGET=kaggle`), menyalakan background worker, dan hanya
+menulis endpoint GPU yang lolos health check. Setelah installer selesai,
+buka port 3000 lewat proxy notebook untuk memeriksa `GET /api/health`, lalu
+biarkan kernel hidup selama antrean diproses. Tanpa GPU, installer memakai
+TTS browser-native dan tidak memasang layanan media.
+
+Verifikasi bahwa worker benar-benar mengambil run:
+
+```bash
+# di Vercel / browser: POST /api/generation-runs -> 202
+# di log kernel:
+grep '\[GenerationRunner\] claimed' logs/*.log
+```
+
+## Mode GPU node (split deployment)
+
+Dokumen di bawah ini menjelaskan mode kedua: Kaggle sebagai GPU node yang
+dimulai oleh Cloudflare Worker untuk deployment split. Gunakan
+`deploy/kaggle/kelaska-gpu.py` dan tunnel `gpu.riau.ai`, bukan `run.sh`.
 
 ## The Gmail sign-in and the API token
 
