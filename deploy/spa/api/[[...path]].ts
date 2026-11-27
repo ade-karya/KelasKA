@@ -12,6 +12,7 @@
  * Functions per deployment, and the full Next app has ~126 routes.
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { Pool } from 'pg';
 
 const BACKEND = (process.env.SPLIT_BACKEND_ORIGIN || 'https://kelaska.riau.ai').replace(/\/$/, '');
 const KAGGLE_API = 'https://api.kaggle.com/v1/kernels.KernelsApiService';
@@ -19,6 +20,41 @@ const DEFAULT_KERNEL_REF = 'akjdev/kelaska-worker';
 const DEFAULT_SOURCE_URL =
   'https://raw.githubusercontent.com/ade-karya/KelasKA/refs/heads/deploy/kaggle/deploy/kaggle/worker-kernel.py';
 const REQUEST_TIMEOUT_MS = 25_000;
+const LAUNCH_COOLDOWN_MS = 2 * 60 * 1000;
+
+let cooldownPool: Pool | undefined;
+function launchPool(): Pool | undefined {
+  if (!process.env.DATABASE_URL) return undefined;
+  cooldownPool ??= new Pool({
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 5_000,
+    max: 1,
+  });
+  return cooldownPool;
+}
+
+/** Reserve a launch slot across Vercel instances; best-effort. */
+async function reserveLaunch(): Promise<boolean> {
+  const pool = launchPool();
+  if (!pool) return true;
+  try {
+    const now = Date.now();
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO kaggle_worker_launch (id, last_started_at)
+       VALUES ('default', $1)
+       ON CONFLICT (id) DO UPDATE
+         SET last_started_at = EXCLUDED.last_started_at, updated_at = now()
+         WHERE kaggle_worker_launch.last_started_at < $2
+       RETURNING id`,
+      [now, now - LAUNCH_COOLDOWN_MS],
+    );
+    return rows.length > 0;
+  } catch {
+    // The table is created by the full app / Kaggle worker. If it is not
+    // there yet, an extra kernel version is cheaper than a stuck run.
+    return true;
+  }
+}
 
 export const config = { api: { bodyParser: false } };
 
@@ -87,13 +123,22 @@ function kernelStatus(value: unknown): string {
 async function wakeKernel(): Promise<WakeResult> {
   const ref = process.env.KAGGLE_KERNEL_REF?.trim() || DEFAULT_KERNEL_REF;
   const { owner, slug } = splitRef(ref);
-  const current = await kagglePost<{ status?: unknown }>('GetKernelSessionStatus', {
-    userName: owner,
-    kernelSlug: slug,
-  });
-  const status = kernelStatus(current.status);
-  if (status === 'running' || status === 'queued') {
-    return { started: false, status };
+  try {
+    const current = await kagglePost<{ status?: unknown }>('GetKernelSessionStatus', {
+      userName: owner,
+      kernelSlug: slug,
+    });
+    const status = kernelStatus(current.status);
+    if (status === 'running' || status === 'queued') {
+      return { started: false, status };
+    }
+  } catch {
+    // Some Kaggle tokens may push kernels but cannot read session status.
+    // Fall through to SaveKernel; the cooldown below bounds duplicate pushes.
+  }
+
+  if (!(await reserveLaunch())) {
+    return { started: false, status: 'cooldown' };
   }
 
   const sourceUrl = process.env.KAGGLE_KERNEL_SOURCE_URL?.trim() || DEFAULT_SOURCE_URL;
@@ -189,7 +234,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     const upstream = await fetch(target, {
       method,
       headers,
-      body,
+      body: body ? new Uint8Array(body) : undefined,
       redirect: 'manual',
       signal: AbortSignal.timeout(300_000),
     });
