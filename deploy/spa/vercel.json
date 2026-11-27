@@ -9,8 +9,12 @@
       "destination": "https://kelaska.riau.ai/__kelaska/:path*"
     },
     {
-      "source": "/api/:first/:rest*",
-      "destination": "/api/:first?rest=:rest*"
+      "source": "/api/:a/:b/:c",
+      "destination": "/api/:a~:b~:c"
+    },
+    {
+      "source": "/api/:a/:b",
+      "destination": "/api/:a~:b"
     }
   ]
 }
