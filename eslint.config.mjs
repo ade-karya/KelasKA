@@ -35,6 +35,9 @@ const eslintConfig = defineConfig([
     'next-env.d.ts',
     // Third-party / vendored packages (not our code):
     'packages/docs/**',
+    // Deployment tooling is self-contained: the Cloudflare Worker has its own
+    // package, tsconfig and Cloudflare types, none of which the app installs.
+    'deploy/**',
     'packages/mathml2omml/**',
     'packages/pptxgenjs/**',
     // Our own @openmaic/* packages: lint the source, but skip build output,

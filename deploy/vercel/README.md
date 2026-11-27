@@ -96,6 +96,18 @@ Kaggle API behind the rewrite.
    Google and check `/api/auth/me`, a course list, one generation start, one
    PDF upload, and classroom playback.
 
+## Legacy SPA + single-function setup
+
+The branch also carries the earlier `deploy/spa` + one-function setup: a thin
+static SPA whose catch-all function proxies `/api/*` to the Cloudflare Worker
+and wakes an on-demand Kaggle worker through `POST /api/kaggle/wake`. See
+`deploy/split-deployment.md` and `deploy/worker/README.md`. That setup targets
+the `kelas.riau.ai` domain and uses `deploy/spa` as the Vercel root directory. It is kept as a fallback and for the
+Worker-driven topology in `deploy/README.md`; **this branch's Vercel project uses
+the repository root and the full static UI described above**. Do not switch the
+project to `deploy/spa` unless you also switch `KAGGLE_ORIGIN` to the Worker
+origin and give up the workbench UI.
+
 ## Local verification
 
 ```bash

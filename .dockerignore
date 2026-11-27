@@ -40,3 +40,7 @@ docs
 # isolated MP4 render service — built as its own image (render-service/Dockerfile),
 # never part of the main app image.
 render-service
+
+# deployment tooling (per-platform configs, Workers proxy); own dependencies,
+# never needed inside the application image.
+deploy

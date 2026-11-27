@@ -8,7 +8,13 @@ Kelas Kecerdasan Artifisial adalah aplikasi Next.js yang memerlukan proses Node.
 - **Docker Compose** (direkomendasikan): aplikasi dan PostgreSQL dalam dua kontainer.
 - **Image Docker atau `bun run start`** dengan basis data PostgreSQL yang Anda jalankan sendiri.
 
-Host serverless seperti Vercel tidak didukung sejak 1.2.0: fungsi yang berakhir bersama permintaannya tidak dapat menjalankan pembuatan. Lihat [Vercel (hingga 1.1.x)](#vercel-hingga-11x).
+Deployment serverless tunggal (satu fungsi Vercel yang menjalankan seluruh aplikasi) tidak didukung sejak 1.2.0: fungsi yang berakhir bersama permintaannya tidak dapat menjalankan pembuatan. Lihat [Vercel (hingga 1.1.x)](#vercel-hingga-11x). Rilis sekarang memakai [deployment terpisah](https://github.com/ade-karya/KelasKA/tree/main/deploy):
+
+- **Vercel / Cloudflare Containers** menjalankan UI, pustaka kursus, auth, dan API basis data dalam mode terbatas. Mereka mengantre run pembuatan tanpa memulai worker latar belakang.
+- **Worker berjalan lama** (Kaggle, Colab, atau VPS) memakai `DATABASE_URL` yang sama dan mengklaim antrean itu. Progres sampai ke browser lewat log event yang juga disimpan di basis data.
+- **Kaggle / Colab** juga bisa menjalankan aplikasi penuh sendiri dengan `install.sh --kaggle` / `--colab`, termasuk layanan GPU lokal bila tersedia.
+
+Profil dipilih dengan `OPENMAIC_DEPLOY_TARGET` atau terdeteksi dari platform. Pohon [`deploy/`](https://github.com/ade-karya/KelasKA/tree/main/deploy) berisi konfigurasi per platform, templat env, skrip, dan panduan pemasangan.
 
 ## Memperbarui instance yang berbagi satu basis data
 

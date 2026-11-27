@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { fetchRun, startRun, type RunSnapshot } from '../../lib/generation';
+import { fetchRun, startRun, wakeWorker, type RunSnapshot } from '../../lib/generation';
 
 export default function GenerationPreviewPage() {
   const [requirement, setRequirement] = useState('');
@@ -40,6 +40,9 @@ export default function GenerationPreviewPage() {
         .split(/[\s,]+/)
         .map((value) => value.trim())
         .filter(Boolean);
+      // Ask Vercel to start the Kaggle kernel. It boots in the background and
+      // claims the run from the shared database once it is ready.
+      await wakeWorker();
       setRun(
         await startRun({
           requirement: requirement.trim(),
