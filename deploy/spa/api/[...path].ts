@@ -198,7 +198,11 @@ function readBody(req: IncomingMessage): Promise<Buffer> {
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url || '/', 'http://localhost');
   const segments = url.pathname.split('/').filter(Boolean).slice(1); // drop "api"
-  const path = segments.join('/');
+  // Vercel's filesystem route only matches one segment after /api. A rewrite
+  // folds the remaining segments into ?rest=..., so restore them here.
+  const rest = url.searchParams.get('rest');
+  url.searchParams.delete('rest');
+  const path = rest ? `${segments.join('/')}/${rest}` : segments.join('/');
 
   if (path === 'kaggle/wake' && req.method === 'POST') {
     try {
