@@ -45,8 +45,18 @@ describe('Kaggle wake function', () => {
     expect(body.slug).toBe('akjdev/kelaska-app');
     expect(body.kernelExecutionType).toBe('SAVE_AND_RUN_ALL');
     expect(body.sessionTimeoutSeconds).toBe(42000);
-    expect(body.machineShape).toBe('NvidiaTeslaT4');
+    expect(body.enableGpu).toBe(false);
+    expect(body.machineShape).toBeUndefined();
     expect(body.text).toBe('print("hello")');
+  });
+
+  it('requests a T4 only when GPU mode is explicitly enabled', () => {
+    const body = saveKernelBody('akjdev/kelaska-compute', 'print("hello")', {
+      KAGGLE_ENABLE_GPU: 'true',
+      KAGGLE_MACHINE_SHAPE: 'NvidiaTeslaT4',
+    });
+    expect(body.enableGpu).toBe(true);
+    expect(body.machineShape).toBe('NvidiaTeslaT4');
   });
 
   it('defaults to the Vercel kernel source on deploy/kaggle', () => {

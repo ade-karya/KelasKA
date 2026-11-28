@@ -133,6 +133,10 @@ export function saveKernelBody(
 ): Record<string, unknown> {
   const { owner, slug } = splitKernelRef(ref);
   const timeout = Number(env.KAGGLE_SESSION_TIMEOUT_SECONDS ?? '');
+  // CPU is the default: a GPU session is started only when the caller asks
+  // for it with POST /api/wake {"gpu": true}.
+  const gpu = env.KAGGLE_ENABLE_GPU?.trim().toLowerCase() === 'true';
+  const shape = env.KAGGLE_MACHINE_SHAPE?.trim();
   return {
     slug: `${owner}/${slug}`,
     newTitle: env.KAGGLE_KERNEL_TITLE?.trim() || 'KelasKA Compute',
@@ -140,9 +144,9 @@ export function saveKernelBody(
     language: 'python',
     kernelType: 'script',
     isPrivate: true,
-    enableGpu: true,
+    enableGpu: gpu,
     enableInternet: true,
-    machineShape: env.KAGGLE_MACHINE_SHAPE?.trim() || 'NvidiaTeslaT4',
+    ...(gpu && shape ? { machineShape: shape } : {}),
     datasetDataSources: env.KAGGLE_DATASET?.trim() ? [env.KAGGLE_DATASET.trim()] : [],
     categoryIds: [],
     kernelExecutionType: 'SAVE_AND_RUN_ALL',
@@ -251,6 +255,20 @@ function json(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
+async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) chunks.push(Buffer.from(chunk));
+  if (chunks.length === 0) return {};
+  try {
+    const parsed: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
 /** GET is a credential-free readiness probe; POST starts the kernel. */
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const path = new URL(req.url || '/', 'http://localhost').pathname;
@@ -271,7 +289,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     return;
   }
   try {
-    json(res, 200, { success: true, ...(await wakeKaggleCompute()) });
+    const body = await readJsonBody(req);
+    const gpu = body.gpu === true;
+    const env: Env = {
+      ...process.env,
+      KAGGLE_ENABLE_GPU: gpu ? 'true' : 'false',
+      KAGGLE_MACHINE_SHAPE: gpu ? process.env.KAGGLE_MACHINE_SHAPE?.trim() || 'NvidiaTeslaT4' : '',
+    };
+    json(res, 200, {
+      success: true,
+      mode: gpu ? 'gpu' : 'cpu',
+      ...(await wakeKaggleCompute(env)),
+    });
   } catch (error) {
     json(res, 502, {
       success: false,

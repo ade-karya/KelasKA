@@ -81,7 +81,11 @@ sessions, and applies a 5-minute cooldown to duplicate pushes. `GET /api/wake`
 is a credential-free readiness probe returning whether the function is
 configured; `POST /api/wake` pushes `deploy/kaggle/kelaska-vercel-kernel.py`
 from `deploy/kaggle` to the configured kernel and starts it with
-`SAVE_AND_RUN_ALL`.
+`SAVE_AND_RUN_ALL`. **CPU is the default** (no `enableGpu`/`machineShape` in the
+SaveKernel call, and the kernel picks `openmaic.cpu.yml`). Send
+`POST /api/wake` with `{"gpu": true}` to start a GPU T4 session instead; Kaggle
+cannot add a GPU to a running session, so this starts a replacement session
+and the old one should be stopped first.
 
 Configure `KAGGLE_USERNAME`, `KAGGLE_KEY`, `KAGGLE_KERNEL_REF` and (optionally)
 `KAGGLE_KERNEL_SOURCE_URL`/`KAGGLE_MACHINE_SHAPE` in Vercel. The **kernel**
