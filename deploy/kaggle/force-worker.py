@@ -58,6 +58,10 @@ auth = "Bearer " + key if key.startswith("KGAT_") else "Basic " + base64.b64enco
 encoded = "".join(values.get(f"KELASKA_ENV_B64_{i}", "") for i in range(1, 9)) or values.get(
     "KELASKA_ENV_B64", ""
 )
+if not encoded and ENV_FILE.is_file():
+    # On the CPU session the value is not stored as a named variable; derive it
+    # from the same .env.local the main app uses.
+    encoded = base64.b64encode(ENV_FILE.read_bytes()).decode()
 if not encoded:
     raise SystemExit("KELASKA_ENV_B64 is missing")
 env_text = base64.b64decode(encoded).decode("utf-8")
