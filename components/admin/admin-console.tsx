@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { adminMutationInit } from '@/lib/admin/mutation-request';
 import { useI18n } from '@/lib/hooks/use-i18n';
 import { authRoleLabelKey, AUTH_ROLES, type AuthRole } from '@/lib/server/auth/config';
 
@@ -96,12 +97,7 @@ async function mutate(
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   body?: unknown,
 ): Promise<MutationResult> {
-  const response = await fetch(path, {
-    method,
-    headers: body === undefined ? undefined : { 'content-type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: 'no-store',
-  });
+  const response = await fetch(path, adminMutationInit(method, body));
   const data = (await response.json().catch(() => ({}))) as {
     user?: AdminUser;
     errorCode?: string;
