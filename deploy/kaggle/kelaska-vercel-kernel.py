@@ -201,8 +201,41 @@ def install_bun() -> str:
     return str(target)
 
 
+def unpack_staged() -> bool:
+    """Unpack the staged app/source zips from the private Kaggle dataset.
+
+    Kaggle rejects bracketed filenames (Next dynamic routes), so the stage is
+    stored as `app.zip`/`repo.zip` instead of plain directories.
+    """
+    found = False
+    root = Path("/kaggle/input")
+    if not root.is_dir():
+        return False
+    for candidate in sorted(root.iterdir()):
+        repo_zip = candidate / "repo.zip"
+        if repo_zip.is_file() and not (SRC_DIR / "install.sh").is_file():
+            log(f"unpacking staged source from {repo_zip}")
+            if SRC_DIR.exists():
+                shutil.rmtree(SRC_DIR)
+            SRC_DIR.parent.mkdir(parents=True, exist_ok=True)
+            shutil.unpack_archive(str(repo_zip), str(SRC_DIR))
+            found = True
+        app_zip = candidate / "app.zip"
+        if app_zip.is_file() and not (APP_DIR / "server.js").is_file():
+            log(f"unpacking staged app from {app_zip}")
+            if APP_DIR.exists():
+                shutil.rmtree(APP_DIR)
+            APP_DIR.parent.mkdir(parents=True, exist_ok=True)
+            shutil.unpack_archive(str(app_zip), str(APP_DIR))
+            found = True
+    return found
+
+
 def clone_repo() -> None:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
+    if (SRC_DIR / "install.sh").is_file():
+        log(f"source already staged at {SRC_DIR}; skipping clone")
+        return
     input_root = Path("/kaggle/input")
     staged = None
     if input_root.is_dir():
@@ -354,6 +387,8 @@ def prepare_environment() -> dict[str, str]:
 
 # %%
 def find_app_artifact() -> Path | None:
+    if (APP_DIR / "server.js").is_file():
+        return APP_DIR
     configured = Path(os.environ.get("KELASKA_APP_ARTIFACT_DIR", "") or "")
     if (configured / "server.js").is_file():
         return configured
@@ -414,6 +449,8 @@ def prepare_app(bun: str) -> Path:
     artifact = find_app_artifact()
     if artifact:
         log(f"using prebuilt app artifact: {artifact}")
+        if artifact == APP_DIR:
+            return APP_DIR
         if APP_DIR.exists():
             shutil.rmtree(APP_DIR)
         shutil.copytree(artifact, APP_DIR)
@@ -691,6 +728,7 @@ def main() -> None:
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
 
+    unpack_staged()
     bun = install_bun()
     clone_repo()
     prepare_environment()
