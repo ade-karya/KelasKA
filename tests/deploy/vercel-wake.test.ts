@@ -58,7 +58,7 @@ describe('Kaggle wake function', () => {
     const envB64 = Buffer.from('FOO=bar\nAUTH_PUBLIC_URL=https://kelaska.riau.ai\n').toString(
       'base64',
     );
-    const source = injectedKernelSource('print("kernel")', {
+    const source = injectedKernelSource('from __future__ import annotations\nprint("kernel")', {
       KELASKA_ENV_B64: envB64,
       KELASKA_AUTH_PUBLIC_URL: 'https://kelaska-ui.vercel.app',
       KELASKA_APP_TUNNEL_TOKEN: 'tunnel',
@@ -72,6 +72,8 @@ describe('Kaggle wake function', () => {
     expect(decoded.KELASKA_AUTH_PUBLIC_URL).toBe('https://kelaska-ui.vercel.app');
     expect(decoded.KELASKA_APP_TUNNEL_TOKEN).toBe('tunnel');
     expect(decoded.KELASKA_PROXY_TOKEN).toBe('proxy');
+    expect(source.startsWith('from __future__ import annotations')).toBe(true);
+    expect(source.indexOf('b64decode')).toBeGreaterThan(source.indexOf('from __future__'));
     expect(source.endsWith('print("kernel")')).toBe(true);
   });
 

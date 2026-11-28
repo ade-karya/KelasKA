@@ -112,6 +112,16 @@ export function injectedKernelSource(source: string, env: Env = process.env): st
     '# App environment injected by the Vercel wake function (Vercel Secret, not Kaggle Secrets).\n' +
     'import os as _kelaska_env_os, base64 as _kelaska_env_b64, json as _kelaska_env_json\n' +
     `_kelaska_env_os.environ.update(_kelaska_env_json.loads(_kelaska_env_b64.b64decode('${payload}').decode('utf-8')))\n`;
+  // `from __future__ import annotations` must stay the first statement in the
+  // kernel, otherwise Python exits with a SyntaxError before any cell runs.
+  const lines = source.split(/\r?\n/);
+  const futureIndex = lines.findIndex((line) =>
+    line.trimStart().startsWith('from __future__ import '),
+  );
+  if (futureIndex >= 0) {
+    lines.splice(futureIndex + 1, 0, prefix);
+    return lines.join('\n');
+  }
   return `${prefix}\n${source}`;
 }
 
