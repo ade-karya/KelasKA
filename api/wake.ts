@@ -70,6 +70,51 @@ export function kernelStatus(value: unknown): KernelStatus {
   return 'unknown';
 }
 
+/**
+ * Inject the application environment into the kernel source before any
+ * `secret()` call runs. The kernel reads `os.environ` first, so a Vercel
+ * Secret is enough and the operator does not have to set Kaggle Secrets by
+ * hand. The payload lives only in this private kernel on Kaggle, never in git.
+ */
+function parseEnvText(text: string): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (let line of text.split(/\r?\n/)) {
+    line = line.trim();
+    if (!line || line.startsWith('#')) continue;
+    if (line.startsWith('export ')) line = line.slice(7).trim();
+    const separator = line.indexOf('=');
+    if (separator < 0) continue;
+    const key = line.slice(0, separator).trim();
+    let value = line.slice(separator + 1).trim();
+    if (value.length >= 2 && ['"', "'"].includes(value[0]) && value.at(-1) === value[0]) {
+      value = value.slice(1, -1);
+    }
+    if (key) values[key] = value;
+  }
+  return values;
+}
+
+export function injectedKernelSource(source: string, env: Env = process.env): string {
+  const encoded = env.KELASKA_ENV_B64?.trim();
+  if (!encoded) throw new Error('KELASKA_ENV_B64 is not configured on Vercel');
+  const values = parseEnvText(Buffer.from(encoded, 'base64').toString('utf8'));
+  for (const key of [
+    'KELASKA_AUTH_PUBLIC_URL',
+    'KELASKA_APP_TUNNEL_TOKEN',
+    'KELASKA_PROXY_TOKEN',
+    'KELASKA_GITHUB_TOKEN',
+  ]) {
+    const override = env[key]?.trim();
+    if (override) values[key] = override;
+  }
+  const payload = Buffer.from(JSON.stringify(values), 'utf8').toString('base64');
+  const prefix =
+    '# App environment injected by the Vercel wake function (Vercel Secret, not Kaggle Secrets).\n' +
+    'import os as _kelaska_env_os, base64 as _kelaska_env_b64, json as _kelaska_env_json\n' +
+    `_kelaska_env_os.environ.update(_kelaska_env_json.loads(_kelaska_env_b64.b64decode('${payload}').decode('utf-8')))\n`;
+  return `${prefix}\n${source}`;
+}
+
 /** The SDK serializes enums by name and expects the full slug. */
 export function saveKernelBody(
   ref: string,
@@ -176,7 +221,7 @@ export async function wakeKaggleCompute(env: Env = process.env): Promise<WakeRes
 
   const saved = await kagglePost<{ ref?: string; url?: string; error?: string }>(
     'SaveKernel',
-    saveKernelBody(ref, source, env),
+    saveKernelBody(ref, injectedKernelSource(source, env), env),
     env,
   );
   if (saved.error) throw new Error(saved.error);

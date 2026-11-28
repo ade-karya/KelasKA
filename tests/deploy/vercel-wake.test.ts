@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   DEFAULT_KERNEL_SOURCE_URL,
+  injectedKernelSource,
   kernelStatus,
   kaggleAuthHeader,
   saveKernelBody,
@@ -51,6 +52,33 @@ describe('Kaggle wake function', () => {
   it('defaults to the Vercel kernel source on deploy/kaggle', () => {
     expect(DEFAULT_KERNEL_SOURCE_URL).toContain('refs/heads/deploy/kaggle');
     expect(DEFAULT_KERNEL_SOURCE_URL).toContain('kelaska-vercel-kernel.py');
+  });
+
+  it('injects the app env into the kernel before its first secret() call', () => {
+    const envB64 = Buffer.from('FOO=bar\nAUTH_PUBLIC_URL=https://kelaska.riau.ai\n').toString(
+      'base64',
+    );
+    const source = injectedKernelSource('print("kernel")', {
+      KELASKA_ENV_B64: envB64,
+      KELASKA_AUTH_PUBLIC_URL: 'https://kelaska-ui.vercel.app',
+      KELASKA_APP_TUNNEL_TOKEN: 'tunnel',
+      KELASKA_PROXY_TOKEN: 'proxy',
+    });
+    const match = source.match(/b64decode\('([^']+)'\)/);
+    expect(match).not.toBeNull();
+    const decoded = JSON.parse(Buffer.from(match![1], 'base64').toString('utf8'));
+    expect(decoded.FOO).toBe('bar');
+    expect(decoded.AUTH_PUBLIC_URL).toBe('https://kelaska.riau.ai');
+    expect(decoded.KELASKA_AUTH_PUBLIC_URL).toBe('https://kelaska-ui.vercel.app');
+    expect(decoded.KELASKA_APP_TUNNEL_TOKEN).toBe('tunnel');
+    expect(decoded.KELASKA_PROXY_TOKEN).toBe('proxy');
+    expect(source.endsWith('print("kernel")')).toBe(true);
+  });
+
+  it('fails clearly when the injected env is missing', () => {
+    expect(() => injectedKernelSource('print("kernel")', {})).toThrow(
+      'KELASKA_ENV_B64 is not configured',
+    );
   });
 });
 
