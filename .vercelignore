@@ -1,0 +1,10 @@
+# Vercel installs with Bun (see vercel.json installCommand). The upstream
+# pnpm-lock.yaml is vestigial in this fork and makes Vercel's post-build
+# function dependency step run `pnpm install`, which fails with
+# "This project is configured to use bun". Hide it from the upload so the
+# single api/wake.ts function is installed with Bun too.
+pnpm-lock.yaml
+node_modules
+.next
+out
+*.log
