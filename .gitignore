@@ -113,6 +113,10 @@ e2e/__screenshots-619/
 # Notebooks are local/operator artifacts, never committed: the Colab setup notebook
 # embeds live credentials (.env.local + openmaic.yml snapshot)
 *.ipynb
+# Exception: the Kaggle deploy notebook is generated from the tracked kernel
+# source and reads every credential from Kaggle Secrets at runtime. It is
+# sanitized (no keys/tokens/URLs with secrets) and shipped for operators.
+!KelasKA-Kaggle-Deploy.ipynb
 
 # Temporary render-service sources extracted by the mixed-pool regression test
 render-service/.owner-bound-parent-*/
