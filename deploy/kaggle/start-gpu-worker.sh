@@ -34,7 +34,12 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
 
   case "$status" in
     *RUNNING*) echo "[gpu] worker is up at https://gpu.kelaska.riau.ai"; exit 0 ;;
-    *ERROR*) echo "[gpu] worker failed; request a fresh session" >&2; wake; queued_since="" ;;
+    *ERROR*|*CANCEL*)
+      echo "[gpu] $status; request a fresh session" >&2
+      wake
+      queued_since=""
+      sleep 10
+      ;;
     *QUEUED*)
       now="$(date +%s)"
       if [[ -z "$queued_since" ]]; then queued_since="$now"; fi
