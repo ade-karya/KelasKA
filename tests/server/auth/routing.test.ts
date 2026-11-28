@@ -46,8 +46,13 @@ describe('role routing', () => {
   it('refuses a surface the role cannot open', () => {
     expect(safeNextPath('/workspace', 'student')).toBe('/');
     expect(safeNextPath('/workspace/course', 'student')).toBe('/');
+    expect(safeNextPath('/workspace?course=abc', 'student')).toBe('/');
+    expect(safeNextPath('/workspace/#pane', 'student')).toBe('/');
     expect(safeNextPath('/admin', 'student')).toBe('/');
+    expect(safeNextPath('/admin/users', 'student')).toBe('/');
+    expect(safeNextPath('/admin?tab=users', 'student')).toBe('/');
     expect(safeNextPath('/admin/users', 'teacher')).toBe('/');
+    expect(safeNextPath('/admin?tab=users', 'teacher')).toBe('/');
   });
 
   it('refuses an off-site, protocol-relative or looping destination', () => {

@@ -61,23 +61,25 @@ export function isAdminUser(user: Pick<AuthUser, 'role'> | null | undefined): bo
  * The `next` a signed-in account may be sent to. Only a path on this site, and
  * only one its role can open: a student deep link to `/workspace` (or anything
  * under `/admin`) falls back to the student home instead of bouncing through a
- * redirect chain.
+ * redirect chain. Query strings and hashes are ignored for the check — a link
+ * like `/workspace?course=abc` is the same surface as `/workspace`.
  */
 export function safeNextPath(next: string | null | undefined, role: AuthRole): string {
   const home = homeForRole(role);
   if (!next || !next.startsWith('/') || next.startsWith('//') || next.length > 2_000) {
     return home;
   }
-  if (next === '/login' || next.startsWith('/login?')) return home;
+  const path = next.split(/[?#]/, 1)[0] ?? '/';
+  if (path === '/login') return home;
   if (
     role === 'student' &&
-    (next === '/workspace' ||
-      next.startsWith('/workspace/') ||
-      next === '/admin' ||
-      next.startsWith('/admin/'))
+    (path === '/workspace' ||
+      path.startsWith('/workspace/') ||
+      path === '/admin' ||
+      path.startsWith('/admin/'))
   ) {
     return home;
   }
-  if (role !== 'admin' && (next === '/admin' || next.startsWith('/admin/'))) return home;
+  if (role !== 'admin' && (path === '/admin' || path.startsWith('/admin/'))) return home;
   return next;
 }
