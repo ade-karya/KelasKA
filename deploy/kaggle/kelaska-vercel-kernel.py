@@ -489,10 +489,25 @@ def prepare_app(bun: str) -> Path:
 # the local title model instead.
 
 # %%
+def detect_model_cache() -> None:
+    """Point gpu-services.sh at the private model dataset when attached."""
+    root = Path("/kaggle/input")
+    if not root.is_dir():
+        return
+    for candidate in sorted(root.iterdir()):
+        if any(
+            (candidate / name).is_dir() for name in ("comfyui", "hf", "models", "ollama")
+        ):
+            os.environ["GPU_MODEL_CACHE"] = str(candidate)
+            log(f"GPU model cache: {candidate}")
+            return
+
+
 def start_gpu_services() -> None:
     if not has_gpu():
         log("no NVIDIA GPU; CPU-only mode (GPU services and media slots skipped)")
         return
+    detect_model_cache()
     result = subprocess.run(
         ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
         capture_output=True,
