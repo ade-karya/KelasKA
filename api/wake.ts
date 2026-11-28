@@ -101,6 +101,9 @@ export function injectedKernelSource(source: string, env: Env = process.env): st
   for (const key of [
     'KELASKA_AUTH_PUBLIC_URL',
     'KELASKA_APP_TUNNEL_TOKEN',
+    'KELASKA_GPU_TUNNEL_TOKEN',
+    'KELASKA_GPU_PUBLIC_URL',
+    'KELASKA_MODE',
     'KELASKA_PROXY_TOKEN',
     'KELASKA_GITHUB_TOKEN',
   ]) {
@@ -255,6 +258,20 @@ function json(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
+/** CPU app and GPU worker are separate kernels, tunnels and domains. */
+export function wakeEnv(base: Env, gpu: boolean): Env {
+  return {
+    ...base,
+    KAGGLE_ENABLE_GPU: gpu ? 'true' : 'false',
+    KAGGLE_MACHINE_SHAPE: gpu ? base.KAGGLE_MACHINE_SHAPE?.trim() || 'NvidiaTeslaT4' : '',
+    KAGGLE_KERNEL_REF: gpu
+      ? base.KAGGLE_GPU_KERNEL_REF?.trim() || base.KAGGLE_KERNEL_REF
+      : base.KAGGLE_KERNEL_REF,
+    KAGGLE_KERNEL_TITLE: gpu ? 'KelasKA GPU Worker' : base.KAGGLE_KERNEL_TITLE,
+    KELASKA_MODE: gpu ? 'gpu-worker' : 'app',
+  };
+}
+
 async function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(Buffer.from(chunk));
@@ -281,6 +298,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       success: true,
       configured: Boolean(process.env.KAGGLE_KEY && process.env.KAGGLE_KERNEL_REF),
       kernelRef: process.env.KAGGLE_KERNEL_REF?.trim() || null,
+      gpuKernelRef: process.env.KAGGLE_GPU_KERNEL_REF?.trim() || null,
     });
     return;
   }
@@ -291,11 +309,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   try {
     const body = await readJsonBody(req);
     const gpu = body.gpu === true;
-    const env: Env = {
-      ...process.env,
-      KAGGLE_ENABLE_GPU: gpu ? 'true' : 'false',
-      KAGGLE_MACHINE_SHAPE: gpu ? process.env.KAGGLE_MACHINE_SHAPE?.trim() || 'NvidiaTeslaT4' : '',
-    };
+    // A GPU session is a separate worker kernel beside the running app, not a
+    // replacement: different tunnel (gpu.) and no second Next app/DB pool.
+    const env = wakeEnv(process.env, gpu);
     json(res, 200, {
       success: true,
       mode: gpu ? 'gpu' : 'cpu',

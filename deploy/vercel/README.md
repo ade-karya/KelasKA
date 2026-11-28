@@ -83,9 +83,12 @@ configured; `POST /api/wake` pushes `deploy/kaggle/kelaska-vercel-kernel.py`
 from `deploy/kaggle` to the configured kernel and starts it with
 `SAVE_AND_RUN_ALL`. **CPU is the default** (no `enableGpu`/`machineShape` in the
 SaveKernel call, and the kernel picks `openmaic.cpu.yml`). Send
-`POST /api/wake` with `{"gpu": true}` to start a GPU T4 session instead; Kaggle
-cannot add a GPU to a running session, so this starts a replacement session
-and the old one should be stopped first.
+`POST /api/wake` with `{"gpu": true}` starts a **separate GPU worker kernel**
+alongside the running app: `KAGGLE_GPU_KERNEL_REF` (default `akjdev/kelaska-gpu-worker`),
+`KELASKA_MODE=gpu-worker`, GPU services only on `gpu.kelaska.riau.ai → :8790`
+(`KELASKA_GPU_TUNNEL_TOKEN`), and no second Next app/DB pool. The CPU app keeps
+serving `api.kelaska.riau.ai → :3000`; both sessions can run concurrently
+(Kaggle allows up to 10 CPU sessions and 1 interactive + 2 batch GPU sessions).
 
 Configure `KAGGLE_USERNAME`, `KAGGLE_KEY`, `KAGGLE_KERNEL_REF` and (optionally)
 `KAGGLE_KERNEL_SOURCE_URL`/`KAGGLE_MACHINE_SHAPE` in Vercel. The **kernel**

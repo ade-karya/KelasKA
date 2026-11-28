@@ -7,6 +7,7 @@ import {
   kaggleAuthHeader,
   saveKernelBody,
   splitKernelRef,
+  wakeEnv,
 } from '@/api/wake';
 import { wakeComputeBackend } from '@/lib/deploy/wake-compute';
 
@@ -48,6 +49,24 @@ describe('Kaggle wake function', () => {
     expect(body.enableGpu).toBe(false);
     expect(body.machineShape).toBeUndefined();
     expect(body.text).toBe('print("hello")');
+  });
+
+  it('uses a separate kernel, tunnel and domain for CPU and GPU modes', () => {
+    const base = {
+      KAGGLE_KERNEL_REF: 'akjdev/kelaska-compute',
+      KAGGLE_GPU_KERNEL_REF: 'akjdev/kelaska-gpu-worker',
+      KELASKA_APP_TUNNEL_TOKEN: 'api-tunnel',
+      KELASKA_GPU_TUNNEL_TOKEN: 'gpu-tunnel',
+    };
+    const cpu = wakeEnv(base, false);
+    expect(cpu.KAGGLE_KERNEL_REF).toBe('akjdev/kelaska-compute');
+    expect(cpu.KELASKA_MODE).toBe('app');
+    expect(cpu.KAGGLE_ENABLE_GPU).toBe('false');
+    const gpu = wakeEnv(base, true);
+    expect(gpu.KAGGLE_KERNEL_REF).toBe('akjdev/kelaska-gpu-worker');
+    expect(gpu.KELASKA_MODE).toBe('gpu-worker');
+    expect(gpu.KAGGLE_ENABLE_GPU).toBe('true');
+    expect(gpu.KAGGLE_MACHINE_SHAPE).toBe('NvidiaTeslaT4');
   });
 
   it('requests a T4 only when GPU mode is explicitly enabled', () => {
