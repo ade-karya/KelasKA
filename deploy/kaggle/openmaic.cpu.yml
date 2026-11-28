@@ -20,6 +20,12 @@ providers:
       - gemini-3.1-flash-lite
       - gemini-3.5-transcribe
 
+  # Browser-native TTS has no server endpoint, but a slot reference still has
+  # to name a declared provider. Without this block the server refuses to boot
+  # with `slots.tts: provider "browser-native-tts" is not declared under providers`.
+  browser-native-tts:
+    preset: browser-native-tts
+
 slots:
   llm:
     model: google:gemini-3.5-flash-lite
