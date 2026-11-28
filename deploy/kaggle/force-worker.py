@@ -115,6 +115,11 @@ body = {
     "enableGpu": GPU,
     "enableInternet": True,
     "datasetDataSources": datasets,
+    "modelDataSources": [
+        m.strip()
+        for m in values.get("KAGGLE_MODEL_DATASOURCES", "akjdev/kelaska-gpu-models/PyTorch/default").split(",")
+        if m.strip()
+    ],
     "categoryIds": [],
     "kernelExecutionType": "SAVE_AND_RUN_ALL",
     "sessionTimeoutSeconds": 42000,
