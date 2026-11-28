@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "buildCommand": "bash deploy/scripts/build-vercel-static.sh",
-  "installCommand": "ONNXRUNTIME_NODE_INSTALL_CUDA=skip bunx bun@1.4.5 install --frozen-lockfile",
+  "installCommand": "ONNXRUNTIME_NODE_INSTALL_CUDA=skip npx --yes bun@1.4.5 install --frozen-lockfile",
   "outputDirectory": "out",
   "cleanUrls": true,
   "routes": [
