@@ -95,7 +95,15 @@ function parseEnvText(text: string): Record<string, string> {
 }
 
 export function injectedKernelSource(source: string, env: Env = process.env): string {
-  const encoded = env.KELASKA_ENV_B64?.trim();
+  // A full .env.local is ~10 KB base64, above Vercel's per-variable value
+  // limit. It is stored as numbered chunks; keep the legacy single value as
+  // the first chunk so older deployments still work.
+  const encoded = [
+    'KELASKA_ENV_B64',
+    ...Array.from({ length: 8 }, (_, i) => `KELASKA_ENV_B64_${i + 1}`),
+  ]
+    .map((key) => env[key]?.trim() ?? '')
+    .join('');
   if (!encoded) throw new Error('KELASKA_ENV_B64 is not configured on Vercel');
   const values = parseEnvText(Buffer.from(encoded, 'base64').toString('utf8'));
   for (const key of [

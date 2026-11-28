@@ -106,6 +106,17 @@ describe('Kaggle wake function', () => {
     expect(source.endsWith('print("kernel")')).toBe(true);
   });
 
+  it('reassembles a chunked env value', () => {
+    const envB64 = Buffer.from('TOKEN=abc\n').toString('base64');
+    const source = injectedKernelSource('from __future__ import annotations\nprint(1)', {
+      KELASKA_ENV_B64_1: envB64.slice(0, 8),
+      KELASKA_ENV_B64_2: envB64.slice(8),
+    });
+    const match = source.match(/b64decode\('([^']+)'\)/);
+    expect(match).not.toBeNull();
+    expect(JSON.parse(Buffer.from(match![1], 'base64').toString('utf8')).TOKEN).toBe('abc');
+  });
+
   it('fails clearly when the injected env is missing', () => {
     expect(() => injectedKernelSource('print("kernel")', {})).toThrow(
       'KELASKA_ENV_B64 is not configured',
