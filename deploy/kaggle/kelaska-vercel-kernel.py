@@ -494,10 +494,11 @@ def detect_model_cache() -> None:
     root = Path("/kaggle/input")
     if not root.is_dir():
         return
-    for candidate in sorted(root.iterdir()):
-        if any(
-            (candidate / name).is_dir() for name in ("comfyui", "hf", "models", "ollama")
-        ):
+    names = ("comfyui", "hf", "modelscope", "ollama")
+    for candidate in sorted(root.rglob("*")):
+        if not candidate.is_dir() or candidate.name in names:
+            continue
+        if any((candidate / name).is_dir() for name in names):
             os.environ["GPU_MODEL_CACHE"] = str(candidate)
             log(f"GPU model cache: {candidate}")
             return
@@ -750,12 +751,12 @@ def request_stop(signum=None, frame=None) -> None:
 
 # %%
 def publish_models() -> None:
-    """One-time warmup: publish the downloaded GPU weights to a private dataset."""
+    """One-time warmup: publish downloaded GPU weights as a private Kaggle Model."""
     if os.environ.get("KELASKA_PUBLISH_MODELS", "").strip().lower() not in {"1", "true"}:
         return
     import json as _json
 
-    log("publishing GPU model cache to the private Kaggle dataset")
+    log("publishing GPU model cache to the private Kaggle Model")
     stage = Path("/kaggle/working/kelaska-models-publish")
     if stage.exists():
         shutil.rmtree(stage)
@@ -765,12 +766,37 @@ def publish_models() -> None:
         if source.is_dir():
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(source, target)
-    (stage / "dataset-metadata.json").write_text(
+    (stage / "model-metadata.json").write_text(
         _json.dumps(
             {
+                "ownerSlug": "akjdev",
                 "title": "KelasKA GPU Models",
-                "id": "akjdev/kelaska-gpu-models",
-                "licenses": [{"name": "CC0-1.0"}],
+                "slug": "kelaska-gpu-models",
+                "subtitle": "ComfyUI/SDXL, VoxCPM, FunASR and Ollama caches",
+                "isPrivate": True,
+                "description": "# KelasKA GPU cache",
+                "publishTime": "",
+                "provenanceSources": "",
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    (stage / "model-instance-metadata.json").write_text(
+        _json.dumps(
+            {
+                "ownerSlug": "akjdev",
+                "modelSlug": "kelaska-gpu-models",
+                "instanceSlug": "default",
+                "framework": "pyTorch",
+                "overview": "Pre-downloaded GPU weights for KelasKA workers",
+                "usage": "# Model Format\n\nNative service caches",
+                "licenseName": "Apache 2.0",
+                "fineTunable": False,
+                "trainingData": [],
+                "modelInstanceType": "Unspecified",
+                "baseModelInstanceId": 0,
+                "externalBaseModelUrl": "",
             },
             indent=2,
         ),
@@ -780,20 +806,29 @@ def publish_models() -> None:
         import kaggle  # noqa: F401 - Kaggle images ship the CLI
     except ImportError:
         run(sys.executable, "-m", "pip", "install", "-q", "kaggle", check=False)
-    run(
+    created = run("kaggle", "models", "create", "-p", str(stage), check=False)
+    if created.returncode != 0:
+        log("model already exists or creation failed; creating/updating the variation")
+    run("kaggle", "models", "instances", "create", "-p", str(stage), check=False)
+    version = run(
         "kaggle",
-        "datasets",
-        "version",
+        "models",
+        "instances",
+        "versions",
+        "create",
         "-p",
         str(stage),
         "-r",
         "tar",
-        "-m",
+        "-n",
         "refresh GPU weights",
-        "-q",
+        "akjdev/kelaska-gpu-models/pyTorch/default",
         check=False,
     )
-    log("GPU model cache published (or version failed; check Kaggle dataset)")
+    if version.returncode != 0:
+        log("model version upload failed; see logs for the kaggle CLI output")
+    else:
+        log("GPU model cache published as akjdev/kelaska-gpu-models/pyTorch/default")
 
 
 def main() -> None:
