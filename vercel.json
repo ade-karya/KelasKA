@@ -5,9 +5,6 @@
   "installCommand": "ONNXRUNTIME_NODE_INSTALL_CUDA=skip bunx bun@1.4.5 install --frozen-lockfile",
   "outputDirectory": "out",
   "cleanUrls": true,
-  "functions": {
-    "api/wake.ts": { "maxDuration": 60 }
-  },
   "routes": [
     {
       "src": "/api/wake",

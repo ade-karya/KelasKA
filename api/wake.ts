@@ -13,7 +13,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 const KAGGLE_API = 'https://api.kaggle.com/v1/kernels.KernelsApiService';
-const REQUEST_TIMEOUT_MS = 25_000;
+// Hobby functions default to a 10 s wall clock; keep each Kaggle call short.
+const REQUEST_TIMEOUT_MS = 8_000;
 const COOLDOWN_MS = 5 * 60 * 1000;
 export const DEFAULT_KERNEL_SOURCE_URL =
   'https://raw.githubusercontent.com/ade-karya/KelasKA/refs/heads/deploy/kaggle/deploy/kaggle/kelaska-vercel-kernel.py';
@@ -137,37 +138,41 @@ export async function wakeKaggleCompute(env: Env = process.env): Promise<WakeRes
   kaggleAuthHeader(env);
   const { owner, slug } = splitKernelRef(ref);
 
-  try {
-    const current = await kagglePost<{ status?: unknown }>(
-      'GetKernelSessionStatus',
-      { userName: owner, kernelSlug: slug },
-      env,
-    );
-    const status = kernelStatus(current.status);
-    if (status === 'running' || status === 'queued') {
-      return { started: false, status };
-    }
-  } catch (error) {
-    // Some tokens can push but not read status; the cooldown bounds retries.
-    if (error instanceof Error && /not configured|must be owner\/kernel-slug/.test(error.message)) {
-      throw error;
-    }
-  }
-
-  const now = Date.now();
-  if (now - lastStartAt < COOLDOWN_MS) {
+  if (Date.now() - lastStartAt < COOLDOWN_MS) {
     return { started: false, status: 'cooldown' };
   }
 
+  // Status and source fetch do not depend on each other; running them together
+  // keeps the whole function inside Hobby's 10 s wall clock.
+  const statusCheck = kagglePost<{ status?: unknown }>(
+    'GetKernelSessionStatus',
+    { userName: owner, kernelSlug: slug },
+    env,
+  )
+    .then((current) => kernelStatus(current.status))
+    .catch((error: unknown) => {
+      // Some tokens can push but not read status; the cooldown bounds retries.
+      if (
+        error instanceof Error &&
+        /not configured|must be owner\/kernel-slug/.test(error.message)
+      ) {
+        throw error;
+      }
+      return 'unknown';
+    });
   const sourceUrl = env.KAGGLE_KERNEL_SOURCE_URL?.trim() || DEFAULT_KERNEL_SOURCE_URL;
-  const sourceResponse = await fetch(sourceUrl, {
+  const sourceFetch = fetch(sourceUrl, {
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  }).then(async (response) => {
+    if (!response.ok) throw new Error(`Kernel source fetch failed (${response.status})`);
+    const text = await response.text();
+    if (text.length < 200) throw new Error('Kernel source is unexpectedly short');
+    return text;
   });
-  if (!sourceResponse.ok) {
-    throw new Error(`Kernel source fetch failed (${sourceResponse.status})`);
+  const [status, source] = await Promise.all([statusCheck, sourceFetch]);
+  if (status === 'running' || status === 'queued') {
+    return { started: false, status };
   }
-  const source = await sourceResponse.text();
-  if (source.length < 200) throw new Error('Kernel source is unexpectedly short');
 
   const saved = await kagglePost<{ ref?: string; url?: string; error?: string }>(
     'SaveKernel',
