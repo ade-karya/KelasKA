@@ -749,6 +749,53 @@ def request_stop(signum=None, frame=None) -> None:
 
 
 # %%
+def publish_models() -> None:
+    """One-time warmup: publish the downloaded GPU weights to a private dataset."""
+    if os.environ.get("KELASKA_PUBLISH_MODELS", "").strip().lower() not in {"1", "true"}:
+        return
+    import json as _json
+
+    log("publishing GPU model cache to the private Kaggle dataset")
+    stage = Path("/kaggle/working/kelaska-models-publish")
+    if stage.exists():
+        shutil.rmtree(stage)
+    for relative in ("comfyui/models/checkpoints", "hf", "modelscope", "ollama"):
+        source = GPU_DIR / relative
+        target = stage / relative
+        if source.is_dir():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(source, target)
+    (stage / "dataset-metadata.json").write_text(
+        _json.dumps(
+            {
+                "title": "KelasKA GPU Models",
+                "id": "akjdev/kelaska-gpu-models",
+                "licenses": [{"name": "CC0-1.0"}],
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    try:
+        import kaggle  # noqa: F401 - Kaggle images ship the CLI
+    except ImportError:
+        run(sys.executable, "-m", "pip", "install", "-q", "kaggle", check=False)
+    run(
+        "kaggle",
+        "datasets",
+        "version",
+        "-p",
+        str(stage),
+        "-r",
+        "tar",
+        "-m",
+        "refresh GPU weights",
+        "-q",
+        check=False,
+    )
+    log("GPU model cache published (or version failed; check Kaggle dataset)")
+
+
 def main() -> None:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     signal.signal(signal.SIGTERM, request_stop)
@@ -762,6 +809,7 @@ def main() -> None:
         raise SystemExit("gpu-worker requested but this Kaggle session has no GPU")
     start_gpu_services()
     if IS_WORKER:
+        publish_models()
         start_gpu_proxy()
     else:
         app_dir = prepare_app(bun)

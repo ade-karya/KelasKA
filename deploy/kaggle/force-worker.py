@@ -43,6 +43,7 @@ for key in [
     "KELASKA_PROXY_TOKEN",
     "KELASKA_GITHUB_TOKEN",
     "KELASKA_MODE",
+    "KELASKA_PUBLISH_MODELS",
 ]:
     if os.environ.get(key):
         values[key] = os.environ[key]
@@ -80,6 +81,7 @@ overrides = [
     "KELASKA_PROXY_TOKEN",
     "KELASKA_GITHUB_TOKEN",
     "KELASKA_MODE",
+    "KELASKA_PUBLISH_MODELS",
 ]
 for name in overrides:
     if values.get(name):
