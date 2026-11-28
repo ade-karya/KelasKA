@@ -168,6 +168,12 @@ export function saveKernelBody(
       .split(',')
       .map((value) => value.trim())
       .filter(Boolean),
+    modelDataSources: (
+      env.KAGGLE_MODEL_DATASOURCES?.trim() || 'akjdev/kelaska-gpu-models/PyTorch/default'
+    )
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
     categoryIds: [],
     kernelExecutionType: 'SAVE_AND_RUN_ALL',
     ...(Number.isFinite(timeout) && timeout > 0
