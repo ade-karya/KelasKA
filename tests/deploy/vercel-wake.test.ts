@@ -107,6 +107,7 @@ describe('Kaggle wake function', () => {
     expect(match).not.toBeNull();
     const decoded = JSON.parse(Buffer.from(match![1], 'base64').toString('utf8'));
     expect(decoded.FOO).toBe('bar');
+    expect(decoded.KELASKA_ENV_B64).toBe(envB64);
     expect(decoded.AUTH_PUBLIC_URL).toBe('https://kelaska.riau.ai');
     expect(decoded.KELASKA_AUTH_PUBLIC_URL).toBe('https://kelaska-ui.vercel.app');
     expect(decoded.KELASKA_APP_TUNNEL_TOKEN).toBe('tunnel');

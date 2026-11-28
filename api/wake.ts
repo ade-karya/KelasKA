@@ -106,6 +106,9 @@ export function injectedKernelSource(source: string, env: Env = process.env): st
     .join('');
   if (!encoded) throw new Error('KELASKA_ENV_B64 is not configured on Vercel');
   const values = parseEnvText(Buffer.from(encoded, 'base64').toString('utf8'));
+  // The kernel calls secret("KELASKA_ENV_B64") before touching the values; it
+  // needs the variable itself, not just the env text it decodes to.
+  values.KELASKA_ENV_B64 = encoded;
   for (const key of [
     'KELASKA_AUTH_PUBLIC_URL',
     'KELASKA_APP_TUNNEL_TOKEN',
