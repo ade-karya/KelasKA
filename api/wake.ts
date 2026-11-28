@@ -98,12 +98,13 @@ export function injectedKernelSource(source: string, env: Env = process.env): st
   // A full .env.local is ~10 KB base64, above Vercel's per-variable value
   // limit. It is stored as numbered chunks; keep the legacy single value as
   // the first chunk so older deployments still work.
-  const encoded = [
-    'KELASKA_ENV_B64',
-    ...Array.from({ length: 8 }, (_, i) => `KELASKA_ENV_B64_${i + 1}`),
-  ]
-    .map((key) => env[key]?.trim() ?? '')
-    .join('');
+  const chunks = Array.from(
+    { length: 8 },
+    (_, i) => env[`KELASKA_ENV_B64_${i + 1}`]?.trim() ?? '',
+  ).join('');
+  // Prefer chunks: a legacy single value alongside them doubles the base64
+  // and the kernel's base64.b64decode(...).decode('utf-8') then fails.
+  const encoded = chunks || env.KELASKA_ENV_B64?.trim() || '';
   if (!encoded) throw new Error('KELASKA_ENV_B64 is not configured on Vercel');
   const values = parseEnvText(Buffer.from(encoded, 'base64').toString('utf8'));
   // The kernel calls secret("KELASKA_ENV_B64") before touching the values; it
