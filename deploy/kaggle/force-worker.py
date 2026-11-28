@@ -119,8 +119,9 @@ body = {
     "kernelExecutionType": "SAVE_AND_RUN_ALL",
     "sessionTimeoutSeconds": 42000,
 }
-if GPU:
-    body["machineShape"] = values.get("KAGGLE_MACHINE_SHAPE", "NvidiaTeslaT4")
+if GPU and values.get("KAGGLE_MACHINE_SHAPE"):
+    # Do not force T4 x2 by default: a plain T4 has a much shorter queue.
+    body["machineShape"] = values["KAGGLE_MACHINE_SHAPE"]
 
 request = urllib.request.Request(
     "https://api.kaggle.com/v1/kernels.KernelsApiService/SaveKernel",
