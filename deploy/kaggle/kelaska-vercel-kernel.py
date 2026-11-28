@@ -25,7 +25,8 @@
 # | `KELASKA_ENV_B64` | yes | `base64 -w0 .env.local` of the app environment (Supabase, database, Gemini, secrets) |
 # | `KELASKA_AUTH_PUBLIC_URL` | yes with accounts | the Vercel production URL, e.g. `https://kelaska.vercel.app` |
 # | `KELASKA_PROXY_TOKEN` | strongly recommended | shared secret the Vercel rewrite injects; without it the tunnel is open |
-# | `KELASKA_APP_TUNNEL_TOKEN` | recommended | Cloudflare **named** tunnel token for a stable hostname |
+# | `KELASKA_APP_TUNNEL_TOKEN` | app mode | Cloudflare named tunnel token for `api.<domain>` -> :3000 |
+# | `KELASKA_GPU_TUNNEL_TOKEN` | gpu-worker mode | Cloudflare named tunnel token for `gpu.<domain>` -> :8790 |
 # | `KELASKA_GITHUB_TOKEN` | private repo only | token that can clone `ade-karya/KelasKA` |
 # | `KELASKA_OPENMAIC_YML_B64` | optional | override `deploy/kaggle/openmaic.kaggle.yml` |
 #
@@ -53,6 +54,7 @@ import tempfile
 import time
 import urllib.error
 import urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 # %% [markdown]
@@ -69,6 +71,13 @@ APP_DIR = Path(os.environ.get("KELASKA_APP_DIR", "/kaggle/temp/kelaska-app"))
 GPU_DIR = Path(os.environ.get("KELASKA_GPU_DIR", "/kaggle/temp/gpu-models"))
 LOG_DIR = Path(os.environ.get("KELASKA_LOG_DIR", "/kaggle/temp/kelaska-logs"))
 APP_PORT = 3000
+# The gpu. tunnel's ingress points at 127.0.0.1:8790 on this kernel.
+PROXY_PORT = int(os.environ.get("KELASKA_GPU_PROXY_PORT", "8790"))
+# `app` (default) serves the full Next app + tunnel; `gpu-worker` starts only
+# the GPU services + the separate gpu. tunnel so it can run beside an app
+# session (no second DB pool, no competing api. tunnel).
+MODE = os.environ.get("KELASKA_MODE", "app").strip().lower()
+IS_WORKER = MODE == "gpu-worker"
 GPU_SERVICES = [
     name.strip()
     for name in os.environ.get("KELASKA_GPU_SERVICES", "comfyui,funasr,voxcpm").split(",")
@@ -442,6 +451,59 @@ def start_gpu_services() -> None:
         log(state.read_text(encoding="utf-8").strip())
 
 
+def start_gpu_proxy() -> None:
+    """Backend for the gpu. tunnel: 127.0.0.1:8790 -> local GPU services."""
+    routes = (
+        ("/comfyui", "http://127.0.0.1:8188"),
+        ("/tts", "http://127.0.0.1:8001"),
+        ("/asr", "http://127.0.0.1:8000"),
+        ("/ollama", "http://127.0.0.1:11434"),
+    )
+
+    class ProxyHandler(BaseHTTPRequestHandler):
+        def _forward(self) -> None:
+            path = self.path
+            target = next(
+                (base + path[len(prefix) :] for prefix, base in routes if path.startswith(prefix)),
+                None,
+            )
+            if not target:
+                self.send_error(404, "unknown GPU route")
+                return
+            length = int(self.headers.get("content-length") or 0)
+            body = self.rfile.read(length) if length else None
+            headers = {
+                key: value
+                for key, value in self.headers.items()
+                if key.lower() not in {"host", "content-length", "connection"}
+            }
+            request = urllib.request.Request(target, data=body, method=self.command, headers=headers)
+            try:
+                with urllib.request.urlopen(request, timeout=120) as response:
+                    payload = response.read()
+                    self.send_response(response.status)
+                    for key, value in response.headers.items():
+                        if key.lower() not in {"content-length", "transfer-encoding", "connection"}:
+                            self.send_header(key, value)
+                    self.send_header("content-length", str(len(payload)))
+                    self.end_headers()
+                    if self.command != "HEAD":
+                        self.wfile.write(payload)
+            except Exception as error:  # noqa: BLE001 - surface the upstream failure
+                self.send_error(502, str(error))
+
+        do_GET = do_POST = do_PUT = do_PATCH = do_DELETE = do_HEAD = _forward
+
+        def log_message(self, *_args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", PROXY_PORT), ProxyHandler)
+    import threading
+
+    threading.Thread(target=server.serve_forever, name="gpu-proxy", daemon=True).start()
+    log(f"GPU reverse proxy listening on 127.0.0.1:{PROXY_PORT}")
+
+
 # %% [markdown]
 # ## 5. Start the app and the tunnel
 #
@@ -495,7 +557,10 @@ def download_cloudflared() -> Path:
 def start_tunnel() -> None:
     global TUNNEL_URL
     binary = download_cloudflared()
-    token = secret("KELASKA_APP_TUNNEL_TOKEN", retries=0)
+    token = secret(
+        "KELASKA_GPU_TUNNEL_TOKEN" if IS_WORKER else "KELASKA_APP_TUNNEL_TOKEN",
+        retries=0,
+    )
     logfile = LOG_DIR / "cloudflared.log"
     if token:
         log("starting the named Cloudflare tunnel")
@@ -510,9 +575,13 @@ def start_tunnel() -> None:
         time.sleep(5)
         if child.poll() is not None:
             raise SystemExit("cloudflared exited immediately; see logs/cloudflared.log")
-        TUNNEL_URL = os.environ.get("KELASKA_APP_PUBLIC_URL", "").strip().rstrip("/")
+        TUNNEL_URL = os.environ.get(
+            "KELASKA_GPU_PUBLIC_URL" if IS_WORKER else "KELASKA_APP_PUBLIC_URL", ""
+        ).strip().rstrip("/")
         if TUNNEL_URL:
-            log(f"public app URL: {TUNNEL_URL}")
+            log(f"public URL: {TUNNEL_URL}")
+        elif IS_WORKER:
+            log("GPU worker tunnel started (gpu. hostname configured in Cloudflare)")
         else:
             log("named tunnel started; set KAGGLE_ORIGIN in Vercel to its hostname")
         return
@@ -605,31 +674,44 @@ def main() -> None:
     bun = install_bun()
     clone_repo()
     prepare_environment()
+    if IS_WORKER and not has_gpu():
+        raise SystemExit("gpu-worker requested but this Kaggle session has no GPU")
     start_gpu_services()
-    app_dir = prepare_app(bun)
-    start_app(app_dir, bun)
-    wait_for_app()
+    if IS_WORKER:
+        start_gpu_proxy()
+    else:
+        app_dir = prepare_app(bun)
+        start_app(app_dir, bun)
+        wait_for_app()
     start_tunnel()
 
     log("")
     log("=" * 72)
-    log("KelasKA compute node is running.")
+    if IS_WORKER:
+        log("KelasKA GPU worker is running (no app, no DB pool).")
+    else:
+        log("KelasKA compute node is running.")
     if TUNNEL_URL:
-        log(f"  KAGGLE_ORIGIN={TUNNEL_URL}")
-    log(f"  KAGGLE_PROXY_TOKEN=<same as KELASKA_PROXY_TOKEN>")
-    log(f"  health: http://127.0.0.1:{APP_PORT}/api/health")
+        log(f"  public URL: {TUNNEL_URL}")
+    if not IS_WORKER:
+        log(f"  KAGGLE_PROXY_TOKEN=<same as KELASKA_PROXY_TOKEN>")
+        log(f"  health: http://127.0.0.1:{APP_PORT}/api/health")
     log("=" * 72)
 
     started_at = time.time()
     while not STOP_REQUESTED:
         if time.time() - started_at > MAX_RUNTIME_SECONDS:
-            log("maximum runtime reached; exiting to free the GPU quota")
+            log("maximum runtime reached; exiting to free the quota")
             break
-        try:
-            payload = app_health()
-            log(f"health: {payload.get('status', '?')} tts={payload.get('capabilities', {}).get('tts')}")
-        except Exception as error:
-            log(f"health check failed: {error}")
+        if not IS_WORKER:
+            try:
+                payload = app_health()
+                log(
+                    f"health: {payload.get('status', '?')} "
+                    f"tts={payload.get('capabilities', {}).get('tts')}"
+                )
+            except Exception as error:
+                log(f"health check failed: {error}")
         for _ in range(60):
             if STOP_REQUESTED:
                 break
