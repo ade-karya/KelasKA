@@ -13,13 +13,23 @@ KERNEL_REF="${KAGGLE_GPU_KERNEL_REF:-akjdev/kelaska-gpu-worker}"
 QUEUE_LIMIT_SECONDS=60
 MAX_ATTEMPTS=120
 
+FORCE_SCRIPT="${KELASKA_FORCE_SCRIPT:-/kaggle/temp/KelasKA/deploy/kaggle/force-worker.py}"
+[[ -f "$FORCE_SCRIPT" ]] || FORCE_SCRIPT=/kaggle/temp/KelasKA-src/deploy/kaggle/force-worker.py
+
 wake() {
   local response
   response="$(curl -fsS -m 60 -X POST -H 'content-type: application/json' \
-    -d '{"gpu": true}' "$WAKE_URL")"
-  echo "[gpu] wake: $response"
-  # Vercel's function has a 5-minute cooldown between SaveKernel calls.
-  if [[ "$response" == *cooldown* ]]; then sleep 30; fi
+    -d '{"gpu": true}' "$WAKE_URL" 2>/dev/null || true)"
+  echo "[gpu] wake: ${response:-<empty>}"
+  if [[ -z "$response" || "$response" == *cooldown* || "$response" != *success* ]]; then
+    # Bypass the Vercel function's 5-minute cooldown: same SaveKernel payload,
+    # called directly from the CPU session shell with its injected env.
+    echo "[gpu] wake unavailable; forcing a fresh Kaggle session"
+    KELASKA_MODE=gpu-worker \
+    KAGGLE_GPU_KERNEL_REF="$KERNEL_REF" \
+    KAGGLE_DATASETS="${KAGGLE_DATASETS:-akjdev/kelaska-runtime2,akjdev/kelaska-gpu-models}" \
+      python3 "$FORCE_SCRIPT"
+  fi
 }
 
 status_of() {
