@@ -158,7 +158,12 @@ export function saveKernelBody(
     enableGpu: gpu,
     enableInternet: true,
     ...(gpu && shape ? { machineShape: shape } : {}),
-    datasetDataSources: env.KAGGLE_DATASET?.trim() ? [env.KAGGLE_DATASET.trim()] : [],
+    // Private datasets are attached read-only at /kaggle/input: the prebuilt
+    // app + source (no clone/build) and the cached GPU weights.
+    datasetDataSources: (env.KAGGLE_DATASETS?.trim() || env.KAGGLE_DATASET?.trim() || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
     categoryIds: [],
     kernelExecutionType: 'SAVE_AND_RUN_ALL',
     ...(Number.isFinite(timeout) && timeout > 0

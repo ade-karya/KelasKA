@@ -78,6 +78,16 @@ describe('Kaggle wake function', () => {
     expect(body.machineShape).toBe('NvidiaTeslaT4');
   });
 
+  it('attaches every staged dataset to the kernel', () => {
+    const body = saveKernelBody('akjdev/kelaska-compute', 'print(1)', {
+      KAGGLE_DATASETS: 'akjdev/kelaska-runtime, akjdev/kelaska-gpu-models',
+    });
+    expect(body.datasetDataSources).toEqual([
+      'akjdev/kelaska-runtime',
+      'akjdev/kelaska-gpu-models',
+    ]);
+  });
+
   it('defaults to the Vercel kernel source on deploy/kaggle', () => {
     expect(DEFAULT_KERNEL_SOURCE_URL).toContain('refs/heads/deploy/kaggle');
     expect(DEFAULT_KERNEL_SOURCE_URL).toContain('kelaska-vercel-kernel.py');

@@ -90,6 +90,12 @@ alongside the running app: `KAGGLE_GPU_KERNEL_REF` (default `akjdev/kelaska-gpu-
 serving `api.kelaska.riau.ai → :3000`; both sessions can run concurrently
 (Kaggle allows up to 10 CPU sessions and 1 interactive + 2 batch GPU sessions).
 
+Set `KAGGLE_DATASETS=akjdev/kelaska-runtime,akjdev/kelaska-gpu-models` so every
+woken kernel attaches the prebuilt standalone app + source tree (no clone or
+`next build`) and the cached GPU weights from the private Kaggle datasets.
+The kernel picks `<dataset>/app/server.js` and `<dataset>/repo` automatically;
+still called through Vercel via `POST /api/wake`.
+
 Configure `KAGGLE_USERNAME`, `KAGGLE_KEY`, `KAGGLE_KERNEL_REF` and (optionally)
 `KAGGLE_KERNEL_SOURCE_URL`/`KAGGLE_MACHINE_SHAPE` in Vercel. The **kernel**
 itself must have the app secrets in Kaggle Secrets — `KELASKA_ENV_B64`,
