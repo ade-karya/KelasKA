@@ -231,8 +231,14 @@ def unpack_staged() -> bool:
         if target.exists():
             shutil.rmtree(target)
         target.parent.mkdir(parents=True, exist_ok=True)
-        with zipfile.ZipFile(archive) as zf:
-            zf.extractall(target)
+        with tempfile.TemporaryDirectory() as temporary:
+            with zipfile.ZipFile(archive) as zf:
+                zf.extractall(temporary)
+            # The stage was zipped from a directory named repo/ or app/, so
+            # its entries sit under one top-level folder. Unwrap it.
+            entries = list(Path(temporary).iterdir())
+            source = entries[0] if len(entries) == 1 and entries[0].is_dir() else Path(temporary)
+            shutil.copytree(source, target, dirs_exist_ok=True)
         found = True
 
     restore("repo_zip_b64", SRC_DIR / "install.sh", SRC_DIR)
