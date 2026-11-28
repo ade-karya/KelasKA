@@ -202,12 +202,32 @@ def install_bun() -> str:
 
 
 def clone_repo() -> None:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    input_root = Path("/kaggle/input")
+    staged = None
+    if input_root.is_dir():
+        staged = next(
+            (
+                candidate / "repo"
+                for candidate in sorted(input_root.iterdir())
+                if (candidate / "repo" / "install.sh").is_file()
+            ),
+            None,
+        )
+    if staged is not None:
+        # Pre-staged private dataset: no GitHub clone, no network wait.
+        log(f"using pre-staged repo from {staged}")
+        if SRC_DIR.exists():
+            shutil.rmtree(SRC_DIR)
+        SRC_DIR.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(staged, SRC_DIR)
+        return
+
     token = secret("KELASKA_GITHUB_TOKEN", retries=0)
     url = REPO_URL
     if token and url.startswith("https://github.com/"):
         url = url.replace("https://", f"https://x-access-token:{token}@", 1)
 
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
     if (SRC_DIR / ".git").is_dir():
         run("git", "-C", str(SRC_DIR), "fetch", "origin", REPO_REF, logfile=LOG_DIR / "git.log")
         run(
