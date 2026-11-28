@@ -11,13 +11,15 @@ set -euo pipefail
 WAKE_URL="${KELASKA_WAKE_URL:-https://kelaska-ui.vercel.app/api/wake}"
 KERNEL_REF="${KAGGLE_GPU_KERNEL_REF:-akjdev/kelaska-gpu-worker}"
 QUEUE_LIMIT_SECONDS=60
-MAX_ATTEMPTS=30
+MAX_ATTEMPTS=120
 
 wake() {
   local response
   response="$(curl -fsS -m 60 -X POST -H 'content-type: application/json' \
     -d '{"gpu": true}' "$WAKE_URL")"
   echo "[gpu] wake: $response"
+  # Vercel's function has a 5-minute cooldown between SaveKernel calls.
+  if [[ "$response" == *cooldown* ]]; then sleep 30; fi
 }
 
 status_of() {
