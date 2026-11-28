@@ -1,19 +1,22 @@
 # %% [markdown]
 # # KelasKA — Kaggle compute node for the Vercel UI
 #
-# This notebook turns a **Kaggle GPU session (2× T4)** into the compute half of
-# the split deployment:
+# This notebook turns a **Kaggle session** into the compute half of the split
+# deployment:
 #
 # - the full Next.js app (API + generation engine) runs on `127.0.0.1:3000`;
-# - ComfyUI (images), VoxCPM2 (TTS) and FunASR (ASR) run on the same box;
 # - one Cloudflare Tunnel publishes the app;
 # - the Vercel project (`deploy/vercel` branch) serves the static UI and proxies
-#   every `/api/*` call here.
+#   every `/api/*` call here;
+# - **CPU is the default**: GPU services (ComfyUI/VoxCPM/FunASR) start only when
+#   the session actually has a GPU. A GPU session is started on demand by
+#   `POST /api/wake` with `{"gpu": true}`.
 #
 # ## Before you run
 #
-# 1. **Settings → Accelerator → GPU T4 x2** (the notebook needs two T4s; the
-#    `nvidia-smi` check below refuses to continue otherwise).
+# 1. **Settings → Accelerator → None** for CPU-only (no weekly GPU quota), or
+#    **GPU T4 x2** only when GPU generation is needed. The kernel detects the
+#    accelerator and picks `openmaic.cpu.yml` or `openmaic.kaggle.yml` accordingly.
 # 2. **Kaggle → Add-ons → Secrets** (the notebook reads them; never paste them
 #    into a cell):
 #
@@ -82,6 +85,19 @@ TUNNEL_URL = ""
 
 def log(message: str) -> None:
     print(f"[kelaska] {time.strftime('%H:%M:%S')} {message}", flush=True)
+
+
+def has_gpu() -> bool:
+    """CPU is the default; a GPU session is only started on explicit request."""
+    if not shutil.which("nvidia-smi"):
+        return False
+    result = subprocess.run(
+        ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.returncode == 0 and bool(result.stdout.strip())
 
 
 def run(
@@ -276,16 +292,17 @@ def prepare_environment() -> dict[str, str]:
         )
         log("openmaic.yml written from KELASKA_OPENMAIC_YML_B64")
     else:
-        shipped = SRC_DIR / "deploy/kaggle/openmaic.kaggle.yml"
+        template = "openmaic.kaggle.yml" if has_gpu() else "openmaic.cpu.yml"
+        shipped = SRC_DIR / "deploy" / "kaggle" / template
         if not shipped.is_file():
             raise SystemExit(f"missing {shipped}")
         shutil.copy2(shipped, SRC_DIR / "openmaic.yml")
-        log("openmaic.yml copied from deploy/kaggle/openmaic.kaggle.yml")
+        log(f"openmaic.yml copied from deploy/kaggle/{template}")
         # The shipped config points agent.title at Ollama, which the older
         # GPU kernel starts but this one skips on purpose. Leaving the slot
         # assigned would send every conversation title to a dead endpoint
         # (10 s timeout, no title). Without the line the slot follows `agent`.
-        if "ollama" not in GPU_SERVICES:
+        if template == "openmaic.kaggle.yml" and "ollama" not in GPU_SERVICES:
             yml_path = SRC_DIR / "openmaic.yml"
             kept = [
                 line
@@ -384,6 +401,8 @@ def prepare_app(bun: str) -> Path:
 # %% [markdown]
 # ## 4. GPU services
 #
+# On a CPU-only session this cell returns immediately and the app uses
+# `openmaic.cpu.yml` (browser-native narration, no image slot). On a GPU session
 # `scripts/gpu-services.sh` installs and starts ComfyUI, FunASR and VoxCPM2 on
 # the two T4s. Ollama is deliberately skipped: chat runs on Gemini and a
 # resident local model would compete for the same VRAM as TTS/ASR. The shipped
@@ -394,10 +413,9 @@ def prepare_app(bun: str) -> Path:
 
 # %%
 def start_gpu_services() -> None:
-    if not shutil.which("nvidia-smi"):
-        raise SystemExit(
-            "No NVIDIA GPU. Set Settings → Accelerator → GPU T4 x2 and rerun the notebook."
-        )
+    if not has_gpu():
+        log("no NVIDIA GPU; CPU-only mode (GPU services and media slots skipped)")
+        return
     result = subprocess.run(
         ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
         capture_output=True,
