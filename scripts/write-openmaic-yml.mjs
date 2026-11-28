@@ -9,7 +9,7 @@
  * env var and the template alone; this is then a no-op and the app falls back
  * to GOOGLE_API_KEY / GOOGLE_MODELS as before.
  */
-import { copyFileSync, existsSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, writeFileSync } from 'node:fs';
 
 const CONFIG = 'openmaic.yml';
 const VERCEL_TEMPLATE = 'deploy/vercel/openmaic.yml';
@@ -35,7 +35,10 @@ if (encoded) {
   writeFileSync(CONFIG, content, { mode: 0o600 });
   console.log('[openmaic] wrote openmaic.yml from OPENMAIC_YML_B64');
 } else if (process.env.VERCEL && !existsSync(CONFIG) && existsSync(VERCEL_TEMPLATE)) {
-  copyFileSync(VERCEL_TEMPLATE, CONFIG, { mode: 0o600 });
+  // `copyFileSync`'s third argument is an integer flag, not an options object;
+  // passing `{ mode }` makes Node throw "mode must be int32 or null/undefined".
+  copyFileSync(VERCEL_TEMPLATE, CONFIG);
+  chmodSync(CONFIG, 0o600);
   console.log(`[openmaic] wrote openmaic.yml from ${VERCEL_TEMPLATE}`);
 } else {
   console.log('[openmaic] OPENMAIC_YML_B64 not set; using environment provider config');
