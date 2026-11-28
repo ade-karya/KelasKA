@@ -19,6 +19,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -26,11 +27,16 @@ import {
 import { LayoutGrid, KeyRound, ShieldCheck, Users } from 'lucide-react';
 
 import { useI18n } from '@/lib/hooks/use-i18n';
+import { wakeComputeBackend } from '@/lib/deploy/wake-compute';
 import {
   WorkbenchShellExtensionsProvider,
   type WorkbenchShellExtensions,
 } from '@/lib/workbench/shell-extensions';
 import { authRoleLabelKey, type AuthRole } from '@/lib/server/auth/config';
+
+/** Keep the UI on the loading screen while a stopped Kaggle node starts. */
+const WAKE_POLL_MS = 8_000;
+const WAKE_MAX_WAIT_MS = 12 * 60 * 1000;
 
 export interface AuthSessionUser {
   readonly id: string;
@@ -71,28 +77,69 @@ export function AuthSessionProvider({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const [status, setStatus] = useState<AuthSessionStatus>('loading');
   const [user, setUser] = useState<AuthSessionUser | null>(null);
+  const refreshAbort = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
-    try {
-      const response = await fetch('/api/auth/me', { cache: 'no-store' });
-      const body = (await response.json()) as MeResponse;
-      if (!body.enabled) {
-        setStatus('disabled');
-        setUser(null);
+    refreshAbort.current?.abort();
+    const controller = new AbortController();
+    refreshAbort.current = controller;
+    const started = Date.now();
+    let woken = false;
+
+    for (;;) {
+      try {
+        const response = await fetch('/api/auth/me', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error(`auth probe failed (${response.status})`);
+        const body = (await response.json()) as MeResponse;
+        if (controller.signal.aborted) return;
+        if (!body.enabled) {
+          setStatus('disabled');
+          setUser(null);
+          return;
+        }
+        setUser(body.user ?? null);
+        setStatus(body.user ? 'signed-in' : 'signed-out');
         return;
+      } catch {
+        if (controller.signal.aborted) return;
+        if (!woken) {
+          // On the Vercel split deployment this asks the single function to
+          // start a Kaggle session. Other deployments have no wake route, so
+          // keep the old fail-fast behaviour there.
+          woken = await wakeComputeBackend();
+          if (controller.signal.aborted) return;
+          if (!woken) {
+            setStatus('signed-out');
+            setUser(null);
+            return;
+          }
+        }
+        if (Date.now() - started > WAKE_MAX_WAIT_MS) {
+          setStatus('signed-out');
+          setUser(null);
+          return;
+        }
+        await new Promise<void>((resolve) => {
+          const timer = setTimeout(resolve, WAKE_POLL_MS);
+          controller.signal.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(timer);
+              resolve();
+            },
+            { once: true },
+          );
+        });
       }
-      setUser(body.user ?? null);
-      setStatus(body.user ? 'signed-in' : 'signed-out');
-    } catch {
-      // An unreachable probe must not strand the UI on `loading`: the sign-out
-      // state is the safe assumption (the API itself still enforces the gate).
-      setStatus('signed-out');
-      setUser(null);
     }
   }, []);
 
   useEffect(() => {
     void refresh();
+    return () => refreshAbort.current?.abort();
   }, [refresh]);
 
   const signOut = useCallback(async () => {

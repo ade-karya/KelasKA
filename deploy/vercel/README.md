@@ -65,6 +65,35 @@ client components in `components/static-ui/` that route by `/api/auth/me`.
 Those gates are cosmetic — every authorization decision is still made by the
 Kaggle API behind the rewrite.
 
+## On-demand Kaggle wake
+
+The static UI normally has **zero functions**: `/api/*` is a direct CDN rewrite
+to the tunnel. When the Kaggle session is stopped, that rewrite has no backend,
+so `AuthSessionProvider`'s `/api/auth/me` probe fails. The provider then calls
+`POST /api/wake` and keeps polling `/api/auth/me` (up to 12 minutes) while the
+new session boots. A cold start on Kaggle takes 10–15 minutes, so the browser
+stays on the loading screen during that window; every authorization decision is
+still made by the Kaggle API once it is up.
+
+`api/wake.ts` is the project's **only** Serverless Function (Hobby allows 12).
+It reads Kaggle session status first, so concurrent browsers never start two
+sessions, and applies a 5-minute cooldown to duplicate pushes. `GET /api/wake`
+is a credential-free readiness probe returning whether the function is
+configured; `POST /api/wake` pushes `deploy/kaggle/kelaska-vercel-kernel.py`
+from `deploy/kaggle` to the configured kernel and starts it with
+`SAVE_AND_RUN_ALL`.
+
+Configure `KAGGLE_USERNAME`, `KAGGLE_KEY`, `KAGGLE_KERNEL_REF` and (optionally)
+`KAGGLE_KERNEL_SOURCE_URL`/`KAGGLE_MACHINE_SHAPE` in Vercel. The **kernel**
+itself must have the app secrets in Kaggle Secrets — `KELASKA_ENV_B64`,
+`KELASKA_AUTH_PUBLIC_URL` (the Vercel origin), `KELASKA_APP_TUNNEL_TOKEN`,
+`KELASKA_PROXY_TOKEN` and `KELASKA_GITHUB_TOKEN` for a private repo. The named
+tunnel token makes `api.kelaska.riau.ai` follow whichever session is running,
+so `KAGGLE_ORIGIN` never changes.
+
+Without the Kaggle credentials/secret setup the wake endpoint answers 502 with
+a clear message, and the browser falls back to the old signed-out behaviour.
+
 ## API proxy notes
 
 - `vercel.json` uses `routes` (not `rewrites`) because only `routes` can expand
