@@ -281,6 +281,19 @@ def prepare_environment() -> dict[str, str]:
             raise SystemExit(f"missing {shipped}")
         shutil.copy2(shipped, SRC_DIR / "openmaic.yml")
         log("openmaic.yml copied from deploy/kaggle/openmaic.kaggle.yml")
+        # The shipped config points agent.title at Ollama, which the older
+        # GPU kernel starts but this one skips on purpose. Leaving the slot
+        # assigned would send every conversation title to a dead endpoint
+        # (10 s timeout, no title). Without the line the slot follows `agent`.
+        if "ollama" not in GPU_SERVICES:
+            yml_path = SRC_DIR / "openmaic.yml"
+            kept = [
+                line
+                for line in yml_path.read_text(encoding="utf-8").splitlines(keepends=True)
+                if not line.lstrip().startswith("agent.title:")
+            ]
+            yml_path.write_text("".join(kept), encoding="utf-8")
+            log("agent.title follows agent (Ollama is not started)")
     return values
 
 
@@ -373,7 +386,11 @@ def prepare_app(bun: str) -> Path:
 #
 # `scripts/gpu-services.sh` installs and starts ComfyUI, FunASR and VoxCPM2 on
 # the two T4s. Ollama is deliberately skipped: chat runs on Gemini and a
-# resident local model would compete for the same VRAM as TTS/ASR.
+# resident local model would compete for the same VRAM as TTS/ASR. The shipped
+# `openmaic.kaggle.yml` assigns `agent.title` to Ollama, so the kernel removes
+# that line when Ollama is not started and conversation titles follow `agent`
+# on Gemini. Set `KELASKA_GPU_SERVICES=comfyui,funasr,voxcpm,ollama` to keep
+# the local title model instead.
 
 # %%
 def start_gpu_services() -> None:
