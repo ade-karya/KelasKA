@@ -205,11 +205,11 @@ def unpack_staged() -> bool:
     """Restore staged app/source from private Kaggle dataset chunks.
 
     Kaggle rejects bracketed filenames (Next dynamic routes) even inside a
-    zip, so the zip is stored as numbered base64 text files; Kaggle only sees
-    `.txt`, and this cell reconstructs and extracts it.
+    zip, and zip loses the `.bun` symlinks Node needs. The stage is therefore a
+    tar.gz stored as numbered base64 `.txt` files; Kaggle only sees plain text.
     """
     import io
-    import zipfile
+    import tarfile
 
     found = False
     root = Path("/kaggle/input")
@@ -231,18 +231,14 @@ def unpack_staged() -> bool:
         if target.exists():
             shutil.rmtree(target)
         target.parent.mkdir(parents=True, exist_ok=True)
-        with tempfile.TemporaryDirectory() as temporary:
-            with zipfile.ZipFile(archive) as zf:
-                zf.extractall(temporary)
-            # The stage was zipped from a directory named repo/ or app/, so
-            # its entries sit under one top-level folder. Unwrap it.
-            entries = list(Path(temporary).iterdir())
-            source = entries[0] if len(entries) == 1 and entries[0].is_dir() else Path(temporary)
-            shutil.copytree(source, target, dirs_exist_ok=True)
+        # tarfile preserves symlinks, unlike zipfile; entries were created
+        # with `tar -C <dir> .` so they unpack straight into the target.
+        with tarfile.open(fileobj=archive, mode="r:gz") as tf:
+            tf.extractall(target)
         found = True
 
-    restore("repo_zip_b64", SRC_DIR / "install.sh", SRC_DIR)
-    restore("app_zip_b64", APP_DIR / "server.js", APP_DIR)
+    restore("repo_targz_b64", SRC_DIR / "install.sh", SRC_DIR)
+    restore("app_targz_b64", APP_DIR / "server.js", APP_DIR)
     return found
 
 
