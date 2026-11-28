@@ -202,32 +202,41 @@ def install_bun() -> str:
 
 
 def unpack_staged() -> bool:
-    """Unpack the staged app/source zips from the private Kaggle dataset.
+    """Restore staged app/source from private Kaggle dataset chunks.
 
-    Kaggle rejects bracketed filenames (Next dynamic routes), so the stage is
-    stored as `app.zip`/`repo.zip` instead of plain directories.
+    Kaggle rejects bracketed filenames (Next dynamic routes) even inside a
+    zip, so the zip is stored as numbered base64 text files; Kaggle only sees
+    `.txt`, and this cell reconstructs and extracts it.
     """
+    import io
+    import zipfile
+
     found = False
     root = Path("/kaggle/input")
     if not root.is_dir():
         return False
-    for candidate in sorted(root.iterdir()):
-        repo_zip = candidate / "repo.zip"
-        if repo_zip.is_file() and not (SRC_DIR / "install.sh").is_file():
-            log(f"unpacking staged source from {repo_zip}")
-            if SRC_DIR.exists():
-                shutil.rmtree(SRC_DIR)
-            SRC_DIR.parent.mkdir(parents=True, exist_ok=True)
-            shutil.unpack_archive(str(repo_zip), str(SRC_DIR))
-            found = True
-        app_zip = candidate / "app.zip"
-        if app_zip.is_file() and not (APP_DIR / "server.js").is_file():
-            log(f"unpacking staged app from {app_zip}")
-            if APP_DIR.exists():
-                shutil.rmtree(APP_DIR)
-            APP_DIR.parent.mkdir(parents=True, exist_ok=True)
-            shutil.unpack_archive(str(app_zip), str(APP_DIR))
-            found = True
+
+    def restore(prefix: str, marker: Path, target: Path) -> None:
+        nonlocal found
+        if marker.is_file():
+            return
+        parts = []
+        for candidate in sorted(root.iterdir()):
+            parts.extend(sorted(candidate.glob(f"{prefix}_*.txt")))
+        if not parts:
+            return
+        log(f"restoring staged {prefix} from {len(parts)} chunks")
+        encoded = "".join(part.read_text(encoding="ascii") for part in parts)
+        archive = io.BytesIO(base64.b64decode(encoded))
+        if target.exists():
+            shutil.rmtree(target)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(archive) as zf:
+            zf.extractall(target)
+        found = True
+
+    restore("repo_zip_b64", SRC_DIR / "install.sh", SRC_DIR)
+    restore("app_zip_b64", APP_DIR / "server.js", APP_DIR)
     return found
 
 
