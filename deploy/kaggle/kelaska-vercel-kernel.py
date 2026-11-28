@@ -766,6 +766,7 @@ def publish_models() -> None:
         if source.is_dir():
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(source, target)
+    (stage / "README.md").write_text("# KelasKA GPU weights cache\n", encoding="utf-8")
     (stage / "model-metadata.json").write_text(
         _json.dumps(
             {
@@ -822,13 +823,13 @@ def publish_models() -> None:
         "tar",
         "-n",
         "refresh GPU weights",
-        "akjdev/kelaska-gpu-models/pyTorch/default",
+        "akjdev/kelaska-gpu-models/PyTorch/default",
         check=False,
     )
     if version.returncode != 0:
         log("model version upload failed; see logs for the kaggle CLI output")
     else:
-        log("GPU model cache published as akjdev/kelaska-gpu-models/pyTorch/default")
+        log("GPU model cache published as akjdev/kelaska-gpu-models/PyTorch/default")
 
 
 def main() -> None:
